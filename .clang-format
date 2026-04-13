@@ -1,0 +1,18 @@
+BasedOnStyle: Google
+
+# Prohibir: if (a) { return; }
+AllowShortBlocksOnASingleLine: Never
+
+# Prohibir: void f() { return; }
+AllowShortFunctionsOnASingleLine: None
+
+# Prohibir: if (a) return; (sin llaves)
+AllowShortIfStatementsOnASingleLine: Never
+
+# Prohibir: while (true) { continue; }
+AllowShortLoopsOnASingleLine: false
+
+# Prohibir: switch (a) { case 1: return; }
+AllowShortCaseLabelsOnASingleLine: false
+
+BreakBeforeBraces: Allman

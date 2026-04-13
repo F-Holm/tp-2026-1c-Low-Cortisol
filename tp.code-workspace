@@ -1,6 +1,10 @@
 {
   "folders": [
     {
+      "name": "base",
+      "path": "."
+    },
+    {
       "name": "kernel_scheduler",
       "path": "kernel_scheduler"
     },
@@ -30,6 +34,15 @@
     }
   ],
   "settings": {
+    "files.exclude": {
+        "cpu/": true,
+        "io/": true,
+        "kernel_memory/": true,
+        "kernel_scheduler/": true,
+        "memory_stick/": true,
+        "swap/": true,
+        "utils/": true
+    },
     "debug.onTaskErrors": "abort",
     "files.associations": {
       "*.h": "c"
