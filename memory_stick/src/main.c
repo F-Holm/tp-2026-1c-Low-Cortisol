@@ -27,7 +27,9 @@ int main(int argc, char* argv[])
 
   handshake(socket_kernel_memory);
 
-  desconectar_kernel_memory(socket_kernel_memory);
 
+  desconectar_kernel_memory(socket_kernel_memory);
+  log_destroy(logger);
+	config_destroy(config);
   return 0;
 }
