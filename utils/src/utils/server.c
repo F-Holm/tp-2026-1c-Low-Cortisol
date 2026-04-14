@@ -64,12 +64,11 @@ void* recibir_buffer(int* size, int socket_cliente)
   return buffer;
 }
 
-void recibir_mensaje(int socket_cliente)
+// acordarse de liberar memoria dinamica del puntero retornado
+char* recibir_mensaje(int socket_cliente)
 {
   int size;
   char* buffer = recibir_buffer(&size, socket_cliente);
-  log_info(logger, "Me llego el mensaje %s", buffer);
-  free(buffer);
 }
 
 t_list* recibir_paquete(int socket_cliente)
