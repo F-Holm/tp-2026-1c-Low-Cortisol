@@ -3,8 +3,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/socket.h>
-#include "utils-server.h"
 
+#include "utils-client.h"
 #include "utils/hello.h"
 
 int main(int argc, char* argv[])
