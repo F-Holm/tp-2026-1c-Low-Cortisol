@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/socket.h>
-#include <utils-server.h>
+#include "utils-server.h"
 
 #include "utils/hello.h"
 
@@ -28,7 +28,7 @@ int main(int argc, char* argv[])
   ip = config_get_string_value(t_config,
                                "IP");  // Obtengo la IP del archivo de configs
 
-  puerto = config_get_string_value(t_congig, "PUERTO");  // Obtengo el puerto
+  puerto = config_get_string_value(t_congig, "PORT");  // Obtengo el puerto
 
   socket_swap = crear_conexion(ip, puerto);  // Establezco conexión
 
