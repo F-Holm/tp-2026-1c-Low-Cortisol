@@ -40,7 +40,7 @@ int main()
   }
   else
   {
-    log_info("swap.log",
+    log_info("IO.log",
              "## Conectado a Kernel Scheduler");  // Loggeo el comentario de
                                                   // conexion iniciada
   };
