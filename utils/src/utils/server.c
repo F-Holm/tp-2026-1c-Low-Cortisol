@@ -1,10 +1,10 @@
-#include "utils-server.h"
+#include "utils/server.h"
 
 #include <sys/socket.h>
 
 t_log* logger;
 
-int iniciar_servidor(void)
+int iniciar_servidor(char* puerto)
 {
   // Quitar esta línea cuando hayamos terminado de implementar la funcion
   // assert(!"no implementado!");
@@ -18,7 +18,7 @@ int iniciar_servidor(void)
   hints.ai_socktype = SOCK_STREAM;
   hints.ai_flags = AI_PASSIVE;
 
-  getaddrinfo(NULL, PUERTO, &hints, &servinfo);
+  getaddrinfo(NULL, puerto, &hints, &servinfo);
 
   // Creamos el socket de escucha del servidor
   socket_servidor =

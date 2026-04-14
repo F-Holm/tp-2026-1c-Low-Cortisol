@@ -1,9 +1,7 @@
-#ifndef UTILS_H_
-#define UTILS_H_
+#ifndef UTILS_SERVER_H_
+#define UTILS_SERVER_H_
 
 #include <assert.h>
-#include <commons/collections/list.h>
-#include <commons/log.h>
 #include <netdb.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -11,7 +9,8 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-#define PUERTO "4444"
+#include <commons/collections/list.h>
+#include <commons/log.h>
 
 typedef enum
 {
@@ -29,4 +28,4 @@ t_list* recibir_paquete(int);
 void recibir_mensaje(int);
 int recibir_operacion(int);
 
-#endif /* UTILS_H_ */
+#endif /* UTILS_SERVER_H_ */
