@@ -1,5 +1,5 @@
-#ifndef UTILS_H_
-#define UTILS_H_
+#ifndef UTILS_CLIENT_H_
+#define UTILS_CLIENT_H_
 
 #include <commons/log.h>
 #include <netdb.h>
@@ -36,4 +36,4 @@ void enviar_paquete(t_paquete* paquete, int socket_cliente);
 void liberar_conexion(int socket_cliente);
 void eliminar_paquete(t_paquete* paquete);
 
-#endif /* UTILS_H_ */
+#endif /* UTILS_CLIENT_H_ */

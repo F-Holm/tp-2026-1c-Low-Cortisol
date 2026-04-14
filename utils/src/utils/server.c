@@ -1,24 +1,21 @@
-#include "utils-server.h"
+#include "utils/server.h"
 
 #include <sys/socket.h>
 
 t_log* logger;
 
-int iniciar_servidor(void)
+int iniciar_servidor(char* puerto)
 {
-  // Quitar esta línea cuando hayamos terminado de implementar la funcion
-  // assert(!"no implementado!");
-
   int socket_servidor;
 
-  struct addrinfo hints, *servinfo, *p;
+  struct addrinfo hints, *servinfo;
 
   memset(&hints, 0, sizeof(hints));
   hints.ai_family = AF_INET;
   hints.ai_socktype = SOCK_STREAM;
   hints.ai_flags = AI_PASSIVE;
 
-  getaddrinfo(NULL, PUERTO, &hints, &servinfo);
+  getaddrinfo(NULL, puerto, &hints, &servinfo);
 
   // Creamos el socket de escucha del servidor
   socket_servidor =
@@ -36,12 +33,11 @@ int iniciar_servidor(void)
 
 int esperar_cliente(int socket_servidor)
 {
-  // Quitar esta línea cuando hayamos terminado de implementar la funcion
-  // assert(!"no implementado!");
-
   // Aceptamos un nuevo cliente
+  // Si se cerró el servidor, socket_cliente == -1
   int socket_cliente = accept(socket_servidor, NULL, NULL);
-  log_info(logger, "Se conecto un cliente!");
+  log_info(logger, (socket_cliente == -1 ? "falló accept(socket)"
+                                         : "Se conecto un cliente!"));
   return socket_cliente;
 }
 
