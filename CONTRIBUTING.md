@@ -6,7 +6,9 @@
 | :--- | :--- |
 | **Constantes y Macros** | `NOMBRE_ELEMENTO` |
 | **Variables y Funciones** | `nombre_elemento` |
-| **Structs y Typedefs** | `nombre_elemento_t` |
+| **Structs y Typedefs** | `t_nombre_elemento` |
+| **Headers** | `nombre_elemento.h` |
+| **Archivos de código** | `nombre_elemento.c` |
 
 ---
 
@@ -31,9 +33,10 @@ Agregar comentarios con el formato que tiene el ejemplo de abajo antes de la dec
 
 ```c
 /**
-* @brief Imprime un saludo por consola
-* @param quien Módulo desde donde se llama a la función
-* @return No devuelve nada
-*/
+ * @brief Imprime un saludo por consola
+ * @param quien Módulo desde donde se llama a la función
+ * @return No devuelve nada
+ * @note liberar memoria dinámica del ...
+ */
 void saludar(char* quien);
 ```

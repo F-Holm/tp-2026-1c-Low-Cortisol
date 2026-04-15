@@ -11,4 +11,4 @@
  */
 void saludar(char* quien);
 
-#endif
+#endif /* UTILS_HELLO_H_ */
