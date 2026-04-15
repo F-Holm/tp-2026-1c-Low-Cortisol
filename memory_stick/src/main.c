@@ -17,7 +17,7 @@ volatile bool seguir_operando = true;
 
 int main(int argc, char* argv[])
 {
-  t_config_vars* config_vars;
+  /*t_config_vars* config_vars;
   t_config* config;
   t_log* logger;
   int socket_km;
@@ -82,6 +82,6 @@ int main(int argc, char* argv[])
   liberar_conexion(socket_sv_cpu);
   pthread_join(thread_sv_cpu, NULL);
   log_destroy(logger);
-  close_confir_ms(config);
+  close_confir_ms(config);*/
   return EXIT_SUCCESS;
 }
