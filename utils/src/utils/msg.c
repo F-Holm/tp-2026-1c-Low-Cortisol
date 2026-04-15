@@ -10,7 +10,7 @@ int recibir_operacion(int socket_fd)
     return cod_op;
   else
   {
-    return -1;
+    return OP_CODE_ERROR;
   }
 }
 
