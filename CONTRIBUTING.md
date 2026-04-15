@@ -36,6 +36,7 @@ Agregar comentarios con el formato que tiene el ejemplo de abajo antes de la dec
  * @brief Imprime un saludo por consola
  * @param quien Módulo desde donde se llama a la función
  * @return No devuelve nada
+ * @note liberar memoria dinámica del ...
  */
 void saludar(char* quien);
 ```
