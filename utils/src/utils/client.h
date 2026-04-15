@@ -11,6 +11,6 @@
 #include <unistd.h>
 
 int crear_conexion(char* ip, char* puerto);
-void liberar_conexion(int socket_cliente);
+void liberar_conexion(int socket_fd);
 
 #endif /* UTILS_CLIENT_H_ */

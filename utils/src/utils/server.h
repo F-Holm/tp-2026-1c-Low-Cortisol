@@ -10,6 +10,6 @@
 #include <unistd.h>
 
 int iniciar_servidor(char* puerto);
-int esperar_cliente(int);
+int esperar_cliente(int socket_servidor);
 
 #endif /* UTILS_SERVER_H_ */
