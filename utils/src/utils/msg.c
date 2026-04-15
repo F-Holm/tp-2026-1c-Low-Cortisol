@@ -30,7 +30,7 @@ void* recibir_buffer(int* size, int socket)
 }
 
 // String
-void enviar_string(op_code codigo_operacion, char* mensaje, int socket)
+void enviar_string(int codigo_operacion, char* mensaje, int socket)
 {
   t_paquete* paquete = malloc(sizeof(t_paquete));
 
@@ -57,13 +57,13 @@ char* recibir_string(int socket)
 }
 
 // Handshake
-module_id handshake_msg_to_module_id(char* handshake_msg)
+int handshake_msg_to_module_id(char* handshake_msg)
 {
   int total_modulos = 6;
 
   for (int i = 0; i < total_modulos; i++)
     if (strcmp(handshake_msg, HANDSHAKE_MSG[i]) == 0)
-      return (module_id)i;
+      return i;
   return MODULE_ID_ERROR;
 }
 
