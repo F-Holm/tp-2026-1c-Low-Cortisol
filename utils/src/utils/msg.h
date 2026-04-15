@@ -56,18 +56,11 @@ const char* const HANDSHAKE_MSG[] = {
     "io"
 }
 
-int recibir_operacion(int);
-void* recibir_buffer(int*, int);
-
-// Handshake
-void enviar_handshake(module_id mi_modulo_id, int socket);
-module_id recibir_handshake(int socket);
-
-// Mensajes
-void enviar_mensaje(char* mensaje, int socket);
-char* recibir_mensaje(int);
-
-// Paquetes
+int recibir_operacion(int socket);
+void* recibir_buffer(int* size, int socket);
+void enviar_string(op_code codigo_operacion, char* mensaje, int socket);
+char* recibir_string(int socket);
+module_id handshake_msg_to_module_id(char* handshake_msg);
 t_paquete* crear_paquete(void);
 void agregar_a_paquete(t_paquete* paquete, void* valor, int tamanio);
 void enviar_paquete(t_paquete* paquete, int socket);

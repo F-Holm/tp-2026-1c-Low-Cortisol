@@ -5,8 +5,6 @@
 #include <stdbool.h>
 #include <stdio.h>
 
-const char *const CONFIG_FILE_NAME = "memory_stick.config";
-
 typedef struct
 {
   char *log_level;

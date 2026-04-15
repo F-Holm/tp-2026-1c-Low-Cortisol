@@ -4,7 +4,7 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 
-int create_server_cpu();
+int create_server_cpu(void);
 
 uint16_t get_puerto_cpu(int socket)
 {
@@ -13,3 +13,5 @@ uint16_t get_puerto_cpu(int socket)
   getsockname(socket, (struct sockaddr*)&addr, &len);
   return ntohs(addr.sin_port);
 }
+
+void* hilo_escucha_cpu(int socket);

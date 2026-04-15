@@ -21,9 +21,9 @@ int main(int argc, char* argv[])
   t_config* config;
   t_log* logger;
   int socket_km;
-  int socket_sv_ms;
-  uint16_t puerto_server_ms;
-  pthread_t thread_sv_ms;
+  int socket_sv_cpu;
+  uint16_t puerto_server_cpu;
+  pthread_t thread_sv_cpu;
 
   // Config
   if (!open_confir_ms(config))
@@ -58,18 +58,18 @@ int main(int argc, char* argv[])
   }
 
   // Enviar puerto del servidor a Memory Kernel
-  socket_sv_ms = create_server_cpu();
-  puerto_server_ms = get_puerto_cpu(socket_sv_ms);
-  enviar_puerto_server_ms_km(socket_km, puerto_server_ms);
+  socket_sv_cpu = create_server_cpu();
+  puerto_server_cpu = get_puerto_cpu(socket_sv_cpu);
+  enviar_puerto_server_ms_km(socket_km, puerto_server_cpu);
 
   // Hilo para escuchar nuevas conexiones de CPUs
-  pthread_create(&thread_sv_ms, NULL, hilo_escucha_cpus, &socket_sv_ms);
+  pthread_create(&thread_sv_cpu, NULL, hilo_escucha_cpu, &socket_sv_cpu);
 
   // Esperando Instrucciones del Kernel Memory
   while (seguir_operando)
   {
-    int len;
-    if (recv(fd_kernel, &len, sizeof(int), MSG_WAITALL) <= 0)
+    int op_code = recibir_operacion(socket_km);
+    if ()
     {
       log_info(logger, "Kernel desconectado. Iniciando cierre...");
       seguir_operando = false;
@@ -77,10 +77,10 @@ int main(int argc, char* argv[])
   }
 
   // Liberar y Cerrar
-  shutdown(thread_sv_ms, SHUT_RDWR);
+  shutdown(thread_sv_cpu, SHUT_RDWR);
   liberar_conexion(socket_km);
-  liberar_conexion(socket_sv_ms);
-  pthread_join(thread_sv_ms, NULL);
+  liberar_conexion(socket_sv_cpu);
+  pthread_join(thread_sv_cpu, NULL);
   log_destroy(logger);
   close_confir_ms(config);
   return EXIT_SUCCESS;

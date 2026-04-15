@@ -29,6 +29,7 @@ void* recibir_buffer(int* size, int socket)
   return buffer;
 }
 
+// String
 void enviar_string(op_code codigo_operacion, char* mensaje, int socket)
 {
   t_paquete* paquete = malloc(sizeof(t_paquete));
@@ -55,6 +56,7 @@ char* recibir_string(int socket)
   return recibir_buffer(&size, socket);
 }
 
+// Handshake
 module_id handshake_msg_to_module_id(char* handshake_msg)
 {
   int total_modulos = 6;
@@ -65,30 +67,7 @@ module_id handshake_msg_to_module_id(char* handshake_msg)
   return MODULE_ID_ERROR;
 }
 
-void enviar_handshake(module_id mi_modulo_id, int socket)
-{
-  enviar_string(HANDSHAKE, HANDSHAKE_MSG[mi_modulo_id], socket);
-}
-
-module_id recibir_handshake(int socket)
-{
-  module_id module;
-  char* buffer = recibir_string(socket);
-  module = handshake_msg_to_module_id(buffer);
-  free(buffer);
-  return module;
-}
-
-void enviar_mensaje(char* mensaje, int socket)
-{
-  enviar_string(MENSAJE, mensaje, socket);
-}
-
-char* recibir_mensaje(int socket)
-{
-  return recibir_string(socket);
-}
-
+// Paquete
 void* serializar_paquete(t_paquete* paquete, int bytes)
 {
   void* magic = malloc(bytes);

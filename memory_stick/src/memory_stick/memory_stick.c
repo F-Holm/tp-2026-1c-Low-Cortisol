@@ -2,7 +2,7 @@
 
 bool open_confir_ms(t_config *config)
 {
-  config = config_create(CONFIG_FILE_NAME);
+  config = config_create("memory_stick.config");
   return config != NULL;
 }
 
