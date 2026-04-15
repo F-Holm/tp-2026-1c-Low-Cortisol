@@ -2,8 +2,6 @@
 #define UTILS_SERVER_H_
 
 #include <assert.h>
-#include <commons/collections/list.h>
-#include <commons/log.h>
 #include <netdb.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -11,20 +9,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-typedef enum
-{
-  MENSAJE,
-  PAQUETE
-} op_code;
-
-extern t_log* logger;
-
-void* recibir_buffer(int*, int);
-
 int iniciar_servidor(char* puerto);
-int esperar_cliente(int);
-t_list* recibir_paquete(int);
-char* recibir_mensaje(int);
-int recibir_operacion(int);
+int esperar_cliente(int socket_servidor);
 
 #endif /* UTILS_SERVER_H_ */
