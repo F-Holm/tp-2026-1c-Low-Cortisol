@@ -24,7 +24,7 @@ void* recibir_buffer(int*, int);
 int iniciar_servidor(char* puerto);
 int esperar_cliente(int);
 t_list* recibir_paquete(int);
-void recibir_mensaje(int);
+char* recibir_mensaje(int);
 int recibir_operacion(int);
 
 #endif /* UTILS_SERVER_H_ */
