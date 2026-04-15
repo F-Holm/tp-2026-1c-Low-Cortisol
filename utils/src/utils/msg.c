@@ -10,7 +10,7 @@ int recibir_operacion(int socket_fd)
     return cod_op;
   else
   {
-    return -1;
+    return OP_CODE_ERROR;
   }
 }
 
@@ -83,15 +83,16 @@ int handshake_msg_to_module_id(char* handshake_msg)
   for (int i = 0; i < total_modulos; i++)
     if (strcmp(handshake_msg, HANDSHAKE_MSG[i]) == 0)
       return i;
-  return MODULE_ID_ERROR;
+  return MID_MODULE_ID_ERROR;
 }
 
 void enviar_handshake(int id_modulo, int socket_fd)
 {
-  enviar_string(HANDSHAKE, (char*) HANDSHAKE_MSG[id_modulo], socket_fd);
+  enviar_string(OP_HANDSHAKE, (char*)HANDSHAKE_MSG[id_modulo], socket_fd);
 }
 
-int recibir_handshake(int socket_fd){
+int recibir_handshake(int socket_fd)
+{
   char* msg = recibir_string(socket_fd);
   int id_module = handshake_msg_to_module_id(msg);
   free(msg);
@@ -102,7 +103,7 @@ int recibir_handshake(int socket_fd){
 t_paquete* crear_paquete(void)
 {
   t_paquete* paquete = malloc(sizeof(t_paquete));
-  paquete->codigo_operacion = PAQUETE;
+  paquete->codigo_operacion = OP_PAQUETE;
   crear_buffer(paquete);
   return paquete;
 }

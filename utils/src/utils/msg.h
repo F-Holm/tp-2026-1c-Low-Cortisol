@@ -17,11 +17,12 @@
 typedef enum
 {
   OP_CODE_ERROR,
-  HANDSHAKE,
-  MENSAJE,
-  PAQUETE,
-  PUERTO,
-  IP
+  OP_HANDSHAKE,
+  OP_MENSAJE,
+  OP_PAQUETE,
+  OP_PUERTO,
+  OP_IP,
+  OP_ID_CPU
 } t_op_code;
 
 typedef struct
@@ -38,13 +39,13 @@ typedef struct
 
 typedef enum
 {
-  KERNEL_SCHEDULER,
-  KERNEL_MEMORY,
-  CPU,
-  MEMORY_STICK,
-  SWAP,
-  IO,
-  MODULE_ID_ERROR
+  MID_KERNEL_SCHEDULER,
+  MID_KERNEL_MEMORY,
+  MID_CPU,
+  MID_MEMORY_STICK,
+  MID_SWAP,
+  MID_IO,
+  MID_MODULE_ID_ERROR
 } t_module_id;
 
 extern const char* const HANDSHAKE_MSG[6];
