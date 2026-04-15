@@ -4,14 +4,17 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 
-int create_server_cpu(void);
+#include "utils/server.h"
 
-uint16_t get_puerto_cpu(int socket)
+int create_server_cpu(void)
+{
+  return iniciar_servidor(NULL);
+}
+
+uint16_t get_puerto_cpu(int socket_server_cpu)
 {
   struct sockaddr_in addr;
   socklen_t len = sizeof(addr);
-  getsockname(socket, (struct sockaddr*)&addr, &len);
+  getsockname(socket_server_cpu, (struct sockaddr*)&addr, &len);
   return ntohs(addr.sin_port);
 }
-
-void* hilo_escucha_cpu(int socket);
