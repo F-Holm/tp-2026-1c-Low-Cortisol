@@ -1,9 +1,9 @@
 #include "utils/msg.h"
 
-int recibir_operacion(int socket_cliente)
+int recibir_operacion(int socket)
 {
   int cod_op;
-  if (recv(socket_cliente, &cod_op, sizeof(int), MSG_WAITALL) > 0)
+  if (recv(socket, &cod_op, sizeof(int), MSG_WAITALL) > 0)
     return cod_op;
   else
   {
@@ -18,63 +18,22 @@ void crear_buffer(t_paquete* paquete)
   paquete->buffer->stream = NULL;
 }
 
-void* recibir_buffer(int* size, int socket_cliente)
+void* recibir_buffer(int* size, int socket)
 {
   void* buffer;
 
-  recv(socket_cliente, size, sizeof(int), MSG_WAITALL);
+  recv(socket, size, sizeof(int), MSG_WAITALL);
   buffer = malloc(*size);
-  recv(socket_cliente, buffer, *size, MSG_WAITALL);
+  recv(socket, buffer, *size, MSG_WAITALL);
 
   return buffer;
 }
 
-module_id handshake_msg_to_module_id(char* handshake_msg)
-{
-  int total_modulos = 6;
-
-  for (int i = 0; i < total_modulos; i++)
-    if (strcmp(handshake_msg, HANDSHAKE_MSG[i]) == 0)
-      return (module_id)i;
-  return MODULE_ID_ERROR;
-}
-
-void enviar_handshake(module_id mi_modulo_id, int socket)
-{
-  t_paquete* paquete = malloc(sizeof(t_paquete));
-  char* msg = HANDSHAKE_MSG[mi_modulo_id];
-
-  paquete->codigo_operacion = HANDSHAKE;
-  paquete->buffer = malloc(sizeof(t_buffer));
-  paquete->buffer->size = strlen(msg) + 1;
-  paquete->buffer->stream = malloc(paquete->buffer->size);
-  memcpy(paquete->buffer->stream, msg, paquete->buffer->size);
-
-  int bytes = paquete->buffer->size + 2 * sizeof(int);
-
-  void* a_enviar = serializar_paquete(paquete, bytes);
-
-  send(socket, a_enviar, bytes, 0);
-
-  free(a_enviar);
-  eliminar_paquete(paquete);
-}
-
-module_id recibir_handshake(int socket)
-{
-  int size;
-  module_id module;
-  char* buffer = recibir_buffer(&size, socket_cliente);
-  module = handshake_msg_to_module_id(buffer);
-  free(buffer);
-  return module;
-}
-
-void enviar_mensaje(char* mensaje, int socket)
+void enviar_string(op_code codigo_operacion, char* mensaje, int socket)
 {
   t_paquete* paquete = malloc(sizeof(t_paquete));
 
-  paquete->codigo_operacion = MENSAJE;
+  paquete->codigo_operacion = codigo_operacion;
   paquete->buffer = malloc(sizeof(t_buffer));
   paquete->buffer->size = strlen(mensaje) + 1;
   paquete->buffer->stream = malloc(paquete->buffer->size);
@@ -90,11 +49,44 @@ void enviar_mensaje(char* mensaje, int socket)
   eliminar_paquete(paquete);
 }
 
-// acordarse de liberar memoria dinamica del puntero retornado
-char* recibir_mensaje(int socket_cliente)
+char* recibir_string(int socket)
 {
   int size;
-  return recibir_buffer(&size, socket_cliente);
+  return recibir_buffer(&size, socket);
+}
+
+module_id handshake_msg_to_module_id(char* handshake_msg)
+{
+  int total_modulos = 6;
+
+  for (int i = 0; i < total_modulos; i++)
+    if (strcmp(handshake_msg, HANDSHAKE_MSG[i]) == 0)
+      return (module_id)i;
+  return MODULE_ID_ERROR;
+}
+
+void enviar_handshake(module_id mi_modulo_id, int socket)
+{
+  enviar_string(HANDSHAKE, HANDSHAKE_MSG[mi_modulo_id], socket);
+}
+
+module_id recibir_handshake(int socket)
+{
+  module_id module;
+  char* buffer = recibir_string(socket);
+  module = handshake_msg_to_module_id(buffer);
+  free(buffer);
+  return module;
+}
+
+void enviar_mensaje(char* mensaje, int socket)
+{
+  enviar_string(MENSAJE, mensaje, socket);
+}
+
+char* recibir_mensaje(int socket)
+{
+  return recibir_string(socket);
 }
 
 void* serializar_paquete(t_paquete* paquete, int bytes)
@@ -144,7 +136,7 @@ void enviar_paquete(t_paquete* paquete, int socket)
   free(a_enviar);
 }
 
-t_list* recibir_paquete(int socket_cliente)
+t_list* recibir_paquete(int socket)
 {
   int size;
   int desplazamiento = 0;
@@ -152,7 +144,7 @@ t_list* recibir_paquete(int socket_cliente)
   t_list* valores = list_create();
   int tamanio;
 
-  buffer = recibir_buffer(&size, socket_cliente);
+  buffer = recibir_buffer(&size, socket);
   while (desplazamiento < size)
   {
     memcpy(&tamanio, buffer + desplazamiento, sizeof(int));

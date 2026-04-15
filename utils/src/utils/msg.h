@@ -64,13 +64,13 @@ void enviar_handshake(module_id mi_modulo_id, int socket);
 module_id recibir_handshake(int socket);
 
 // Mensajes
-void enviar_mensaje(char* mensaje, int socket_cliente);
+void enviar_mensaje(char* mensaje, int socket);
 char* recibir_mensaje(int);
 
 // Paquetes
 t_paquete* crear_paquete(void);
 void agregar_a_paquete(t_paquete* paquete, void* valor, int tamanio);
-void enviar_paquete(t_paquete* paquete, int socket_cliente);
+void enviar_paquete(t_paquete* paquete, int socket);
 t_list* recibir_paquete(int);
 void eliminar_paquete(t_paquete* paquete);
 
