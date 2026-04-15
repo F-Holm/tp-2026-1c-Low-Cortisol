@@ -18,9 +18,15 @@ typedef struct
   t_log* logger;
 } t_datos_hilo_escucha;
 
+typedef struct
+{
+  int socket_fd;
+} t_datos_hilo_cpu;
+
 volatile bool seguir_operando = true;
 
 void* hilo_escucha_cpu(void* datos_hilo_escucha_void);
+void* manejar_cliente_cpu(void* datos_hilo_cpu_void);
 
 int main(int argc, char* argv[])
 {
@@ -52,7 +58,7 @@ int main(int argc, char* argv[])
   socket_km = conectar_km(config_vars->ip_km, config_vars->puerto_km);
   if (socket_km < 0)
   {
-    log_error(logger, "## Error de conexión al Kernel_Memory");
+    log_error(logger, "## Error de conexión al Kernel Memory");
     log_destroy(logger);
     config_destroy(config);
     return EXIT_FAILURE;
@@ -64,7 +70,7 @@ int main(int argc, char* argv[])
   int id_modulo = recibir_handshake(socket_km);
   if (id_modulo != MID_KERNEL_MEMORY)
   {
-    log_error(logger, "## Error en el Handshake con Kernel_Memory");
+    log_error(logger, "## Error en el Handshake con Kernel Memory");
     close(socket_km);
     log_destroy(logger);
     config_destroy(config);
@@ -103,7 +109,7 @@ int main(int argc, char* argv[])
   }
 
   // Liberar y Cerrar
-  shutdown(thread_server_cpu, SHUT_RDWR);
+  shutdown(socket_server_cpu, SHUT_RDWR);
   liberar_conexion(socket_km);
   liberar_conexion(socket_server_cpu);
   pthread_join(thread_server_cpu, NULL);
@@ -132,14 +138,36 @@ void* hilo_escucha_cpu(void* datos_hilo_escucha_void)
     int id_modulo = recibir_handshake(socket_cpu);
     if (id_modulo != MID_KERNEL_MEMORY)
     {
+      close(socket_cpu);
       log_error(logger, "## Error en el Handshake con CPU");
       continue;
     }
     enviar_handshake(MID_MEMORY_STICK, socket_cpu);
     log_info(logger, "## Handshake exitoso con Kernel Memory");
 
-    char* recibir_id_cpu();
+    // Obtener ID
+    int codigo_operacion = recibir_operacion(socket_cpu);
+    if (codigo_operacion != OP_IP){
+      close(socket_cpu);
+      log_error(logger, "## Error en la recepción del ID de la CPU");
+      continue;
+    }
+    char* id_cpu = recibir_string(socket_cpu);
+    log_info(logger, "## CPU %s Conectada", id_cpu);
+    free(id_cpu);
+
+    // Iniciar y liberar hilo
+    t_datos_hilo_cpu* datos_hilo_cpu = malloc(sizeof(t_datos_hilo_cpu));
+    datos_hilo_cpu->socket_fd = socket_cpu;
+    pthread_t hilo_cpu;
+    pthread_create(&hilo_cpu, NULL, manejar_cliente_cpu, datos_hilo_cpu);
+    pthread_detach(hilo_cpu);
   }
   log_info(logger, "## Cerrando servidor");
+  return NULL;
+}
+
+void* manejar_cliente_cpu(void* datos_hilo_cpu_void){
+  free(datos_hilo_cpu_void);
   return NULL;
 }
