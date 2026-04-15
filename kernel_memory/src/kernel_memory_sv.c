@@ -2,201 +2,192 @@
 #include "commons/config.h"
 #include "commons/collections/list.h"
 #include <pthread.h>
+#include <commons/log.h>
+#include "kernel_memory_sv.h"
+#include "utils/msg.h"
 
-t_log* logger;
-//HAY QUE LIBERAR ESTO TAMBIEN :::>>>
-t_list* MEMORY_STICK_CONNECTED = list_create();
-t_list* CPU_CONNECTED = list_create();
-
-typedef struct 
-{
-  int socket_memory_stick;
-
-}t_memory_stick_connection;
-
-typedef struct 
-{
-  int socket_cpu;
-}t_cpu_connection;
-
-typedef struct 
-{
-  int socket_swap;
-}t_swap_connection;
-
-typedef struct  
-{
-  int kernel_scheduler;
-}t_kernel_scheduler_connection;
-
-t_config* iniciar_config(void)
-{return config_create("kernel_memory.config");}
-
-int iniciar_servidor(char* puerto){
-
-    struct addrinfo hints, *servinfo;
-
-    memset(&hints, 0, sizeof(hints));
-    hints.ai_family = AF_INET;
-    hints.ai_socktype = SOCK_STREAM;
-    hints.ai_flags = AI_PASSIVE;
-
-    getaddrinfo(NULL, puerto, &hints, &servinfo);
-    // Creamos el socket de escucha del servidor
-    int socket_servidor = socket(hints.ai_family, hints.ai_socktype, hints.ai_protocol);
-    // Asociamos el socket a un puerto
-    bind(socket_servidor, servinfo->ai_addr, servinfo->ai_addrlen);
-    // Escuchamos las conexiones entrantes
-    listen(socket_servidor, SOMAXCONN);
-    
-    freeaddrinfo(servinfo);
-
-    log_trace(logger, "Listo para la escucha");
-    
-    return socket_servidor;
+t_log* iniciar_logger(t_config* config){return log_create("kernel_memory.log", "kernel_memory", true, log_level_from_string(config_get_string_value(config, "LOG_LEVEL")) );}
+t_config* iniciar_config(void){return config_create("kernel_memory.config");}
+ 
+void terminar_comunicacion(int socket_cliente){
+  close(socket_cliente);
+}
+t_datos_scheduler* inicializar_datos_scheduler(int socket_scheduler, t_log* logger){
+  t_datos_scheduler* datos_scheduler = malloc(sizeof(t_datos_scheduler));
+  datos_scheduler->socket_scheduler= socket_scheduler;
+  datos_scheduler->logger= logger;
+  return datos_scheduler;
 }
 
-void* accept_cliente(void* ptr) {
-    int server_socket = *(int*)ptr;
-    int socket_cliente = esperar_cliente(server_socket);
-    
+t_datos_cpu* inicializar_datos_cpu(int socket_cpu, t_log* logger){
+  t_datos_cpu* datos_cpu = malloc(sizeof(t_datos_cpu));
+  datos_cpu->socket_cpu= socket_cpu;
+  datos_cpu->logger= logger;
+  return datos_cpu;
 }
 
-int esperar_cliente(int socket_servidor)
-{
-  // Aceptamos un nuevo cliente
-  // Si se cerró el servidor, socket_cliente == -1
-  int socket_cliente = accept(socket_servidor, NULL, NULL);
-  log_info(logger, (socket_cliente == -1 ? "falló accept(socket)"
-                                         : "Se conecto un cliente!"));
-  if (handshake(socket_cliente)){
-  pthread_t hilo_escucha;
-  pthread_create(&hilo_escucha, NULL, hilo_escuchando, &socket_cliente);
-  pthread_detach(hilo_escucha);
-  }else{
-    log_info(logger,"Handshake Fallido");
+t_datos_stick* inicializar_datos_stick(int socket_stick, t_log* logger){
+  t_datos_stick* datos_stick = malloc(sizeof(t_datos_stick));
+  datos_stick->socket_stick= socket_stick;
+  datos_stick->logger= logger;
+  return datos_stick;
+}
+
+t_datos_swap* inicializar_datos_swap(int socket_swap, t_log* logger){
+  t_datos_swap* datos_swap = malloc(sizeof(t_datos_swap));
+  datos_swap->socket_swap= socket_swap;
+  datos_swap->logger= logger;
+  return datos_swap;
+}
+
+
+void* escucha_scheduler(void* ptr){
+  t_datos_scheduler* datos_scheduler = (t_datos_scheduler*)ptr;
+  log_info(datos_scheduler->logger, "## Kernel Scheduler Conectado - FD del socket: %d", datos_scheduler->socket_scheduler);
+  char* mensaje ="";
+  while (!strcmp(mensaje, "end_communication"))
+  {
+    mensaje = recibir_mensaje(datos_scheduler->socket_scheduler);
+    // QUE HACER CUANDO SE COMUNIC
   }
-  return socket_cliente;
+  terminar_comunicacion(datos_scheduler->socket_scheduler);
 }
 
-bool handshake(int socket_cliente)
-{ 
-  char* ack = recibir_mensaje(socket_cliente);
-  if (socket_cliente > -1 && ack != NULL) {
-    switch (ack)
+void* escucha_cpu(void* ptr){
+  t_datos_cpu* datos_cpu = (t_datos_cpu*)ptr;
+  char* mensaje ="";
+  while (!strcmp(mensaje, "end_communication"))
+  {
+    mensaje = recibir_mensaje(datos_cpu->socket_cpu);
+    // QUE HACER CUANDO SE COMUNIC
+  }
+  terminar_comunicacion(datos_cpu->socket_cpu);
+}
+
+void* escucha_swap(void* ptr){
+  t_datos_swap* datos_swap = (t_datos_swap*)ptr;
+  char* mensaje ="";
+  while (!strcmp(mensaje, "end_communication"))
+  {
+    mensaje = recibir_mensaje(datos_swap->socket_swap);
+    // QUE HACER CUANDO SE COMUNIC
+  }
+  terminar_comunicacion(datos_swap->socket_swap);
+}
+
+void* escucha_stick(void* ptr){
+  t_datos_stick* datos_stick = (t_datos_stick*)ptr;
+  char* mensaje ="";
+  while (!strcmp(mensaje, "end_communication"))
+  {
+    mensaje = recibir_mensaje(datos_stick->socket_stick);
+    // QUE HACER CUANDO SE COMUNIC
+  }
+  terminar_comunicacion(datos_stick->socket_stick);
+}
+
+void empezar_escucha_scheduler(t_datos_scheduler* datos_scheduler){
+    pthread_t hilo_escucha;
+    pthread_create(&hilo_escucha, NULL, escucha_scheduler, &datos_scheduler);
+    pthread_detach(hilo_escucha);
+}
+
+void empezar_escucha_cpu(t_datos_cpu* datos_cpu){
+    pthread_t hilo_escucha;
+    pthread_create(&hilo_escucha, NULL, escucha_cpu, &datos_cpu);
+    pthread_detach(hilo_escucha);
+}
+
+void empezar_escucha_stick(t_datos_stick* datos_stick){
+    pthread_t hilo_escucha;
+    pthread_create(&hilo_escucha, NULL, escucha_stick, &datos_stick);
+    pthread_detach(hilo_escucha);
+}
+
+void empezar_escucha_swap(t_datos_swap* datos_swap){
+    pthread_t hilo_escucha;
+    pthread_create(&hilo_escucha, NULL, escucha_swap, &datos_swap);
+    pthread_detach(hilo_escucha);
+}
+
+
+void handshake(t_datos_kernel_mem* datos_kernel_memory, int client_socket){
+  log_info(datos_kernel_memory->logger, "Servidor a la espera de handshake");
+   int identificador = recibir_handshake(client_socket);
+    switch (identificador)
     {
-    case strcmp(ack, "memory_stick"):
-      t_memory_stick_connection memory_stick_informacion = {};
-      MEMORY_STICK_CONNECTED = list_add(MEMORY_STICK_CONNECTED, memory_stick_informacion);
-
+    case MID_KERNEL_SCHEDULER:
+      enviar_handshake(MID_KERNEL_MEMORY, client_socket);
+      log_info(datos_kernel_memory->logger, "Se ha conectado el kernel scheduler!");
+      t_datos_scheduler* datos_scheduler = inicializar_datos_scheduler(client_socket,datos_kernel_memory->logger);
+      empezar_escucha_scheduler(datos_scheduler);
       break;
-    case strcmp(ack, "cpu"):
-      t_cpu_connection cpu_informacion = {};
-      CPU_CONNECTED = list_add(CPU_CONNECTED, cpu_informacion);
 
+    case MID_CPU:
+      enviar_handshake(MID_KERNEL_MEMORY, client_socket);
+      log_info(datos_kernel_memory->logger, "Se ha conectado una CPU!");
+      t_datos_cpu* datos_cpu= inicializar_datos_cpu(client_socket,datos_kernel_memory->logger);
+      empezar_escucha_cpu(datos_cpu);
+      break;
+
+    case MID_MEMORY_STICK:
+      enviar_handshake(MID_KERNEL_MEMORY, client_socket);
+      log_info(datos_kernel_memory->logger, "Se ha conectado una memory Stick!");
+      t_datos_stick* datos_stick= inicializar_datos_stick(client_socket,datos_kernel_memory->logger);
+      empezar_escucha_stick(datos_stick);
+      break;
+
+    case MID_SWAP:
+      enviar_handshake(MID_KERNEL_MEMORY, client_socket);
+      log_info(datos_kernel_memory->logger, "Se ha conectado el SWAP!");
+      t_datos_swap* datos_swap= inicializar_datos_swap(client_socket,datos_kernel_memory->logger);
+      empezar_escucha_swap(datos_swap);
       break;
 
     default:
       break;
-    }
-    enviar_mensaje("kernel_memory", socket_cliente);
-    free(ack);
-    return true;
-  }
-  return false;
+    }   
 }
 
-void hilo_acceptacion(int server_socket){
+t_datos_kernel_mem* inicializar_datos_kernel_memory(int socket_kernel_memory,t_log* logger){
+    t_datos_kernel_mem* datos_kernel = malloc(sizeof(t_datos_kernel_mem));
+    datos_kernel->socket_kernel_memory= socket_kernel_memory;
+    datos_kernel->logger= logger;
+  return datos_kernel;
+  }
+
+void* accept_cliente(void* ptr) {
+    t_datos_kernel_mem* datos_kernel_memory = (t_datos_kernel_mem*)ptr;
+    log_info(datos_kernel_memory->logger, "Servidor a la espera de un cliente");
+    int socket_cliente = esperar_cliente(datos_kernel_memory->socket_kernel_memory);
+    log_info(datos_kernel_memory->logger, "Se ha aceptado a un cliente!");
+    handshake(datos_kernel_memory, socket_cliente);
+}
+
+
+void hilo_aceptacion(t_datos_kernel_mem* server_data){
   pthread_t hilo_acceptacion;
-  pthread_create(&hilo_acceptacion, NULL, accept_cliente, &server_socket);
-  pthread_join(hilo_acceptacion);
+  pthread_create(&hilo_acceptacion, NULL, accept_cliente, &server_data);
+  pthread_join(hilo_acceptacion, NULL);
 }
 
-void hilo_escuchando(int socket_cliente){
-  char* mensaje ='';
-  while (!strcmp(mensaje, 'end_communication'))
-  {
-    mensaje = recibir_mensaje(socket_cliente);
-    // QUE HACER CUANDO SE COMUNIC
-  }
-  terminar_comunicacion(socket_cliente);
-}
 
-void terminar_comunicacion(int socket_cliente){
-  free(socket_cliente);
-}
-
-int recibir_operacion(int socket_cliente)
-{
-  int cod_op;
-  if (recv(socket_cliente, &cod_op, sizeof(int), MSG_WAITALL) > 0)
-    return cod_op;
-  else
-  {
-    close(socket_cliente);
-    return -1;
-  }
-}
-
-void* recibir_buffer(int* size, int socket_cliente)
-{
-  void* buffer;
-
-  recv(socket_cliente, size, sizeof(int), MSG_WAITALL);
-  buffer = malloc(*size);
-  recv(socket_cliente, buffer, *size, MSG_WAITALL);
-
-  return buffer;
-}
-
-char* recibir_mensaje(int socket_cliente)
-{
-  int size;
-  return recibir_buffer(&size, socket_cliente);
-  // acordarse de liberar memoria dinamica del puntero retornado
-}
-
-/*
-t_list* recibir_paquete(int socket_cliente)
-{
-  int size;
-  int desplazamiento = 0;
-  void* buffer;
-  t_list* valores = list_create();
-  int tamanio;
-
-  buffer = recibir_buffer(&size, socket_cliente);
-  while (desplazamiento < size)
-  {
-    memcpy(&tamanio, buffer + desplazamiento, sizeof(int));
-    desplazamiento += sizeof(int);
-    char* valor = malloc(tamanio + 1);
-    memcpy(valor, buffer + desplazamiento, tamanio);
-    valor[tamanio] = '\0';
-    desplazamiento += tamanio;
-    list_add(valores, valor);
-  }
-  free(buffer);
-  return valores;
-}
-*/
-t_log* iniciar_logger(t_config* config){
-
-  log_create('kernel_memory.log', 'kernel_memory', true, LOG_LEVEL_INFO);
-}
 
 int main(int argc, char* argv[])
 { 
-  t_config* config-> iniciar_config();
-  iniciar_logger()
-  char* puerto = config_get_int_value(config, 'PUERTO_KERNEL_MEMORY');
-  int socket_kernel_memory = iniciar_servidor(puerto);
+  t_config* config = iniciar_config();
+  t_log* logger = iniciar_logger(config);
+  int socket_kernel_memory = iniciar_servidor(config_get_string_value(config, "PUERTO_KERNEL_MEMORY"));
+
+  t_datos_kernel_mem* datos_kernel = inicializar_datos_kernel_memory(socket_kernel_memory, logger);
 
   while (true)
   {
-      hilo_acceptacion(socket_kernel_memory);
+    hilo_aceptacion(datos_kernel);
   }
-  
+
+  free(datos_kernel);
 
   return 0;
 }
+
