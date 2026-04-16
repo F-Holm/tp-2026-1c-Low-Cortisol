@@ -12,34 +12,6 @@ t_config* iniciar_config(void){return config_create("kernel_memory.config");}
 void terminar_comunicacion(int socket_cliente){
   close(socket_cliente);
 }
-t_datos_scheduler* inicializar_datos_scheduler(int socket_scheduler, t_log* logger){
-  t_datos_scheduler* datos_scheduler = malloc(sizeof(t_datos_scheduler));
-  datos_scheduler->socket_scheduler= socket_scheduler;
-  datos_scheduler->logger= logger;
-  return datos_scheduler;
-}
-
-t_datos_cpu* inicializar_datos_cpu(int socket_cpu, t_log* logger){
-  t_datos_cpu* datos_cpu = malloc(sizeof(t_datos_cpu));
-  datos_cpu->socket_cpu= socket_cpu;
-  datos_cpu->logger= logger;
-  return datos_cpu;
-}
-
-t_datos_stick* inicializar_datos_stick(int socket_stick, t_log* logger){
-  t_datos_stick* datos_stick = malloc(sizeof(t_datos_stick));
-  datos_stick->socket_stick= socket_stick;
-  datos_stick->logger= logger;
-  return datos_stick;
-}
-
-t_datos_swap* inicializar_datos_swap(int socket_swap, t_log* logger){
-  t_datos_swap* datos_swap = malloc(sizeof(t_datos_swap));
-  datos_swap->socket_swap= socket_swap;
-  datos_swap->logger= logger;
-  return datos_swap;
-}
-
 
 void* escucha_scheduler(void* ptr){
   t_datos_scheduler* datos_scheduler = (t_datos_scheduler*)ptr;
@@ -77,13 +49,31 @@ void* escucha_swap(void* ptr){
 
 void* escucha_stick(void* ptr){
   t_datos_stick* datos_stick = (t_datos_stick*)ptr;
-  char* mensaje ="";
-  while (!strcmp(mensaje, "end_communication"))
-  {
-    mensaje = recibir_mensaje(datos_stick->socket_stick);
-    // QUE HACER CUANDO SE COMUNIC
-  }
+  bool conexion_estable = true;
+  if (recibir_operacion(datos_stick->socket_stick) == OP_TAMANIO_MEMORIA){
+    char* tamanio = recibir_string(datos_stick->socket_stick);
+    log_info(datos_stick->logger, "## Memory Stick de %d bytes Conectada", tamanio ); 
+    datos_stick->tamanio_stick = stoi(tamanio); 
+    free(tamanio);
+    // crear Lista de conexion de sticks 
+    while (conexion_estable)
+    {
+      switch (recibir_operacion(datos_stick->socket_stick))
+      {
+      case constant expression:
+        /* code */
+        break;
+      
+      default:
+        conexion_estable= false ; 
+        break;
+      }
+    }
+  }else(){
+  log_info(datos_stick->loger, "No se pudo realizar la conexion con la stick ya que no se envio la operacion de tamaño");
   terminar_comunicacion(datos_stick->socket_stick);
+  }
+    terminar_comunicacion(datos_stick->socket_stick);
 }
 
 void empezar_escucha_scheduler(t_datos_scheduler* datos_scheduler){
