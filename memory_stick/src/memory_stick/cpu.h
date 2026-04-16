@@ -7,7 +7,6 @@
 #include <commons/log.h>
 #include <netinet/in.h>
 #include <pthread.h>
-#include <stdatomic.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -26,7 +25,6 @@ typedef struct
   int* socket_fd;
   t_list* lista_sockets;
   pthread_mutex_t* mutex_lista_sockets;
-  atomic_bool* todos_terminaron;
   pthread_cond_t* cond_fin_hilo_escucha;
 } t_datos_hilo_cpu;
 

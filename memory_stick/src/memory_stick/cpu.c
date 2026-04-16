@@ -31,7 +31,6 @@ void* hilo_escucha_cpu(void* datos_hilo_escucha_void)
   t_list* lista_sockets = list_create();
   pthread_mutex_t mutex_lista_sockets;
   pthread_mutex_init(&mutex_lista_sockets, NULL);
-  atomic_bool todos_terminaron = true;
   pthread_cond_t cond_fin_hilo_escucha;
   pthread_cond_init(&cond_fin_hilo_escucha, NULL);
 
@@ -72,11 +71,8 @@ void* hilo_escucha_cpu(void* datos_hilo_escucha_void)
     datos_hilo_cpu->socket_fd = socket_cpu;
     datos_hilo_cpu->lista_sockets = lista_sockets;
     datos_hilo_cpu->mutex_lista_sockets = &mutex_lista_sockets;
-    datos_hilo_cpu->todos_terminaron = &todos_terminaron;
     datos_hilo_cpu->cond_fin_hilo_escucha = &cond_fin_hilo_escucha;
     pthread_mutex_lock(&mutex_lista_sockets);
-    if (list_is_empty(lista_sockets))
-      atomic_store(&todos_terminaron, false);
     list_add(lista_sockets, socket_cpu);
     pthread_mutex_unlock(&mutex_lista_sockets);
     pthread_t hilo_cpu;
@@ -87,7 +83,7 @@ void* hilo_escucha_cpu(void* datos_hilo_escucha_void)
   log_info(logger, "## Cerrando servidor");
   pthread_mutex_lock(&mutex_lista_sockets);
   list_iterate(lista_sockets, (void*)iterator);
-  while (!atomic_load(&todos_terminaron))
+  while (!list_is_empty(lista_sockets))
     pthread_cond_wait(&cond_fin_hilo_escucha, &mutex_lista_sockets);
   pthread_mutex_unlock(&mutex_lista_sockets);
   list_destroy(lista_sockets);
@@ -103,8 +99,6 @@ void* manejar_cliente_cpu(void* datos_hilo_cpu_void)
       ((t_datos_hilo_cpu*)datos_hilo_cpu_void)->lista_sockets;
   pthread_mutex_t* mutex_lista_sockets =
       ((t_datos_hilo_cpu*)datos_hilo_cpu_void)->mutex_lista_sockets;
-  atomic_bool* todos_terminaron =
-      ((t_datos_hilo_cpu*)datos_hilo_cpu_void)->todos_terminaron;
   pthread_cond_t* cond_fin_hilo_escucha =
       ((t_datos_hilo_cpu*)datos_hilo_cpu_void)->cond_fin_hilo_escucha;
   free(datos_hilo_cpu_void);
@@ -124,7 +118,6 @@ void* manejar_cliente_cpu(void* datos_hilo_cpu_void)
   list_remove_element(lista_sockets, socket_cpu);
   if (list_is_empty(lista_sockets))
   {
-    atomic_store(todos_terminaron, true);
     pthread_cond_signal(cond_fin_hilo_escucha);
   }
   pthread_mutex_unlock(mutex_lista_sockets);
