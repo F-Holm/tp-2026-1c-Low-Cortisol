@@ -91,6 +91,8 @@ void* hilo_escucha_cpu(void* datos_hilo_escucha_void)
     pthread_cond_wait(&cond_fin_hilo_escucha, &mutex_lista_sockets);
   pthread_mutex_unlock(&mutex_lista_sockets);
   list_destroy(lista_sockets);
+  pthread_cond_destroy(&cond_fin_hilo_escucha);
+  pthread_mutex_destroy(&mutex_lista_sockets);
   return NULL;
 }
 
