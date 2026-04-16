@@ -26,8 +26,17 @@ int main(int argc, char* argv[])
   t_log_level log_level;
   atomic_bool seguir_operando = true;
 
+  // args
+  if (argc != 3)
+    return EXIT_FAILURE;
+  char* archivo_config = argv[1];
+  char* tamanio_str = argv[2];
+  int tamanio = atoi(tamanio_str);
+  if (tamanio <= 0)
+    return EXIT_FAILURE;
+
   // Config
-  config = config_create("memory_stick.config");
+  config = config_create(archivo_config);
   if (config == NULL)
     return EXIT_FAILURE;
   read_confir_ms(config, &config_vars);
@@ -64,6 +73,9 @@ int main(int argc, char* argv[])
     return EXIT_FAILURE;
   }
   log_info(logger, "## Handshake exitoso con Kernel Memory");
+
+  // Enviar tamaño
+  enviar_string(OP_TAMANIO_MEMORIA, tamanio_str, socket_km);
 
   // Enviar puerto del servidor a Memory Kernel
   socket_server_cpu = create_server_cpu();
