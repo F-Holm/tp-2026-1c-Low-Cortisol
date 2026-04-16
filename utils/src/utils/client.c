@@ -10,15 +10,25 @@ int crear_conexion(char* ip, char* puerto)
   hints.ai_socktype = SOCK_STREAM;
   hints.ai_flags = AI_PASSIVE;
 
-  getaddrinfo(ip, puerto, &hints, &server_info);
+  int err = getaddrinfo(ip, puerto, &hints, &server_info);
+  if (err != 0)
+    return -1;
 
-  // Ahora vamos a crear el socket.
-  int fd_socket = 0;
-  fd_socket = socket(server_info->ai_family, server_info->ai_socktype,
-                     server_info->ai_protocol);
+  int fd_socket = socket(server_info->ai_family, server_info->ai_socktype,
+                         server_info->ai_protocol);
+  if (fd_socket == -1)
+  {
+    freeaddrinfo(server_info);
+    return -1;
+  }
 
-  // Ahora que tenemos el socket, vamos a conectarlo
-  connect(fd_socket, server_info->ai_addr, server_info->ai_addrlen);
+  err = connect(fd_socket, server_info->ai_addr, server_info->ai_addrlen);
+  if (err == -1)
+  {
+    freeaddrinfo(server_info);
+    liberar_conexion(fd_socket);
+    return -1;
+  }
 
   freeaddrinfo(server_info);
 
