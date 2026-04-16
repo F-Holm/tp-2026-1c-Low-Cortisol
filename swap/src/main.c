@@ -15,8 +15,18 @@ int main(int argc, char* argv[])
   char* puerto;
   char* ip;
   char* log_levelstr;
-
-  config = config_create("config.conf");
+  // Args
+  if (argc != 2)
+  {
+    return EXIT_FAILURE;
+  }
+  char* archivo_config = argv[1];
+  // Crea config
+  config = config_create(archivo_config);
+  if (config == NULL)
+  {
+    return EXIT_FAILURE;
+  };
 
   log_levelstr = config_get_string_value(config, "LOG_LEVEL");
 
@@ -25,7 +35,11 @@ int main(int argc, char* argv[])
   t_log* logger =
       log_create("swap.log", "SWAP", true,
                  log_level);  // inicio el log para poder enviar los logs
-
+  if (logger == NULL)
+  {
+    config_destroy(config);
+    return EXIT_FAILURE;
+  };
   ip = config_get_string_value(config,
                                "IP");  // Obtengo la IP del archivo de configs
 
@@ -46,10 +60,11 @@ int main(int argc, char* argv[])
              "## Conectado a Kernel Memory");  // Loggeo el comentario de
                                                // conexion iniciada
   };
-  //Handshake con kernel memory 
-  enviar_handshake (MID_SWAP,socket_swap);
+  // Handshake con kernel memory
+  enviar_handshake(MID_SWAP, socket_swap);
   int id_modulo = recibir_handshake(socket_swap);
-  if(id_modulo != MID_SWAP){
+  if (id_modulo != MID_SWAP)
+  {
     log_error(logger, "## Error en el Handshake con Kernel Memory");
     close(socket_swap);
     log_destroy(logger);

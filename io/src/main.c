@@ -1,31 +1,74 @@
 #include <commons/config.h>
 #include <commons/log.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/socket.h>
 
 #include "utils/client.h"
 #include "utils/hello.h"
 #include "utils/msg.h"
 
-int main()
+int main(int argc, char* argv[])
 {
   t_config* config;
   int socket_IO;
   char* puerto;
   char* ip;
   char* log_levelstr;
+  char* tipo[3] = {"STDIN", "STDOUT", "SLEEP"};
+  bool in, out, sleep;
+  int tipo_de_IO;
 
-  config = config_create("IOconf.conf");
+  if (argc != 3)
+  {
+    return EXIT_FAILURE;
+  }
+  // Argumentos
+  char* archivo_config = argv[1];
+  in = strcmp(tipo[0], argv[2]) == 0;
+  out = strcmp(tipo[1], argv[2]) == 0;
+  sleep = strcmp(tipo[2], argv[2]) == 0;
+  // chequeo si la operacion de IO recibida existe
+  if ((in * out * sleep) != 0)
+  {
+    return EXIT_FAILURE;
+  }  // chequeo cual es (para posible uso futuro)
+  else
+  {
+    if (in = 0)
+    {
+      tipo_de_IO = 0;
+    }
+    if (out = 0)
+    {
+      tipo_de_IO = 1;
+    }
+    if (sleep = 0)
+    {
+      tipo_de_IO = 2;
+    }
+  };
+
+  config = config_create(archivo_config);
+  if (config == NULL)
+  {
+    return EXIT_FAILURE;
+  };
 
   log_levelstr = config_get_string_value(config, "LOG_LEVEL");
 
   t_log_level log_level = log_level_from_string(log_levelstr);
 
   t_log* logger =
-      log_create("IO.log", "IO", true,
+      log_create(logger, "IO", true,
                  log_level);  // inicio el log para poder enviar los logs
-
+  if (logger == NULL)
+  {
+    config_destroy(config);
+    return EXIT_FAILURE;
+  };
   ip = config_get_string_value(config,
                                "IP");  // Obtengo la IP del archivo de configs
 
@@ -36,8 +79,8 @@ int main()
   if (socket_IO == -1)
   {
     log_error(logger, "#ERROR DE CONEXION");  // Informo error
-    log_destroy (logger);
-    config_destroy (config);
+    log_destroy(logger);
+    config_destroy(config);
     return EXIT_FAILURE;  // Termino el programa
   }
   else
@@ -46,11 +89,12 @@ int main()
              "## Conectado a Kernel Scheduler");  // Loggeo el comentario de
                                                   // conexion iniciada
   };
-  
-  //Handshake con kernel scheduler 
-  enviar_handshake (MID_IO,socket_IO);
+
+  // Handshake con kernel scheduler
+  enviar_handshake(MID_IO, socket_IO);
   int id_modulo = recibir_handshake(socket_IO);
-  if(id_modulo != MID_IO){
+  if (id_modulo != MID_IO)
+  {
     log_error(logger, "## Error en el Handshake con Kernel Scheduler");
     close(socket_IO);
     log_destroy(logger);
@@ -59,16 +103,5 @@ int main()
   }
   log_info(logger, "## Handshake exitoso con Kernel Scheduler");
 
-  
-  
-  
-  
-  
-  
   return 0;
-
-
-
-
-
 }
