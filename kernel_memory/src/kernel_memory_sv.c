@@ -6,6 +6,9 @@
 #include "kernel_memory_sv.h"
 #include "utils/msg.h"
 
+#include "kernel_memory_inicializador.h"
+
+
 t_log* iniciar_logger(t_config* config){return log_create("kernel_memory.log", "kernel_memory", true, log_level_from_string(config_get_string_value(config, "LOG_LEVEL")) );}
 t_config* iniciar_config(void){return config_create("kernel_memory.config");}
  
@@ -60,12 +63,16 @@ void* escucha_stick(void* ptr){
     {
       switch (recibir_operacion(datos_stick->socket_stick))
       {
-      case constant expression:
-        /* code */
+      case OP_PAQUETE:
+        t_list* paquete = recibir_paquete(datos_stick->socket_stick);
+         log_info(datos_stick->logger, "Llego un paquete de la memory stick" ); 
+         //comunicaciones 
         break;
-      
-      default:
+      case OP_CODE_ERROR:
         conexion_estable= false ; 
+      break;
+
+        default:
         break;
       }
     }
@@ -139,12 +146,6 @@ void handshake(t_datos_kernel_mem* datos_kernel_memory, int client_socket){
     }   
 }
 
-t_datos_kernel_mem* inicializar_datos_kernel_memory(int socket_kernel_memory,t_log* logger){
-    t_datos_kernel_mem* datos_kernel = malloc(sizeof(t_datos_kernel_mem));
-    datos_kernel->socket_kernel_memory= socket_kernel_memory;
-    datos_kernel->logger= logger;
-  return datos_kernel;
-  }
 
 void* accept_cliente(void* ptr) {
     t_datos_kernel_mem* datos_kernel_memory = (t_datos_kernel_mem*)ptr;
