@@ -3,7 +3,6 @@
 #include <commons/config.h>
 #include <commons/log.h>
 #include <pthread.h>
-#include <stdatomic.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -24,7 +23,6 @@ int main(int argc, char* argv[])
   uint16_t puerto_server_cpu;
   pthread_t thread_server_cpu;
   t_log_level log_level;
-  atomic_bool seguir_operando = true;
 
   // args
   if (argc != 3)
@@ -79,6 +77,14 @@ int main(int argc, char* argv[])
 
   // Enviar puerto del servidor a Memory Kernel
   socket_server_cpu = create_server_cpu();
+  if (socket_server_cpu <= 0)
+  {
+    log_error(logger, "## Error en la creación del servidor para las CPU");
+    close(socket_km);
+    log_destroy(logger);
+    config_destroy(config);
+    return EXIT_FAILURE;
+  }
   puerto_server_cpu = get_puerto_cpu(socket_server_cpu);
   enviar_puerto_server_ms_km(socket_km, puerto_server_cpu);
 
@@ -90,20 +96,16 @@ int main(int argc, char* argv[])
                  &datos_hilo_escucha);
 
   // Esperando Instrucciones del Kernel Memory
-  while (atomic_load(&seguir_operando))
+  while (true)
   {
     int op_code = recibir_operacion(socket_km);
     char* buffer;
-    switch (op_code)
-    {
-      case OP_CODE_ERROR:
-        atomic_store(&seguir_operando, false);
-        break;
-      default:
-        buffer = recibir_string(socket_km);
-        free(buffer);
-        break;
-    }
+
+    if (op_code == OP_CODE_ERROR || op_code == -1)
+      break;
+
+    buffer = recibir_string(socket_km);
+    free(buffer);
   }
 
   // Liberar y Cerrar
