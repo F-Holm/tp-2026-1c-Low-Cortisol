@@ -2,39 +2,43 @@
 #define MEMORY_STICK_MEMORY_STICK_H_
 
 #include <commons/config.h>
-#include "utils/msg.h"
-#include <stdio.h>
 #include <pthread.h>
+#include <stdio.h>
 
-typedef struct {
-    char* ip;
-    int puerto;
-    int socket;
+#include "utils/msg.h"
+
+typedef struct
+{
+  char* ip;
+  int puerto;
+  int socket;
 } t_memory_stick;
 
 typedef struct
 {
-    t_memory_stick memory_stick;
-    struct t_nodo_lista_memory_stick *sgte;
+  t_memory_stick memory_stick;
+  struct t_nodo_lista_memory_stick* sgte;
 } t_nodo_lista_memory_stick;
 
-typedef struct {
-    pthread_t kernel_memory_hilo;
-    pthread_mutex_t mutex_memory_sticks;
+typedef struct
+{
+  pthread_t kernel_memory_hilo;
+  pthread_mutex_t mutex_memory_sticks;
 } t_hilo_cpu;
 
-typedef struct {
-    char* id;
+typedef struct
+{
+  char* id;
 
-    int socket_kernel_memory;
-    int socket_kernel_scheduler;
+  int socket_kernel_memory;
+  int socket_kernel_scheduler;
 
-    t_nodo_lista_memory_stick* memory_sticks;
+  t_nodo_lista_memory_stick* memory_sticks;
 
-    t_hilo_cpu hilos;
+  t_hilo_cpu hilos;
 
-    t_log* logger;
-    t_config* config;
+  t_log* logger;
+  t_config* config;
 } t_cpu;
 
 t_memory_stick crear_nodo(char* ip, int puerto, int socket);

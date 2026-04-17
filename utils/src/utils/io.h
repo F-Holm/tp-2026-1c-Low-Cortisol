@@ -16,12 +16,11 @@
 
 typedef enum
 {
-    E_STDIN,
-    E_STDOUT,
-    E_SLEEP
+  E_STDIN,
+  E_STDOUT,
+  E_SLEEP
 
-}
-e_tipo_io;
+} e_tipo_io;
 
 extern const char* const v_tipo_io[3];
 
