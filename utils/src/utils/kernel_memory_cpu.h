@@ -7,7 +7,7 @@
 
 typedef struct
 {
-  char* ip;
+  char* ip[16];
   int puerto;
 } t_ip_puerto;
 

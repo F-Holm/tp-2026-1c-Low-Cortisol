@@ -23,7 +23,7 @@ t_memory_stick crear_nodo(char* ip, int puerto, int socket)
     return memory_stick;
 }
 
-void* escuchar_kernel_memory(void* arg, t_config* config, t_log* logger)
+void* escuchar_kernel_memory(void* arg)
 {
     t_cpu* cpu = (t_cpu*) arg;
     while (1)
@@ -40,13 +40,13 @@ void* escuchar_kernel_memory(void* arg, t_config* config, t_log* logger)
         int id_modulo = recibir_handshake(nuevo_socket);
         if (id_modulo != MID_MEMORY_STICK)
         {
-            log_error(logger, "## Error en el Handshake con Memory stick,");
+            log_error(cpu->logger, "## Error en el Handshake con Memory stick,");
             close(nuevo_socket);
-            log_destroy(logger);
-            config_destroy(config);
+            log_destroy(cpu->logger);
+            config_destroy(cpu->config);
             return EXIT_FAILURE;
         }
-        log_info(logger, "## Handshake exitoso con Memory stick");
+        log_info(cpu->logger, "## Handshake exitoso con Memory stick");
 
         pthread_mutex_lock(&cpu->hilos.mutex_memory_sticks);
 

@@ -32,10 +32,13 @@ typedef struct {
     t_nodo_lista_memory_stick* memory_sticks;
 
     t_hilo_cpu hilos;
+
+    t_log* logger;
+    t_config* config;
 } t_cpu;
 
 t_memory_stick crear_nodo(char* ip, int puerto, int socket);
 void iniciar_hilo(void* arg);
-void* escuchar_kernel_memory(void* arg, t_config* config, t_log* logger);
+void* escuchar_kernel_memory(void* arg);
 
 #endif /* MEMORY_STICK_MEMORY_STICK_H_ */
