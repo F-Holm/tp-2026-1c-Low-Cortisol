@@ -1,11 +1,11 @@
 #include <commons/config.h>
 #include <commons/log.h>
-#include <stdatomic.h>
-#include <string.h>
 #include <pthread.h>
+#include <stdbool.h>
+#include <string.h>
+
 #include "cpu.h"
 #include "io.h"
-
 #include "kernel_scheduler.h"
 #include "utils/client.h"
 #include "utils/msg.h"
@@ -14,17 +14,14 @@
 int main(int argc, char* argv[])
 {
   int server;
-  int cliente;
   int socket_km;
   char* ip;
   char* puerto;
-  char* valor;
+  bool seguir_operando = true;
 
   t_log* logger;
   t_config* config;
-  atomic_bool seguir_operando = true;
   pthread_t thread_server;
-
 
   config = iniciar_config();
   logger = iniciar_logger(config);
@@ -62,37 +59,41 @@ int main(int argc, char* argv[])
   //----------------------------------------------------------------------------------
 
   // iniciar servidor para CPU y IO
-  server = iniciar_servidor(); 
+  server = iniciar_servidor(puerto);
 
-  //creacion de hilos
+  // creacion de hilos
   t_datos_hilo_escucha datos_hilo_escucha;
   datos_hilo_escucha.socket_fd = server;
   datos_hilo_escucha.logger = logger;
   pthread_create(&thread_server, NULL, hilo_escucha_server,
                  &datos_hilo_escucha);
-
   log_info(logger, "## Servidor listo para recibir CPUs e IOs");
-  
 
   // recibir operaciones de CPU y IO
-  while (atomic_load(&seguir_operando))
+  while (seguir_operando)
   {
-    int op_code = recibir_operacion(cliente);
+    int op_code = recibir_operacion(socket_km);
     switch (op_code)
     {
         // agregar casos para cada operacion que se quiera recibir de la CPU y
         // IO
       case OP_CODE_ERROR:
-        log_error(logger, "## el cliente se desconecto. Terminando servidor");
-        atomic_store(&seguir_operando, false);
-        return EXIT_FAILURE;
+        log_error(logger, "## Se termino la conexion con el servidor.");
+        seguir_operando = false;
+        break;
       default:
         log_warning(logger, "## Operacion desconocida.");
         break;
     }
   }
 
-  // destruir variables y cerrar conexiones
-
+  // cerrar servidor y liberar recursos
+  shutdown(server, SHUT_RDWR);
+  pthread_join(thread_server, NULL);
+  log_info(logger, "## Servidor de cpu cerrado.");
+  liberar_conexion(server);
+  liberar_conexion(socket_km);
+  log_destroy(logger);
+  config_destroy(config);
   return EXIT_SUCCESS;
 }

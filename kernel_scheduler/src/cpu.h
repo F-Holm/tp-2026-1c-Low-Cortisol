@@ -9,3 +9,6 @@ typedef struct
   pthread_mutex_t* mutex_lista_sockets;
   pthread_cond_t* cond_fin_hilo_escucha;
 } t_datos_hilo_cpu;
+
+void* hilo_escucha_server(void* datos_hilo_escucha_void);
+void* manejar_cliente_cpu(void* datos_hilo_cpu_void);

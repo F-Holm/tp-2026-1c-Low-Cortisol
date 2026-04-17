@@ -6,7 +6,5 @@ typedef struct
 {
   int* socket_fd;
   t_list* lista_sockets;
-  pthread_mutex_t* mutex_lista_sockets;
-  pthread_cond_t* cond_fin_hilo_escucha;
-  //falta enum de tipo de io
+  // falta enum de tipo de io
 } t_datos_hilo_io;
