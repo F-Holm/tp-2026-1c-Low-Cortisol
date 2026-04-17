@@ -23,7 +23,8 @@ typedef enum
   OP_PUERTO,
   OP_IP,
   OP_ID_CPU,
-  OP_TAMANIO_MEMORIA
+  OP_TAMANIO_MEMORIA,
+  OP_TIPO_IO
 } t_op_code;
 
 typedef struct
