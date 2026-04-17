@@ -8,8 +8,8 @@
 
 #include "utils/client.h"
 #include "utils/hello.h"
+#include "utils/io.h"
 #include "utils/msg.h"
-
 int main(int argc, char* argv[])
 {
   t_config* config;
@@ -17,39 +17,32 @@ int main(int argc, char* argv[])
   char* puerto;
   char* ip;
   char* log_levelstr;
-  char* tipo[3] = {"STDIN", "STDOUT", "SLEEP"};
-  bool in, out, sleep;
-  int tipo_de_IO;
+  int tipo_io;
 
-  if (argc != 3)
+      if (argc != 3)
   {
     return EXIT_FAILURE;
   }
   // Argumentos
   char* archivo_config = argv[1];
-  in = strcmp(tipo[0], argv[2]) == 0;
-  out = strcmp(tipo[1], argv[2]) == 0;
-  sleep = strcmp(tipo[2], argv[2]) == 0;
-  // chequeo si la operacion de IO recibida existe
-  if ((in * out * sleep) != 0)
+
+  // Chequeo si la operacion de IO recibida existe
+  if (strcmp(v_tipo_io[E_STDIN], argv[2]) == 0)
   {
-    return EXIT_FAILURE;
-  }  // chequeo cual es (para posible uso futuro)
+    tipo_io = E_STDIN;
+  }
+  else if (strcmp(v_tipo_io[E_STDOUT], argv[2]) == 0)
+  {
+    tipo_io = E_STDOUT;
+  }
+  else if (strcmp(v_tipo_io[E_SLEEP], argv[2]) == 0)
+  {
+    tipo_io = E_SLEEP;
+  }
   else
   {
-    if (in = 0)
-    {
-      tipo_de_IO = 0;
-    }
-    if (out = 0)
-    {
-      tipo_de_IO = 1;
-    }
-    if (sleep = 0)
-    {
-      tipo_de_IO = 2;
-    }
-  };
+    return EXIT_FAILURE;
+  }
 
   config = config_create(archivo_config);
   if (config == NULL)
@@ -62,7 +55,7 @@ int main(int argc, char* argv[])
   t_log_level log_level = log_level_from_string(log_levelstr);
 
   t_log* logger =
-      log_create(logger, "IO", true,
+      log_create("io.log", "io", true,
                  log_level);  // inicio el log para poder enviar los logs
   if (logger == NULL)
   {
@@ -90,7 +83,7 @@ int main(int argc, char* argv[])
                                                   // conexion iniciada
   };
 
-  // Handshake con kernel scheduler
+  // Handshake con Kernel Scheduler
   enviar_handshake(MID_IO, socket_IO);
   int id_modulo = recibir_handshake(socket_IO);
   if (id_modulo != MID_IO)
@@ -103,5 +96,21 @@ int main(int argc, char* argv[])
   }
   log_info(logger, "## Handshake exitoso con Kernel Scheduler");
 
-  return 0;
+  // Esperando Instrucciones del Kernel Scheduler
+  while (true)
+  {
+    int op_code = recibir_operacion(socket_IO);
+    char* buffer;
+
+    if (op_code == OP_CODE_ERROR || op_code == -1)
+      break;
+
+    buffer = recibir_string(socket_IO);
+    free(buffer);
+  };
+  // Liberar y Cerrar
+  liberar_conexion(socket_IO);
+  log_destroy(logger);
+  config_destroy(config);
+  return EXIT_SUCCESS;
 }
