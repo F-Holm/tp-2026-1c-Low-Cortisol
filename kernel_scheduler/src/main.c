@@ -2,6 +2,9 @@
 #include <commons/log.h>
 #include <stdatomic.h>
 #include <string.h>
+#include <pthread.h>
+#include "cpu.h"
+#include "io.h"
 
 #include "kernel_scheduler.h"
 #include "utils/client.h"
@@ -10,10 +13,8 @@
 
 int main(int argc, char* argv[])
 {
-  int server_CPU;
-  int server_IO;
-  int cliente_CPU;
-  int cliente_IO;
+  int server;
+  int cliente;
   int socket_km;
   char* ip;
   char* puerto;
@@ -22,25 +23,26 @@ int main(int argc, char* argv[])
   t_log* logger;
   t_config* config;
   atomic_bool seguir_operando = true;
+  pthread_t thread_server;
+
 
   config = iniciar_config();
   logger = iniciar_logger(config);
   ip = config_get_string_value(config, "KERNEL_MEMORY_IP");
   puerto = config_get_string_value(config, "KERNEL_MEMORY_PUERTO");
-  valor = "Hola, soy el kernel scheduler";
 
   // conectar con kernel memory como cliente y loggear el resultado
   socket_km = crear_conexion(ip, puerto);
   if (socket_km <= 0)
   {
-    log_error(logger, "Fallo la conexion con kernel memory en %s:%s", ip,
+    log_error(logger, "## Fallo la conexion con kernel memory en %s:%s", ip,
               puerto);
     terminar_programa(socket_km, logger, config);
     return 1;
   }
   else
   {
-    log_info(logger, "Conexion establecida con kernel memory en %s:%s", ip,
+    log_info(logger, "##Conexion establecida con kernel memory en %s:%s", ip,
              puerto);
   }
 
@@ -60,14 +62,17 @@ int main(int argc, char* argv[])
   //----------------------------------------------------------------------------------
 
   // iniciar servidor para CPU y IO
-  //MAL, DEBERIA SER 1 SOLO(?)
-  server_CPU = iniciar_servidor(); 
-  server_IO = iniciar_servidor();
+  server = iniciar_servidor(); 
 
-  log_info(logger, "Servidor listo para recibir CPUs e IOs");
-  //MAL, DEBERIA SER 1 SOLO(?)
-  cliente_CPU = esperar_cliente(server_CPU);
-  cliente_IO = esperar_cliente(server_IO);
+  //creacion de hilos
+  t_datos_hilo_escucha datos_hilo_escucha;
+  datos_hilo_escucha.socket_fd = server;
+  datos_hilo_escucha.logger = logger;
+  pthread_create(&thread_server, NULL, hilo_escucha_server,
+                 &datos_hilo_escucha);
+
+  log_info(logger, "## Servidor listo para recibir CPUs e IOs");
+  
 
   // recibir operaciones de CPU y IO
   while (atomic_load(&seguir_operando))
@@ -78,11 +83,11 @@ int main(int argc, char* argv[])
         // agregar casos para cada operacion que se quiera recibir de la CPU y
         // IO
       case OP_CODE_ERROR:
-        log_error(logger, "el cliente se desconecto. Terminando servidor");
+        log_error(logger, "## el cliente se desconecto. Terminando servidor");
         atomic_store(&seguir_operando, false);
         return EXIT_FAILURE;
       default:
-        log_warning(logger, "Operacion desconocida.");
+        log_warning(logger, "## Operacion desconocida.");
         break;
     }
   }
