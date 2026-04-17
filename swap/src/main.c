@@ -72,5 +72,23 @@ int main(int argc, char* argv[])
     return EXIT_FAILURE;
   }
   log_info(logger, "## Handshake exitoso con Kernel Memory");
-  return 0;
+
+  // Esperando Instrucciones del Kernel Memory
+  while (true)
+  {
+    int op_code = recibir_operacion(socket_swap);
+    char* buffer;
+
+    if (op_code == OP_CODE_ERROR || op_code == -1)
+      break;
+
+    buffer = recibir_string(socket_swap);
+    free(buffer);
+  };
+
+  // Liberar y Cerrar
+  liberar_conexion(socket_swap);
+  log_destroy(logger);
+  config_destroy(config);
+  return EXIT_SUCCESS;
 }
