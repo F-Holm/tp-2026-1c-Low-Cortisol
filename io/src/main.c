@@ -19,7 +19,7 @@ int main(int argc, char* argv[])
   char* log_levelstr;
   int tipo_io;
 
-      if (argc != 3)
+  if (argc != 3)
   {
     return EXIT_FAILURE;
   }

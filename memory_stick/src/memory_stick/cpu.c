@@ -39,7 +39,10 @@ void* hilo_escucha_cpu(void* datos_hilo_escucha_void)
     int* socket_cpu = malloc(sizeof(int));
     *socket_cpu = esperar_cliente(socket_espera_cpu);
     if (socket_cpu <= 0)
+    {
+      free(socket_cpu);
       break;
+    }
 
     log_info(logger, "## Conexión exitosa con CPU");
 
@@ -48,6 +51,7 @@ void* hilo_escucha_cpu(void* datos_hilo_escucha_void)
     if (id_modulo != MID_CPU)
     {
       close(*socket_cpu);
+      free(socket_cpu);
       log_error(logger, "## Error en el Handshake con CPU");
       continue;
     }
@@ -59,6 +63,7 @@ void* hilo_escucha_cpu(void* datos_hilo_escucha_void)
     if (codigo_operacion != OP_ID_CPU)
     {
       close(*socket_cpu);
+      free(socket_cpu);
       log_error(logger, "## Error en la recepción del ID de la CPU");
       continue;
     }
