@@ -41,22 +41,22 @@ void* hilo_escucha_cpu(void* datos_hilo_escucha_void)
     if (socket_cpu <= 0)
       break;
 
-    log_info(logger, "## Conexión exitosa con Kernel Memory");
+    log_info(logger, "## Conexión exitosa con CPU");
 
     // Handshake con CPU
     int id_modulo = recibir_handshake(*socket_cpu);
-    if (id_modulo != MID_KERNEL_MEMORY)
+    if (id_modulo != MID_CPU)
     {
       close(*socket_cpu);
       log_error(logger, "## Error en el Handshake con CPU");
       continue;
     }
     enviar_handshake(MID_MEMORY_STICK, *socket_cpu);
-    log_info(logger, "## Handshake exitoso con Kernel Memory");
+    log_info(logger, "## Handshake exitoso con CPU");
 
     // Obtener ID
     int codigo_operacion = recibir_operacion(*socket_cpu);
-    if (codigo_operacion != OP_IP)
+    if (codigo_operacion != OP_ID_CPU)
     {
       close(*socket_cpu);
       log_error(logger, "## Error en la recepción del ID de la CPU");
