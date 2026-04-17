@@ -116,7 +116,7 @@ void* hilo_escucha_cpu(void* datos_hilo_escucha_void)
 {
   int socket_espera_cpu =
       ((t_datos_hilo_escucha*)datos_hilo_escucha_void)->socket_fd;
-  t_log *logger = ((t_datos_hilo_escucha*)datos_hilo_escucha_void)->logger;
+  t_log* logger = ((t_datos_hilo_escucha*)datos_hilo_escucha_void)->logger;
 
   while (seguir_operando)
   {
@@ -127,7 +127,7 @@ void* hilo_escucha_cpu(void* datos_hilo_escucha_void)
       break;
     }
     log_info(logger, "## Conexión exitosa con Kernel Memory");
-    
+
     // Handshake con CPU
     int id_modulo = recibir_handshake(socket_cpu);
     if (id_modulo != MID_KERNEL_MEMORY)
