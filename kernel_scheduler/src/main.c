@@ -60,10 +60,12 @@ int main(int argc, char* argv[])
   //----------------------------------------------------------------------------------
 
   // iniciar servidor para CPU y IO
-  server_CPU = iniciar_servidor();
+  //MAL, DEBERIA SER 1 SOLO(?)
+  server_CPU = iniciar_servidor(); 
   server_IO = iniciar_servidor();
 
   log_info(logger, "Servidor listo para recibir CPUs e IOs");
+  //MAL, DEBERIA SER 1 SOLO(?)
   cliente_CPU = esperar_cliente(server_CPU);
   cliente_IO = esperar_cliente(server_IO);
 
