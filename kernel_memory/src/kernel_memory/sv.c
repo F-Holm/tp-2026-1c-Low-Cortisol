@@ -229,28 +229,20 @@ void agregar_coexion_stick(t_datos_kernel_mem* datos_kernel_memory,
   return;
 }
 
-void rellenar_lista_paquete(t_list* sticks_conectados, t_paquete* paquete)
-{
-  for (int i = 0; i < list_size(sticks_conectados); i++)
-  {
-    t_datos_stick* stick_actual =
-        (t_datos_stick*)list_get(sticks_conectados, i);
-
-    t_ip_puerto* nuevo_ip_puerto;
-    nuevo_ip_puerto->puerto = stick_actual->puerto_stick;
-
-    strcpy(nuevo_ip_puerto->ip, stick_actual->ip_memory_stick);
-
-    agregar_a_paquete(paquete, &nuevo_ip_puerto, sizeof(t_ip_puerto));
-  }
-}
-
 void enviar_sticks_conectadas(t_datos_kernel_mem* datos_kernel_memory,
                               t_datos_cpu* datos_cpu)
 {
-  t_paquete* paquete = crear_paquete();
-  rellenar_lista_paquete(datos_kernel_memory->sticks_conectados, paquete);
-  enviar_paquete(paquete, datos_cpu->socket_cpu);
+  for (int i = 0; i < list_size(datos_kernel_memory->sticks_conectados); i++)
+  {
+    t_paquete* paquete = crear_paquete();
+    t_datos_stick* stick_actual =
+        (t_datos_stick*)list_get(datos_kernel_memory->sticks_conectados, i);
+    t_ip_puerto* nuevo_ip_puerto;
+    nuevo_ip_puerto->puerto = stick_actual->puerto_stick;
+    strcpy(nuevo_ip_puerto->ip, stick_actual->ip_memory_stick);
+    agregar_a_paquete(paquete, &nuevo_ip_puerto, sizeof(t_ip_puerto));
+    enviar_paquete(paquete, datos_cpu->socket_cpu);
+  }
 }
 
 void enviar_conexion_cpus(t_datos_stick* datos_stick, t_list* cpus_conectados)
