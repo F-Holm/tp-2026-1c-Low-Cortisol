@@ -358,7 +358,7 @@ void handshake(t_datos_kernel_mem* datos_kernel_memory, int client_socket)
   }
 }
 
-void* accept_cliente(void* ptr)
+void accept_cliente(void* ptr)
 {
   t_datos_kernel_mem* datos_kernel_memory = (t_datos_kernel_mem*)ptr;
   log_info(datos_kernel_memory->logger, "Servidor a la espera de un cliente");
@@ -366,14 +366,6 @@ void* accept_cliente(void* ptr)
       esperar_cliente(datos_kernel_memory->socket_kernel_memory);
   log_info(datos_kernel_memory->logger, "Se ha aceptado a un cliente!");
   handshake(datos_kernel_memory, socket_cliente);
-  return NULL;
-}
-
-void hilo_aceptacion(t_datos_kernel_mem* server_data)
-{
-  pthread_t hilo_acceptacion;
-  pthread_create(&hilo_acceptacion, NULL, accept_cliente, &server_data);
-  pthread_join(hilo_acceptacion, NULL);
 }
 
 int main(int argc, char* argv[])
@@ -388,7 +380,7 @@ int main(int argc, char* argv[])
 
   while (true)
   {
-    hilo_aceptacion(datos_kernel);
+    accept_cliente(datos_kernel);
   }
 
   free(datos_kernel);
