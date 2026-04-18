@@ -20,35 +20,24 @@ int main(int argc, char* argv[])
   int tipo_io;
 
   if (argc != 3)
-  {
     return EXIT_FAILURE;
-  }
+
   // Argumentos
   char* archivo_config = argv[1];
 
   // Chequeo si la operacion de IO recibida existe
   if (strcmp(v_tipo_io[E_STDIN], argv[2]) == 0)
-  {
     tipo_io = E_STDIN;
-  }
   else if (strcmp(v_tipo_io[E_STDOUT], argv[2]) == 0)
-  {
     tipo_io = E_STDOUT;
-  }
   else if (strcmp(v_tipo_io[E_SLEEP], argv[2]) == 0)
-  {
     tipo_io = E_SLEEP;
-  }
   else
-  {
     return EXIT_FAILURE;
-  }
 
   config = config_create(archivo_config);
   if (config == NULL)
-  {
     return EXIT_FAILURE;
-  };
 
   log_levelstr = config_get_string_value(config, "LOG_LEVEL");
 
@@ -76,12 +65,9 @@ int main(int argc, char* argv[])
     config_destroy(config);
     return EXIT_FAILURE;  // Termino el programa
   }
-  else
-  {
-    log_info(logger,
-             "## Conectado a Kernel Scheduler");  // Loggeo el comentario de
-                                                  // conexion iniciada
-  };
+  log_info(logger,
+           "## Conectado a Kernel Scheduler");  // Loggeo el comentario de
+                                                // conexion iniciada
 
   // Handshake con Kernel Scheduler
   enviar_handshake(MID_IO, socket_IO);
@@ -107,7 +93,7 @@ int main(int argc, char* argv[])
 
     buffer = recibir_string(socket_IO);
     free(buffer);
-  };
+  }
   // Liberar y Cerrar
   liberar_conexion(socket_IO);
   log_destroy(logger);
