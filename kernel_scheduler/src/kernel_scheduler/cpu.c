@@ -35,9 +35,10 @@ void* hilo_escucha_server(void* datos_hilo_escucha_void)
   {
     int* socket_cpu_io = malloc(sizeof(int));
     *socket_cpu_io = esperar_cliente(socket_server_cpu_io);
-    if (socket_cpu_io <= 0)
+    if (*socket_cpu_io <= 0){
+      free(socket_cpu_io);
       break;
-
+    }
     // que onda con este log?
     log_info(logger, "## Conectado con cpu");
 
@@ -89,7 +90,7 @@ void* hilo_escucha_server(void* datos_hilo_escucha_void)
 
     // Obtener ID de cpu
     int codigo_operacion = recibir_operacion(*socket_cpu_io);
-    if (codigo_operacion != OP_IP)
+    if (codigo_operacion != OP_ID_CPU)
     {
       close(*socket_cpu_io);
       log_error(logger, "## Error en la recepción del ID de la CPU");
