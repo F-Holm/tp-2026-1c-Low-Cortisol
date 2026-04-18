@@ -15,13 +15,12 @@ void iterator(void* value)
 
 void asignador(void* value)
 {
-
 }
 
 void* escuchar_kernel_memory(void* arg)
 {
   t_cpu* cpu = (t_cpu*)arg;
-  t_list* lista_paquete; 
+  t_list* lista_paquete;
   char* ip_stick;
   char* puerto_stick;
 

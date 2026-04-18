@@ -70,7 +70,6 @@ int main(int argc, char* argv[])
 
   enviar_string(OP_ID_CPU, cpu->id, cpu->socket_kernel_scheduler);
 
-
   // CONEXION CON EL KERNEL MEMORY
 
   ip_kernel_memory = config_get_string_value(cpu->config, "KERNEL_MEMORY_IP");
