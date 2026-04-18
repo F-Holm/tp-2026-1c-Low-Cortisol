@@ -58,7 +58,7 @@ int main(int argc, char* argv[])
   // Handshake con kernel memory
   enviar_handshake(MID_SWAP, socket_swap);
   int id_modulo = recibir_handshake(socket_swap);
-  if (id_modulo != MID_SWAP)
+  if (id_modulo != MID_KERNEL_MEMORY)
   {
     log_error(logger, "## Error en el Handshake con Kernel Memory");
     close(socket_swap);
