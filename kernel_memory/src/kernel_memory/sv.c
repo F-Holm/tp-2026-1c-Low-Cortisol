@@ -225,24 +225,32 @@ bool recibir_puerto_escucha_stick(t_datos_stick* datos_stick)
 void agregar_coexion_stick(t_datos_kernel_mem* datos_kernel_memory,
                            t_datos_stick* datos_stick)
 {
+  pthread_mutex_lock(&datos_kernel_memory->mutex_lista_sockets);
   list_add(datos_kernel_memory->sticks_conectados, datos_stick);
+  pthread_mutex_unlock(&datos_kernel_memory->mutex_lista_sockets);
   return;
 }
 
 void enviar_sticks_conectadas(t_datos_kernel_mem* datos_kernel_memory,
                               t_datos_cpu* datos_cpu)
 {
-  for (int i = 0; i < list_size(datos_kernel_memory->sticks_conectados); i++)
+  pthread_mutex_lock(&datos_kernel_memory->mutex_lista_sockets);
+  int total_sticks = list_size(datos_kernel_memory->sticks_conectados);
+  for (int i = 0; i < total_sticks; i++)
   {
     t_paquete* paquete = crear_paquete();
     t_datos_stick* stick_actual =
         (t_datos_stick*)list_get(datos_kernel_memory->sticks_conectados, i);
-    t_ip_puerto* nuevo_ip_puerto;
+    t_ip_puerto* nuevo_ip_puerto = malloc(sizeof(t_ip_puerto));
     nuevo_ip_puerto->puerto = stick_actual->puerto_stick;
     strcpy(nuevo_ip_puerto->ip, stick_actual->ip_memory_stick);
-    agregar_a_paquete(paquete, &nuevo_ip_puerto, sizeof(t_ip_puerto));
+    agregar_a_paquete(paquete, nuevo_ip_puerto, sizeof(t_ip_puerto));
+    free(nuevo_ip_puerto);
+
     enviar_paquete(paquete, datos_cpu->socket_cpu);
+    eliminar_paquete(paquete);
   }
+  pthread_mutex_unlock(&datos_kernel_memory->mutex_lista_sockets);
 }
 
 void enviar_conexion_cpus(t_datos_stick* datos_stick, t_list* cpus_conectados)
@@ -379,6 +387,7 @@ int main(int argc, char* argv[])
     accept_cliente(datos_kernel);
   }
 
+  pthread_mutex_destroy(&datos_kernel->mutex_lista_sockets);
   free(datos_kernel);
 
   return 0;

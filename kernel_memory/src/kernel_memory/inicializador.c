@@ -16,6 +16,7 @@ t_datos_kernel_mem* inicializar_datos_kernel_memory(int socket_kernel_memory,
   datos_kernel->logger = logger;
   datos_kernel->sticks_conectados = list_create();
   datos_kernel->cpus_conectados = list_create();
+  pthread_mutex_init(&datos_kernel->mutex_lista_sockets, NULL);
   return datos_kernel;
 }
 

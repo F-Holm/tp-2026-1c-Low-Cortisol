@@ -44,6 +44,9 @@ int main(int argc, char* argv[])
   log_info(cpu->logger, "Iniciando CPU %s", cpu->id);
   log_info(cpu->logger, "cpu->configcargado correctamente");
 
+  cpu->memory_sticks = list_create();
+  pthread_mutex_init(&cpu->hilos.mutex_memory_sticks, NULL);
+
   // CONEXION CON EL KERNEL SCHEDULER
 
   ip_kernel_scheduler =
@@ -99,5 +102,7 @@ int main(int argc, char* argv[])
   // hilo de escucha
   iniciar_hilo(cpu);
   log_info(cpu->logger, "Hilo de escucha de Kernel Memory iniciado");
-  escuchar_kernel_memory(cpu);
+
+  pthread_join(cpu->hilos.kernel_memory_hilo, NULL);
+  return 0;
 }
