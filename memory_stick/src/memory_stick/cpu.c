@@ -6,7 +6,7 @@
 
 int create_server_cpu(void)
 {
-  return iniciar_servidor(NULL);
+  return iniciar_servidor("0");
 }
 
 uint16_t get_puerto_cpu(int socket_server_cpu)
