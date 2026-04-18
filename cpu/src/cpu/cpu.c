@@ -1,8 +1,9 @@
 #include "cpu/cpu.h"
+
 #include <commons/log.h>
 #include <stdio.h>
-#include "utils/kernel_memory_cpu.h"
 
+#include "utils/kernel_memory_cpu.h"
 
 void iniciar_hilo(void* arg)
 {
@@ -40,7 +41,8 @@ void* escuchar_kernel_memory(void* arg)
     list_destroy_and_destroy_elements(lista_paquete, free);
     int nuevo_socket = crear_conexion(ip_stick, puerto_stick);
 
-    log_info(cpu->logger, "Conectandose a memory stick con ip %s y puerto %s", ip_stick, puerto_stick);
+    log_info(cpu->logger, "Conectandose a memory stick con ip %s y puerto %s",
+             ip_stick, puerto_stick);
 
     // Handshake con memory stick
     enviar_handshake(MID_CPU, nuevo_socket);

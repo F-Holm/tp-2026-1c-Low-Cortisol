@@ -1,8 +1,8 @@
 #ifndef MEMORY_STICK_MEMORY_STICK_H_
 #define MEMORY_STICK_MEMORY_STICK_H_
 
-#include <commons/config.h>
 #include <commons/collections/list.h>
+#include <commons/config.h>
 #include <pthread.h>
 #include <stdio.h>
 
