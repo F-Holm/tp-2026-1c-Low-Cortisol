@@ -246,8 +246,8 @@ void enviar_sticks_conectadas(t_datos_kernel_mem* datos_kernel_memory,
     snprintf(puerto, sizeof(puerto), "%u", stick_actual->puerto_stick);
 
     agregar_a_paquete(paquete, &stick_actual->ip_memory_stick,
-                      sizeof(t_ip_puerto));
-    agregar_a_paquete(paquete, &puerto, sizeof(t_ip_puerto));
+                      sizeof(char[16]));
+    agregar_a_paquete(paquete, &puerto, sizeof(puerto));
 
     enviar_paquete(paquete, datos_cpu->socket_cpu);
     eliminar_paquete(paquete);
@@ -259,11 +259,11 @@ void enviar_conexion_cpus(t_datos_stick* datos_stick, t_list* cpus_conectados)
 {
   t_paquete* paquete = crear_paquete();
 
-  agregar_a_paquete(paquete, datos_stick->ip_memory_stick, sizeof(t_ip_puerto));
+  agregar_a_paquete(paquete, datos_stick->ip_memory_stick, sizeof(char[16]));
 
   char puerto[6];
   snprintf(puerto, sizeof(puerto), "%u", datos_stick->puerto_stick);
-  agregar_a_paquete(paquete, &puerto, sizeof(t_ip_puerto));
+  agregar_a_paquete(paquete, &puerto, sizeof(puerto));
 
   for (int i = 0; i < list_size(cpus_conectados); i++)
   {

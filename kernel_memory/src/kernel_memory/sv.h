@@ -10,6 +10,7 @@ typedef struct
   t_log* logger;
   t_list* sticks_conectados;
   t_list* cpus_conectados;
+  pthread_mutex_t mutex_lista_sockets;
 } t_datos_kernel_mem;
 
 typedef struct

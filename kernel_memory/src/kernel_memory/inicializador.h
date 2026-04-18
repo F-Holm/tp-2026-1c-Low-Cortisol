@@ -1,4 +1,5 @@
 #include <commons/log.h>
+#include <pthread.h>
 
 #include "commons/collections/list.h"
 #include "kernel_memory/sv.h"

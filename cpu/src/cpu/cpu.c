@@ -31,7 +31,14 @@ void* escuchar_kernel_memory(void* arg)
   {
     char ip_stick[16];
     char puerto_stick[6];
-
+    int codigo_operacion = recibir_operacion(cpu->socket_kernel_memory);
+    if (codigo_operacion != OP_PAQUETE)
+    {
+      log_error(cpu->logger, "## Error en el tipo de operación");
+      log_destroy(cpu->logger);
+      config_destroy(cpu->config);
+      return NULL;
+    }
     lista_paquete = recibir_paquete(cpu->socket_kernel_memory);
 
     if (list_size(lista_paquete) != 2)
@@ -42,9 +49,9 @@ void* escuchar_kernel_memory(void* arg)
                 list_size(lista_paquete));
       log_destroy(cpu->logger);
       config_destroy(cpu->config);
+      list_destroy_and_destroy_elements(lista_paquete, free);
       return NULL;
     }
-
     strcpy(ip_stick, list_get(lista_paquete, 0));
     strcpy(puerto_stick, list_get(lista_paquete, 1));
     list_destroy_and_destroy_elements(lista_paquete, free);
