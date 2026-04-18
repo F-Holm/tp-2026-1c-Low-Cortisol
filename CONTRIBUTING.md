@@ -20,8 +20,11 @@
 | `make debug` | Compila el proyecto completo en debug. |
 | `make release` | Compila el proyecto completo en release. |
 | `make clean` | Elimina todos los archivos objeto (`.o`) y los binarios generados. |
+| `make logs` | Elimina todos los logs generados. |
 | `make test` | Compila y ejecuta los tests. |
 | `make format` | Ejecuta clang-format para darle formato estándar a todo el código. |
+| `make run` | Compila y ejecuta los módulos. |
+| `make kill` | Detiene la ejecución del sistema. |
 
 ---
 
