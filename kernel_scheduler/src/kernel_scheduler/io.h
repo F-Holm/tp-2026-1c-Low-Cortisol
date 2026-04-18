@@ -1,6 +1,5 @@
 #include <commons/collections/list.h>
 #include <commons/log.h>
-#include <stdatomic.h>
 
 typedef struct
 {

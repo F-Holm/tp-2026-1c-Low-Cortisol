@@ -1,4 +1,4 @@
-#include "kernel_memory_sv.h"
+#include "kernel_memory/sv.h"
 
 #include <commons/log.h>
 #include <pthread.h>
@@ -6,7 +6,7 @@
 
 #include "commons/collections/list.h"
 #include "commons/config.h"
-#include "kernel_memory_inicializador.h"
+#include "kernel_memory/inicializador.h"
 #include "utils/kernel_memory_cpu.h"
 #include "utils/msg.h"
 #include "utils/server.h"

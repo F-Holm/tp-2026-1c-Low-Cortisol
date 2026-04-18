@@ -3,6 +3,7 @@
 
 #include <commons/collections/list.h>
 #include <commons/log.h>
+
 typedef struct
 {
   int socket_kernel_memory;

@@ -1,6 +1,5 @@
 #include <commons/config.h>
 #include <commons/log.h>
-#include <stdatomic.h>
 #include <string.h>
 
 #include "utils/client.h"

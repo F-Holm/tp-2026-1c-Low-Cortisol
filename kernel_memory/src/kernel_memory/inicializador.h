@@ -1,7 +1,7 @@
 #include <commons/log.h>
 
 #include "commons/collections/list.h"
-#include "kernel_memory_sv.h"
+#include "kernel_memory/sv.h"
 
 t_datos_kernel_mem* inicializar_datos_kernel_memory(int socket_kernel_memory,
                                                     t_log* logger);
