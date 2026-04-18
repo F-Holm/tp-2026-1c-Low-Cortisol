@@ -13,14 +13,24 @@ void iterator(void* value)
   free(value);
 }
 
+void asignador(void* value)
+{
+
+}
+
 void* escuchar_kernel_memory(void* arg)
 {
   t_cpu* cpu = (t_cpu*)arg;
+  t_list* lista_paquete; 
+  char* ip_stick;
+  char* puerto_stick;
+
   while (1)
   {
     // ver como recivo la ip y el puerto para luego crear la conexion.
-    char* ip_stick = "127.0.0.1";
-    char* puerto_stick = "22342";
+    lista_paquete = recibir_paquete(cpu->socket_kernel_memory);
+    ip_stick = list_get(lista_paquete, 0);
+    puerto_stick = list_get(lista_paquete, 1);
 
     int nuevo_socket = crear_conexion(ip_stick, puerto_stick);
 
