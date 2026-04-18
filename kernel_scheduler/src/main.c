@@ -24,6 +24,11 @@ int main(int argc, char* argv[])
   t_config* config;
   pthread_t thread_server;
 
+  if (argc != 3)
+    return EXIT_FAILURE;
+  char* archivo_config = argv[1];
+  char* path_proceso_inicial = argv[2];
+
   config = iniciar_config();
   logger = iniciar_logger(config);
   ip = config_get_string_value(config, "KERNEL_MEMORY_IP");
