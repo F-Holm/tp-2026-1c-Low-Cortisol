@@ -241,11 +241,12 @@ void enviar_sticks_conectadas(t_datos_kernel_mem* datos_kernel_memory,
     t_paquete* paquete = crear_paquete();
     t_datos_stick* stick_actual =
         (t_datos_stick*)list_get(datos_kernel_memory->sticks_conectados, i);
-    t_ip_puerto* nuevo_ip_puerto = malloc(sizeof(t_ip_puerto));
-    nuevo_ip_puerto->puerto = stick_actual->puerto_stick;
-    strcpy(nuevo_ip_puerto->ip, stick_actual->ip_memory_stick);
-    agregar_a_paquete(paquete, nuevo_ip_puerto, sizeof(t_ip_puerto));
-    free(nuevo_ip_puerto);
+
+    char puerto [6];
+    snprintf(puerto, sizeof(puerto), "%u", stick_actual->puerto_stick);
+
+    agregar_a_paquete(paquete, &stick_actual->ip_memory_stick, sizeof(t_ip_puerto));
+    agregar_a_paquete(paquete, &puerto, sizeof(t_ip_puerto));
 
     enviar_paquete(paquete, datos_cpu->socket_cpu);
     eliminar_paquete(paquete);
@@ -256,25 +257,20 @@ void enviar_sticks_conectadas(t_datos_kernel_mem* datos_kernel_memory,
 void enviar_conexion_cpus(t_datos_stick* datos_stick, t_list* cpus_conectados)
 {
   t_paquete* paquete = crear_paquete();
-  // 1. Reservamos memoria para la estructura
-  t_ip_puerto* nuevo_ip_puerto = malloc(sizeof(t_ip_puerto));
 
-  // 2. Asignamos los campos (Usamos -> porque es un puntero)
-  nuevo_ip_puerto->puerto = datos_stick->puerto_stick;
-  strcpy(nuevo_ip_puerto->ip, datos_stick->ip_memory_stick);
+  agregar_a_paquete(paquete, datos_stick->ip_memory_stick, sizeof(t_ip_puerto));
 
-  // 3. Lo agregamos al paquete (ya es un puntero, no hace falta el &)
+  char puerto [6];
+  snprintf(puerto, sizeof(puerto), "%u", datos_stick->puerto_stick);
+  agregar_a_paquete(paquete, &puerto, sizeof(t_ip_puerto));
 
-  agregar_a_paquete(paquete, nuevo_ip_puerto, sizeof(t_ip_puerto));
-  // 1. Recorremos la lista de CPUs conectadas
   for (int i = 0; i < list_size(cpus_conectados); i++)
   {
-    // 2. Obtenemos la CPU actual
+
     t_datos_cpu* cpu_actual = (t_datos_cpu*)list_get(cpus_conectados, i);
-    // 3. Enviamos los datos
     enviar_paquete(paquete, cpu_actual->socket_cpu);
   }
-  free(nuevo_ip_puerto);
+eliminar_paquete(paquete);
 }
 
 void handshake(t_datos_kernel_mem* datos_kernel_memory, int client_socket)
