@@ -30,8 +30,9 @@ int main(int argc, char* argv[])
 
   // CONFIG Y LOGS
   cpu->config = config_create(path_config);
-  
-  log_level = log_level_from_string(config_get_string_value(cpu->config, "LOG_LEVEL"));
+
+  log_level =
+      log_level_from_string(config_get_string_value(cpu->config, "LOG_LEVEL"));
   cpu->logger = log_create("cpu.log", cpu->id, true, log_level);
 
   if (cpu->config == NULL)
@@ -39,8 +40,6 @@ int main(int argc, char* argv[])
     log_error(cpu->logger, "No se pudo cargar el config");
     abort();
   }
-
-
 
   log_info(cpu->logger, "Iniciando CPU %s", cpu->id);
   log_info(cpu->logger, "cpu->configcargado correctamente");
