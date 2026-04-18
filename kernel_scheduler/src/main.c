@@ -17,6 +17,7 @@ int main(int argc, char* argv[])
   int socket_km;
   char* ip;
   char* puerto;
+  char* puerto_servidor;
   bool seguir_operando = true;
 
   t_log* logger;
@@ -27,6 +28,7 @@ int main(int argc, char* argv[])
   logger = iniciar_logger(config);
   ip = config_get_string_value(config, "KERNEL_MEMORY_IP");
   puerto = config_get_string_value(config, "KERNEL_MEMORY_PUERTO");
+  puerto_servidor = config_get_string_value(config, "KERNEL_SCHEDULER_PUERTO");
 
   // conectar con kernel memory como cliente y loggear el resultado
   socket_km = crear_conexion(ip, puerto);
@@ -59,7 +61,7 @@ int main(int argc, char* argv[])
   //----------------------------------------------------------------------------------
 
   // iniciar servidor para CPU y IO
-  server = iniciar_servidor(puerto);
+  server = iniciar_servidor(puerto_servidor);
 
   // creacion de hilos
   t_datos_hilo_escucha datos_hilo_escucha;
