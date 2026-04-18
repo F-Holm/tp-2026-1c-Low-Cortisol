@@ -1,4 +1,5 @@
 #include <arpa/inet.h>
+#include <commons/collections/list.h>
 #include <commons/config.h>
 #include <commons/log.h>
 #include <pthread.h>
@@ -12,19 +13,9 @@
 #include "memory_stick/memory_stick.h"
 #include "utils/msg.h"
 
-typedef struct
-{
-  int socket_fd;
-  t_log* logger;
-} t_datos_hilo_escucha;
-
-volatile bool seguir_operando = true;
-
-void* hilo_escucha_cpu(void* datos_hilo_escucha_void);
-
 int main(int argc, char* argv[])
 {
-  t_config_vars* config_vars;
+  t_config_vars config_vars;
   t_config* config;
   t_log* logger;
   int socket_km;
@@ -33,14 +24,23 @@ int main(int argc, char* argv[])
   pthread_t thread_server_cpu;
   t_log_level log_level;
 
+  // args
+  if (argc != 3)
+    return EXIT_FAILURE;
+  char* archivo_config = argv[1];
+  char* tamanio_str = argv[2];
+  int tamanio = atoi(tamanio_str);
+  if (tamanio <= 0)
+    return EXIT_FAILURE;
+
   // Config
-  config = config_create("memory_stick.config");
+  config = config_create(archivo_config);
   if (config == NULL)
     return EXIT_FAILURE;
-  read_confir_ms(config, config_vars);
+  read_confir_ms(config, &config_vars);
 
   // Logger
-  log_level = log_level_from_string(config_vars->log_level);
+  log_level = log_level_from_string(config_vars.log_level);
   logger = log_create("memory_stick.log", "memory_stick", true, log_level);
   if (logger == NULL)
   {
@@ -49,10 +49,10 @@ int main(int argc, char* argv[])
   }
 
   // Socket Kernel Memory
-  socket_km = conectar_km(config_vars->ip_km, config_vars->puerto_km);
-  if (socket_km < 0)
+  socket_km = conectar_km(config_vars.ip_km, config_vars.puerto_km);
+  if (socket_km <= 0)
   {
-    log_error(logger, "## Error de conexión al Kernel_Memory");
+    log_error(logger, "## Error de conexión al Kernel Memory");
     log_destroy(logger);
     config_destroy(config);
     return EXIT_FAILURE;
@@ -64,7 +64,7 @@ int main(int argc, char* argv[])
   int id_modulo = recibir_handshake(socket_km);
   if (id_modulo != MID_KERNEL_MEMORY)
   {
-    log_error(logger, "## Error en el Handshake con Kernel_Memory");
+    log_error(logger, "## Error en el Handshake con Kernel Memory");
     close(socket_km);
     log_destroy(logger);
     config_destroy(config);
@@ -72,8 +72,19 @@ int main(int argc, char* argv[])
   }
   log_info(logger, "## Handshake exitoso con Kernel Memory");
 
+  // Enviar tamaño
+  enviar_string(OP_TAMANIO_MEMORIA, tamanio_str, socket_km);
+
   // Enviar puerto del servidor a Memory Kernel
   socket_server_cpu = create_server_cpu();
+  if (socket_server_cpu <= 0)
+  {
+    log_error(logger, "## Error en la creación del servidor para las CPU");
+    close(socket_km);
+    log_destroy(logger);
+    config_destroy(config);
+    return EXIT_FAILURE;
+  }
   puerto_server_cpu = get_puerto_cpu(socket_server_cpu);
   enviar_puerto_server_ms_km(socket_km, puerto_server_cpu);
 
@@ -85,61 +96,24 @@ int main(int argc, char* argv[])
                  &datos_hilo_escucha);
 
   // Esperando Instrucciones del Kernel Memory
-  while (seguir_operando)
+  while (true)
   {
     int op_code = recibir_operacion(socket_km);
     char* buffer;
-    switch (op_code)
-    {
-      case OP_CODE_ERROR:
-        seguir_operando = false;
-        break;
-      default:
-        buffer = recibir_string(socket_km);
-        // log_info(logger, "%s", buffer);
-        free(buffer);
-        break;
-    }
+
+    if (op_code == OP_CODE_ERROR || op_code == -1)
+      break;
+
+    buffer = recibir_string(socket_km);
+    free(buffer);
   }
 
   // Liberar y Cerrar
-  shutdown(thread_server_cpu, SHUT_RDWR);
+  shutdown(socket_server_cpu, SHUT_RDWR);
+  pthread_join(thread_server_cpu, NULL);
   liberar_conexion(socket_km);
   liberar_conexion(socket_server_cpu);
-  pthread_join(thread_server_cpu, NULL);
   log_destroy(logger);
   config_destroy(config);
   return EXIT_SUCCESS;
-}
-
-void* hilo_escucha_cpu(void* datos_hilo_escucha_void)
-{
-  int socket_espera_cpu =
-      ((t_datos_hilo_escucha*)datos_hilo_escucha_void)->socket_fd;
-  t_log* logger = ((t_datos_hilo_escucha*)datos_hilo_escucha_void)->logger;
-
-  while (seguir_operando)
-  {
-    int socket_cpu = esperar_cliente(socket_espera_cpu);
-    if (socket_cpu < 0)
-    {
-      seguir_operando = false;
-      break;
-    }
-    log_info(logger, "## Conexión exitosa con Kernel Memory");
-
-    // Handshake con CPU
-    int id_modulo = recibir_handshake(socket_cpu);
-    if (id_modulo != MID_KERNEL_MEMORY)
-    {
-      log_error(logger, "## Error en el Handshake con CPU");
-      continue;
-    }
-    enviar_handshake(MID_MEMORY_STICK, socket_cpu);
-    log_info(logger, "## Handshake exitoso con Kernel Memory");
-
-    char* recibir_id_cpu();
-  }
-  log_info(logger, "## Cerrando servidor");
-  return NULL;
 }

@@ -93,6 +93,8 @@ void enviar_handshake(int id_modulo, int socket_fd)
 
 int recibir_handshake(int socket_fd)
 {
+  if (recibir_operacion(socket_fd) != OP_HANDSHAKE)
+    return MID_MODULE_ID_ERROR;
   char* msg = recibir_string(socket_fd);
   int id_module = handshake_msg_to_module_id(msg);
   free(msg);
