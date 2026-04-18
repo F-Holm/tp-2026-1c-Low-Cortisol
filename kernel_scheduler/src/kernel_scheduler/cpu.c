@@ -6,7 +6,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-#include "kernel_scheduler.h"
+#include "kernel_scheduler/kernel_scheduler.h"
 #include "utils/client.h"
 #include "utils/msg.h"
 #include "utils/server.h"

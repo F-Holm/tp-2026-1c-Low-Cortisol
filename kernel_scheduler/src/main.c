@@ -4,9 +4,9 @@
 #include <stdbool.h>
 #include <string.h>
 
-#include "cpu.h"
-#include "io.h"
-#include "kernel_scheduler.h"
+#include "kernel_scheduler/cpu.h"
+#include "kernel_scheduler/io.h"
+#include "kernel_scheduler/kernel_scheduler.h"
 #include "utils/client.h"
 #include "utils/msg.h"
 #include "utils/server.h"
