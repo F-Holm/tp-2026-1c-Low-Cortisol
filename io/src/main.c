@@ -72,7 +72,7 @@ int main(int argc, char* argv[])
   // Handshake con Kernel Scheduler
   enviar_handshake(MID_IO, socket_io);
   int id_modulo = recibir_handshake(socket_io);
-  if (id_modulo != MID_IO)
+  if (id_modulo != MID_KERNEL_SCHEDULER)
   {
     log_error(logger, "## Error en el Handshake con Kernel Scheduler");
     close(socket_io);
