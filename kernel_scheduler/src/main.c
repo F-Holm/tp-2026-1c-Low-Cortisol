@@ -29,7 +29,7 @@ int main(int argc, char* argv[])
   char* archivo_config = argv[1];
   char* path_proceso_inicial = argv[2];
 
-  config = iniciar_config();
+  config = iniciar_config(archivo_config);
   logger = iniciar_logger(config);
   ip = config_get_string_value(config, "KERNEL_MEMORY_IP");
   puerto = config_get_string_value(config, "KERNEL_MEMORY_PUERTO");

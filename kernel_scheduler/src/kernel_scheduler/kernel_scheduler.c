@@ -19,10 +19,10 @@ t_log* iniciar_logger(t_config* config)
   return nuevo_logger;
 }
 
-t_config* iniciar_config(void)
+t_config* iniciar_config(char* path)
 {
   t_config* nuevo_config;
-  nuevo_config = config_create("kernel_scheduler.config");
+  nuevo_config = config_create(path);
   return nuevo_config;
 }
 

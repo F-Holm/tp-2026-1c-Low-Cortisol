@@ -17,9 +17,9 @@ t_log* iniciar_logger(t_config* config)
       "kernel_memory.log", "kernel_memory", true,
       log_level_from_string(config_get_string_value(config, "LOG_LEVEL")));
 }
-t_config* iniciar_config(void)
+t_config* iniciar_config(char* path)
 {
-  return config_create("kernel_memory.config");
+  return config_create(path);
 }
 
 void terminar_comunicacion(int socket_cliente)
@@ -362,7 +362,11 @@ void accept_cliente(void* ptr)
 
 int main(int argc, char* argv[])
 {
-  t_config* config = iniciar_config();
+  if (argc != 2)
+    return EXIT_FAILURE;
+  char* archivo_config = argv[1];
+
+  t_config* config = iniciar_config(archivo_config);
   t_log* logger = iniciar_logger(config);
   int socket_kernel_memory =
       iniciar_servidor(config_get_string_value(config, "PUERTO_KERNEL_MEMORY"));
