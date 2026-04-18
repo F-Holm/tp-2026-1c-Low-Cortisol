@@ -68,6 +68,8 @@ int main(int argc, char* argv[])
   }
   log_info(cpu->logger, "## Handshake exitoso con Kernel scheduler");
 
+  enviar_string(OP_ID_CPU, cpu->id, cpu->socket_kernel_scheduler);
+
   // CONEXION CON EL KERNEL MEMORY
 
   ip_kernel_memory = config_get_string_value(cpu->config, "KERNEL_MEMORY_IP");
@@ -91,7 +93,7 @@ int main(int argc, char* argv[])
   }
   log_info(cpu->logger, "## Handshake exitoso con Kernel Memory");
 
-  enviar_string(MID_CPU, cpu->id, cpu->socket_kernel_memory);
+  enviar_string(OP_ID_CPU, cpu->id, cpu->socket_kernel_memory);
 
   // CONEXION CON MEMORY STICK
   // hilo de escucha

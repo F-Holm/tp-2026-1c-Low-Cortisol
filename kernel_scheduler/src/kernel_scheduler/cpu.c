@@ -35,7 +35,8 @@ void* hilo_escucha_server(void* datos_hilo_escucha_void)
   {
     int* socket_cpu_io = malloc(sizeof(int));
     *socket_cpu_io = esperar_cliente(socket_server_cpu_io);
-    if (*socket_cpu_io <= 0){
+    if (*socket_cpu_io <= 0)
+    {
       free(socket_cpu_io);
       break;
     }
