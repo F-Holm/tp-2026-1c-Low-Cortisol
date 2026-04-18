@@ -13,7 +13,7 @@
 int main(int argc, char* argv[])
 {
   t_config* config;
-  int socket_IO;
+  int socket_io;
   char* puerto;
   char* ip;
   char* log_levelstr;
@@ -26,11 +26,11 @@ int main(int argc, char* argv[])
   char* archivo_config = argv[1];
 
   // Chequeo si la operacion de IO recibida existe
-  if (strcmp(v_tipo_io[E_STDIN], argv[2]) == 0)
+  if (strcmp(V_TIPO_IO[E_STDIN], argv[2]) == 0)
     tipo_io = E_STDIN;
-  else if (strcmp(v_tipo_io[E_STDOUT], argv[2]) == 0)
+  else if (strcmp(V_TIPO_IO[E_STDOUT], argv[2]) == 0)
     tipo_io = E_STDOUT;
-  else if (strcmp(v_tipo_io[E_SLEEP], argv[2]) == 0)
+  else if (strcmp(V_TIPO_IO[E_SLEEP], argv[2]) == 0)
     tipo_io = E_SLEEP;
   else
     return EXIT_FAILURE;
@@ -56,9 +56,9 @@ int main(int argc, char* argv[])
 
   puerto = config_get_string_value(config, "PORT");  // Obtengo el puerto
 
-  socket_IO = crear_conexion(ip, puerto);  // Establezco conexión
+  socket_io = crear_conexion(ip, puerto);  // Establezco conexión
 
-  if (socket_IO == -1)
+  if (socket_io == -1)
   {
     log_error(logger, "#ERROR DE CONEXION");  // Informo error
     log_destroy(logger);
@@ -70,32 +70,35 @@ int main(int argc, char* argv[])
                                                 // conexion iniciada
 
   // Handshake con Kernel Scheduler
-  enviar_handshake(MID_IO, socket_IO);
-  int id_modulo = recibir_handshake(socket_IO);
+  enviar_handshake(MID_IO, socket_io);
+  int id_modulo = recibir_handshake(socket_io);
   if (id_modulo != MID_IO)
   {
     log_error(logger, "## Error en el Handshake con Kernel Scheduler");
-    close(socket_IO);
+    close(socket_io);
     log_destroy(logger);
     config_destroy(config);
     return EXIT_FAILURE;
   }
   log_info(logger, "## Handshake exitoso con Kernel Scheduler");
 
+  enviar_string(OP_TIPO_IO, (char*)V_TIPO_IO[tipo_io], socket_io);
+  log_info(logger, "## Envio tipo de IO");
+
   // Esperando Instrucciones del Kernel Scheduler
   while (true)
   {
-    int op_code = recibir_operacion(socket_IO);
+    int op_code = recibir_operacion(socket_io);
     char* buffer;
 
     if (op_code == OP_CODE_ERROR || op_code == -1)
       break;
 
-    buffer = recibir_string(socket_IO);
+    buffer = recibir_string(socket_io);
     free(buffer);
   }
   // Liberar y Cerrar
-  liberar_conexion(socket_IO);
+  liberar_conexion(socket_io);
   log_destroy(logger);
   config_destroy(config);
   return EXIT_SUCCESS;
