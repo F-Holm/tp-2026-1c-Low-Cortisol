@@ -83,6 +83,7 @@ void* hilo_escucha_server(void* datos_hilo_escucha_void)
     {
       close(*socket_cpu_io);
       log_error(logger, "## Error en el Handshake con CPU");
+      free(socket_cpu_io);
       continue;
     }
     enviar_handshake(MID_KERNEL_SCHEDULER, *socket_cpu_io);
@@ -94,6 +95,7 @@ void* hilo_escucha_server(void* datos_hilo_escucha_void)
     {
       close(*socket_cpu_io);
       log_error(logger, "## Error en la recepción del ID de la CPU");
+      free(socket_cpu_io);
       continue;
     }
     char* id_cpu = recibir_string(*socket_cpu_io);
