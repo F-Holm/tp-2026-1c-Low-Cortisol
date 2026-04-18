@@ -26,23 +26,41 @@ void* escuchar_kernel_memory(void* arg)
 {
   t_cpu* cpu = (t_cpu*)arg;
   t_list* lista_paquete;
-  t_ip_puerto* nuevo_ip_puerto;
 
   while (1)
   {
-    // ver como recivo la ip y el puerto para luego crear la conexion.
-    lista_paquete = recibir_paquete(cpu->socket_kernel_memory);
-    nuevo_ip_puerto = list_get(lista_paquete, 0);
     char ip_stick[16];
-    strcpy(ip_stick, nuevo_ip_puerto->ip);
-    int puerto_int = nuevo_ip_puerto->puerto;
     char puerto_stick[6];
-    snprintf(puerto_stick, sizeof(puerto_stick), "%u", puerto_int);
-    list_destroy_and_destroy_elements(lista_paquete, free);
-    int nuevo_socket = crear_conexion(ip_stick, puerto_stick);
 
-    log_info(cpu->logger, "Conectandose a memory stick con ip %s y puerto %s",
-             ip_stick, puerto_stick);
+    lista_paquete = recibir_paquete(cpu->socket_kernel_memory);
+
+    if (list_size(lista_paquete) != 2)
+    {
+      log_error(cpu->logger,
+                "## Error en la recepción de la IP y puerto del Memory stick");
+      log_error(cpu->logger, "## size: %d | expected size 2",
+                list_size(lista_paquete));
+      log_destroy(cpu->logger);
+      config_destroy(cpu->config);
+      return NULL;
+    }
+
+    strcpy(ip_stick, list_get(lista_paquete, 0));
+    strcpy(puerto_stick, list_get(lista_paquete, 1));
+    list_destroy_and_destroy_elements(lista_paquete, free);
+
+    int nuevo_socket = crear_conexion(ip_stick, puerto_stick);
+    if (nuevo_socket <= 0)
+    {
+      log_error(cpu->logger, "## Error en la conexión con Memory stick");
+      log_destroy(cpu->logger);
+      config_destroy(cpu->config);
+      return NULL;
+    }
+
+    log_info(cpu->logger,
+             "## Conectandose a memory stick con ip %s y puerto %s", ip_stick,
+             puerto_stick);
 
     // Handshake con memory stick
     enviar_handshake(MID_CPU, nuevo_socket);
