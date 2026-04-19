@@ -44,11 +44,12 @@ t_datos_hilo_cpu* inicializar_datos_hilo_cpu(
   return datos;
 }
 
-bool crear_hilo_cpu(t_datos_hilo_cpu* datos_hilo_cpu)
+bool crear_hilo_cpu(t_datos_hilo_cpu* datos_hilo_cpu, t_log* logger)
 {
   pthread_t hilo_cpu;
   if (pthread_create(&hilo_cpu, NULL, manejar_cliente_cpu, datos_hilo_cpu) != 0)
   {
+    log_error(logger, "## Error en la creación del hilo de la CPU");
     return false;
   }
   pthread_detach(hilo_cpu);
@@ -67,6 +68,70 @@ void cerrar_hilo_escucha(t_list* lista_sockets,
   list_destroy(lista_sockets);
   pthread_cond_destroy(cond_fin_hilo_escucha);
   pthread_mutex_destroy(mutex_lista_sockets);
+}
+
+bool handshake_cpu(int socket_cpu, t_log* logger)
+{
+  if (recibir_handshake(socket_cpu) != MID_CPU)
+  {
+    log_error(logger, "## Error en la recepción del Handshake con CPU");
+    return false;
+  }
+  if (!enviar_handshake(MID_MEMORY_STICK, socket_cpu))
+  {
+    log_error(logger, "## Error en el envio del Handshake con CPU");
+    return false;
+  }
+  log_info(logger, "## Handshake exitoso con CPU");
+  return true;
+}
+
+char* obtener_id_cpu(int socket_cpu, t_log* logger)
+{
+  if (recibir_operacion(socket_cpu) != OP_ID_CPU)
+  {
+    log_error(logger, "## Error en la recepción del ID de la CPU");
+    return NULL;
+  }
+  char* id_cpu = recibir_string(socket_cpu);
+  log_info(logger, "## CPU %s Conectada", id_cpu);
+  return id_cpu;
+}
+
+bool atender_nueva_cpu(t_datos_hilo_escucha* params, int* socket_cpu,
+                       t_list* lista_sockets,
+                       pthread_mutex_t* mutex_lista_sockets,
+                       pthread_cond_t* cond_fin_hilo_escucha)
+{
+  // Handshake con CPU
+  if (!handshake_cpu(*socket_cpu, params->logger))
+    return false;
+
+  // Obtener ID
+  char* id_cpu = obtener_id_cpu(*socket_cpu, params->logger);
+  if (id_cpu == NULL)
+    return false;
+  free(id_cpu);
+
+  // Agregar socket a la lista
+  pthread_mutex_lock(mutex_lista_sockets);
+  list_add(lista_sockets, socket_cpu);
+  pthread_mutex_unlock(mutex_lista_sockets);
+
+  // Inicializar datos hilo cpu
+  t_datos_hilo_cpu* datos_hilo_cpu = inicializar_datos_hilo_cpu(
+      socket_cpu, lista_sockets, mutex_lista_sockets, cond_fin_hilo_escucha);
+
+  // Crear hilo
+  if (!crear_hilo_cpu(datos_hilo_cpu, params->logger))
+  {
+    pthread_mutex_lock(mutex_lista_sockets);
+    list_remove_element(lista_sockets, socket_cpu);
+    pthread_mutex_unlock(mutex_lista_sockets);
+    free(datos_hilo_cpu);
+    return false;
+  }
+  return true;
 }
 
 void* hilo_escucha_cpu(void* datos_hilo_escucha_void)
@@ -92,55 +157,11 @@ void* hilo_escucha_cpu(void* datos_hilo_escucha_void)
 
     log_info(params->logger, "## Conexión exitosa con CPU");
 
-    // Handshake con CPU
-    int id_modulo = recibir_handshake(*socket_cpu);
-    if (id_modulo != MID_CPU)
+    if (!atender_nueva_cpu(params, socket_cpu, lista_sockets,
+                           &mutex_lista_sockets, &cond_fin_hilo_escucha))
     {
       close(*socket_cpu);
       free(socket_cpu);
-      log_error(params->logger,
-                "## Error en la recepción del Handshake con CPU");
-      continue;
-    }
-    if (!enviar_handshake(MID_MEMORY_STICK, *socket_cpu))
-    {
-      close(*socket_cpu);
-      free(socket_cpu);
-      log_error(params->logger, "## Error en el envio del Handshake con CPU");
-      continue;
-    }
-    log_info(params->logger, "## Handshake exitoso con CPU");
-
-    // Obtener ID
-    int codigo_operacion = recibir_operacion(*socket_cpu);
-    if (codigo_operacion != OP_ID_CPU)
-    {
-      close(*socket_cpu);
-      free(socket_cpu);
-      log_error(params->logger, "## Error en la recepción del ID de la CPU");
-      continue;
-    }
-    char* id_cpu = recibir_string(*socket_cpu);
-    log_info(params->logger, "## CPU %s Conectada", id_cpu);
-    free(id_cpu);
-
-    // Iniciar y liberar hilo
-    t_datos_hilo_cpu* datos_hilo_cpu = inicializar_datos_hilo_cpu(
-        socket_cpu, lista_sockets, &mutex_lista_sockets,
-        &cond_fin_hilo_escucha);
-    pthread_mutex_lock(&mutex_lista_sockets);
-    list_add(lista_sockets, socket_cpu);
-    pthread_mutex_unlock(&mutex_lista_sockets);
-
-    if (!crear_hilo_cpu(datos_hilo_cpu))
-    {
-      log_error(params->logger, "## Error en la creación del hilo de la CPU");
-      close(*socket_cpu);
-      pthread_mutex_lock(&mutex_lista_sockets);
-      list_remove_element(lista_sockets, socket_cpu);
-      pthread_mutex_unlock(&mutex_lista_sockets);
-      free(socket_cpu);
-      continue;
     }
   }
 

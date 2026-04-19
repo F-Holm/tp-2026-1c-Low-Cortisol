@@ -35,10 +35,16 @@ t_datos_hilo_cpu* inicializar_datos_hilo_cpu(
     int* socket_cpu, t_list* lista_sockets,
     pthread_mutex_t* mutex_lista_sockets,
     pthread_cond_t* cond_fin_hilo_escucha);
-bool crear_hilo_cpu(t_datos_hilo_cpu* datos_hilo_cpu);
+bool crear_hilo_cpu(t_datos_hilo_cpu* datos_hilo_cpu, t_log* logger);
 void cerrar_hilo_escucha(t_list* lista_sockets,
                          pthread_mutex_t* mutex_lista_sockets,
                          pthread_cond_t* cond_fin_hilo_escucha);
+bool handshake_cpu(int socket_cpu, t_log* logger);
+char* obtener_id_cpu(int socket_cpu, t_log* logger);
+bool atender_nueva_cpu(t_datos_hilo_escucha* params, int* socket_cpu,
+                       t_list* lista_sockets,
+                       pthread_mutex_t* mutex_lista_sockets,
+                       pthread_cond_t* cond_fin_hilo_escucha);
 void* hilo_escucha_cpu(void* datos_hilo_escucha_void);
 void* manejar_cliente_cpu(void* datos_hilo_cpu_void);
 
