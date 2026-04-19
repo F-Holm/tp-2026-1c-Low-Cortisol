@@ -4,9 +4,16 @@
 #include "utils/msg.h"
 #include "utils/server.h"
 
-int create_server_cpu(void)
+int create_server_cpu(t_log* logger)
 {
-  return iniciar_servidor("0");
+  int ret = iniciar_servidor("0");
+  if (ret <= 0)
+  {
+    log_error(logger, "## Error en la creación del servidor para las CPU");
+    return -1;
+  }
+  log_info(logger, "## Creación del servidor para las CPU exitosa");
+  return ret;
 }
 
 uint16_t get_puerto_cpu(int socket_server_cpu)

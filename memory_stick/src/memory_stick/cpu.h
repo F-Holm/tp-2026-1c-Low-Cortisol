@@ -28,7 +28,7 @@ typedef struct
   pthread_cond_t* cond_fin_hilo_escucha;
 } t_datos_hilo_cpu;
 
-int create_server_cpu(void);
+int create_server_cpu(t_log* logger);
 uint16_t get_puerto_cpu(int socket_server_cpu);
 void* hilo_escucha_cpu(void* datos_hilo_escucha_void);
 void* manejar_cliente_cpu(void* datos_hilo_cpu_void);
