@@ -16,13 +16,13 @@
 
 typedef struct
 {
-  int socket_fd;
+  int socket_espera_cpu;
   t_log* logger;
 } t_datos_hilo_escucha;
 
 typedef struct
 {
-  int* socket_fd;
+  int* socket_cpu;
   t_list* lista_sockets;
   pthread_mutex_t* mutex_lista_sockets;
   pthread_cond_t* cond_fin_hilo_escucha;

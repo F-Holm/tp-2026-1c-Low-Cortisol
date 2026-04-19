@@ -43,7 +43,7 @@ int main(int argc, char* argv[])
 
   // Hilo para escuchar nuevas conexiones de CPUs
   t_datos_hilo_escucha datos_hilo_escucha;
-  datos_hilo_escucha.socket_fd = ms_recursos.socket_server_cpu;
+  datos_hilo_escucha.socket_espera_cpu = ms_recursos.socket_server_cpu;
   datos_hilo_escucha.logger = ms_recursos.logger;
   pthread_create(&thread_server_cpu, NULL, hilo_escucha_cpu,
                  &datos_hilo_escucha);
