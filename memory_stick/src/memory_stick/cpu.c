@@ -1,5 +1,8 @@
 #include "memory_stick/cpu.h"
 
+#include <bits/pthreadtypes.h>
+#include <pthread.h>
+
 #include "utils/client.h"
 #include "utils/msg.h"
 #include "utils/server.h"
@@ -27,6 +30,43 @@ uint16_t get_puerto_cpu(int socket_server_cpu)
 void iterator_shutdown(void* value)
 {
   shutdown(*(int*)value, SHUT_RDWR);
+}
+
+t_datos_hilo_cpu* inicializar_datos_hilo_cpu(
+    int* socket_cpu, t_list* lista_sockets,
+    pthread_mutex_t* mutex_lista_sockets, pthread_cond_t* cond_fin_hilo_escucha)
+{
+  t_datos_hilo_cpu* datos = malloc(sizeof(t_datos_hilo_cpu));
+  datos->socket_cpu = socket_cpu;
+  datos->lista_sockets = lista_sockets;
+  datos->mutex_lista_sockets = mutex_lista_sockets;
+  datos->cond_fin_hilo_escucha = cond_fin_hilo_escucha;
+  return datos;
+}
+
+bool crear_hilo_cpu(t_datos_hilo_cpu* datos_hilo_cpu)
+{
+  pthread_t hilo_cpu;
+  if (pthread_create(&hilo_cpu, NULL, manejar_cliente_cpu, datos_hilo_cpu) != 0)
+  {
+    return false;
+  }
+  pthread_detach(hilo_cpu);
+  return true;
+}
+
+void cerrar_hilo_escucha(t_list* lista_sockets,
+                         pthread_mutex_t* mutex_lista_sockets,
+                         pthread_cond_t* cond_fin_hilo_escucha)
+{
+  pthread_mutex_lock(mutex_lista_sockets);
+  list_iterate(lista_sockets, (void*)iterator_shutdown);
+  while (!list_is_empty(lista_sockets))
+    pthread_cond_wait(cond_fin_hilo_escucha, mutex_lista_sockets);
+  pthread_mutex_unlock(mutex_lista_sockets);
+  list_destroy(lista_sockets);
+  pthread_cond_destroy(cond_fin_hilo_escucha);
+  pthread_mutex_destroy(mutex_lista_sockets);
 }
 
 void* hilo_escucha_cpu(void* datos_hilo_escucha_void)
@@ -58,10 +98,17 @@ void* hilo_escucha_cpu(void* datos_hilo_escucha_void)
     {
       close(*socket_cpu);
       free(socket_cpu);
-      log_error(params->logger, "## Error en el Handshake con CPU");
+      log_error(params->logger,
+                "## Error en la recepción del Handshake con CPU");
       continue;
     }
-    enviar_handshake(MID_MEMORY_STICK, *socket_cpu);
+    if (!enviar_handshake(MID_MEMORY_STICK, *socket_cpu))
+    {
+      close(*socket_cpu);
+      free(socket_cpu);
+      log_error(params->logger, "## Error en el envio del Handshake con CPU");
+      continue;
+    }
     log_info(params->logger, "## Handshake exitoso con CPU");
 
     // Obtener ID
@@ -78,28 +125,28 @@ void* hilo_escucha_cpu(void* datos_hilo_escucha_void)
     free(id_cpu);
 
     // Iniciar y liberar hilo
-    t_datos_hilo_cpu* datos_hilo_cpu = malloc(sizeof(t_datos_hilo_cpu));
-    datos_hilo_cpu->socket_cpu = socket_cpu;
-    datos_hilo_cpu->lista_sockets = lista_sockets;
-    datos_hilo_cpu->mutex_lista_sockets = &mutex_lista_sockets;
-    datos_hilo_cpu->cond_fin_hilo_escucha = &cond_fin_hilo_escucha;
+    t_datos_hilo_cpu* datos_hilo_cpu = inicializar_datos_hilo_cpu(
+        socket_cpu, lista_sockets, &mutex_lista_sockets,
+        &cond_fin_hilo_escucha);
     pthread_mutex_lock(&mutex_lista_sockets);
     list_add(lista_sockets, socket_cpu);
     pthread_mutex_unlock(&mutex_lista_sockets);
-    pthread_t hilo_cpu;
-    pthread_create(&hilo_cpu, NULL, manejar_cliente_cpu, datos_hilo_cpu);
-    pthread_detach(hilo_cpu);
+
+    if (!crear_hilo_cpu(datos_hilo_cpu))
+    {
+      log_error(params->logger, "## Error en la creación del hilo de la CPU");
+      close(*socket_cpu);
+      pthread_mutex_lock(&mutex_lista_sockets);
+      list_remove_element(lista_sockets, socket_cpu);
+      pthread_mutex_unlock(&mutex_lista_sockets);
+      free(socket_cpu);
+      continue;
+    }
   }
 
   log_info(params->logger, "## Cerrando servidor");
-  pthread_mutex_lock(&mutex_lista_sockets);
-  list_iterate(lista_sockets, (void*)iterator_shutdown);
-  while (!list_is_empty(lista_sockets))
-    pthread_cond_wait(&cond_fin_hilo_escucha, &mutex_lista_sockets);
-  pthread_mutex_unlock(&mutex_lista_sockets);
-  list_destroy(lista_sockets);
-  pthread_cond_destroy(&cond_fin_hilo_escucha);
-  pthread_mutex_destroy(&mutex_lista_sockets);
+  cerrar_hilo_escucha(lista_sockets, &mutex_lista_sockets,
+                      &cond_fin_hilo_escucha);
   return NULL;
 }
 
@@ -117,7 +164,7 @@ void* manejar_cliente_cpu(void* datos_hilo_cpu_void)
   }
 
   // Liberar conexión y eliminar socket de la lista
-  liberar_conexion(*(params->socket_cpu));
+  close(*(params->socket_cpu));
   pthread_mutex_lock(params->mutex_lista_sockets);
   list_remove_element(params->lista_sockets, params->socket_cpu);
   if (list_is_empty(params->lista_sockets))

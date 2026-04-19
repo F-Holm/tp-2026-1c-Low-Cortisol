@@ -6,7 +6,7 @@
 #include "utils/msg.h"
 #include "utils/server.h"
 
-bool handshake(int socket_km, t_log* logger)
+bool handshake_km(int socket_km, t_log* logger)
 {
   if (!enviar_handshake(MID_MEMORY_STICK, socket_km))
   {
@@ -40,7 +40,7 @@ int iniciar_conexion_km(char* ip, char* puerto, char* tamanio, t_log* logger)
   if (socket_km <= 0)
     return -1;
 
-  if (!handshake(socket_km, logger))
+  if (!handshake_km(socket_km, logger))
     return -1;
 
   if (!enviar_tamanio(socket_km, tamanio, logger))
