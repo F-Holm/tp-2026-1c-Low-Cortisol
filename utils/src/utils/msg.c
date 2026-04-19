@@ -49,7 +49,7 @@ void* serializar_paquete(t_paquete* paquete, int bytes)
 }
 
 // String
-void enviar_string(int codigo_operacion, char* mensaje, int socket_fd)
+bool enviar_string(int codigo_operacion, char* mensaje, int socket_fd)
 {
   t_paquete* paquete = malloc(sizeof(t_paquete));
 
@@ -63,10 +63,12 @@ void enviar_string(int codigo_operacion, char* mensaje, int socket_fd)
 
   void* a_enviar = serializar_paquete(paquete, bytes);
 
-  send(socket_fd, a_enviar, bytes, 0);
+  bool ret = send(socket_fd, a_enviar, bytes, MSG_NOSIGNAL) > 0;
 
   free(a_enviar);
   eliminar_paquete(paquete);
+
+  return ret;
 }
 
 char* recibir_string(int socket_fd)
@@ -86,9 +88,9 @@ int handshake_msg_to_module_id(char* handshake_msg)
   return MID_MODULE_ID_ERROR;
 }
 
-void enviar_handshake(int id_modulo, int socket_fd)
+bool enviar_handshake(int id_modulo, int socket_fd)
 {
-  enviar_string(OP_HANDSHAKE, (char*)HANDSHAKE_MSG[id_modulo], socket_fd);
+  return enviar_string(OP_HANDSHAKE, (char*)HANDSHAKE_MSG[id_modulo], socket_fd);
 }
 
 int recibir_handshake(int socket_fd)
@@ -123,14 +125,16 @@ void agregar_a_paquete(t_paquete* paquete, void* valor, int tamanio)
   paquete->buffer->size += tamanio + sizeof(int);
 }
 
-void enviar_paquete(t_paquete* paquete, int socket_fd)
+bool enviar_paquete(t_paquete* paquete, int socket_fd)
 {
   int bytes = paquete->buffer->size + 2 * sizeof(int);
   void* a_enviar = serializar_paquete(paquete, bytes);
 
-  send(socket_fd, a_enviar, bytes, 0);
+  bool ret = send(socket_fd, a_enviar, bytes, MSG_NOSIGNAL) > 0;
 
   free(a_enviar);
+
+  return ret;
 }
 
 t_list* recibir_paquete(int socket_fd)

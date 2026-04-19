@@ -76,9 +76,9 @@ void* recibir_buffer(int* size, int socket_fd);
  * @param codigo_operacion Código de operación (enum / int)
  * @param mensaje
  * @param socket_fd
- * @return No devuelve nada
+ * @return Devuelve un bool: false = envio nulo o receptor desconectado
  */
-void enviar_string(int codigo_operacion, char* mensaje, int socket_fd);
+bool enviar_string(int codigo_operacion, char* mensaje, int socket_fd);
 
 /**
  * @brief Recibe un char*
@@ -103,9 +103,9 @@ int handshake_msg_to_module_id(char* handshake_msg);
  * @brief Envia handshake
  * @param id_modulo entero de tipo t_module_id (se puede usar cualquier entero)
  * @param socket_fd
- * @return No devuelve nada
+ * @return Devuelve un bool: false = envio nulo o receptor desconectado
  */
-void enviar_handshake(int id_modulo, int socket_fd);
+bool enviar_handshake(int id_modulo, int socket_fd);
 
 /**
  * @brief Recibe handshake
@@ -136,10 +136,10 @@ void agregar_a_paquete(t_paquete* paquete, void* valor, int tamanio);
 /**
  * @brief Envia el paquete
  * @param socket_fd
- * @return No devuelve nada
+ * @return Devuelve un bool: false = envio nulo o receptor desconectado
  * @note Usar después de crear_paquete()
  */
-void enviar_paquete(t_paquete* paquete, int socket_fd);
+bool enviar_paquete(t_paquete* paquete, int socket_fd);
 
 /**
  * @brief Recibe un paquete y lo guarda en una lista
