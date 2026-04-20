@@ -1,5 +1,4 @@
 MODULES = cpu io kernel_memory kernel_scheduler memory_stick swap utils
-RUN_LIST = kernel_memory kernel_scheduler memory_stick memory_stick memory_stick swap io io io cpu cpu cpu
 
 .PHONY: all debug release test clean format $(MODULES)
 
@@ -23,24 +22,53 @@ test:
 clean:
 	@for dir in $(MODULES); do \
 		$(MAKE) -C $$dir clean; \
-	done
+	done 
+
+logs:
+	@echo "Eliminando archivos de log..."
+	-rm -f ./*.log ./*/*.log
+	@echo "Logs eliminados correctamente."
 
 format:
 	find . -iname "*.c" -o -iname "*.h" | grep -v "tests/" | xargs clang-format -i --style=file
 
-run:
-	@for mod in $(RUN_LIST); do \
-		if [ -f ./$$mod/bin/$$mod ]; then \
-			echo "Iniciando $$mod..."; \
-			./$$mod/bin/$$mod > /dev/null 2>&1 & \
-			sleep 1; \
-		else \
-			echo "Error: Binario ./$$mod/bin/$$mod no encontrado."; \
-		fi \
-	done
+run: all
+	@echo "Lanzando sistema..."
+	./kernel_memory/bin/kernel_memory ./kernel_memory/kernel_memory.config > /dev/null 2>&1 &
+	@sleep 0.1
+	./kernel_scheduler/bin/kernel_scheduler ./kernel_scheduler/kernel_scheduler.config ./kernel_scheduler/proceso_inicial > /dev/null 2>&1 &
+	@sleep 0.1
+	./memory_stick/bin/memory_stick ./memory_stick/memory_stick.config 1000 > /dev/null 2>&1 &
+	@sleep 0.1
+	./memory_stick/bin/memory_stick ./memory_stick/memory_stick.config 2000 > /dev/null 2>&1 &
+	@sleep 0.1
+	./memory_stick/bin/memory_stick ./memory_stick/memory_stick.config 3000 > /dev/null 2>&1 &
+	@sleep 0.1
+	./swap/bin/swap ./swap/swap.config > /dev/null 2>&1 &
+	@sleep 0.1
+	./io/bin/io ./io/io.config SLEEP > /dev/null 2>&1 &
+	@sleep 0.1
+	./io/bin/io ./io/io.config STDIN > /dev/null 2>&1 &
+	@sleep 0.1
+	./io/bin/io ./io/io.config STDOUT > /dev/null 2>&1 &
+	@sleep 0.1
+	./cpu/bin/cpu ./cpu/cpu.config CPU-1 > /dev/null 2>&1 &
+	@sleep 0.1
+	./cpu/bin/cpu ./cpu/cpu.config CPU-2 > /dev/null 2>&1 &
+	@sleep 0.1
+	./cpu/bin/cpu ./cpu/cpu.config CPU-3 > /dev/null 2>&1 &
+	@sleep 0.1
+	./memory_stick/bin/memory_stick ./memory_stick/memory_stick.config 4000 > /dev/null 2>&1 &
+	@sleep 0.1
+	./memory_stick/bin/memory_stick ./memory_stick/memory_stick.config 5000 > /dev/null 2>&1 &
+	@sleep 0.1
+	./memory_stick/bin/memory_stick ./memory_stick/memory_stick.config 6000 > /dev/null 2>&1 &
+	@echo "Sistema lanzado con éxito. La terminal está libre."
+	@echo "Usa 'make kill' para detener todo (si no falló antes)."
 
 kill:
-	@pkill -f "./(cpu|io|kernel_memory|kernel_scheduler|memory_stick|swap)/bin/" || echo "No había procesos corriendo."
+	@echo "Cerrando el sistema..."
+	-pkill -f kernel_memory
 
 $(MODULES):
 	$(MAKE) -C $@
