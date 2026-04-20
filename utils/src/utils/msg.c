@@ -90,7 +90,8 @@ int handshake_msg_to_module_id(char* handshake_msg)
 
 bool enviar_handshake(int id_modulo, int socket_fd)
 {
-  return enviar_string(OP_HANDSHAKE, (char*)HANDSHAKE_MSG[id_modulo], socket_fd);
+  return enviar_string(OP_HANDSHAKE, (char*)HANDSHAKE_MSG[id_modulo],
+                       socket_fd);
 }
 
 int recibir_handshake(int socket_fd)
