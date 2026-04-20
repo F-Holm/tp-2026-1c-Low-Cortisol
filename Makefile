@@ -1,6 +1,6 @@
 MODULES = cpu io kernel_memory kernel_scheduler memory_stick swap utils
 
-.PHONY: all debug release test clean format $(MODULES)
+.PHONY: all debug release test clean logs format run kill $(MODULES)
 
 all: $(MODULES)
 
