@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <sys/socket.h>
 
+#include "swap/agregados.h"
 #include "utils/client.h"
 #include "utils/hello.h"
 #include "utils/msg.h"
@@ -56,16 +57,23 @@ int main(int argc, char* argv[])
                                              // conexion iniciada
 
   // Handshake con kernel memory
-  enviar_handshake(MID_SWAP, socket_swap);
-  int id_modulo = recibir_handshake(socket_swap);
-  if (id_modulo != MID_KERNEL_MEMORY)
+  bool envio_correcto = enviar_handshake(MID_SWAP, socket_swap);
+  if (!envio_correcto)
   {
     log_error(logger, "## Error en el Handshake con Kernel Memory");
-    close(socket_swap);
-    log_destroy(logger);
-    config_destroy(config);
+    cerrar_todo(logger, config, socket_swap);
     return EXIT_FAILURE;
   }
+  // Chequea error en el envio
+
+  bool recepcion_correcta = recibir_handshake(socket_swap);
+  if (!recepcion_correcta)
+  {
+    log_error(logger, "## Error en el Handshake con Kernel Memory");
+    cerrar_todo(logger, config, socket_swap);
+    return EXIT_FAILURE;
+  }
+  // Chequea error en la recepción
   log_info(logger, "## Handshake exitoso con Kernel Memory");
 
   // Esperando Instrucciones del Kernel Memory
@@ -82,8 +90,6 @@ int main(int argc, char* argv[])
   }
 
   // Liberar y Cerrar
-  liberar_conexion(socket_swap);
-  log_destroy(logger);
-  config_destroy(config);
+  cerrar_todo(logger, config, socket_swap);
   return EXIT_SUCCESS;
 }
