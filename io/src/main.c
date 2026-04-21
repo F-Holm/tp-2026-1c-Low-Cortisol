@@ -87,8 +87,15 @@ int main(int argc, char* argv[])
   }
   log_info(logger, "## Handshake exitoso con Kernel Scheduler");
 
-  enviar_string(OP_TIPO_IO, (char*)V_TIPO_IO[tipo_io], socket_io);
-  log_info(logger, "## Envio tipo de IO");
+  envio_correcto =
+      enviar_string(OP_TIPO_IO, (char*)V_TIPO_IO[tipo_io], socket_io);
+  if (!envio_correcto)
+  {
+    log_error(logger, "## Error en el Envío de tipo de IO");
+    cerrar_todo(logger, config, socket_io);
+    return EXIT_FAILURE;
+  }
+  log_info(logger, "## Envio correcto de tipo de IO");
 
   // Esperando Instrucciones del Kernel Scheduler
   while (true)
