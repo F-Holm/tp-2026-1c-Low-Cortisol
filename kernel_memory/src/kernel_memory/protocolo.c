@@ -83,6 +83,15 @@ void agregar_coexion_stick(t_datos_kernel_mem* datos_kernel_memory,
   return;
 }
 
+void agregar_coexion_cpu(t_datos_kernel_mem* datos_kernel_memory,
+                         t_datos_cpu* datos_cpu)
+{
+  pthread_mutex_lock(&datos_kernel_memory->mutex_lista_sockets);
+  list_add(datos_kernel_memory->sticks_conectados, datos_cpu);
+  pthread_mutex_unlock(&datos_kernel_memory->mutex_lista_sockets);
+  return;
+}
+
 void enviar_sticks_conectadas(t_datos_kernel_mem* datos_kernel_memory,
                               t_datos_cpu* datos_cpu)
 {
@@ -97,8 +106,7 @@ void enviar_sticks_conectadas(t_datos_kernel_mem* datos_kernel_memory,
     char puerto[6];
     snprintf(puerto, sizeof(puerto), "%u", stick_actual->puerto_stick);
 
-    agregar_a_paquete(paquete, stick_actual->ip_memory_stick,
-                      sizeof(char[16]));
+    agregar_a_paquete(paquete, stick_actual->ip_memory_stick, sizeof(char[16]));
     agregar_a_paquete(paquete, puerto, sizeof(puerto));
 
     enviar_paquete(paquete, datos_cpu->socket_cpu);

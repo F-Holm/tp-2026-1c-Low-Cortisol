@@ -33,6 +33,7 @@ void handshake(t_datos_kernel_mem* datos_kernel_memory, int client_socket)
       t_datos_cpu* datos_cpu =
           inicializar_datos_cpu(client_socket, datos_kernel_memory->logger);
       inicializar_correcto = recibir_id_cpu(datos_cpu);
+      agregar_coexion_cpu(datos_kernel_memory, datos_cpu);
       if (inicializar_correcto)
       {
         enviar_sticks_conectadas(datos_kernel_memory, datos_cpu);
