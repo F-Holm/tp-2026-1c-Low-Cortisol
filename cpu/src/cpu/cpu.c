@@ -83,6 +83,8 @@ void* escuchar_kernel_memory(void* arg)
     }
     log_info(cpu->logger, "## Handshake exitoso con Memory stick");
 
+    enviar_string(OP_ID_CPU, cpu->id, nuevo_socket);
+
     int* p_socket = malloc(sizeof(int));
     *p_socket = nuevo_socket;
 
