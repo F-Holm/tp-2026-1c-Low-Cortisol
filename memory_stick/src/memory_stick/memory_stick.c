@@ -16,7 +16,7 @@ bool conseguir_y_enviar_puerto(int socket_km, int socket_server_cpu,
 }
 
 bool iniciar_modulo(t_ms_recursos* ms_recursos, char* archivo_config,
-                    char* tamanio)
+                    char* tamanio, pthread_t* hilo_server_cpu)
 {
   t_config_vars config_vars;
 
@@ -42,9 +42,15 @@ bool iniciar_modulo(t_ms_recursos* ms_recursos, char* archivo_config,
   if (ms_recursos->socket_server_cpu <= 0)
     return false;
 
-  return conseguir_y_enviar_puerto(ms_recursos->socket_km,
-                                   ms_recursos->socket_server_cpu,
-                                   ms_recursos->logger);
+  // Enviar puerto del servidor a Kernel Memory
+  if (!conseguir_y_enviar_puerto(ms_recursos->socket_km,
+                                 ms_recursos->socket_server_cpu,
+                                 ms_recursos->logger))
+    return false;
+
+  // Hilo para escuchar nuevas conexiones de CPUs
+  return crear_servidor_cpu(hilo_server_cpu, ms_recursos->socket_server_cpu,
+                            ms_recursos->logger);
 }
 
 t_config* iniciar_config(char* archivo_config, t_config_vars* config_vars)
@@ -67,4 +73,37 @@ void read_confir_ms(t_config* config, t_config_vars* config_vars)
   config_vars->ip_km = config_get_string_value(config, "KERNEL_MEMORY_IP");
   config_vars->puerto_km =
       config_get_string_value(config, "KERNEL_MEMORY_PUERTO");
+}
+
+void cerrar_modulo_error(t_ms_recursos* ms_recursos)
+{
+  if (ms_recursos->socket_server_cpu > 0)
+    close(ms_recursos->socket_server_cpu);
+  if (ms_recursos->socket_km > 0)
+    close(ms_recursos->socket_km);
+  if (ms_recursos->logger != NULL)
+    log_destroy(ms_recursos->logger);
+  if (ms_recursos->config != NULL)
+    config_destroy(ms_recursos->config);
+}
+
+void cerrar_modulo(t_ms_recursos* ms_recursos, pthread_t* thread_server_cpu)
+{
+  shutdown(ms_recursos->socket_server_cpu, SHUT_RDWR);
+  pthread_join(*thread_server_cpu, NULL);
+  close(ms_recursos->socket_km);
+  close(ms_recursos->socket_server_cpu);
+  log_destroy(ms_recursos->logger);
+  config_destroy(ms_recursos->config);
+}
+
+bool get_args(int argc, char** argv, char* archivo_config, char* tamanio_str,
+              int* tamanio)
+{
+  if (argc != 3)
+    return false;
+  archivo_config = argv[1];
+  tamanio_str = argv[2];
+  *tamanio = atoi(tamanio_str);
+  return tamanio > 0;
 }

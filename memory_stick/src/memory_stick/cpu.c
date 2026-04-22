@@ -58,7 +58,8 @@ bool crear_hilo_cpu(t_datos_hilo_cpu* datos_hilo_cpu, t_log* logger)
 
 void cerrar_hilo_escucha(t_list* lista_sockets,
                          pthread_mutex_t* mutex_lista_sockets,
-                         pthread_cond_t* cond_fin_hilo_escucha)
+                         pthread_cond_t* cond_fin_hilo_escucha,
+                         t_datos_hilo_escucha* params)
 {
   pthread_mutex_lock(mutex_lista_sockets);
   list_iterate(lista_sockets, (void*)iterator_shutdown);
@@ -68,6 +69,7 @@ void cerrar_hilo_escucha(t_list* lista_sockets,
   list_destroy(lista_sockets);
   pthread_cond_destroy(cond_fin_hilo_escucha);
   pthread_mutex_destroy(mutex_lista_sockets);
+  free(params);
 }
 
 bool handshake_cpu(int socket_cpu, t_log* logger)
@@ -167,7 +169,7 @@ void* hilo_escucha_cpu(void* datos_hilo_escucha_void)
 
   log_info(params->logger, "## Cerrando servidor");
   cerrar_hilo_escucha(lista_sockets, &mutex_lista_sockets,
-                      &cond_fin_hilo_escucha);
+                      &cond_fin_hilo_escucha, params);
   return NULL;
 }
 
@@ -196,4 +198,20 @@ void* manejar_cliente_cpu(void* datos_hilo_cpu_void)
   free(params->socket_cpu);
   free(params);
   return NULL;
+}
+
+bool crear_servidor_cpu(pthread_t* thread_server_cpu, int socket_servidor_cpu,
+                        t_log* logger)
+{
+  t_datos_hilo_escucha* datos_hilo_escucha =
+      malloc(sizeof(t_datos_hilo_escucha));
+  datos_hilo_escucha->socket_espera_cpu = socket_servidor_cpu;
+  datos_hilo_escucha->logger = logger;
+  if (pthread_create(thread_server_cpu, NULL, hilo_escucha_cpu,
+                     datos_hilo_escucha) != 0)
+  {
+    log_error(logger, "## Error al crear el hilo del servidor de CPU");
+    return false;
+  }
+  return true;
 }
