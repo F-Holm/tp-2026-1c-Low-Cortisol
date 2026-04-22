@@ -19,34 +19,19 @@ int main(int argc, char* argv[])
   pthread_t thread_server_cpu;
 
   // args
-  if (argc != 3)
-    return EXIT_FAILURE;
-  char* archivo_config = argv[1];
-  char* tamanio_str = argv[2];
-  int tamanio = atoi(tamanio_str);
-  if (tamanio <= 0)
+  char* archivo_config = NULL;
+  char* tamanio_str = NULL;
+  int tamanio;
+  if (!get_args(argc, argv, archivo_config, tamanio_str, &tamanio))
     return EXIT_FAILURE;
 
   // Iniciar módulo
-  if (!iniciar_modulo(&ms_recursos, archivo_config, tamanio_str))
+  if (!iniciar_modulo(&ms_recursos, archivo_config, tamanio_str,
+                      &thread_server_cpu))
   {
-    if (ms_recursos.socket_server_cpu > 0)
-      close(ms_recursos.socket_server_cpu);
-    if (ms_recursos.socket_km > 0)
-      close(ms_recursos.socket_km);
-    if (ms_recursos.logger != NULL)
-      log_destroy(ms_recursos.logger);
-    if (ms_recursos.config != NULL)
-      config_destroy(ms_recursos.config);
+    cerrar_modulo_error(&ms_recursos);
     return EXIT_FAILURE;
   }
-
-  // Hilo para escuchar nuevas conexiones de CPUs
-  t_datos_hilo_escucha datos_hilo_escucha;
-  datos_hilo_escucha.socket_espera_cpu = ms_recursos.socket_server_cpu;
-  datos_hilo_escucha.logger = ms_recursos.logger;
-  pthread_create(&thread_server_cpu, NULL, hilo_escucha_cpu,
-                 &datos_hilo_escucha);
 
   // Esperando Instrucciones del Kernel Memory
   while (true)
@@ -62,11 +47,6 @@ int main(int argc, char* argv[])
   }
 
   // Liberar y Cerrar
-  shutdown(ms_recursos.socket_server_cpu, SHUT_RDWR);
-  pthread_join(thread_server_cpu, NULL);
-  close(ms_recursos.socket_km);
-  close(ms_recursos.socket_server_cpu);
-  log_destroy(ms_recursos.logger);
-  config_destroy(ms_recursos.config);
+  cerrar_modulo(&ms_recursos, &thread_server_cpu);
   return EXIT_SUCCESS;
 }
