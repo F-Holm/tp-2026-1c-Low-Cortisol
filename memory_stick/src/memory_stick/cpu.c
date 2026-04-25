@@ -33,8 +33,8 @@ void iterator_shutdown(void* value)
 }
 
 t_datos_hilo_cpu* inicializar_datos_hilo_cpu(
-    int* socket_cpu, t_list* lista_sockets,
-    pthread_mutex_t* mutex_lista_sockets, pthread_cond_t* cond_fin_hilo_escucha)
+    int socket_cpu, t_list* lista_sockets, pthread_mutex_t* mutex_lista_sockets,
+    pthread_cond_t* cond_fin_hilo_escucha)
 {
   t_datos_hilo_cpu* datos = malloc(sizeof(t_datos_hilo_cpu));
   datos->socket_cpu = socket_cpu;
@@ -59,7 +59,7 @@ bool crear_hilo_cpu(t_datos_hilo_cpu* datos_hilo_cpu, t_log* logger)
 void cerrar_hilo_escucha(t_list* lista_sockets,
                          pthread_mutex_t* mutex_lista_sockets,
                          pthread_cond_t* cond_fin_hilo_escucha,
-                         t_datos_hilo_escucha* params)
+                         t_datos_hilo_escucha* datos_hilo_escucha)
 {
   pthread_mutex_lock(mutex_lista_sockets);
   list_iterate(lista_sockets, (void*)iterator_shutdown);
@@ -69,7 +69,7 @@ void cerrar_hilo_escucha(t_list* lista_sockets,
   list_destroy(lista_sockets);
   pthread_cond_destroy(cond_fin_hilo_escucha);
   pthread_mutex_destroy(mutex_lista_sockets);
-  free(params);
+  free(datos_hilo_escucha);
 }
 
 bool handshake_cpu(int socket_cpu, t_log* logger)
@@ -100,35 +100,35 @@ char* obtener_id_cpu(int socket_cpu, t_log* logger)
   return id_cpu;
 }
 
-bool atender_nueva_cpu(t_datos_hilo_escucha* params, int* socket_cpu,
+bool atender_nueva_cpu(t_datos_hilo_escucha* datos_hilo_escucha, int socket_cpu,
                        t_list* lista_sockets,
                        pthread_mutex_t* mutex_lista_sockets,
                        pthread_cond_t* cond_fin_hilo_escucha)
 {
   // Handshake con CPU
-  if (!handshake_cpu(*socket_cpu, params->logger))
+  if (!handshake_cpu(socket_cpu, datos_hilo_escucha->logger))
     return false;
 
   // Obtener ID
-  char* id_cpu = obtener_id_cpu(*socket_cpu, params->logger);
+  char* id_cpu = obtener_id_cpu(socket_cpu, datos_hilo_escucha->logger);
   if (id_cpu == NULL)
     return false;
   free(id_cpu);
-
-  // Agregar socket a la lista
-  pthread_mutex_lock(mutex_lista_sockets);
-  list_add(lista_sockets, socket_cpu);
-  pthread_mutex_unlock(mutex_lista_sockets);
 
   // Inicializar datos hilo cpu
   t_datos_hilo_cpu* datos_hilo_cpu = inicializar_datos_hilo_cpu(
       socket_cpu, lista_sockets, mutex_lista_sockets, cond_fin_hilo_escucha);
 
+  // Agregar socket a la lista
+  pthread_mutex_lock(mutex_lista_sockets);
+  list_add(lista_sockets, &(datos_hilo_cpu->socket_cpu));
+  pthread_mutex_unlock(mutex_lista_sockets);
+
   // Crear hilo
-  if (!crear_hilo_cpu(datos_hilo_cpu, params->logger))
+  if (!crear_hilo_cpu(datos_hilo_cpu, datos_hilo_escucha->logger))
   {
     pthread_mutex_lock(mutex_lista_sockets);
-    list_remove_element(lista_sockets, socket_cpu);
+    list_remove_element(lista_sockets, &(datos_hilo_cpu->socket_cpu));
     pthread_mutex_unlock(mutex_lista_sockets);
     free(datos_hilo_cpu);
     return false;
@@ -138,7 +138,8 @@ bool atender_nueva_cpu(t_datos_hilo_escucha* params, int* socket_cpu,
 
 void* hilo_escucha_cpu(void* datos_hilo_escucha_void)
 {
-  t_datos_hilo_escucha* params = (t_datos_hilo_escucha*)datos_hilo_escucha_void;
+  t_datos_hilo_escucha* datos_hilo_escucha =
+      (t_datos_hilo_escucha*)datos_hilo_escucha_void;
 
   t_list* lista_sockets = list_create();
   pthread_mutex_t mutex_lista_sockets;
@@ -149,54 +150,50 @@ void* hilo_escucha_cpu(void* datos_hilo_escucha_void)
 
   while (true)
   {
-    int* socket_cpu = malloc(sizeof(int));
-    *socket_cpu = esperar_cliente(params->socket_espera_cpu);
-    if (*socket_cpu <= 0)
-    {
-      free(socket_cpu);
+    int socket_cpu = esperar_cliente(datos_hilo_escucha->socket_espera_cpu);
+    if (socket_cpu <= 0)
       break;
-    }
 
-    log_info(params->logger, "## Conexión exitosa con CPU");
+    log_info(datos_hilo_escucha->logger, "## Conexión exitosa con CPU");
 
-    if (!atender_nueva_cpu(params, socket_cpu, lista_sockets,
+    if (!atender_nueva_cpu(datos_hilo_escucha, socket_cpu, lista_sockets,
                            &mutex_lista_sockets, &cond_fin_hilo_escucha))
-    {
-      close(*socket_cpu);
-      free(socket_cpu);
-    }
+      close(socket_cpu);
   }
 
-  log_info(params->logger, "## Cerrando servidor");
+  log_info(datos_hilo_escucha->logger, "## Cerrando servidor");
   cerrar_hilo_escucha(lista_sockets, &mutex_lista_sockets,
-                      &cond_fin_hilo_escucha, params);
+                      &cond_fin_hilo_escucha, datos_hilo_escucha);
   return NULL;
+}
+
+void cerrar_hilo_cpu(t_datos_hilo_cpu* datos_hilo_cpu)
+{
+  close(datos_hilo_cpu->socket_cpu);
+  pthread_mutex_lock(datos_hilo_cpu->mutex_lista_sockets);
+  list_remove_element(datos_hilo_cpu->lista_sockets,
+                      &(datos_hilo_cpu->socket_cpu));
+  if (list_is_empty(datos_hilo_cpu->lista_sockets))
+    pthread_cond_signal(datos_hilo_cpu->cond_fin_hilo_escucha);
+  pthread_mutex_unlock(datos_hilo_cpu->mutex_lista_sockets);
+  free(datos_hilo_cpu);
 }
 
 void* manejar_cliente_cpu(void* datos_hilo_cpu_void)
 {
-  t_datos_hilo_cpu* params = (t_datos_hilo_cpu*)datos_hilo_cpu_void;
+  t_datos_hilo_cpu* datos_hilo_cpu = (t_datos_hilo_cpu*)datos_hilo_cpu_void;
 
   while (true)
   {
-    int operacion = recibir_operacion(*(params->socket_cpu));
+    int operacion = recibir_operacion(datos_hilo_cpu->socket_cpu);
     if (operacion == OP_CODE_ERROR)
       break;
-    char* buffer = recibir_string(*(params->socket_cpu));
+    char* buffer = recibir_string(datos_hilo_cpu->socket_cpu);
     free(buffer);
   }
 
   // Liberar conexión y eliminar socket de la lista
-  close(*(params->socket_cpu));
-  pthread_mutex_lock(params->mutex_lista_sockets);
-  list_remove_element(params->lista_sockets, params->socket_cpu);
-  if (list_is_empty(params->lista_sockets))
-  {
-    pthread_cond_signal(params->cond_fin_hilo_escucha);
-  }
-  pthread_mutex_unlock(params->mutex_lista_sockets);
-  free(params->socket_cpu);
-  free(params);
+  cerrar_hilo_cpu(datos_hilo_cpu);
   return NULL;
 }
 
