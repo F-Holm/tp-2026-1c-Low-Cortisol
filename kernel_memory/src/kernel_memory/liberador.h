@@ -1,9 +1,10 @@
 #ifndef KERNEL_MEMORY_LIBERADOR_H
 #define KERNEL_MEMORY_LIBERADOR_H
 
-#include "kernel_memory/estructuras.h"
 #include <commons/collections/list.h>
 #include <pthread.h>
+
+#include "kernel_memory/estructuras.h"
 
 void liberar_datos_kernel_mem(t_datos_kernel_mem* datos_kernel);
 void liberar_datos_scheduler(t_datos_scheduler* datos_scheduler);

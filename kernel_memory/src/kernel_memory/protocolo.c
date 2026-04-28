@@ -75,7 +75,7 @@ bool recibir_puerto_escucha_stick(t_datos_stick* datos_stick)
 }
 
 void agregar_conexion_stick(t_datos_kernel_mem* datos_kernel_memory,
-                           t_datos_stick* datos_stick)
+                            t_datos_stick* datos_stick)
 {
   pthread_mutex_lock(&datos_kernel_memory->mutex_lista_sockets);
   list_add(datos_kernel_memory->sticks_conectados, datos_stick);
@@ -84,7 +84,7 @@ void agregar_conexion_stick(t_datos_kernel_mem* datos_kernel_memory,
 }
 
 void agregar_conexion_cpu(t_datos_kernel_mem* datos_kernel_memory,
-                         t_datos_cpu* datos_cpu)
+                          t_datos_cpu* datos_cpu)
 {
   pthread_mutex_lock(&datos_kernel_memory->mutex_lista_sockets);
   list_add(datos_kernel_memory->sticks_conectados, datos_cpu);
