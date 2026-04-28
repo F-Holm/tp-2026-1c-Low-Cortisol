@@ -37,7 +37,7 @@ int main(int argc, char* argv[])
 
   if (cpu->config == NULL)
   {
-    log_error(cpu->logger, "No se pudo cargar el config");
+    log_error(cpu->logger, "## No se pudo cargar el config");
     abort();
   }
 
@@ -58,20 +58,34 @@ int main(int argc, char* argv[])
       crear_conexion(ip_kernel_scheduler, puerto_kernel_scheduler);
 
   // Handshake con Kernel scheduler
-  enviar_handshake(MID_CPU, cpu->socket_kernel_scheduler);
+  if (enviar_handshake(MID_CPU, cpu->socket_kernel_scheduler))
+  {
+    log_info(cpu->logger, "handshake correctamente enviado al kernel scheduler");
+  }
+  else
+  {
+    log_error(cpu->logger, "## fallo en el envio del hanshake con kernel scheduler");
+  }
 
   int id_modulo = recibir_handshake(cpu->socket_kernel_scheduler);
   if (id_modulo != MID_KERNEL_SCHEDULER)
   {
-    log_error(cpu->logger, "## Error en el Handshake con Kernel_scheduler");
+    log_error(cpu->logger, "## Error al recibir el Handshake con Kernel_scheduler");
     close(cpu->socket_kernel_scheduler);
     log_destroy(cpu->logger);
     config_destroy(cpu->config);
     return EXIT_FAILURE;
   }
-  log_info(cpu->logger, "## Handshake exitoso con Kernel scheduler");
+  log_info(cpu->logger, "Handshake recibido con exitoso del Kernel scheduler");
 
-  enviar_string(OP_ID_CPU, cpu->id, cpu->socket_kernel_scheduler);
+  if (enviar_string(OP_ID_CPU, cpu->id, cpu->socket_kernel_scheduler))
+  {
+    log_info(cpu->logger, "String correctamente enviado al kernel scheduler");
+  }
+  else
+  {
+    log_error(cpu->logger, "## fallo el envio del mensaje al kernel scheduler");
+  }
 
   // CONEXION CON EL KERNEL MEMORY
 
@@ -83,20 +97,35 @@ int main(int argc, char* argv[])
       crear_conexion(ip_kernel_memory, puerto_kernel_memory);
 
   // Handshake con Kernel Memory
-  enviar_handshake(MID_CPU, cpu->socket_kernel_memory);
+  if(enviar_handshake(MID_CPU, cpu->socket_kernel_memory))
+  {
+    log_info(cpu->logger, "handshake correctamente enviado al kernel memory");
+  }
+  else
+  {
+    log_error(cpu->logger, "## fallo en el envio del hanshake con kernel memory");
+  }
+
 
   id_modulo = recibir_handshake(cpu->socket_kernel_memory);
   if (id_modulo != MID_KERNEL_MEMORY)
   {
-    log_error(cpu->logger, "## Error en el Handshake con Kernel_Memory");
+    log_error(cpu->logger, "## Error al recibir el Handshake con Kernel_Memory");
     close(cpu->socket_kernel_memory);
     log_destroy(cpu->logger);
     config_destroy(cpu->config);
     return EXIT_FAILURE;
   }
-  log_info(cpu->logger, "## Handshake exitoso con Kernel Memory");
+  log_info(cpu->logger, "Handshake recibido del Kernel Memory");
 
-  enviar_string(OP_ID_CPU, cpu->id, cpu->socket_kernel_memory);
+  if (enviar_string(OP_ID_CPU, cpu->id, cpu->socket_kernel_memory))
+  {
+    log_info(cpu->logger, "String correctamente enviado al kernel memory");
+  }
+  else
+  {
+    log_error(cpu->logger, "## fallo el envio del mensaje al kernel memory");
+  }
 
   // CONEXION CON MEMORY STICK
   // hilo de escucha
