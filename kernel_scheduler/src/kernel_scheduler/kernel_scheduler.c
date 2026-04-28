@@ -4,7 +4,10 @@
 
 #include "utils/client.h"
 #include "utils/msg.h"
+#include "cpu.h"
 #include "utils/server.h"
+#include <bits/pthreadtypes.h>
+#include "kernel_scheduler.h"
 
 t_log* logger;
 t_config* config;
@@ -26,17 +29,65 @@ t_config* iniciar_config(char* path)
   return nuevo_config;
 }
 
-void paquete(int socket_km, char* valor)
+void iniciar_modulo(t_kScheduler_recursos* kScheduler_recursos, char* archivo_config)
 {
-  t_paquete* paquete = crear_paquete();
-  agregar_a_paquete(paquete, valor, strlen(valor));
-  enviar_paquete(paquete, socket_km);
-  eliminar_paquete(paquete);
+  kScheduler_recursos->config = iniciar_config(archivo_config);
+  kScheduler_recursos->logger = iniciar_logger(kScheduler_recursos->config);
+  kScheduler_recursos->ip = config_get_string_value(kScheduler_recursos->config, "KERNEL_MEMORY_IP");
+  kScheduler_recursos->puerto = config_get_string_value(kScheduler_recursos->config, "KERNEL_MEMORY_PUERTO");
+  kScheduler_recursos->puerto_servidor = config_get_string_value(kScheduler_recursos->config, "KERNEL_SCHEDULER_PUERTO");
 }
 
-void terminar_programa(int socket_km, t_log* logger, t_config* config)
+bool conectar_kernel_memory(t_kScheduler_recursos* kScheduler_recursos)
 {
-  log_destroy(logger);
-  config_destroy(config);
-  liberar_conexion(socket_km);
+  kScheduler_recursos->socket_km = crear_conexion(kScheduler_recursos->ip, kScheduler_recursos->puerto);
+  if (kScheduler_recursos->socket_km <= 0)
+  {
+    log_error(kScheduler_recursos->logger, "## Fallo la conexion con kernel memory en %s:%s", kScheduler_recursos->ip,
+              kScheduler_recursos->puerto);
+    terminar_programa(kScheduler_recursos->socket_km, kScheduler_recursos->logger, kScheduler_recursos->config);
+    return false;
+  }
+  else
+  {
+    log_info(kScheduler_recursos->logger, "##Conexion establecida con kernel memory en %s:%s", kScheduler_recursos->ip,
+             kScheduler_recursos->puerto);
+    return true;
+  }
+}
+
+bool handshake_kernel_memory(t_kScheduler_recursos* kScheduler_recursos)
+{
+  enviar_handshake(MID_KERNEL_SCHEDULER, kScheduler_recursos->socket_km);
+  int id_modulo = recibir_handshake(kScheduler_recursos->socket_km);
+  if (id_modulo != MID_KERNEL_MEMORY)
+  {
+    log_error(kScheduler_recursos->logger, "## Error en el Handshake con Kernel Memory");
+    close(kScheduler_recursos->socket_km);
+    log_destroy(kScheduler_recursos->logger);
+    config_destroy(kScheduler_recursos->config);
+    return false;
+  }
+  log_info(kScheduler_recursos->logger, "## Handshake exitoso con Kernel Memory");
+  return true;
+}
+
+void iniciar_servidor_cpu_io(t_kScheduler_recursos* kScheduler_recursos, t_datos_hilo_escucha* datos_hilo_escucha)
+{
+  datos_hilo_escucha->socket_fd = kScheduler_recursos->server;
+  datos_hilo_escucha->logger = kScheduler_recursos->logger;
+  pthread_create(&kScheduler_recursos->thread_server, NULL, hilo_escucha_server,
+                 &datos_hilo_escucha);
+  log_info(kScheduler_recursos->logger, "## Servidor listo para recibir CPUs e IOs");
+}
+
+void cerrar_modulo(t_kScheduler_recursos* kScheduler_recursos)
+{
+  shutdown(kScheduler_recursos->server, SHUT_RDWR);
+  pthread_join(kScheduler_recursos->thread_server, NULL);
+  log_info(kScheduler_recursos->logger, "## Servidor de cpu cerrado.");
+  liberar_conexion(kScheduler_recursos->server);
+  liberar_conexion(kScheduler_recursos->socket_km);
+  log_destroy(kScheduler_recursos->logger);
+  config_destroy(kScheduler_recursos->config);
 }

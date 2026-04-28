@@ -13,94 +13,52 @@
 
 int main(int argc, char* argv[])
 {
-  int server;
-  int socket_km;
-  char* ip;
-  char* puerto;
-  char* puerto_servidor;
   bool seguir_operando = true;
 
-  t_log* logger;
-  t_config* config;
-  pthread_t thread_server;
+  t_kScheduler_recursos kScheduler_recursos;
+  t_datos_hilo_escucha datos_hilo_escucha;
 
   if (argc != 3)
     return EXIT_FAILURE;
   char* archivo_config = argv[1];
   char* path_proceso_inicial = argv[2];
 
-  config = iniciar_config(archivo_config);
-  logger = iniciar_logger(config);
-  ip = config_get_string_value(config, "KERNEL_MEMORY_IP");
-  puerto = config_get_string_value(config, "KERNEL_MEMORY_PUERTO");
-  puerto_servidor = config_get_string_value(config, "KERNEL_SCHEDULER_PUERTO");
+  iniciar_modulo(&kScheduler_recursos, archivo_config);
 
   // conectar con kernel memory como cliente y loggear el resultado
-  socket_km = crear_conexion(ip, puerto);
-  if (socket_km <= 0)
-  {
-    log_error(logger, "## Fallo la conexion con kernel memory en %s:%s", ip,
-              puerto);
-    terminar_programa(socket_km, logger, config);
-    return 1;
-  }
-  else
-  {
-    log_info(logger, "##Conexion establecida con kernel memory en %s:%s", ip,
-             puerto);
-  }
+  if(conectar_kernel_memory(&kScheduler_recursos) == false) return EXIT_FAILURE;
+  //PREGUNTARLE A HOLM SI ESTO ANDA <3
 
   // handshake con kernel memory y loggear el resultado
-  enviar_handshake(MID_KERNEL_SCHEDULER, socket_km);
-  int id_modulo = recibir_handshake(socket_km);
-  if (id_modulo != MID_KERNEL_MEMORY)
-  {
-    log_error(logger, "## Error en el Handshake con Kernel Memory");
-    close(socket_km);
-    log_destroy(logger);
-    config_destroy(config);
-    return EXIT_FAILURE;
-  }
-  log_info(logger, "## Handshake exitoso con Kernel Memory");
+  if(handshake_kernel_memory(&kScheduler_recursos) == false) return EXIT_FAILURE;
+  //PREGUNTARLE A HOLM SI ESTO ANDA <3
 
   //----------------------------------------------------------------------------------
 
   // iniciar servidor para CPU y IO
-  server = iniciar_servidor(puerto_servidor);
+  kScheduler_recursos.server = iniciar_servidor(kScheduler_recursos.puerto_servidor);
 
   // creacion de hilos
-  t_datos_hilo_escucha datos_hilo_escucha;
-  datos_hilo_escucha.socket_fd = server;
-  datos_hilo_escucha.logger = logger;
-  pthread_create(&thread_server, NULL, hilo_escucha_server,
-                 &datos_hilo_escucha);
-  log_info(logger, "## Servidor listo para recibir CPUs e IOs");
-
+  iniciar_servidor_cpu_io(&kScheduler_recursos, &datos_hilo_escucha);
   // recibir operaciones de CPU y IO
   while (seguir_operando)
   {
-    int op_code = recibir_operacion(socket_km);
+    int op_code = recibir_operacion(kScheduler_recursos.socket_km);
     switch (op_code)
     {
         // agregar casos para cada operacion que se quiera recibir de la CPU y
         // IO
       case OP_CODE_ERROR:
-        log_error(logger, "## Se termino la conexion con el servidor.");
+        log_error(kScheduler_recursos.logger, "## Se termino la conexion con el servidor.");
         seguir_operando = false;
         break;
       default:
-        log_warning(logger, "## Operacion desconocida.");
+        log_warning(kScheduler_recursos.logger, "## Operacion desconocida.");
         break;
     }
   }
 
   // cerrar servidor y liberar recursos
-  shutdown(server, SHUT_RDWR);
-  pthread_join(thread_server, NULL);
-  log_info(logger, "## Servidor de cpu cerrado.");
-  liberar_conexion(server);
-  liberar_conexion(socket_km);
-  log_destroy(logger);
-  config_destroy(config);
+  cerrar_modulo(&kScheduler_recursos);
   return EXIT_SUCCESS;
 }
