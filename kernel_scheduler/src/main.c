@@ -26,17 +26,20 @@ int main(int argc, char* argv[])
   iniciar_modulo(&kScheduler_recursos, archivo_config);
 
   // conectar con kernel memory como cliente y loggear el resultado
-  if(conectar_kernel_memory(&kScheduler_recursos) == false) return EXIT_FAILURE;
-  //PREGUNTARLE A HOLM SI ESTO ANDA <3
+  if (conectar_kernel_memory(&kScheduler_recursos) == false)
+    return EXIT_FAILURE;
+  // PREGUNTARLE A HOLM SI ESTO ANDA <3
 
   // handshake con kernel memory y loggear el resultado
-  if(handshake_kernel_memory(&kScheduler_recursos) == false) return EXIT_FAILURE;
-  //PREGUNTARLE A HOLM SI ESTO ANDA <3
+  if (handshake_kernel_memory(&kScheduler_recursos) == false)
+    return EXIT_FAILURE;
+  // PREGUNTARLE A HOLM SI ESTO ANDA <3
 
   //----------------------------------------------------------------------------------
 
   // iniciar servidor para CPU y IO
-  kScheduler_recursos.server = iniciar_servidor(kScheduler_recursos.puerto_servidor);
+  kScheduler_recursos.server =
+      iniciar_servidor(kScheduler_recursos.puerto_servidor);
 
   // creacion de hilos
   iniciar_servidor_cpu_io(&kScheduler_recursos, &datos_hilo_escucha);
@@ -49,7 +52,8 @@ int main(int argc, char* argv[])
         // agregar casos para cada operacion que se quiera recibir de la CPU y
         // IO
       case OP_CODE_ERROR:
-        log_error(kScheduler_recursos.logger, "## Se termino la conexion con el servidor.");
+        log_error(kScheduler_recursos.logger,
+                  "## Se termino la conexion con el servidor.");
         seguir_operando = false;
         break;
       default:
