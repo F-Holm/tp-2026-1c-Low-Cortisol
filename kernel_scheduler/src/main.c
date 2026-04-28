@@ -26,15 +26,19 @@ int main(int argc, char* argv[])
   iniciar_modulo(&kScheduler_recursos, archivo_config);
 
   // conectar con kernel memory como cliente y loggear el resultado
-  if (conectar_kernel_memory(&kScheduler_recursos) == false)
+  if (conectar_kernel_memory(&kScheduler_recursos) == false) // PREGUNTARLE A HOLM SI ESTO ANDA <3
+  {
+    cerrar_modulo(&kScheduler_recursos);
     return EXIT_FAILURE;
-  // PREGUNTARLE A HOLM SI ESTO ANDA <3
+  }
 
   // handshake con kernel memory y loggear el resultado
-  if (handshake_kernel_memory(&kScheduler_recursos) == false)
+  if (handshake_kernel_memory(&kScheduler_recursos) == false) // PREGUNTARLE A HOLM SI ESTO ANDA <3
+  {
+    cerrar_modulo(&kScheduler_recursos);
     return EXIT_FAILURE;
-  // PREGUNTARLE A HOLM SI ESTO ANDA <3
-
+  }
+    
   //----------------------------------------------------------------------------------
 
   // iniciar servidor para CPU y IO
