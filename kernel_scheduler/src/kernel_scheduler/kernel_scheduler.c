@@ -1,6 +1,6 @@
 #include "kernel_scheduler.h"
 
-#include <bits/pthreadtypes.h>
+#include <pthread.h>
 #include <commons/config.h>
 #include <commons/log.h>
 #include <string.h>
@@ -52,8 +52,7 @@ bool conectar_kernel_memory(t_kScheduler_recursos* kScheduler_recursos)
     log_error(kScheduler_recursos->logger,
               "## Fallo la conexion con kernel memory en %s:%s",
               kScheduler_recursos->ip, kScheduler_recursos->puerto);
-    terminar_programa(kScheduler_recursos->socket_km,
-                      kScheduler_recursos->logger, kScheduler_recursos->config);
+    cerrar_modulo(kScheduler_recursos);
     return false;
   }
   else
