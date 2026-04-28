@@ -74,7 +74,7 @@ bool recibir_puerto_escucha_stick(t_datos_stick* datos_stick)
   return false;
 }
 
-void agregar_coexion_stick(t_datos_kernel_mem* datos_kernel_memory,
+void agregar_conexion_stick(t_datos_kernel_mem* datos_kernel_memory,
                            t_datos_stick* datos_stick)
 {
   pthread_mutex_lock(&datos_kernel_memory->mutex_lista_sockets);
@@ -83,7 +83,7 @@ void agregar_coexion_stick(t_datos_kernel_mem* datos_kernel_memory,
   return;
 }
 
-void agregar_coexion_cpu(t_datos_kernel_mem* datos_kernel_memory,
+void agregar_conexion_cpu(t_datos_kernel_mem* datos_kernel_memory,
                          t_datos_cpu* datos_cpu)
 {
   pthread_mutex_lock(&datos_kernel_memory->mutex_lista_sockets);
@@ -115,7 +115,7 @@ void enviar_sticks_conectadas(t_datos_kernel_mem* datos_kernel_memory,
   pthread_mutex_unlock(&datos_kernel_memory->mutex_lista_sockets);
 }
 
-void enviar_conexion_cpus(t_datos_stick* datos_stick, t_list* cpus_conectados)
+void enviar_conexion_cpu(t_datos_stick* datos_stick, t_list* cpus_conectados)
 {
   t_paquete* paquete = crear_paquete();
 

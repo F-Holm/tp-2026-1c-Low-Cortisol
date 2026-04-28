@@ -6,6 +6,7 @@
 
 #include "kernel_memory/configurador.h"
 #include "kernel_memory/inicializador.h"
+#include "kernel_memory/liberador.h"
 #include "kernel_memory/servidor.h"
 #include "utils/kernel_memory_cpu.h"
 #include "utils/msg.h"
@@ -30,8 +31,7 @@ int main(int argc, char* argv[])
     accept_cliente(datos_kernel);
   }
 
-  pthread_mutex_destroy(&datos_kernel->mutex_lista_sockets);
-  free(datos_kernel);
+  liberar_datos_kernel_mem(datos_kernel);
 
   return 0;
 }

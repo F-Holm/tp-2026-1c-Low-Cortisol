@@ -33,7 +33,7 @@ void handshake(t_datos_kernel_mem* datos_kernel_memory, int client_socket)
       t_datos_cpu* datos_cpu =
           inicializar_datos_cpu(client_socket, datos_kernel_memory->logger);
       inicializar_correcto = recibir_id_cpu(datos_cpu);
-      agregar_coexion_cpu(datos_kernel_memory, datos_cpu);
+      agregar_conexion_cpu(datos_kernel_memory, datos_cpu);
       if (inicializar_correcto)
       {
         enviar_sticks_conectadas(datos_kernel_memory, datos_cpu);
@@ -59,10 +59,10 @@ void handshake(t_datos_kernel_mem* datos_kernel_memory, int client_socket)
       inicializar_correcto = inicializar_ip_stick(datos_stick, client_socket);
       inicializar_correcto = recibir_tamanio_stick(datos_stick);
       inicializar_correcto = recibir_puerto_escucha_stick(datos_stick);
-      agregar_coexion_stick(datos_kernel_memory, datos_stick);
+      agregar_conexion_stick(datos_kernel_memory, datos_stick);
       if (inicializar_correcto)
       {
-        enviar_conexion_cpus(datos_stick, datos_kernel_memory->cpus_conectados);
+        enviar_conexion_cpu(datos_stick, datos_kernel_memory->cpus_conectados);
         empezar_escucha_stick(datos_stick);
       }
       else

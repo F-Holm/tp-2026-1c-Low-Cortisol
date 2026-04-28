@@ -8,6 +8,7 @@
 
 #include "configurador.h"
 #include "kernel_memory/estructuras.h"
+#include "kernel_memory/liberador.h"
 #include "utils/msg.h"
 
 void* escucha_scheduler(void* ptr)
@@ -32,7 +33,7 @@ void* escucha_scheduler(void* ptr)
         break;
     }
   }
-  terminar_comunicacion(datos_scheduler->socket_scheduler);
+  liberar_datos_scheduler(datos_scheduler);
   return NULL;
 }
 
@@ -57,7 +58,7 @@ void* escucha_cpu(void* ptr)
         break;
     }
   }
-  terminar_comunicacion(datos_cpu->socket_cpu);
+  liberar_datos_cpu(datos_cpu);
   return NULL;
 }
 
@@ -82,7 +83,7 @@ void* escucha_swap(void* ptr)
         break;
     }
   }
-  terminar_comunicacion(datos_swap->socket_swap);
+  liberar_datos_swap(datos_swap);
   return NULL;
 }
 
@@ -107,7 +108,7 @@ void* escucha_stick(void* ptr)
         break;
     }
   }
-  terminar_comunicacion(datos_stick->socket_stick);
+  liberar_datos_stick(datos_stick);
   return NULL;
 }
 
