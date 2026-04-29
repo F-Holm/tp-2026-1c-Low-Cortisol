@@ -115,27 +115,27 @@ void* escucha_stick(void* ptr)
 void empezar_escucha_scheduler(t_datos_scheduler* datos_scheduler)
 {
   pthread_t hilo_escucha;
-  pthread_create(&hilo_escucha, NULL, escucha_scheduler, &datos_scheduler);
+  pthread_create(&hilo_escucha, NULL, escucha_scheduler, datos_scheduler);
   pthread_detach(hilo_escucha);
 }
 
 void empezar_escucha_cpu(t_datos_cpu* datos_cpu)
 {
   pthread_t hilo_escucha;
-  pthread_create(&hilo_escucha, NULL, escucha_cpu, &datos_cpu);
+  pthread_create(&hilo_escucha, NULL, escucha_cpu, datos_cpu);
   pthread_detach(hilo_escucha);
 }
 
 void empezar_escucha_stick(t_datos_stick* datos_stick)
 {
   pthread_t hilo_escucha;
-  pthread_create(&hilo_escucha, NULL, escucha_stick, &datos_stick);
+  pthread_create(&hilo_escucha, NULL, escucha_stick, datos_stick);
   pthread_detach(hilo_escucha);
 }
 
 void empezar_escucha_swap(t_datos_swap* datos_swap)
 {
   pthread_t hilo_escucha;
-  pthread_create(&hilo_escucha, NULL, escucha_swap, &datos_swap);
+  pthread_create(&hilo_escucha, NULL, escucha_swap, datos_swap);
   pthread_detach(hilo_escucha);
 }

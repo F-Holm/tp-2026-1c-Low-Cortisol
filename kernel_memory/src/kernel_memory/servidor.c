@@ -15,7 +15,12 @@ void handshake(t_datos_kernel_mem* datos_kernel_memory, int client_socket)
   {
     case MID_KERNEL_SCHEDULER:
     {
-      enviar_handshake(MID_KERNEL_MEMORY, client_socket);
+      if (!enviar_handshake(MID_KERNEL_MEMORY, client_socket))
+      {
+        log_error(datos_kernel_memory->logger, "Error al enviar handshake");
+        close(client_socket);
+        return;
+      }
       log_info(datos_kernel_memory->logger,
                "## Kernel Scheduler Conectado - FD del socket: %i",
                client_socket);
@@ -27,7 +32,12 @@ void handshake(t_datos_kernel_mem* datos_kernel_memory, int client_socket)
 
     case MID_CPU:
     {
-      enviar_handshake(MID_KERNEL_MEMORY, client_socket);
+      if (!enviar_handshake(MID_KERNEL_MEMORY, client_socket))
+      {
+        log_error(datos_kernel_memory->logger, "Error al enviar handshake");
+        close(client_socket);
+        return;
+      }
       bool inicializar_correcto = true;
       log_info(datos_kernel_memory->logger, "Se ha conectado una CPU!");
       t_datos_cpu* datos_cpu =
@@ -50,7 +60,12 @@ void handshake(t_datos_kernel_mem* datos_kernel_memory, int client_socket)
     case MID_MEMORY_STICK:
     {
       // FALTA ENVIAR LA STICK CUANDO SE CONECTA A LA CPU
-      enviar_handshake(MID_KERNEL_MEMORY, client_socket);
+      if (!enviar_handshake(MID_KERNEL_MEMORY, client_socket))
+      {
+        log_error(datos_kernel_memory->logger, "Error al enviar handshake");
+        close(client_socket);
+        return;
+      }
       log_info(datos_kernel_memory->logger,
                "Se ha conectado una memory Stick!");
       bool inicializar_correcto = true;
@@ -71,13 +86,18 @@ void handshake(t_datos_kernel_mem* datos_kernel_memory, int client_socket)
                  "Se ha terminado la conexion con una memory Stick ya que no "
                  "se pudo inicializar correectametne");
         terminar_comunicacion(datos_stick->socket_stick);
-      };
+      }
     }
     break;
 
     case MID_SWAP:
     {
-      enviar_handshake(MID_KERNEL_MEMORY, client_socket);
+      if (!enviar_handshake(MID_KERNEL_MEMORY, client_socket))
+      {
+        log_error(datos_kernel_memory->logger, "Error al enviar handshake");
+        close(client_socket);
+        return;
+      }
       log_info(datos_kernel_memory->logger, "Se ha conectado el SWAP!");
       t_datos_swap* datos_swap =
           inicializar_datos_swap(client_socket, datos_kernel_memory->logger);
