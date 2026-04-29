@@ -23,7 +23,7 @@ void* hilo_escucha_server(void* datos_hilo_escucha_void)
       ((t_datos_hilo_escucha*)datos_hilo_escucha_void)->socket_fd;
   t_log* logger = ((t_datos_hilo_escucha*)datos_hilo_escucha_void)->logger;
 
-  int sockets_io[3];
+  int sockets_io[3] = {-1, -1, -1};
 
   t_list* lista_sockets_cpu = list_create();
   pthread_mutex_t mutex_lista_sockets;
@@ -130,7 +130,9 @@ void* hilo_escucha_server(void* datos_hilo_escucha_void)
 
   // Cerrar sockets IO
   for (int i = 0; i < 3; i++)
-    close(sockets_io[i]);
+    if (sockets_io[i] > 0)
+      close(sockets_io[i]);
+
   return NULL;
 }
 
