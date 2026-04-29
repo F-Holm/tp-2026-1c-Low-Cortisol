@@ -34,16 +34,22 @@ int main(int argc, char* argv[])
   }
 
   // Esperando Instrucciones del Kernel Memory
-  while (true)
+  bool seguir_operando = true;
+  while (seguir_operando)
   {
     int op_code = recibir_operacion(ms_recursos.socket_km);
     char* buffer;
 
-    if (op_code == OP_CODE_ERROR || op_code == -1)
-      break;
-
-    buffer = recibir_string(ms_recursos.socket_km);
-    free(buffer);
+    switch (op_code)
+    {
+      case OP_CODE_ERROR:
+        seguir_operando = false;
+        break;
+      default:
+        buffer = recibir_string(ms_recursos.socket_km);
+        free(buffer);
+        break;
+    }
   }
 
   // Liberar y Cerrar
