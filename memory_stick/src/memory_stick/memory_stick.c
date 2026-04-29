@@ -97,13 +97,13 @@ void cerrar_modulo(t_ms_recursos* ms_recursos, pthread_t* thread_server_cpu)
   config_destroy(ms_recursos->config);
 }
 
-bool get_args(int argc, char** argv, char* archivo_config, char* tamanio_str,
+bool get_args(int argc, char** argv, char** archivo_config, char** tamanio_str,
               int* tamanio)
 {
   if (argc != 3)
     return false;
-  archivo_config = argv[1];
-  tamanio_str = argv[2];
-  *tamanio = atoi(tamanio_str);
+  *archivo_config = argv[1];
+  *tamanio_str = argv[2];
+  *tamanio = atoi(*tamanio_str);
   return tamanio > 0;
 }

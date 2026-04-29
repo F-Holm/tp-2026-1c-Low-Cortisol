@@ -22,7 +22,7 @@ int main(int argc, char* argv[])
   char* archivo_config = NULL;
   char* tamanio_str = NULL;
   int tamanio;
-  if (!get_args(argc, argv, archivo_config, tamanio_str, &tamanio))
+  if (!get_args(argc, argv, &archivo_config, &tamanio_str, &tamanio))
     return EXIT_FAILURE;
 
   // Iniciar módulo

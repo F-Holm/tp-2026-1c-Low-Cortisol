@@ -30,7 +30,7 @@ t_log* iniciar_logger(t_log_level log_level);
 void read_confir_ms(t_config* config, t_config_vars* config_vars);
 void cerrar_modulo_error(t_ms_recursos* ms_recursos);
 void cerrar_modulo(t_ms_recursos* ms_recursos, pthread_t* thread_server_cpu);
-bool get_args(int argc, char** argv, char* archivo_config, char* tamanio_str,
+bool get_args(int argc, char** argv, char** archivo_config, char** tamanio_str,
               int* tamanio);
 
 #endif /* MEMORY_STICK_MEMORY_STICK_H_ */
