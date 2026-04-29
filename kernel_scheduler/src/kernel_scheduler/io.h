@@ -1,9 +1,7 @@
-#include <commons/collections/list.h>
-#include <commons/log.h>
+#ifndef KERNEL_SCHEDULER_IO
+#define KERNEL_SCHEDULER_IO
 
-typedef struct
-{
-  int* socket_fd;
-  t_list* lista_sockets;
-  // falta enum de tipo de io
-} t_datos_hilo_io;
+void cerrar_io(int* sockets_io);
+void agregar_io(int* sockets_io, int* socket_io, t_log* logger);
+
+#endif /* KERNEL_SCHEDULER_IO */
