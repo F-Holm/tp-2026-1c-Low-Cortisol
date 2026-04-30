@@ -1,5 +1,5 @@
-#ifndef MEMORY_STICK_MEMORY_STICK_H_
-#define MEMORY_STICK_MEMORY_STICK_H_
+#ifndef CPU_CPU_H_
+#define CPU_CPU_H_
 
 #include <commons/collections/list.h>
 #include <commons/config.h>
@@ -39,4 +39,4 @@ bool iniciar_modulo(t_cpu* cpu, char* path_config);
 bool verificar_argumentos(int argc, char** argv);
 void cerrar_modulo(t_cpu* cpu);
 
-#endif /* MEMORY_STICK_MEMORY_STICK_H_ */
+#endif /* CPU_CPU_H_ */
