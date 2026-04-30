@@ -1,4 +1,4 @@
-#include "cpu.h"
+#include "kernel_scheduler/cpu.h"
 
 #include <commons/collections/list.h>
 #include <pthread.h>
@@ -19,9 +19,7 @@ void iterator(void* value)
 
 void* hilo_escucha_server(void* datos_hilo_escucha_void)
 {
-  int socket_server_cpu_io =
-      ((t_datos_hilo_escucha*)datos_hilo_escucha_void)->socket_fd;
-  t_log* logger = ((t_datos_hilo_escucha*)datos_hilo_escucha_void)->logger;
+  t_datos_hilo_escucha* params = (t_datos_hilo_escucha*)datos_hilo_escucha_void;
 
   int sockets_io[3] = {-1, -1, -1};
 
@@ -34,27 +32,28 @@ void* hilo_escucha_server(void* datos_hilo_escucha_void)
   while (true)
   {
     int* socket_cpu_io = malloc(sizeof(int));
-    *socket_cpu_io = esperar_cliente(socket_server_cpu_io);
+    *socket_cpu_io = esperar_cliente(params->socket_fd);
     if (*socket_cpu_io <= 0)
     {
       free(socket_cpu_io);
       break;
     }
     // que onda con este log?
-    log_info(logger, "## Conectado con cpu");
+    log_info(params->logger, "## Conectado con cpu");
 
     // Handshake con CPU o IO
     int id_modulo = recibir_handshake(*socket_cpu_io);
     if (id_modulo == MID_IO)
     {
       enviar_handshake(MID_KERNEL_SCHEDULER, *socket_cpu_io);
-      log_info(logger, "## Handshake exitoso con IO");
+      log_info(params->logger, "## Handshake exitoso con IO");
 
       // obtener tipo de io
       int operacion = recibir_operacion(*socket_cpu_io);
       if (operacion != OP_TIPO_IO)
       {
-        log_warning(logger, "## Código de operación no válido: %d", operacion);
+        log_warning(params->logger, "## Código de operación no válido: %d",
+                    operacion);
         close(*socket_cpu_io);
         free(socket_cpu_io);
         continue;
@@ -69,13 +68,13 @@ void* hilo_escucha_server(void* datos_hilo_escucha_void)
         sockets_io[E_SLEEP] = *socket_cpu_io;
       else
       {
-        log_warning(logger, "## IO de tipo %s Conectada", tipo_io);
+        log_warning(params->logger, "## IO de tipo %s Conectada", tipo_io);
         free(tipo_io);
         close(*socket_cpu_io);
         free(socket_cpu_io);
         continue;
       }
-      log_info(logger, "## IO de tipo %s Conectada", tipo_io);
+      log_info(params->logger, "## IO de tipo %s Conectada", tipo_io);
       free(tipo_io);
       free(socket_cpu_io);
       continue;
@@ -83,24 +82,24 @@ void* hilo_escucha_server(void* datos_hilo_escucha_void)
     else if (id_modulo != MID_CPU)
     {
       close(*socket_cpu_io);
-      log_error(logger, "## Error en el Handshake con CPU");
+      log_error(params->logger, "## Error en el Handshake con CPU");
       free(socket_cpu_io);
       continue;
     }
     enviar_handshake(MID_KERNEL_SCHEDULER, *socket_cpu_io);
-    log_info(logger, "## Handshake exitoso con CPU");
+    log_info(params->logger, "## Handshake exitoso con CPU");
 
     // Obtener ID de cpu
     int codigo_operacion = recibir_operacion(*socket_cpu_io);
     if (codigo_operacion != OP_ID_CPU)
     {
       close(*socket_cpu_io);
-      log_error(logger, "## Error en la recepción del ID de la CPU");
+      log_error(params->logger, "## Error en la recepción del ID de la CPU");
       free(socket_cpu_io);
       continue;
     }
     char* id_cpu = recibir_string(*socket_cpu_io);
-    log_info(logger, "## CPU %s Conectada", id_cpu);
+    log_info(params->logger, "## CPU %s Conectada", id_cpu);
     free(id_cpu);
 
     // Iniciar hilo
@@ -118,7 +117,7 @@ void* hilo_escucha_server(void* datos_hilo_escucha_void)
   }
 
   // Liberar hilo
-  log_info(logger, "## Cerrando servidor");
+  log_info(params->logger, "## Cerrando servidor");
   pthread_mutex_lock(&mutex_lista_sockets);
   list_iterate(lista_sockets_cpu, (void*)iterator);
   while (!list_is_empty(lista_sockets_cpu))
