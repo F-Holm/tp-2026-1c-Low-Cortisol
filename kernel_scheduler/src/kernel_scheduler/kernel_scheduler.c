@@ -88,7 +88,7 @@ void iniciar_servidor_cpu_io(t_k_scheduler_recursos* k_scheduler_recursos,
   datos_hilo_escucha->socket_fd = k_scheduler_recursos->server;
   datos_hilo_escucha->logger = k_scheduler_recursos->logger;
   pthread_create(&k_scheduler_recursos->thread_server, NULL,
-                 hilo_escucha_server, &datos_hilo_escucha);
+                 hilo_escucha_server, datos_hilo_escucha);
   log_info(k_scheduler_recursos->logger,
            "## Servidor listo para recibir CPUs e IOs");
 }
