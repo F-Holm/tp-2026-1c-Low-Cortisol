@@ -1,3 +1,5 @@
+#ifndef KERNEL_SCHEDULER_KERNEL_SCHEDULER_H_
+#define ERNEL_SCHEDULER_KERNEL_SCHEDULER_H_
 #include <commons/config.h>
 #include <commons/log.h>
 
@@ -28,3 +30,5 @@ bool handshake_kernel_memory(t_k_scheduler_recursos* k_scheduler_recursos);
 void iniciar_servidor_cpu_io(t_k_scheduler_recursos* k_scheduler_recursos,
                              t_datos_hilo_escucha* datos_hilo_escucha);
 void cerrar_modulo(t_k_scheduler_recursos* k_scheduler_recursos);
+
+#endif

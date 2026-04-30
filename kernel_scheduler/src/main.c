@@ -52,8 +52,8 @@ int main(int argc, char* argv[])
         // agregar casos para cada operacion que se quiera recibir de la CPU y
         // IO
       case OP_CODE_ERROR:
-        log_error(k_scheduler_recursos.logger,
-                  "## Se termino la conexion con el servidor.");
+        log_info(k_scheduler_recursos.logger,
+                 "## Se termino la conexion con el servidor.");
         seguir_operando = false;
         break;
       default:

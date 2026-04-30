@@ -1,3 +1,5 @@
+#ifndef KERNEL_SCHEDULER_CPU_H_
+#define KERNEL_SCHEDULER_CPU_H_
 #include <commons/collections/list.h>
 #include <commons/log.h>
 
@@ -11,3 +13,5 @@ typedef struct
 
 void* hilo_escucha_server(void* datos_hilo_escucha_void);
 void* manejar_cliente_cpu(void* datos_hilo_cpu_void);
+
+#endif
