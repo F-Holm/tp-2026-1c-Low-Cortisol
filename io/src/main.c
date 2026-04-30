@@ -78,8 +78,8 @@ int main(int argc, char* argv[])
     return EXIT_FAILURE;
   }
 
-  bool recepcion_correcta = recibir_handshake(socket_io);
-  if (!recepcion_correcta)
+  int recepcion_correcta = recibir_handshake(socket_io);
+  if (recepcion_correcta != MID_KERNEL_SCHEDULER)
   {
     log_error(logger, "## Error en el Handshake con Kernel Scheduler");
     cerrar_todo(logger, config, socket_io);
