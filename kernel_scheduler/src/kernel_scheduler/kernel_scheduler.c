@@ -97,7 +97,7 @@ void cerrar_modulo(t_k_scheduler_recursos* k_scheduler_recursos)
 {
   shutdown(k_scheduler_recursos->server, SHUT_RDWR);
   pthread_join(k_scheduler_recursos->thread_server, NULL);
-  log_info(k_scheduler_recursos->logger, "## Servidor de cpu cerrado.");
+  log_info(k_scheduler_recursos->logger, "## Servidor cerrado.");
   liberar_conexion(k_scheduler_recursos->server);
   liberar_conexion(k_scheduler_recursos->socket_km);
   log_destroy(k_scheduler_recursos->logger);
