@@ -15,6 +15,24 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-void cerrar_todo(t_log* logger, t_config* config, int socket_io);
+#include "utils/client.h"
+#include "utils/hello.h"
+#include "utils/io.h"
+#include "utils/msg.h"
+
+typedef struct
+{
+  t_config* config;
+  t_log* logger;
+  char* ip;
+  char* puerto;
+  int socket_io;
+  int tipo_io;
+} t_modulo_io;
+
+void cerrar_todo(t_modulo_io* modulo_io);
+bool iniciar_enviar_tipo_io(t_modulo_io* modulo_io);
+bool args(int argc, char** argv, t_modulo_io* modulo_io);
+bool cargar_configs(t_modulo_io* modulo_io);
 
 #endif  // IO_COMPACTIO_H
