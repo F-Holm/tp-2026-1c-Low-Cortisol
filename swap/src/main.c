@@ -66,8 +66,8 @@ int main(int argc, char* argv[])
   }
   // Chequea error en el envio
 
-  bool recepcion_correcta = recibir_handshake(socket_swap);
-  if (!recepcion_correcta)
+  int recepcion_correcta = recibir_handshake(socket_swap);
+  if (recepcion_correcta != MID_KERNEL_MEMORY)
   {
     log_error(logger, "## Error en el Handshake con Kernel Memory");
     cerrar_todo(logger, config, socket_swap);

@@ -6,6 +6,7 @@
 
 # Log files
 *.log
+output/
 
 # Prerequisites
 *.d

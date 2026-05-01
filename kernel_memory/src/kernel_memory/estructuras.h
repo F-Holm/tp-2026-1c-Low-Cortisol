@@ -1,8 +1,9 @@
-#ifndef KERNEL_MEMORY_SV_H_
-#define KERNEL_MEMORY_SV_H_
+#ifndef KERNEL_MEMORY_ESTRUCTURAS_H_
+#define KERNEL_MEMORY_ESTRUCTURAS_H_
 
 #include <commons/collections/list.h>
 #include <commons/log.h>
+#include <pthread.h>
 
 typedef struct
 {
