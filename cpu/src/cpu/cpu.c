@@ -222,6 +222,7 @@ void* escuchar_kernel_memory(void* arg)
     if (!enviar_string(OP_ID_CPU, cpu->id, nuevo_socket))
     {
       log_error(cpu->logger, "## Error en el envío de ID con Memory stick");
+      close(nuevo_socket);
       continue;
     }
 
@@ -231,7 +232,8 @@ void* escuchar_kernel_memory(void* arg)
     list_add(cpu->memory_sticks, p_socket);
   }
 
-  list_destroy_and_destroy_elements(cpu->memory_sticks, (void*)iterator_close_socket);
+  list_destroy_and_destroy_elements(cpu->memory_sticks,
+                                    (void*)iterator_close_socket);
   return NULL;
 }
 
