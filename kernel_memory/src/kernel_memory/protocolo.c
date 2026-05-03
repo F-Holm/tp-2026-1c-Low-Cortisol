@@ -87,7 +87,7 @@ void agregar_conexion_cpu(t_datos_kernel_mem* datos_kernel_memory,
                           t_datos_cpu* datos_cpu)
 {
   pthread_mutex_lock(&datos_kernel_memory->mutex_lista_sockets);
-  list_add(datos_kernel_memory->sticks_conectados, datos_cpu);
+  list_add(datos_kernel_memory->cpus_conectados, datos_cpu);
   pthread_mutex_unlock(&datos_kernel_memory->mutex_lista_sockets);
   return;
 }
@@ -97,6 +97,7 @@ void enviar_sticks_conectadas(t_datos_kernel_mem* datos_kernel_memory,
 {
   pthread_mutex_lock(&datos_kernel_memory->mutex_lista_sockets);
   int total_sticks = list_size(datos_kernel_memory->sticks_conectados);
+
   for (int i = 0; i < total_sticks; i++)
   {
     t_paquete* paquete = crear_paquete();
@@ -117,6 +118,10 @@ void enviar_sticks_conectadas(t_datos_kernel_mem* datos_kernel_memory,
 
 void enviar_conexion_cpu(t_datos_stick* datos_stick, t_list* cpus_conectados)
 {
+  if (list_is_empty(cpus_conectados))
+  {
+    return;
+  }
   t_paquete* paquete = crear_paquete();
 
   agregar_a_paquete(paquete, datos_stick->ip_memory_stick, sizeof(char[16]));

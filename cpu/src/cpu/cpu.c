@@ -163,8 +163,6 @@ bool manejar_paquete(t_cpu* cpu, t_list* lista_paquete, char ip_stick[16],
               "## Error en la recepción de la IP y puerto del Memory stick");
     log_error(cpu->logger, "## size: %d | expected size 2",
               list_size(lista_paquete));
-    log_destroy(cpu->logger);
-    config_destroy(cpu->config);
     list_destroy_and_destroy_elements(lista_paquete, free);
     return false;
   }
