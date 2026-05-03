@@ -169,6 +169,7 @@ bool manejar_paquete(t_cpu* cpu, t_list* lista_paquete, char ip_stick[16], char 
   strcpy(ip_stick, list_get(lista_paquete, 0));
   strcpy(puerto_stick, list_get(lista_paquete, 1));
   list_destroy_and_destroy_elements(lista_paquete, free);
+  log_info(cpu->logger, "IP: %s | Puerto: %s", ip_stick, puerto_stick);
   return true;
 }
 
@@ -193,7 +194,7 @@ void* escuchar_kernel_memory(void* arg)
     }
     
     lista_paquete = recibir_paquete(cpu->socket_kernel_memory);
-    if(manejar_paquete(cpu, lista_paquete, ip_stick, puerto_stick))
+    if(!manejar_paquete(cpu, lista_paquete, ip_stick, puerto_stick))
       return NULL;
 
     nuevo_socket = crear_conexion(ip_stick, puerto_stick);
