@@ -13,19 +13,19 @@ int main(int argc, char* argv[])
   cpu = malloc(sizeof(t_cpu));
 
   // verifica recibir correctamente los argumentos.(ruta a cpu->confige id)
-  if(!verificar_argumentos(argc, argv))
+  if (!verificar_argumentos(argc, argv))
     return EXIT_FAILURE;
 
   char* path_config = argv[1];
   cpu->id = argv[2];
 
-  if(!iniciar_modulo(cpu, path_config))
+  if (!iniciar_modulo(cpu, path_config))
   {
     cerrar_modulo(cpu);
     return EXIT_FAILURE;
   }
 
-  if(!iniciar_conexion_scheduler(cpu))
+  if (!iniciar_conexion_scheduler(cpu))
   {
     cerrar_modulo(cpu);
     return EXIT_FAILURE;
@@ -40,7 +40,7 @@ int main(int argc, char* argv[])
     log_error(cpu->logger, "## fallo el envio del mensaje al kernel scheduler");
   }
 
-  if(!iniciar_conexion_kmemory(cpu))
+  if (!iniciar_conexion_kmemory(cpu))
   {
     cerrar_modulo(cpu);
     return EXIT_FAILURE;
