@@ -60,5 +60,7 @@ int main(int argc, char* argv[])
   iniciar_hilo(cpu);
 
   pthread_join(cpu->hilos.kernel_memory_hilo, NULL);
+  log_destroy(cpu->logger);
+  config_destroy(cpu->config);
   return 0;
 }

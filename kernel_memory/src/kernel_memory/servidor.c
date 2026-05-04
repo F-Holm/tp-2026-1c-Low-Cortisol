@@ -59,7 +59,6 @@ void handshake(t_datos_kernel_mem* datos_kernel_memory, int client_socket)
 
     case MID_MEMORY_STICK:
     {
-      // FALTA ENVIAR LA STICK CUANDO SE CONECTA A LA CPU
       if (!enviar_handshake(MID_KERNEL_MEMORY, client_socket))
       {
         log_error(datos_kernel_memory->logger, "Error al enviar handshake");
