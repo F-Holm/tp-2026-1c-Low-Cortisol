@@ -25,12 +25,12 @@ int obtener_tipo_io(int socket_fd, t_log* logger)
     tipo_io = E_SLEEP;
   else
   {
-    log_error(logger, "## Tipo de IO no válido: %s", tipo_io);
+    log_error(logger, "## Tipo de IO no válido: %s", buffer);
     free(buffer);
     return -1;
   }
 
-  log_info(logger, "## IO de tipo %s conectada", V_TIPO_IO[tipo_io]);
+  log_info(logger, "## IO de tipo %s conectada", buffer);
   free(buffer);
   return tipo_io;
 }
@@ -44,14 +44,14 @@ bool atender_nuevo_io(int sockets_io[3], int socket_fd, t_log* logger)
   if (tipo_io == -1)
     return false;
 
-  if (sockets[tipo_io] == -1)
+  if (sockets_io[tipo_io] == -1)
   {
     log_error(logger, "## IO de tipo repetido, cerrando conexión");
     close(socket_fd);
     return false;
   }
 
-  sockets[tipo_io] = socket_fd;
+  sockets_io[tipo_io] = socket_fd;
   return true;
 }
 

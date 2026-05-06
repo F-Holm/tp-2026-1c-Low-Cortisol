@@ -2,6 +2,9 @@
 
 #include <stdbool.h>
 
+#include "utils/client.h"
+#include "utils/msg.h"
+
 int conectar_kernel_memory(char* ip, char* puerto, t_log* logger)
 {
   int socket_km = crear_conexion(ip, puerto);

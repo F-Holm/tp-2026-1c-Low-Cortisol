@@ -12,7 +12,7 @@ typedef enum
   AP_CMN
 } t_algoritmo_planificacion;
 
-const char* const ALGORITMOS_PLANIFICACION[3];
+extern const char* const ALGORITMOS_PLANIFICACION[3];
 
 typedef struct
 {
@@ -39,5 +39,7 @@ typedef struct
 
 bool iniciar_modulo(t_kernel_scheduler_recursos* recursos,
                     char* archivo_config);
+void cerrar_modulo_error(t_kernel_scheduler_recursos* recursos);
+void cerrar_modulo(t_kernel_scheduler_recursos* recursos);
 
 #endif

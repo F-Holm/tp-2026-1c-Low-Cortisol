@@ -34,7 +34,7 @@ int main(int argc, char* argv[])
   bool seguir_operando = true;
   while (seguir_operando)
   {
-    int op_code = recibir_operacion(recursos.socket_km);
+    int op_code = recibir_operacion(recursos.socket_kernel_memory);
     char* buffer;
 
     switch (op_code)
@@ -43,7 +43,7 @@ int main(int argc, char* argv[])
         seguir_operando = false;
         break;
       default:
-        buffer = recibir_string(recursos.socket_km);
+        buffer = recibir_string(recursos.socket_kernel_memory);
         free(buffer);
         break;
     }

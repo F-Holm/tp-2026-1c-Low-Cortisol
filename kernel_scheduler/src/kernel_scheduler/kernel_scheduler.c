@@ -14,52 +14,46 @@
 
 const char* const ALGORITMOS_PLANIFICACION[] = {"FIFO", "RR", "CMN"};
 
-t_conf* iniciar_config(char* archivo_config, t_config* config_vars)
+t_config* iniciar_config(char* archivo_config, t_config_vars* config_vars)
 {
+  int i;
   t_config* config = config_create(archivo_config);
   if (config != NULL)
   {
-    char* aux;
-    int i;
-
     config_vars->log_level =
         log_level_from_string(config_get_string_value(config, "LOG_LEVEL"));
 
-    aux = config_get_string_value(config, "PLANIFICATION_ALGORITHM");
+    char* algoritmo_planificacion_str =
+        config_get_string_value(config, "PLANIFICATION_ALGORITHM");
     for (i = 0; i < 3; i++)
     {
-      if (strcmp(aux, ALGORITMOS_PLANIFICACION[i]) == 0)
+      if (strcmp(algoritmo_planificacion_str, ALGORITMOS_PLANIFICACION[i]) == 0)
       {
         config_vars->algoritmo_planificacion = i;
         break;
       }
     }
 
-    aux = config_get_array_value(config, "QUEUES_ALGORITHMS");
+    char** array_str = config_get_array_value(config, "QUEUES_ALGORITHMS");
     config_vars->algoritmos_cmn = list_create();
     i = 0;
-    while (aux[i] != NULL)
+    while (array_str[i] != NULL)
     {
-      if (strcmp(aux[i], ALGORITMOS_PLANIFICACION[AP_FIFO]))
-      {
-        int algoritmo = malloc(sizeof(int));
+      int* algoritmo = malloc(sizeof(int));
+      if (strcmp(array_str[i], ALGORITMOS_PLANIFICACION[AP_FIFO]))
         *algoritmo = AP_FIFO;
-        list_add(recursos->algoritmos_cmn, algoritmo);
-      }
-      else if (strcmp(aux[i], ALGORITMOS_PLANIFICACION[AP_RR]))
-      {
-        int algoritmo = malloc(sizeof(int));
+      else if (strcmp(array_str[i], ALGORITMOS_PLANIFICACION[AP_RR]))
         *algoritmo = AP_RR;
-        list_add(recursos->algoritmos_cmn, algoritmo);
-      }
+      list_add(config_vars->algoritmos_cmn, algoritmo);
       i++;
     }
-    string_array_destroy(aux);
+    string_array_destroy(array_str);
 
     config_vars->rr_quantum = config_get_int_value(config, "RR_QUANTUM");
 
     config_vars->desalojo =
-        config_get_string_value(config, "QUEUE_PREEMPTION") == "TRUE";
+        strcmp(config_get_string_value(config, "QUEUE_PREEMPTION"), "TRUE") ==
+        0;
 
     config_vars->suspension_timeout =
         config_get_int_value(config, "SUSPENSION_TIMEOUT");
@@ -99,7 +93,7 @@ bool crear_servidor(pthread_t* hilo_servidor, t_datos_hilo_escucha* datos)
 {
   if (pthread_create(hilo_servidor, NULL, hilo_escucha, datos) != 0)
   {
-    log_error(logger, "## Error al crear el hilo del servidor");
+    log_error(datos->logger, "## Error al crear el hilo del servidor");
     return false;
   }
   return true;
