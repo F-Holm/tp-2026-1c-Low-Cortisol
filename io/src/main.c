@@ -6,7 +6,7 @@
 #include <string.h>
 #include <sys/socket.h>
 
-#include "io/compactio.h"
+#include "io/utils.h"
 #include "utils/client.h"
 #include "utils/hello.h"
 #include "utils/io.h"

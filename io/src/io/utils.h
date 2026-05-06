@@ -1,5 +1,5 @@
-#ifndef IO_COMPACTIO_H
-#define IO_COMPACTIO_H
+#ifndef IO_COMPACT_H
+#define IO_COMPACT_H
 
 #include <assert.h>
 #include <commons/collections/list.h>
@@ -35,4 +35,4 @@ bool iniciar_enviar_tipo_io(t_modulo_io* modulo_io);
 bool args(int argc, char** argv, t_modulo_io* modulo_io);
 bool cargar_configs(t_modulo_io* modulo_io);
 
-#endif  // IO_COMPACTIO_H
+#endif  // IO_COMPACT_H
