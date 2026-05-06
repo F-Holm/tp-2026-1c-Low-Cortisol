@@ -12,7 +12,7 @@
 #include "utils/msg.h"
 #include "utils/server.h"
 
-void iterator(void* value)
+void iterator_shutdown(void* value)
 {
   shutdown(*((int*)value), SHUT_RDWR);
 }

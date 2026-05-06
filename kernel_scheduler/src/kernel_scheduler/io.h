@@ -1,13 +1,10 @@
 #ifndef KERNEL_SCHEDULER_IO_H_
 #define KERNEL_SCHEDULER_IO_H_
+
 #include <commons/collections/list.h>
 #include <commons/log.h>
+#include <stdbool.h>
 
-typedef struct
-{
-  int* socket_fd;
-  t_list* lista_sockets;
-  // falta enum de tipo de io
-} t_datos_hilo_io;
+bool atender_nuevo_io(int socket_io);
 
-#endif
+#endif /* KERNEL_SCHEDULER_IO_H_ */
