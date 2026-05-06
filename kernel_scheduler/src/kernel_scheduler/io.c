@@ -17,11 +17,11 @@ int obtener_tipo_io(int socket_fd, t_log* logger)
   char* buffer = recibir_string(socket_fd);
   int tipo_io;
 
-  if (strcmp(buffer, V_TIPO_IO[E_STDIN]))
+  if (strcmp(buffer, V_TIPO_IO[E_STDIN]) == 0)
     tipo_io = E_STDIN;
-  else if (strcmp(buffer, V_TIPO_IO[E_STDOUT]))
+  else if (strcmp(buffer, V_TIPO_IO[E_STDOUT]) == 0)
     tipo_io = E_STDOUT;
-  else if (strcmp(buffer, V_TIPO_IO[E_SLEEP]))
+  else if (strcmp(buffer, V_TIPO_IO[E_SLEEP]) == 0)
     tipo_io = E_SLEEP;
   else
   {
@@ -44,9 +44,9 @@ bool atender_nuevo_io(int sockets_io[3], int socket_fd, t_log* logger)
   if (tipo_io == -1)
     return false;
 
-  if (sockets_io[tipo_io] == -1)
+  if (sockets_io[tipo_io] != -1)
   {
-    log_error(logger, "## IO de tipo repetido, cerrando conexión");
+    log_error(logger, "## IO de tipo repetido: %d. Cerrando conexión", tipo_io);
     close(socket_fd);
     return false;
   }

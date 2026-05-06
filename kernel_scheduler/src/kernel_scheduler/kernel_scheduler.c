@@ -59,13 +59,13 @@ t_config* iniciar_config(char* archivo_config, t_config_vars* config_vars)
         config_get_int_value(config, "SUSPENSION_TIMEOUT");
 
     config_vars->puerto_servidor =
-        config_get_string_value(config, "KERNEL_MEMORY_IP");
+        config_get_string_value(config, "KERNEL_SCHEDULER_PUERTO");
 
     config_vars->ip_kernel_memory =
-        config_get_string_value(config, "KERNEL_MEMORY_PUERTO");
+        config_get_string_value(config, "KERNEL_MEMORY_IP");
 
     config_vars->puerto_kernel_memory =
-        config_get_string_value(config, "KERNEL_SCHEDULER_PUERTO");
+        config_get_string_value(config, "KERNEL_MEMORY_PUERTO");
   }
   return config;
 }
