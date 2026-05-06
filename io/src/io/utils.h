@@ -1,5 +1,5 @@
-#ifndef IO_COMPACT_H
-#define IO_COMPACT_H
+#ifndef IO_UTILS_H
+#define IO_UTILS_H
 
 #include <assert.h>
 #include <commons/collections/list.h>
@@ -28,6 +28,8 @@ typedef struct
   char* puerto;
   int socket_io;
   int tipo_io;
+  char *input, *output;
+  int sleep;
 } t_modulo_io;
 
 void cerrar_todo(t_modulo_io* modulo_io);
@@ -35,4 +37,4 @@ bool iniciar_enviar_tipo_io(t_modulo_io* modulo_io);
 bool args(int argc, char** argv, t_modulo_io* modulo_io);
 bool cargar_configs(t_modulo_io* modulo_io);
 
-#endif  // IO_COMPACT_H
+#endif  // IO_UTILS_H
