@@ -48,6 +48,28 @@ void* serializar_paquete(t_paquete* paquete, int bytes)
   return magic;
 }
 
+bool enviar_buffer(int codigo_operacion, void* buffer, int size, int socket_fd)
+{
+  t_paquete* paquete = malloc(sizeof(t_paquete));
+
+  paquete->codigo_operacion = codigo_operacion;
+  paquete->buffer = malloc(sizeof(t_buffer));
+  paquete->buffer->size = size;
+  paquete->buffer->stream = malloc(paquete->buffer->size);
+  memcpy(paquete->buffer->stream, buffer, paquete->buffer->size);
+
+  int bytes = paquete->buffer->size + 2 * sizeof(int);
+
+  void* a_enviar = serializar_paquete(paquete, bytes);
+
+  bool ret = send(socket_fd, a_enviar, bytes, MSG_NOSIGNAL) > 0;
+
+  free(a_enviar);
+  eliminar_paquete(paquete);
+
+  return ret;
+}
+
 // String
 bool enviar_string(int codigo_operacion, char* mensaje, int socket_fd)
 {

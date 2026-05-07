@@ -74,6 +74,16 @@ int recibir_operacion(int socket_fd);
 void* recibir_buffer(int* size, int socket_fd);
 
 /**
+ * @brief Envia un void*
+ * @param codigo_operacion Código de operación (enum / int)
+ * @param buffer
+ * @param size
+ * @param socket_fd
+ * @return Devuelve un bool: false = envio nulo o receptor desconectado
+ */
+bool enviar_buffer(int codigo_operacion, void* buffer, int size, int socket_fd);
+
+/**
  * @brief Envia un char*
  * @param codigo_operacion Código de operación (enum / int)
  * @param mensaje
