@@ -17,8 +17,8 @@
 int main(int argc, char* argv[])
 {
   t_kernel_scheduler_recursos recursos = {0};
-  t_cola_mutex_io cola_io = {0};
-  pthread_mutex_init(&cola_io.mutex_sockets_io, NULL);
+  t_cola_mutex_io* cola_io = malloc(sizeof(t_cola_mutex_io));
+  pthread_mutex_init(&cola_io->mutex_sockets_io, NULL);
 
   // args
   if (argc != 3)
@@ -27,7 +27,7 @@ int main(int argc, char* argv[])
   char* path_proceso_inicial = argv[2];
 
   // Iniciar módulo
-  if (!iniciar_modulo(&recursos, archivo_config, &cola_io))
+  if (!iniciar_modulo(&recursos, archivo_config, cola_io))
   {
     cerrar_modulo_error(&recursos);
     return EXIT_FAILURE;

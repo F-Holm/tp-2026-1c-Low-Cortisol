@@ -24,7 +24,9 @@ typedef enum
   OP_IP,
   OP_ID_CPU,
   OP_TAMANIO_MEMORIA,
-  OP_TIPO_IO
+  OP_TIPO_IO,
+  OP_ESCRIBIR_EN_MEMORIA,
+  OP_RESPUESTA_STDIN
 } t_op_code;
 
 typedef struct

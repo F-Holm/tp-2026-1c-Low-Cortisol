@@ -6,6 +6,7 @@
 #include <string.h>
 #include <sys/socket.h>
 
+#include "io/ioops.h"
 #include "io/utils.h"
 #include "utils/client.h"
 #include "utils/hello.h"
@@ -14,6 +15,7 @@
 int main(int argc, char* argv[])
 {
   t_modulo_io sio;
+  t_peticion_stdin peticion_stdin;
 
   if (!args(argc, argv, &sio))
   {
