@@ -99,7 +99,8 @@ bool crear_servidor(pthread_t* hilo_servidor, t_datos_hilo_escucha* datos)
   return true;
 }
 
-bool iniciar_modulo(t_kernel_scheduler_recursos* recursos, char* archivo_config)
+bool iniciar_modulo(t_kernel_scheduler_recursos* recursos, char* archivo_config,
+                    t_cola_mutex_io* cola_mutex)
 {
   // Config
   recursos->config = iniciar_config(archivo_config, &(recursos->config_vars));
@@ -123,6 +124,9 @@ bool iniciar_modulo(t_kernel_scheduler_recursos* recursos, char* archivo_config)
       recursos->config_vars.puerto_servidor, recursos->logger);
   if (recursos->socket_server <= 0)
     return false;
+
+  // Inicializo la cola de mutex para las IO
+  cola_mutex->cola_mutex = queue_create();
 
   // Hilo para escuchar nuevas conexiones
   return crear_servidor(&(recursos->hilo_servidor),

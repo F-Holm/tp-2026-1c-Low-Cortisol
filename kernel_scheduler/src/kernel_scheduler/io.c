@@ -63,3 +63,13 @@ void cerrar_io(int sockets_io[3])
       close(sockets_io[i]);
   }
 }
+
+bool io_stdin(int sockets_io[], t_log* logger, t_cola_mutex_io* cola_mutex)
+{
+  // Asumo que el primer elemento de la lista de bloqueados tiene como tipo de
+  // io stdin (una vez definida la estructura implementaré una verificación)
+  pthread_mutex_lock(&cola_mutex->mutex_sockets_io);
+
+  pthread_mutex_unlock(&cola_mutex->mutex_sockets_io);
+  enviar_string(MID_IO, "STDIN", sockets_io[E_STDIN]);
+}

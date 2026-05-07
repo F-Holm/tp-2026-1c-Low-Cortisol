@@ -4,6 +4,10 @@
 #include <commons/config.h>
 #include <commons/log.h>
 #include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include "utils/registros.h"
 
 typedef enum
 {
@@ -12,6 +16,18 @@ typedef enum
   AP_CMN
 } t_algoritmo_planificacion;
 
+typedef enum
+{
+  NEW,
+  READY,
+  EXEC,
+  BLOCK,
+  SUSP_BLOCK,
+  SUSP_READY,
+  EXIT
+} t_estado;
+
+extern const char* const ESTADO_PROCESO[7];
 extern const char* const ALGORITMOS_PLANIFICACION[3];
 
 typedef struct
@@ -36,6 +52,15 @@ typedef struct
   t_log* logger;
   t_config_vars config_vars;
 } t_kernel_scheduler_recursos;
+
+typedef struct
+{
+  uint32_t pid;
+  uint32_t ppid;
+  t_estado estado;
+  t_contexto contexto; // Falta definir la estructura del contexto (cpu)
+
+}
 
 bool iniciar_modulo(t_kernel_scheduler_recursos* recursos,
                     char* archivo_config);
