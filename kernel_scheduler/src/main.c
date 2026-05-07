@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#include "kernel_scheduler/io.h"
 #include "kernel_scheduler/kernel_memory.h"
 #include "kernel_scheduler/kernel_scheduler.h"
 #include "kernel_scheduler/server.h"
@@ -16,6 +17,8 @@
 int main(int argc, char* argv[])
 {
   t_kernel_scheduler_recursos recursos = {0};
+  t_cola_mutex_io cola_io = {0};
+  pthread_mutex_init(&cola_io.mutex_sockets_io, NULL);
 
   // args
   if (argc != 3)
@@ -24,7 +27,7 @@ int main(int argc, char* argv[])
   char* path_proceso_inicial = argv[2];
 
   // Iniciar módulo
-  if (!iniciar_modulo(&recursos, archivo_config))
+  if (!iniciar_modulo(&recursos, archivo_config, &cola_io))
   {
     cerrar_modulo_error(&recursos);
     return EXIT_FAILURE;
