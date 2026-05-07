@@ -128,6 +128,12 @@ bool iniciar_modulo(t_kernel_scheduler_recursos* recursos, char* archivo_config,
   // Inicializo la cola de mutex para las IO
   cola_mutex->cola_mutex = queue_create();
 
+  // Inicio la lista de procesos
+  recursos->lista_procesos = list_create();
+
+  //inicio el mutex de la lista de procesos
+  pthread_mutex_init(&recursos->mutex_lista_procesos, NULL);
+
   // Hilo para escuchar nuevas conexiones
   return crear_servidor(&(recursos->hilo_servidor),
                         inicializar_datos_hilo_escucha_recursos(recursos));

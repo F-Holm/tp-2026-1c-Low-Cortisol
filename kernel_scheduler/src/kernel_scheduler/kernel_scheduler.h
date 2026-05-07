@@ -1,5 +1,5 @@
 #ifndef KERNEL_SCHEDULER_KERNEL_SCHEDULER_H_
-#define ERNEL_SCHEDULER_KERNEL_SCHEDULER_H_
+#define KERNEL_SCHEDULER_KERNEL_SCHEDULER_H_
 
 #include <commons/config.h>
 #include <commons/log.h>
@@ -7,7 +7,12 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <pthread.h>
+#include <commons/collections/list.h>
+#include <commons/collections/queue.h>
+#include "utils/kernel_scheduler_cpu.h"
 #include "utils/registros.h"
+
 
 typedef enum
 {
@@ -16,18 +21,6 @@ typedef enum
   AP_CMN
 } t_algoritmo_planificacion;
 
-typedef enum
-{
-  NEW,
-  READY,
-  EXEC,
-  BLOCK,
-  SUSP_BLOCK,
-  SUSP_READY,
-  EXIT
-} t_estado;
-
-extern const char* const ESTADO_PROCESO[7];
 extern const char* const ALGORITMOS_PLANIFICACION[3];
 
 typedef struct
@@ -51,6 +44,8 @@ typedef struct
   t_config* config;
   t_log* logger;
   t_config_vars config_vars;
+  pthread_mutex_t mutex_lista_procesos;
+  t_list* lista_procesos;
 } t_kernel_scheduler_recursos;
 
 typedef struct
@@ -58,12 +53,20 @@ typedef struct
   uint32_t pid;
   uint32_t ppid;
   t_estado estado;
-  t_contexto contexto; // Falta definir la estructura del contexto (cpu)
+  t_contexto contexto;
+  // agregale mas cosas si las necesitas fede
 
-}
+} t_proceso;
+
+typedef struct
+{
+  pthread_mutex_t mutex_sockets_io;
+  t_queue* cola_mutex;
+
+}t_cola_mutex_io;
 
 bool iniciar_modulo(t_kernel_scheduler_recursos* recursos,
-                    char* archivo_config);
+                    char* archivo_config, t_cola_mutex_io* cola_mutex);
 void cerrar_modulo_error(t_kernel_scheduler_recursos* recursos);
 void cerrar_modulo(t_kernel_scheduler_recursos* recursos);
 
