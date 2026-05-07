@@ -19,8 +19,10 @@
 #include "utils/client.h"
 #include "utils/hello.h"
 #include "utils/io.h"
+#include "utils/kernel_scheduler_cpu.h"
 #include "utils/msg.h"
+#include "utils/registros.h"
 
-bool io_tipo_stdin(t_modulo_io* sio);
+bool io_tipo_stdin(t_modulo_io* sio, t_peticion_stdin peticion_stdin);
 
 #endif  // IO_IOOPS_H_

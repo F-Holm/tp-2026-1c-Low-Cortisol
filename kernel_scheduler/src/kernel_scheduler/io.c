@@ -70,7 +70,8 @@ void retirar_elem_cola(t_cola_mutex_io* cola_mutex, t_log* logger,
                        t_proceso** pcb_post_io)
 {
   pthread_mutex_lock(&cola_mutex->mutex_sockets_io);
-  log_info(logger, "## (%d) Toma el Mutex de la Cola de IO", (*pcb_post_io)->pid);
+  log_info(logger, "## (%d) Toma el Mutex de la Cola de IO",
+           (*pcb_post_io)->pid);
   if (queue_is_empty(cola_mutex->cola_mutex))
   {
     log_warning(logger, "## No hay procesos bloqueados esperando IO");
@@ -79,22 +80,28 @@ void retirar_elem_cola(t_cola_mutex_io* cola_mutex, t_log* logger,
   }
   *pcb_post_io = queue_pop(cola_mutex->cola_mutex);
   pthread_mutex_unlock(&cola_mutex->mutex_sockets_io);
-  log_info(logger, "## (%d) Libera el Mutex de la Cola de IO", (*pcb_post_io)->pid);
+  log_info(logger, "## (%d) Libera el Mutex de la Cola de IO",
+           (*pcb_post_io)->pid);
 }
 
-void reingresar_proceso(t_proceso** pcb_post_io, t_kernel_scheduler_recursos* recursos)
+void reingresar_proceso(t_proceso** pcb_post_io,
+                        t_kernel_scheduler_recursos* recursos)
 {
   pthread_mutex_lock(&recursos->mutex_lista_procesos);
-  log_info(recursos->logger, "## (%d) Toma el Mutex de la Lista de Procesos", (*pcb_post_io)->pid);
+  log_info(recursos->logger, "## (%d) Toma el Mutex de la Lista de Procesos",
+           (*pcb_post_io)->pid);
 
   (*pcb_post_io)->estado = READY;
-  log_info(recursos->logger,"## (%d) Pasa de BLOCK a READY", (*pcb_post_io)->pid);
+  log_info(recursos->logger, "## (%d) Pasa de BLOCK a READY",
+           (*pcb_post_io)->pid);
 
   list_add(recursos->lista_procesos, *pcb_post_io);
-  log_info(recursos->logger, "## (%d) finalizó IO y pasa a READY / SUSP. READY", (*pcb_post_io)->pid);
+  log_info(recursos->logger, "## (%d) finalizó IO y pasa a READY / SUSP. READY",
+           (*pcb_post_io)->pid);
 
   pthread_mutex_unlock(&recursos->mutex_lista_procesos);
-  log_info(recursos->logger, "## (%d) Libera el Mutex de la Lista de Procesos", (*pcb_post_io)->pid);
+  log_info(recursos->logger, "## (%d) Libera el Mutex de la Lista de Procesos",
+           (*pcb_post_io)->pid);
 }
 
 bool io_stdin(int sockets_io[], t_cola_mutex_io* cola_mutex,

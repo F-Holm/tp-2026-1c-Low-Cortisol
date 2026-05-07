@@ -131,7 +131,7 @@ bool iniciar_modulo(t_kernel_scheduler_recursos* recursos, char* archivo_config,
   // Inicio la lista de procesos
   recursos->lista_procesos = list_create();
 
-  //inicio el mutex de la lista de procesos
+  // inicio el mutex de la lista de procesos
   pthread_mutex_init(&recursos->mutex_lista_procesos, NULL);
 
   // Hilo para escuchar nuevas conexiones

@@ -1,18 +1,18 @@
 #ifndef KERNEL_SCHEDULER_KERNEL_SCHEDULER_H_
 #define KERNEL_SCHEDULER_KERNEL_SCHEDULER_H_
 
+#include <commons/collections/list.h>
+#include <commons/collections/queue.h>
 #include <commons/config.h>
 #include <commons/log.h>
+#include <pthread.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <pthread.h>
-#include <commons/collections/list.h>
-#include <commons/collections/queue.h>
+
 #include "utils/kernel_scheduler_cpu.h"
 #include "utils/registros.h"
-
 
 typedef enum
 {
@@ -63,10 +63,10 @@ typedef struct
   pthread_mutex_t mutex_sockets_io;
   t_queue* cola_mutex;
 
-}t_cola_mutex_io;
+} t_cola_mutex_io;
 
-bool iniciar_modulo(t_kernel_scheduler_recursos* recursos,
-                    char* archivo_config, t_cola_mutex_io* cola_mutex);
+bool iniciar_modulo(t_kernel_scheduler_recursos* recursos, char* archivo_config,
+                    t_cola_mutex_io* cola_mutex);
 void cerrar_modulo_error(t_kernel_scheduler_recursos* recursos);
 void cerrar_modulo(t_kernel_scheduler_recursos* recursos);
 
