@@ -56,7 +56,7 @@ typedef struct
   t_contexto contexto;
   // agregale mas cosas si las necesitas fede
 
-} t_proceso;
+} t_pcb;
 
 typedef struct
 {

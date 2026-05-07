@@ -67,7 +67,7 @@ void cerrar_io(int sockets_io[3])
 }
 
 void retirar_elem_cola(t_cola_mutex_io* cola_mutex, t_log* logger,
-                       t_proceso** pcb_post_io)
+                       t_pcb** pcb_post_io)
 {
   pthread_mutex_lock(&cola_mutex->mutex_sockets_io);
   log_info(logger, "## (%d) Toma el Mutex de la Cola de IO",
@@ -84,7 +84,7 @@ void retirar_elem_cola(t_cola_mutex_io* cola_mutex, t_log* logger,
            (*pcb_post_io)->pid);
 }
 
-void reingresar_proceso(t_proceso** pcb_post_io,
+void reingresar_proceso(t_pcb** pcb_post_io,
                         t_kernel_scheduler_recursos* recursos)
 {
   pthread_mutex_lock(&recursos->mutex_lista_procesos);
@@ -141,7 +141,7 @@ bool io_stdin(int sockets_io[], t_cola_mutex_io* cola_mutex,
   free(peticion->buffer);
 
   // Saco el proceso de la cola de mutex
-  t_proceso* pcb_post_io = NULL;
+  t_pcb* pcb_post_io = NULL;
   retirar_elem_cola(cola_mutex, recursos->logger, &pcb_post_io);
   if (pcb_post_io == NULL)
   {
