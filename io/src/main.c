@@ -44,5 +44,6 @@ int main(int argc, char* argv[])
   }
   // Liberar y Cerrar
   cerrar_todo(&sio);
+  free(sio.input);
   return EXIT_SUCCESS;
 }
