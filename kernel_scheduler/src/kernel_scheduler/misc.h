@@ -3,6 +3,7 @@
 
 #include <commons/log.h>
 #include <stdbool.h>
+#include <commons/log.h>
 
 typedef enum
 {
@@ -18,6 +19,18 @@ typedef struct
   pthread_mutex_t mutex_pcb;
   int tiempo_suspendido;
 } t_pcb;
+
+typedef struct
+{
+  t_log* logger;
+  pthread_mutex_t mutex_logger;
+} t_logger;
+
+typedef struct
+{
+  int socket_km;
+  pthread_mutex_t mutex_socket;
+} t_socket_kernel_memory;
 
 bool responder_handshake(int socket_fd, int id_modulo, t_log* logger);
 
