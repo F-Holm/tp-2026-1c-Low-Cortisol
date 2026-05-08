@@ -7,18 +7,19 @@ void cerrar_todo(t_modulo_swap* modulo_swap)
   config_destroy(modulo_swap->config);
 }
 
-bool cargar_configs(t_modulo_swap* modulo_swap)
+bool inicializar_configuracion(t_modulo_swap* modulo_swap)
 {
   char* log_levelstr =
       config_get_string_value(modulo_swap->config, "LOG_LEVEL");
+  
   modulo_swap->ip = config_get_string_value(modulo_swap->config, "IP");
   modulo_swap->puerto = config_get_string_value(modulo_swap->config, "PORT");
   modulo_swap->swap_size =
       config_get_int_value(modulo_swap->config, "SWAP_FILE_SIZE");
   modulo_swap->block_size =
       config_get_int_value(modulo_swap->config, "BLOCK_SIZE");
-  t_log_level log_level = log_level_from_string(log_levelstr);
-  modulo_swap->logger = log_create("swap.log", "SWAP", true, log_level);
+  
+  modulo_swap->logger = log_create("swap.log", "SWAP", true, log_level_from_string(log_levelstr););
   if (modulo_swap->logger == NULL)
   {
     config_destroy(modulo_swap->config);
@@ -74,18 +75,5 @@ bool iniciar_conexion(t_modulo_swap* modulo_swap)
   }
   eliminar_paquete(paquete);
 
-  return true;
-}
-
-bool Args(int argc, char** argv, t_modulo_swap* modulo_swap)
-{
-  if (argc != 2)
-    return false;
-
-  char* archivo_config = argv[1];
-  // Crea config
-  modulo_swap->config = config_create(archivo_config);
-  if (modulo_swap->config == NULL)
-    return false;
   return true;
 }

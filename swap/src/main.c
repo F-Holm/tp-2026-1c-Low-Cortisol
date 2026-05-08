@@ -12,16 +12,19 @@
 int main(int argc, char* argv[])
 {
   t_modulo_swap sswap;
+  
+  if (argc != 2)
+    return EXIT_FAILURE;
+  char* archivo_config = argv[1];
+  modulo_swap->config = config_create(archivo_config);
+  if (modulo_swap->config == NULL)
+    return EXIT_FAILURE;
 
-  if (!Args(argc, argv, &sswap))
+  if (!inicializar_configuracion(&sswap))
   {
     return EXIT_FAILURE;
   }
-
-  if (!cargar_configs(&sswap))
-  {
-    return EXIT_FAILURE;
-  }
+  
   if (!iniciar_conexion(&sswap))
   {
     return EXIT_FAILURE;

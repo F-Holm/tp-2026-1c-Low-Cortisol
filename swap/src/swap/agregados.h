@@ -32,7 +32,6 @@ typedef struct
 
 void cerrar_todo(t_modulo_swap* modulo_swap);
 bool iniciar_conexion(t_modulo_swap* modulo_swap);
-bool cargar_configs(t_modulo_swap* modulo_swap);
-bool Args(int argc, char** argv, t_modulo_swap* modulo_swap);
+bool inicializar_configuracion(t_modulo_swap* modulo_swap);
 
 #endif  // SWAP_SWAP_H
