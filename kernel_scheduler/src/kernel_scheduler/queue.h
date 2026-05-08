@@ -67,6 +67,8 @@ void cambio_new_ready(t_pcb* pcb, t_cola* new, t_cola_ready* ready,
                       t_logger* logger);
 void cambio_ready_exec(t_pcb* pcb, t_cola_ready* ready, t_cola_execute* exec,
                        t_logger* logger);
+void cambio_exec_ready(t_pcb* pcb, t_cola_execute* exec, t_cola_ready* ready,
+                       t_logger* logger);
 void cambio_exec_exit(t_pcb* pcb, t_cola_execute* exec, t_cola exit,
                       t_logger* logger);
 void cambio_exec_block(t_pcb* pcb, t_cola_execute* exec, t_cola block,
