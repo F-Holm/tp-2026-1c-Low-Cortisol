@@ -8,7 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "kernel_scheduler/pcb.h"
+#include "kernel_scheduler/misc.h"
 
 typedef struct
 {

@@ -3,7 +3,6 @@
 
 #include <commons/log.h>
 #include <stdbool.h>
-#include <commons/log.h>
 
 typedef enum
 {
