@@ -11,15 +11,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "kernel_scheduler/queue.h"
 #include "utils/kernel_scheduler_cpu.h"
 #include "utils/registros.h"
-
-typedef enum
-{
-  AP_FIFO,
-  AP_RR,
-  AP_CMN
-} t_algoritmo_planificacion;
 
 extern const char* const ALGORITMOS_PLANIFICACION[3];
 
@@ -44,19 +38,7 @@ typedef struct
   t_config* config;
   t_log* logger;
   t_config_vars config_vars;
-  pthread_mutex_t mutex_lista_procesos;
-  t_list* lista_procesos;
 } t_kernel_scheduler_recursos;
-
-typedef struct
-{
-  uint32_t pid;
-  uint32_t ppid;
-  t_estado estado;
-  t_contexto contexto;
-  // agregale mas cosas si las necesitas fede
-
-} t_pcb;
 
 typedef struct
 {

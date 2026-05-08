@@ -1,5 +1,5 @@
-#ifndef H_REGISTROS_H
-#define H_REGISTROS_H
+#ifndef UTILS_REGISTROS_H_
+#define UTILS_REGISTROS_H_
 
 #include <stdint.h>
 #include <stdio.h>
@@ -12,4 +12,4 @@ typedef struct
 
 } t_contexto;
 
-#endif /* H_REGISTROS_H */
+#endif /* UTILS_REGISTROS_H_ */
