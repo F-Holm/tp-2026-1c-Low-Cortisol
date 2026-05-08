@@ -26,6 +26,8 @@ typedef struct
   char* ip;
   char* puerto;
   int socket_swap;
+  int swap_size;
+  int block_size;
 } t_modulo_swap;
 
 void cerrar_todo(t_modulo_swap* modulo_swap);
