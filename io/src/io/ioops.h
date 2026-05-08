@@ -6,6 +6,7 @@
 #include <commons/config.h>
 #include <commons/log.h>
 #include <netdb.h>
+#include <readline/readline.h>
 #include <signal.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -23,6 +24,6 @@
 #include "utils/msg.h"
 #include "utils/registros.h"
 
-bool io_tipo_stdin(t_modulo_io* sio, t_peticion_stdin peticion_stdin);
+bool io_tipo_stdin(t_modulo_io* sio);
 
 #endif  // IO_IOOPS_H_

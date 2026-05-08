@@ -24,7 +24,13 @@ typedef struct
   uint32_t pid;
   uint32_t tamanio_a_leer;
   uint32_t direccion_logica;
-  void* buffer;
 } t_peticion_stdin;
+
+typedef struct
+{
+  uint32_t pid;
+  uint32_t tamanio_a_escribir;
+  uint32_t direccion_logica;
+} t_peticion_stdout;
 
 #endif /* UTILS_KERNEL_SCHEDULER_CPU_H_ */

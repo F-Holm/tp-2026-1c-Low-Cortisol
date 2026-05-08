@@ -11,15 +11,16 @@ bool inicializar_configuracion(t_modulo_swap* modulo_swap)
 {
   char* log_levelstr =
       config_get_string_value(modulo_swap->config, "LOG_LEVEL");
-  
+
   modulo_swap->ip = config_get_string_value(modulo_swap->config, "IP");
   modulo_swap->puerto = config_get_string_value(modulo_swap->config, "PORT");
   modulo_swap->swap_size =
       config_get_int_value(modulo_swap->config, "SWAP_FILE_SIZE");
   modulo_swap->block_size =
       config_get_int_value(modulo_swap->config, "BLOCK_SIZE");
-  
-  modulo_swap->logger = log_create("swap.log", "SWAP", true, log_level_from_string(log_levelstr););
+
+  modulo_swap->logger = log_create("swap.log", "SWAP", true,
+                                   log_level_from_string(log_levelstr););
   if (modulo_swap->logger == NULL)
   {
     config_destroy(modulo_swap->config);

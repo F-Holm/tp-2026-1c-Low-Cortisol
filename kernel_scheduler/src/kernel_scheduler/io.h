@@ -16,7 +16,7 @@ typedef struct
   int socket;
   pthread_mutex_t mutex_io;
   pthread_cond_t condicion_fin;
-  t_pcb* proceso actual;
+  t_pcb* proceso_actual;
   t_list* cola_io;
   bool prioridad_activa;
   pthread_cond_t nuevo_proceso;
