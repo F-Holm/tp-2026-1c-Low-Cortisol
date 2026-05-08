@@ -33,4 +33,9 @@ typedef struct
   uint32_t direccion_logica;
 } t_peticion_stdout;
 
+typedef struct{
+  uint32_t pid;
+  uint32_t tiempo_bloqueado;
+}t_peticion_sleep;
+
 #endif /* UTILS_KERNEL_SCHEDULER_CPU_H_ */
