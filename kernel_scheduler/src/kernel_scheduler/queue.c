@@ -56,7 +56,7 @@ void inicializar_colas(t_colas* colas, int algoritmo, t_list* algoritmos_cmn,
   inicializar_cola(colas->new);
   inicializar_cola_ready(colas->ready, algoritmo, algoritmos_cmn);
   inicializar_cola_exec(cola->exec, quantum, desalojo);
-  inicializar_cola(colas->block);
+  inicializar_lista(colas->block);
   inicializar_lista(colas->susp_block);
   inicializar_lista(colas->susp_ready);
   inicializar_cola(colas->exit);
@@ -95,7 +95,7 @@ void destruir_colas(t_colas* colas)
   destruir_cola(colas->new);
   destruir_cola_ready(colas->ready);
   destruir_cola_exec(cola->exec);
-  destruir_cola(colas->block);
+  destruir_lista(colas->block);
   destruir_lista(colas->susp_block);
   destruir_lista(colas->susp_ready);
   destruir_cola(colas->exit);
