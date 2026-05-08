@@ -4,6 +4,7 @@
 #include <commons/collections/list.h>
 #include <commons/log.h>
 #include <pthread.h>
+#include <stdint.h>
 
 #include "kernel_scheduler/server.h"
 
