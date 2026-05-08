@@ -103,9 +103,7 @@ void reingresar_proceso(t_pcb** pcb_post_io, t_log* logger,
            (*pcb_post_io)->pid);
 }
 
-
-
-//FALTA CAMBIAR LA FUNCION ADAPTADA AL STRUCT t_io
+// FALTA CAMBIAR LA FUNCION ADAPTADA AL STRUCT t_io
 bool io_stdin(int sockets_io[], t_cola* cola_block, t_cola_ready* cola_ready,
               t_peticion_stdin* peticion, t_kernel_scheduler_recursos* recursos)
 {

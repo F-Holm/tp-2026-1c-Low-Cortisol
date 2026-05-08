@@ -1,5 +1,5 @@
-#ifndef H_KERNEL_SCHEDULER_KERNEL_SCHEDULER_H_
-#define H_KERNEL_SCHEDULER_KERNEL_SCHEDULER_H_
+#ifndef UTILS_KERNEL_SCHEDULER_CPU_H_
+#define UTILS_KERNEL_SCHEDULER_CPU_H_
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -27,4 +27,4 @@ typedef struct
   void* buffer;
 } t_peticion_stdin;
 
-#endif /* H_KERNEL_SCHEDULER_KERNEL_SCHEDULER_H_ */
+#endif /* UTILS_KERNEL_SCHEDULER_CPU_H_ */
