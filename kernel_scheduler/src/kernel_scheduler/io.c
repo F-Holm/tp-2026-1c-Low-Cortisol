@@ -87,21 +87,19 @@ bool retirar_lista_io(t_pcb* pcb, t_list* cola_io, t_logger* logger)
 bool io_stdin(t_pcb* pcb, t_io* io_stdin, t_cola* block, t_cola_ready* ready,
               t_lista* susp_block, t_lista* susp_ready,
               t_peticion_stdin* peticion, t_logger* logger,
-              t_socket_kernel_memory socket_km)
+              t_socket_kernel_memory* socket_km)
 {
   // Envio peticion a IO
   int peticion_size = sizeof(t_peticion_stdin);
   pthread_mutex_lock(&(io->mutex_socket));
-  send(io->socket, &peticion_size, sizeof(int), 0);
-  send(io->socket, peticion, peticion_size, 0);
+  enviar_buffer(OP_PETICION_IO_STDIN, peticion, peticion_size, io->socket);
   pthread_mutex_unlock(&(io->mutex_socket));
 
   // recibo
   int tamanio;
-  pthread_mutex_lock(&(logger->mutex_logger));
-  peticion->buffer = recibir_buffer(&tamanio, io->socket);
-  pthread_mutex_unlock(&(logger->mutex_logger));
-  if (peticion->buffer == NULL)
+  char* buffer = recibir_string(io->socket);
+
+  if (buffer == NULL)
   {
     pthread_mutex_lock(&(logger->mutex_logger));
     log_error(logger->logger, "## Error al recibir la respuesa de IO");
@@ -109,12 +107,20 @@ bool io_stdin(t_pcb* pcb, t_io* io_stdin, t_cola* block, t_cola_ready* ready,
     return false;
   }
   // Le envio el paquete al Kernel Memory para que escriba en la memoria
-  t_paquete* paquete = crear_paquete();
-  paquete->codigo_operacion = OP_ESCRIBIR_EN_MEMORIA;
-  agregar_a_paquete(paquete, &peticion->pid, sizeof(uint32_t));
-  agregar_a_paquete(paquete, &peticion->direccion_logica, sizeof(uint32_t));
-  agregar_a_paquete(paquete, &peticion->tamanio_a_leer, sizeof(uint32_t));
-  agregar_a_paquete(paquete, peticion->buffer, peticion->tamanio_a_leer);
+  pthread_mutex_lock(&(socket_km->mutex_socket));
+  enviar_buffer(OP_ESCRIBIR_EN_MEMORIA, peticion, peticion->tamanio_a_leer,
+                socket_km->socket_km);
+  bool envio =
+      enviar_string(OP_ESCRIBIR_EN_MEMORIA, buffer, socket_km->socket_km);
+  pthread_mutex_unlock(&(socket_km->mutex_socket));
+  free(buffer);
+  if(!envio){
+    pthread_mutex_lock(&(logger->mutex_logger));
+    log_error(logger->logger,
+              "## Error al enviar la respuesta de IO a Kernel Memory");
+    pthread_mutex_unlock(&(logger->mutex_logger));
+    return false;
+  }
 
   pthread_mutex_lock(&(logger->mutex_logger));
   log_info(logger->logger, "## (%d) - Solicitó syscall: STDIN - Tamaño: %d",
@@ -133,7 +139,7 @@ bool io_stdin(t_pcb* pcb, t_io* io_stdin, t_cola* block, t_cola_ready* ready,
     return false;
   }
   eliminar_paquete(paquete);
-  free(peticion->buffer);
+  free(buffer);
 
   if (!retirar_lista_io(pcb, io_stdin->cola_io, logger))
   {
@@ -149,5 +155,13 @@ bool io_stdin(t_pcb* pcb, t_io* io_stdin, t_cola* block, t_cola_ready* ready,
     cambio_block_ready(pcb, block, ready, logger);
   }
 
+  return true;
+}
+
+bool std_out(t_pcb* pcb, t_io* io_stdout, t_cola* block, t_cola_ready* ready,
+             t_lista* susp_block, t_lista* susp_ready,
+             t_peticion_stdout* peticion, t_logger* logger,
+             t_socket_kernel_memory* socket_km)
+{
   return true;
 }
