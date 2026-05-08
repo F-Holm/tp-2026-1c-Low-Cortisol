@@ -2,8 +2,11 @@
 #define KERNEL_SCHEDULER_MUTEX_H_
 
 #include <commons/collections/list.h>
+#include <pthread.h>
+#include <stdbool.h>
 
 #include "kernel_scheduler/misc.h"
+#include "kernel_scheduler/queue.h"
 
 typedef struct
 {
@@ -16,5 +19,10 @@ typedef struct
   int estado;
   t_logger logger;
 } t_mutex;
+
+t_mutex* crear_mutex(char* id, bool prioridad_activa, t_logger logger);
+void mutex_lock(t_mutex* mutex, t_cola_ready* cola_ready, t_cola* cola_block);
+void mutex_unlock(t_mutex* mutex, t_cola_ready* cola_ready, t_cola* cola_block);
+void destroy_mutex(t_mutex* mutex);
 
 #endif /* KERNEL_SCHEDULER_MUTEX_H_ */
