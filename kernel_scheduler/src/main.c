@@ -11,14 +11,13 @@
 #include "kernel_scheduler/io.h"
 #include "kernel_scheduler/kernel_memory.h"
 #include "kernel_scheduler/kernel_scheduler.h"
+#include "kernel_scheduler/queue.h"
 #include "kernel_scheduler/server.h"
 #include "utils/msg.h"
 
 int main(int argc, char* argv[])
 {
   t_kernel_scheduler_recursos recursos = {0};
-  t_cola_mutex_io* cola_io = malloc(sizeof(t_cola_mutex_io));
-  pthread_mutex_init(&cola_io->mutex_sockets_io, NULL);
 
   // args
   if (argc != 3)

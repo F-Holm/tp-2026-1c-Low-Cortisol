@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "kernel_scheduler/misc.h"
+#include "kernel_scheduler/queue.h"
 #include "utils/io.h"
 #include "utils/kernel_scheduler_cpu.h"
 #include "utils/msg.h"
@@ -84,27 +85,28 @@ void retirar_elem_cola(t_cola_mutex_io* cola_mutex, t_log* logger,
            (*pcb_post_io)->pid);
 }
 
-void reingresar_proceso(t_pcb** pcb_post_io,
-                        t_kernel_scheduler_recursos* recursos)
+void reingresar_proceso(t_pcb** pcb_post_io, t_log* logger,
+                        t_cola_ready* cola_ready)
 {
-  pthread_mutex_lock(&recursos->mutex_lista_procesos);
-  log_info(recursos->logger, "## (%d) Toma el Mutex de la Lista de Procesos",
+  pthread_mutex_lock(cola_ready->mutex_cola);
+  log_info(logger, "## (%d) Toma el Mutex de la Lista de Procesos",
            (*pcb_post_io)->pid);
 
-  (*pcb_post_io)->estado = READY;
-  log_info(recursos->logger, "## (%d) Pasa de BLOCK a READY",
+  log_info(logger, "## (%d) Pasa de BLOCK a READY", (*pcb_post_io)->pid);
+
+  queue_push(cola_ready->cola, *pcb_post_io);
+  log_info(logger, "## (%d) finalizó IO y pasa a READY / SUSP. READY",
            (*pcb_post_io)->pid);
 
-  list_add(recursos->lista_procesos, *pcb_post_io);
-  log_info(recursos->logger, "## (%d) finalizó IO y pasa a READY / SUSP. READY",
-           (*pcb_post_io)->pid);
-
-  pthread_mutex_unlock(&recursos->mutex_lista_procesos);
-  log_info(recursos->logger, "## (%d) Libera el Mutex de la Lista de Procesos",
+  pthread_mutex_unlock(cola_ready->mutex_cola);
+  log_info(logger, "## (%d) Libera el Mutex de la Lista de Procesos",
            (*pcb_post_io)->pid);
 }
 
-bool io_stdin(int sockets_io[], t_cola_mutex_io* cola_mutex,
+
+
+//FALTA CAMBIAR LA FUNCION ADAPTADA AL STRUCT t_io
+bool io_stdin(int sockets_io[], t_cola* cola_block, t_cola_ready* cola_ready,
               t_peticion_stdin* peticion, t_kernel_scheduler_recursos* recursos)
 {
   // Envio peticion a IO
@@ -117,7 +119,7 @@ bool io_stdin(int sockets_io[], t_cola_mutex_io* cola_mutex,
   peticion->buffer = recibir_buffer(&tamanio, sockets_io[E_STDIN]);
   if (peticion->buffer == NULL)
   {
-    log_error(recursos->logger, "## Error al recibir la respuesta de IO");
+    log_error(recursos->logger, "## Error al recibir la respuesa de IO");
     return false;
   }
   // Le envio el paquete al Kernel Memory para que escriba en la memoria
@@ -142,13 +144,13 @@ bool io_stdin(int sockets_io[], t_cola_mutex_io* cola_mutex,
 
   // Saco el proceso de la cola de mutex
   t_pcb* pcb_post_io = NULL;
-  retirar_elem_cola(cola_mutex, recursos->logger, &pcb_post_io);
+  retirar_elem_cola(cola_block->cola, recursos->logger, &pcb_post_io);
   if (pcb_post_io == NULL)
   {
     return false;
   }
   // Lo paso a READY
-  reingresar_proceso(&pcb_post_io, recursos);
+  reingresar_proceso(&pcb_post_io, t_log * logger, cola_ready);
 
   return true;
 }
