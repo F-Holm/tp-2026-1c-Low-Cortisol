@@ -124,20 +124,6 @@ bool iniciar_modulo(t_kernel_scheduler_recursos* recursos, char* archivo_config,
       recursos->config_vars.puerto_servidor, recursos->logger);
   if (recursos->socket_server <= 0)
     return false;
-
-  // Inicializo la cola de mutex para las IO
-  cola_block->cola = queue_create();
-  pthread_mutex_init(cola_block->mutex_cola, NULL);
-  // Inicio la cola de procesos
-  for (int i = 0; i < cola_ready->cantidad_colas; i++)
-  {
-    cola_ready->colas[i] = malloc(sizeof(t_cola));
-    cola_ready->colas[i]->cola = queue_create();
-    pthread_mutex_init(&(cola_ready->colas[i]->mutex_cola), NULL);
-    // falta cargar el tipo de algoritmo de cada cola
-  }
-
-  // Hilo para escuchar nuevas conexiones
   return crear_servidor(&(recursos->hilo_servidor),
                         inicializar_datos_hilo_escucha_recursos(recursos));
 }
