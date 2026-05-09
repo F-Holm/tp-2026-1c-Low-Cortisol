@@ -395,3 +395,17 @@ void cambio_susp_ready_ready(t_pcb* pcb, t_lista* susp_ready,
   cambio_sacar_susp_ready(pcb, susp_ready);
   cambio_a_ready(pcb, ready);
 }
+
+void cambio_desbloquear(t_pcb* pcb, t_cola* block, t_lista* susp_block,
+                        t_lista* susp_ready, t_cola_ready* ready,
+                        t_logger* logger)
+{
+  if (!esta_suspendido(t_pcb * pcb))
+  {
+    cambio_block_ready(pcb, block, ready, logger);
+  }
+  else
+  {
+    cambio_susp_block_susp_ready(pcb, susp_block, susp_ready, logger);
+  }
+}

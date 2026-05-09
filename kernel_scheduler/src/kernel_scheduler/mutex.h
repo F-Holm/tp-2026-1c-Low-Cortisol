@@ -17,12 +17,13 @@ typedef struct
   t_list* lista;
   t_pcb* proceso_actual;
   int estado;
-  t_logger logger;
+  t_logger* logger;
+  t_colas* colas;
 } t_mutex;
 
-t_mutex* crear_mutex(char* id, bool prioridad_activa, t_logger logger);
-void mutex_lock(t_mutex* mutex, t_cola_ready* cola_ready, t_cola* cola_block);
-void mutex_unlock(t_mutex* mutex, t_cola_ready* cola_ready, t_cola* cola_block);
+t_mutex* crear_mutex(char* id, bool prioridad_activa, t_logger* logger);
+void mutex_lock(t_mutex* mutex, t_pcb* pcb);
+void mutex_unlock(t_mutex* mutex, t_pcb* pcb);
 void destroy_mutex(t_mutex* mutex);
 
 #endif /* KERNEL_SCHEDULER_MUTEX_H_ */

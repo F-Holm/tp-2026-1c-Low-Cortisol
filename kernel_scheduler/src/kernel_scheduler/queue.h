@@ -118,5 +118,8 @@ void cambio_susp_block_susp_ready(t_pcb* pcb, t_lista* susp_block,
                                   t_lista* susp_ready, t_logger* logger);
 void cambio_susp_ready_ready(t_pcb* pcb, t_lista* susp_ready,
                              t_cola_ready* ready, t_logger* logger);
+void cambio_desbloquear(t_pcb* pcb, t_cola* block, t_lista* susp_block,
+                        t_lista* susp_ready, t_cola_ready* ready,
+                        t_logger* logger);
 
 #endif /* KERNEL_SCHEDULER_QUEUE_H_ */
