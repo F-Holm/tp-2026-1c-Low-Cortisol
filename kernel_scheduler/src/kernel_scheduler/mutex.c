@@ -28,7 +28,6 @@ void mutex_lock(t_mutex* mutex, t_pcb* pcb)
   }
   else if (mutex->prioridad_activa)
   {
-
     cambio_exec_block(pcb, mutex->colas->exec, mutex->colas->block,
                       mutex->logger);
   }

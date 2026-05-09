@@ -78,7 +78,7 @@ void destruir_colas(t_colas* colas);
 
 void log_cambio_estado(t_logger* logger, uint32_t pid, int estado_anterior,
                        int estado_nuevo);
-bool esta_suspendido(t_pcb* pcb);
+bool esta_bloqueado(t_pcb* pcb);
 bool puedo_suspender(t_pcb* pcb);
 void set_tiempo_bloqueado(t_pcb* pcb, unsigned long tiempo);
 void update_priordad_mas_baja_exec(t_lista_execute* exec);

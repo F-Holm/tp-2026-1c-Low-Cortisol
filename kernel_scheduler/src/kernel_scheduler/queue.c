@@ -400,7 +400,7 @@ void cambio_desbloquear(t_pcb* pcb, t_cola* block, t_lista* susp_block,
                         t_lista* susp_ready, t_cola_ready* ready,
                         t_logger* logger)
 {
-  if (!esta_suspendido(t_pcb * pcb))
+  if (esta_bloqueado(pcb))
   {
     cambio_block_ready(pcb, block, ready, logger);
   }
