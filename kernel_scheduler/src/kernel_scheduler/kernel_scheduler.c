@@ -99,8 +99,7 @@ bool crear_servidor(pthread_t* hilo_servidor, t_datos_hilo_escucha* datos)
   return true;
 }
 
-bool iniciar_modulo(t_kernel_scheduler_recursos* recursos, char* archivo_config,
-                    t_cola_mutex_io* cola_mutex)
+bool iniciar_modulo(t_kernel_scheduler_recursos* recursos, char* archivo_config)
 {
   // Config
   recursos->config = iniciar_config(archivo_config, &(recursos->config_vars));

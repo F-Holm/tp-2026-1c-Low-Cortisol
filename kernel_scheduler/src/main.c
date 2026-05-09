@@ -26,7 +26,7 @@ int main(int argc, char* argv[])
   char* path_proceso_inicial = argv[2];
 
   // Iniciar módulo
-  if (!iniciar_modulo(&recursos, archivo_config, cola_io))
+  if (!iniciar_modulo(&recursos, archivo_config))
   {
     cerrar_modulo_error(&recursos);
     return EXIT_FAILURE;
