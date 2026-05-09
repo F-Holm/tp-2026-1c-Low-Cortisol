@@ -26,8 +26,24 @@ void mutex_lock(t_mutex* mutex, t_pcb* pcb)
     pthread_mutex_unlock(&(pcb_mutex_pcb));
     mutex->proceso_actual == pcb;
   }
-  else if (mutex->prioridad_activa)
+  else if (mutex->prioridad_activa && mutex->estado < 0)
   {
+    t_list_iterator* iterador_lista = list_iterator_create(mutex->lista);
+    while (true)
+    {
+      if (!list_iterator_next(iterador_lista))
+      {
+        list_add(mutex->lista);
+        break;
+      }
+      if (((t_pcb)(*iterador_lista)->next->data).prioridad > pcb->prioridad)
+      {
+        list_iterator_add(iterador_lista, pcb);
+        break;
+      }
+      list_iterator_next(iterador_lista);
+    }
+    list_iterator_destroy(iterador_lista);
     cambio_exec_block(pcb, mutex->colas->exec, mutex->colas->block,
                       mutex->logger);
   }
