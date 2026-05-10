@@ -1,5 +1,6 @@
 #include "kernel_scheduler/misc.h"
 
+#include <pthread.h>
 #include <sys/time.h>
 
 #include "utils/msg.h"
@@ -10,6 +11,24 @@ int get_prioridad_pcb(t_pcb* pcb)
   int prioridad_pcb = pcb->prioridad;
   pthread_mutex_unlock(&(pcb->mutex_pcb));
   return prioridad_pcb;
+}
+
+t_pcb* crear_pcb(void)
+{
+  static uint32_t pid = 0;
+  t_pcb* pcb = malloc(sizeof(t_pcb));
+
+  pcb->pid = pid;
+  pthread_mutex_init(&(pcb->mutex_pcb));
+  pcb->tiempo_bloqueado = 0;
+
+  pid++;
+}
+
+void destruir_pcb(t_pcb* pcb)
+{
+  pthread_mutex_destroy(&(pcb->mutex_pcb));
+  free(pcb);
 }
 
 bool responder_handshake(int socket_fd, int id_modulo, t_log* logger)
