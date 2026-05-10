@@ -16,15 +16,16 @@ t_mutex* crear_mutex(char* id, bool prioridad_activa, t_logger* logger)
   mutex->logger = logger;
 }
 
-void mutex_lock(t_mutex* mutex, t_pcb* pcb)
+bool mutex_lock(t_mutex* mutex, t_pcb* pcb)
 {
+  bool ret = false;
+  int prioridad_pcb = get_prioridad_pcb(pcb);
   pthread_mutex_lock(&(mutex->mutex));
   if (mutex->estado == 1)
   {
-    pthread_mutex_lock(&(pcb_mutex_pcb));
-    mutex->prioridad_original_proceso = pcb->prioridad;
-    pthread_mutex_unlock(&(pcb_mutex_pcb));
-    mutex->proceso_actual == pcb;
+    mutex->prioridad_original_proceso = prioridad_pcb;
+    mutex->proceso_actual = pcb;
+    ret = true;
   }
   else if (mutex->prioridad_activa && mutex->estado < 0)
   {
@@ -36,12 +37,14 @@ void mutex_lock(t_mutex* mutex, t_pcb* pcb)
         list_add(mutex->lista);
         break;
       }
-      if (((t_pcb)(*iterador_lista)->next->data).prioridad > pcb->prioridad)
+      t_pcb* aux = list_iterator_next(iterador_lista);
+      int prioridad_aux = get_prioridad_pcb(aux);
+      if (prioridad_aux > prioridad_pcb)
       {
-        list_iterator_add(iterador_lista, pcb);
+        list_iterator_replace(iterador_lista, pcb);
+        list_iterator_add(iterador_lista, aux);
         break;
       }
-      list_iterator_next(iterador_lista);
     }
     list_iterator_destroy(iterador_lista);
     cambio_exec_block(pcb, mutex->colas->exec, mutex->colas->block,
@@ -55,11 +58,17 @@ void mutex_lock(t_mutex* mutex, t_pcb* pcb)
   }
   estado--;
   pthread_mutex_unlock(&(mutex->mutex));
+  return ret;
 }
 
-void mutex_unlock(t_mutex* mutex, t_pcb* pcb)
+bool mutex_unlock(t_mutex* mutex, t_pcb* pcb)
 {
   pthread_mutex_lock(&(mutex->mutex));
+  if (pcb != mutex->proceso_actual)
+  {
+    pthread_mutex_unlock(&(mutex->mutex));
+    return false;
+  }
   if (mutex->estado == 1)
   {
     pthread_mutex_lock(&(pcb_mutex_pcb));
@@ -75,6 +84,7 @@ void mutex_unlock(t_mutex* mutex, t_pcb* pcb)
   }
   estado++;
   pthread_mutex_unlock(&(mutex->mutex));
+  return true;
 }
 
 void destroy_mutex(t_mutex* mutex)

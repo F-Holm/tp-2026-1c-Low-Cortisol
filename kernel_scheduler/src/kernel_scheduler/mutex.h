@@ -22,8 +22,14 @@ typedef struct
 } t_mutex;
 
 t_mutex* crear_mutex(char* id, bool prioridad_activa, t_logger* logger);
-void mutex_lock(t_mutex* mutex, t_pcb* pcb);
-void mutex_unlock(t_mutex* mutex, t_pcb* pcb);
+
+// Devuelve true si el proceso puede usar el recurso directamente sin ser bloqueado
+// El proceso se bloquea automáticamente si devuelve false
+bool mutex_lock(t_mutex* mutex, t_pcb* pcb);
+
+// Devuelve false si el proceso que libera el mutex no es el que lo bloqueo
+bool mutex_unlock(t_mutex* mutex, t_pcb* pcb);
+
 void destroy_mutex(t_mutex* mutex);
 
 #endif /* KERNEL_SCHEDULER_MUTEX_H_ */

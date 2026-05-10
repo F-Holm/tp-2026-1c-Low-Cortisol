@@ -31,6 +31,7 @@ typedef struct
   pthread_mutex_t mutex_socket;
 } t_socket_kernel_memory;
 
+int get_prioridad_pcb(t_pcb* pcb);
 bool responder_handshake(int socket_fd, int id_modulo, t_log* logger);
 unsigned long millis(void);
 unsigned long time_diff(unsigned long time_1, unsigned long time_2);

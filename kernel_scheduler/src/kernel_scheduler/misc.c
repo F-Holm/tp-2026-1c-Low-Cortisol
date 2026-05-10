@@ -4,6 +4,14 @@
 
 #include "utils/msg.h"
 
+int get_prioridad_pcb(t_pcb* pcb)
+{
+  pthread_mutex_lock(&(pcb->mutex_pcb));
+  int prioridad_pcb = pcb->prioridad;
+  pthread_mutex_unlock(&(pcb->mutex_pcb));
+  return prioridad_pcb;
+}
+
 bool responder_handshake(int socket_fd, int id_modulo, t_log* logger)
 {
   if (!enviar_handshake(id_modulo, socket_fd))
