@@ -11,11 +11,18 @@
 #include "kernel_scheduler/kernel_scheduler.h"
 
 /****************** FUNCIONES DE IO ******************/
+typedef enum
+{
+  ERROR_KM,
+  ERROR_IO,
+  TODO_BIEN
+} devolucion_io;
+
 typedef struct
 {
   int socket_io;
-  
-  pthread_cond_t condicion_fin;
+  pthread_mutex_t mutex_socket_io;
+  pthread_mutex_t mutex_fin;
   t_pcb* proceso_actual;
   bool prioridad_activa;
   pthread_cond_t nuevo_proceso;
@@ -25,6 +32,9 @@ typedef struct
   t_lista* susp_ready;
   t_logger* logger;
   t_socket_kernel_memory* socket_km;
+  int socket_server;
+  bool cerrar_hilo;
+  pthread_t hilo_io;
 } t_io;
 
 typedef struct
@@ -48,43 +58,50 @@ typedef struct
 typedef struct
 {
   t_list* lista_stdin;
-  phtread_mutex_t mutex_lista_stdin;
+  pthread_mutex_t mutex_lista_stdin;
 } t_lista_stdin;
 
 typedef struct
 {
   t_list* lista_stdout;
-  phtread_mutex_t mutex_lista_stdout;
+  pthread_mutex_t mutex_lista_stdout;
 } t_lista_stdout;
 
 typedef struct
 {
   t_list* lista_sleep;
-  phtread_mutex_t mutex_lista_sleep;
+  pthread_mutex_t mutex_lista_sleep;
 } t_lista_sleep;
 
-typedef struct
-{
-  t_lista_stdin* lista_peticion_stdin;
-  t_lista_stdout* lista_peticion_stdout;
-  t_lista_sleep* lista_peticion_sleep;
-} listas_peticion_io;
+typedef struct{
+t_io* io;
+t_lista_stdin* lista_stdin;
+}t_hilo_io_in;
 
-bool atender_nuevo_io(int sockets_io[3], int socket_fd, t_log* logger);
-void cerrar_io(int sockets_io[3]);
+typedef struct{
+t_io* io;
+t_lista_stdout* lista_stdout;
+}t_hilo_io_out;
+
+typedef struct{
+t_io* io;
+t_lista_stdin* lista_sleep;
+}t_hilo_io_sleep;
+
+
+
+bool atender_nuevo_io(t_io* io[3], int socket_fd, t_logger* logger,
+                      t_socket_kernel_memory* socket_km, t_cola* block,
+                      t_cola_ready* ready, t_lista* susp_block,
+                      t_lista* susp_ready);
+
 int obtener_tipo_io(int socket_fd, t_log* logger);
-bool io_sleep(t_pcb* pcb, t_io* io_sleep, t_cola* block, t_cola_ready* ready,
-              t_lista* susp_block, t_lista* susp_ready,
-              t_peticion_sleep* peticion, t_logger* logger);
-bool io_stdout(t_pcb* pcb, t_io* io_stdout, t_cola* block, t_cola_ready* ready,
-               t_lista* susp_block, t_lista* susp_ready,
-               t_peticion_stdout* peticion, t_logger* logger,
-               t_socket_kernel_memory* socket_km);
-bool io_stdin(t_pcb* pcb, t_io* io_stdin, t_cola* block, t_cola_ready* ready,
-              t_lista* susp_block, t_lista* susp_ready,
-              t_peticion_stdin* peticion, t_logger* logger,
-              t_socket_kernel_memory* socket_km);
-bool retirar_lista_io(t_pcb* pcb, t_list* cola_io, t_logger* logger,
-                      pthread_mutex_t* mutex_io);
+bool procesar_nuevo_stdin(t_peticion_stdin* peticion, t_io* io_stdin,
+                          t_lista_stdin* lista_stdin);
+bool procesar_nuevo_stdout(t_peticion_stdout* peticion, t_io* io_stdout,
+                           t_lista_stdout* lista_stdout, t_logger* logger);
+bool procesar_nuevo_sleep(t_peticion_sleep* peticion, t_io* io_sleep,
+                          t_lista_sleep* lista_sleep, t_logger* logger);
+void cerrar_io(t_io* io[3]);
 
 #endif /* KERNEL_SCHEDULER_IO_H_ */
