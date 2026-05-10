@@ -23,8 +23,8 @@ typedef struct
 
 t_mutex* crear_mutex(char* id, bool prioridad_activa, t_logger* logger);
 
-// Devuelve true si el proceso puede usar el recurso directamente sin ser bloqueado
-// El proceso se bloquea automáticamente si devuelve false
+// Devuelve true si el proceso puede usar el recurso directamente sin ser
+// bloqueado El proceso se bloquea automáticamente si devuelve false
 bool mutex_lock(t_mutex* mutex, t_pcb* pcb);
 
 // Devuelve false si el proceso que libera el mutex no es el que lo bloqueo

@@ -69,18 +69,25 @@ bool mutex_unlock(t_mutex* mutex, t_pcb* pcb)
     pthread_mutex_unlock(&(mutex->mutex));
     return false;
   }
-  if (mutex->estado == 1)
+  if (mutex->prioridad_activa)
   {
-    pthread_mutex_lock(&(pcb_mutex_pcb));
-    mutex->prioridad_original_proceso = pcb->prioridad;
-    pthread_mutex_unlock(&(pcb_mutex_pcb));
-    mutex->proceso_actual == pcb;
+    pthread_mutex_lock(&(pcb->mutex_pcb));
+    pcb->prioridad = mutex->prioridad_original_proceso;
+    pthread_mutex_unlock(&(pcb->mutex_pcb));
+  }
+  desbloquear(pcb, mutex->colas->block, mutex->colas->susp_block,
+              mutex->colas->susp_ready, mutex->colas->ready, mutex->logger);
+  if (mutex->estado == 0)
+  {
+    mutex->proceso_actual = NULL;
+    mutex->prioridad_original_proceso = 0;
   }
   else
   {
-    t_pcb* new_pcb = list_remove(mutex->lista, 0);
-    cambio_exec_block(new_pcb, mutex->colas->exec, mutex->colas->block,
-                      mutex->logger);
+    mutex->proceso_actual = list_remove(mutex->lista, 0);
+    int prioridad_pcb = get_prioridad_pcb(mutex->proceso_actual);
+    cambio_exec_block(mutex->proceso_actual, mutex->colas->exec,
+                      mutex->colas->block, mutex->logger);
   }
   estado++;
   pthread_mutex_unlock(&(mutex->mutex));
