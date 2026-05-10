@@ -6,19 +6,6 @@
 
 #include "utils/registros.h"
 
-typedef enum
-{
-  NEW,
-  READY,
-  EXEC,
-  BLOCK,
-  SUSP_BLOCK,
-  SUSP_READY,
-  EXIT
-} t_estado;
-
-extern const char* const ESTADO_PROCESO[7];
-
 typedef struct
 {
   uint32_t pid;

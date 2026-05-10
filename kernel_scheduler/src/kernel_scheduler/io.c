@@ -114,7 +114,8 @@ bool io_stdin(t_pcb* pcb, t_io* io_stdin, t_cola* block, t_cola_ready* ready,
       enviar_string(OP_ESCRIBIR_EN_MEMORIA, buffer, socket_km->socket_km);
   pthread_mutex_unlock(&(socket_km->mutex_socket));
   free(buffer);
-  if(!envio){
+  if (!envio)
+  {
     pthread_mutex_lock(&(logger->mutex_logger));
     log_error(logger->logger,
               "## Error al enviar la respuesta de IO a Kernel Memory");
