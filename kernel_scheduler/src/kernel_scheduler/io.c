@@ -9,64 +9,6 @@
 #include "utils/msg.h"
 #include "utils/registros.h"
 
-int obtener_tipo_io(int socket_fd, t_log* logger)
-{
-  if (recibir_operacion(socket_fd) != OP_TIPO_IO)
-  {
-    log_error(logger, "## Error en el tipo de operación. Expected: OP_TIPO_IO");
-    return -1;
-  }
-
-  char* buffer = recibir_string(socket_fd);
-  int tipo_io;
-
-  if (strcmp(buffer, V_TIPO_IO[E_STDIN]) == 0)
-    tipo_io = E_STDIN;
-  else if (strcmp(buffer, V_TIPO_IO[E_STDOUT]) == 0)
-    tipo_io = E_STDOUT;
-  else if (strcmp(buffer, V_TIPO_IO[E_SLEEP]) == 0)
-    tipo_io = E_SLEEP;
-  else
-  {
-    log_error(logger, "## Tipo de IO no válido: %s", buffer);
-    free(buffer);
-    return -1;
-  }
-
-  log_info(logger, "## IO de tipo %s conectada", buffer);
-  free(buffer);
-  return tipo_io;
-}
-
-bool atender_nuevo_io(int sockets_io[3], int socket_fd, t_log* logger)
-{
-  if (!responder_handshake(socket_fd, MID_KERNEL_SCHEDULER, logger))
-    return false;
-
-  int tipo_io = obtener_tipo_io(socket_fd, logger);
-  if (tipo_io == -1)
-    return false;
-
-  if (sockets_io[tipo_io] != -1)
-  {
-    log_error(logger, "## IO de tipo repetido: %d. Cerrando conexión", tipo_io);
-    close(socket_fd);
-    return false;
-  }
-
-  sockets_io[tipo_io] = socket_fd;
-  return true;
-}
-
-void cerrar_io(int sockets_io[3])
-{
-  for (int i = 0; i < 3; i++)
-  {
-    if (sockets_io[i] > 0)
-      close(sockets_io[i]);
-  }
-}
-
 bool retirar_lista_io(t_pcb* pcb, t_list* cola_io, t_logger* logger,
                       pthread_mutex_t* mutex_io)
 {
@@ -95,7 +37,8 @@ bool io_stdin(t_pcb* pcb, t_io* io_stdin, t_cola* block, t_cola_ready* ready,
   // Envio peticion a IO
   int peticion_size = sizeof(t_peticion_stdin);
 
-  enviar_buffer(OP_PETICION_IO_STDIN, peticion, peticion_size, io_stdin->socket_io);
+  enviar_buffer(OP_PETICION_IO_STDIN, peticion, peticion_size,
+                io_stdin->socket_io);
 
   // recibo la respuesta de IO
   char* buffer = recibir_string(io_stdin->socket_io);
@@ -259,3 +202,112 @@ bool io_sleep(t_pcb* pcb, t_io* io_sleep, t_cola* block, t_cola_ready* ready,
   }
   return true;
 }
+
+void* hilo_stdin(t_io* io, t_logger* logger, t_socket_kernel_memory* socket_km,
+                 t_lista_stdin* lista_stdin)
+{
+  bool seguir_atendiendo = true;
+  while (seguir_atendiendo)
+  {
+    pthread_mutex_lock(&(io->cola_io->mutex_lista_io));
+    while (list_is_empty(io->cola_io->lista_io))
+    {
+      pthread_cond_wait(&(io->nuevo_proceso), &(io->cola_io->mutex_lista_io));
+    }
+    t_pcb* pcb = list_get(io->cola_io->lista_io, 0);
+    pthread_mutex_unlock(&(io->cola_io->mutex_lista_io));
+    pthread
+    t_peticion_stdin* peticion = malloc(sizeof(t_peticion_stdin));
+    peticion->pid = pcb->pid;
+  return NULL;
+}
+
+int obtener_tipo_io(int socket_fd, t_log* logger)
+{
+  if (recibir_operacion(socket_fd) != OP_TIPO_IO)
+  {
+    log_error(logger, "## Error en el tipo de operación. Expected: OP_TIPO_IO");
+    return -1;
+  }
+
+  char* buffer = recibir_string(socket_fd);
+  int tipo_io;
+
+  if (strcmp(buffer, V_TIPO_IO[E_STDIN]) == 0)
+    tipo_io = E_STDIN;
+  else if (strcmp(buffer, V_TIPO_IO[E_STDOUT]) == 0)
+    tipo_io = E_STDOUT;
+  else if (strcmp(buffer, V_TIPO_IO[E_SLEEP]) == 0)
+    tipo_io = E_SLEEP;
+  else
+  {
+    log_error(logger, "## Tipo de IO no válido: %s", buffer);
+    free(buffer);
+    return -1;
+  }
+
+  log_info(logger, "## IO de tipo %s conectada", buffer);
+  free(buffer);
+  return tipo_io;
+}
+
+bool atender_nuevo_io(t_io* io[3], int socket_fd, t_logger* logger,
+                      t_socket_kernel_memory* socket_km, t_cola* block,
+                      t_cola_ready* ready, t_lista* susp_block,
+                      t_lista* susp_ready,
+                      t_listas_peticion_io* listas_peticion_io)
+{
+  if (!responder_handshake(socket_fd, MID_KERNEL_SCHEDULER, logger))
+    return false;
+
+  int tipo_io = obtener_tipo_io(socket_fd, logger);
+  if (tipo_io == -1)
+    return false;
+
+  if (io[tipo_io]->socket_io != -1)
+  {
+    log_error(logger, "## IO de tipo repetido: %d. Cerrando conexión", tipo_io);
+    close(socket_fd);
+    return false;
+  }
+  // Preparo el t_io para crear el hilo
+  io[tipo_io]->socket_io = socket_fd;
+  io[tipo_io]->proceso_actual = NULL;
+  io[tipo_io]->cola_io = listas_peticion_io->lista_io_stdin;  
+  pthread_cond_init(&(io[tipo_io]->condicion_fin), NULL);
+  pthread_cond_init(&(io[tipo_io]->nuevo_proceso), NULL);
+  io[tipo_io]->cola_ready = ready;
+  io[tipo_io]->cola_block = block;
+  io[tipo_io]->susp_block = susp_block;
+  io[tipo_io]->susp_ready = susp_ready;
+  io[tipo_io]->logger = logger;
+  io[tipo_io]->socket_km = socket_km;
+
+  switch (tipo_io)
+  {
+    case E_STDIN:
+      t_lista_stdin* lista_stdin = malloc(sizeof(t_lista_stdin));
+      lista_stdin = listas_peticion_io->lista_peticion_stdin;
+      pthread_create(&(io[E_STDIN]->hilo_io), NULL, hilo_stdin, io[E_STDIN],
+                     lista_stdin);
+      break;
+    case E_STDOUT:
+      // Crear hilo para stdout
+      break;
+    case E_SLEEP:
+      // Crear hilo para sleep
+      break;
+  }
+
+  return true;
+}
+
+void cerrar_io(t_io* io[3])
+{
+  for (int i = 0; i < 3; i++)
+  {
+    if (io[i]->socket_io > 0)
+      close(io[i]->socket_io);
+  }
+}
+

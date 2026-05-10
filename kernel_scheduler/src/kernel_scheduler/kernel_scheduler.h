@@ -47,7 +47,8 @@ typedef struct
 
 } t_cola_mutex_io;
 
-bool iniciar_modulo(t_kernel_scheduler_recursos* recursos, char* archivo_config);
+bool iniciar_modulo(t_kernel_scheduler_recursos* recursos,
+                    char* archivo_config);
 void cerrar_modulo_error(t_kernel_scheduler_recursos* recursos);
 void cerrar_modulo(t_kernel_scheduler_recursos* recursos);
 
