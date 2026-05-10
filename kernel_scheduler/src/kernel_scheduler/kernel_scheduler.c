@@ -142,7 +142,6 @@ void cerrar_modulo_error(t_kernel_scheduler_recursos* recursos)
 
 void cerrar_modulo(t_kernel_scheduler_recursos* recursos)
 {
-  shutdown(recursos->socket_server, SHUT_RDWR);
   pthread_join(recursos->hilo_servidor, NULL);
   close(recursos->socket_kernel_memory);
   close(recursos->socket_server);

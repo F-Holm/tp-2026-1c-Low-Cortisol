@@ -1,5 +1,6 @@
 #ifndef UTILS_KERNEL_SCHEDULER_CPU_H_
 #define UTILS_KERNEL_SCHEDULER_CPU_H_
+
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
