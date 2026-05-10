@@ -6,7 +6,9 @@
 #include <pthread.h>
 #include <stdint.h>
 
-#include "kernel_scheduler/server.h"
+#include "kernel_scheduler/io.h"
+#include "kernel_scheduler/mutex.h"
+#include "kernel_scheduler/queue.h"
 
 typedef struct
 {
@@ -15,12 +17,17 @@ typedef struct
   pthread_mutex_t* mutex_lista_sockets;
   pthread_cond_t* cond_fin;
   char* id;
+  t_logger* logger;
+  t_lista_mutex* lista_mutex;
+  t_colas* colas;
+  t_io* estructuras_io;
 } t_datos_hilo_cpu;
 
-bool atender_nueva_cpu(t_datos_hilo_escucha* datos_hilo_escucha, int socket_cpu,
-                       t_list* lista_sockets_cpu,
+bool atender_nueva_cpu(int socket_cpu, t_list* lista_sockets_cpu,
                        pthread_mutex_t* mutex_lista_sockets_cpu,
-                       pthread_cond_t* cond_fin_cpu);
+                       pthread_cond_t* cond_fin_cpu, t_logger* logger,
+                       t_lista_mutex* lista_mutex, t_colas* colas,
+                       t_io* estructuras_io);
 void cerrar_cpu(t_list* lista_sockets_cpu,
                 pthread_mutex_t* mutex_lista_sockets_cpu,
                 pthread_cond_t* cond_fin_cpu);

@@ -21,34 +21,43 @@ int crear_socket_servidor(char* puerto, t_log* logger)
   return ret;
 }
 
-t_datos_hilo_escucha* inicializar_datos_hilo_escucha(int socket_server,
-                                                     t_log* logger)
+t_datos_servidor_escucha* inicializar_datos_server_escucha(
+    t_datos_servidor_escucha* datos, int socket_server, t_logger* logger,
+    t_lista_mutex* lista_mutex, t_colas* colas)
 {
-  t_datos_hilo_escucha* datos = malloc(sizeof(t_datos_hilo_escucha));
   datos->socket_server = socket_server;
   datos->logger = logger;
+  datos->lista_mutex = lista_mutex;
+  datos->colas = colas;
   return datos;
 }
 
-void cerrar_hilo_escucha(int sockets_io[3], t_list* lista_sockets_cpu,
+void cerrar_hilo_escucha(t_io estructuras_io[3], t_list* lista_sockets_cpu,
                          pthread_mutex_t* mutex_lista_sockets_cpu,
                          pthread_cond_t* cond_fin_cpu,
-                         t_datos_hilo_escucha* datos)
+                         t_datos_servidor_escucha* datos)
 {
-  cerrar_io(sockets_io);
+  cerrar_io(estructuras_io);
   cerrar_cpu(lista_sockets_cpu, mutex_lista_sockets_cpu, cond_fin_cpu);
   free(datos);
 }
 
-void* hilo_escucha(void* datos_hilo_escucha_void)
+static void preparar_sockets_io(t_io estructuras_io[3])
 {
-  t_datos_hilo_escucha* datos = (t_datos_hilo_escucha*)datos_hilo_escucha_void;
+  for (int i = 0; i < 3; i++)
+  {
+    estructuras_io[i].socket_io = -1;
+  }
+}
 
-  int sockets_io[3] = {-1, -1, -1};
+void servidor_escucha(t_datos_servidor_escucha* datos)
+{
+  t_io estructuras_io[3];
   t_list* lista_sockets_cpu = list_create();
   pthread_mutex_t mutex_lista_sockets_cpu;
   pthread_cond_t cond_fin_cpu;
 
+  preparar_sockets_io(estructuras_io);
   pthread_mutex_init(&mutex_lista_sockets_cpu, NULL);
   pthread_cond_init(&cond_fin_cpu, NULL);
 
@@ -62,15 +71,18 @@ void* hilo_escucha(void* datos_hilo_escucha_void)
     switch (recibir_handshake(socket_fd))
     {
       case MID_CPU:
-        manejo_exitoso =
-            atender_nueva_cpu(datos, socket_fd, lista_sockets_cpu,
-                              &mutex_lista_sockets_cpu, &cond_fin_cpu);
+        manejo_exitoso = atender_nueva_cpu_(
+            datos, estructuras_io, socket_fd, lista_sockets_cpu,
+            &mutex_lista_sockets_cpu, &cond_fin_cpu);
         break;
       case MID_IO:
-        manejo_exitoso = atender_nuevo_io(sockets_io, socket_fd, datos->logger);
+        manejo_exitoso =
+            atender_nuevo_io(estructuras_io, socket_fd, datos->logger);
         break;
       default:
-        log_info(datos->logger, "## Recepción de handshake no válido");
+        pthread_mutex_lock(&(datos->logger->mutex_logger));
+        log_info(datos->logger->logger, "## Recepción de handshake no válido");
+        pthread_mutex_unlock(&(datos->logger->mutex_logger));
         manejo_exitoso = false;
         break;
     }
@@ -78,8 +90,9 @@ void* hilo_escucha(void* datos_hilo_escucha_void)
       close(socket_fd);
   }
 
+  pthread_mutex_lock(&(datos->logger->mutex_logger));
   log_info(datos->logger, "## Cerrando servidor");
-  cerrar_hilo_escucha(sockets_io, lista_sockets_cpu, &mutex_lista_sockets_cpu,
-                      &cond_fin_cpu, datos);
-  return NULL;
+  pthread_mutex_unlock(&(datos->logger->mutex_logger));
+  cerrar_hilo_escucha(estructuras_io, lista_sockets_cpu,
+                      &mutex_lista_sockets_cpu, &cond_fin_cpu, datos);
 }

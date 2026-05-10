@@ -62,13 +62,11 @@ typedef struct
 
 typedef struct
 {
-  t_cola new;
   t_cola_ready ready;
   t_lista_execute exec;
   t_lista block;
   t_lista susp_block;
   t_lista susp_ready;
-  t_cola exit;
 } t_colas;
 
 // ingresar NULL en t_list si no es CMN
@@ -84,29 +82,25 @@ bool puedo_suspender(t_pcb* pcb, int suspension_timeout);
 void set_tiempo_bloqueado(t_pcb* pcb, unsigned long tiempo);
 void update_priordad_mas_baja_exec(t_lista_execute* exec);
 
-void cambio_a_new(t_pcb* pcb, t_cola* new);
 void cambio_a_ready(t_pcb* pcb, t_cola_ready* ready, t_logger* logger);
 void cambio_a_exec(t_pcb* pcb, t_lista_execute* exec);
 void cambio_a_block(t_pcb* pcb, t_lista* block);
 void cambio_a_susp_block(t_pcb* pcb, t_lista* susp_block);
 void cambio_a_susp_ready(t_pcb* pcb, t_lista* susp_ready);
-void cambio_a_exit(t_pcb* pcb, t_cola* exit);
+void cambio_a_exit(t_pcb* pcb);
 
-t_pcb* cambio_sacar_new(t_cola* new);
 t_pcb* cambio_sacar_ready(t_cola_ready* ready);
 void cambio_sacar_exec(t_pcb* pcb, t_lista_execute* exec);
 void cambio_sacar_block(t_pcb* pcb, t_lista* block);
 void cambio_sacar_susp_block(t_pcb* pcb, t_lista* susp_block);
 void cambio_sacar_susp_ready(t_pcb* pcb, t_lista* susp_ready);
-t_pcb* cambio_sacar_exit(t_cola* exit);
 
-void cambio_new_ready(t_cola* new, t_cola_ready* ready, t_logger* logger);
+void cambio_new_ready(t_pcb* pcb, t_cola_ready* ready, t_logger* logger);
 // No implementado, solo contiene el log por ahora. Usar funciones individuales
 void cambio_ready_exec(t_pcb* pcb, t_lista_execute* exec, t_logger* logger);
 void cambio_exec_ready(t_pcb* pcb, t_lista_execute* exec, t_cola_ready* ready,
                        t_logger* logger);
-void cambio_exec_exit(t_pcb* pcb, t_lista_execute* exec, t_cola* exit,
-                      t_logger* logger);
+void cambio_exec_exit(t_pcb* pcb, t_lista_execute* exec, t_logger* logger);
 void cambio_exec_block(t_pcb* pcb, t_lista_execute* exec, t_lista* block,
                        t_logger* logger);
 void cambio_block_ready(t_pcb* pcb, t_lista* block, t_cola_ready* ready,

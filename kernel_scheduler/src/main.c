@@ -11,6 +11,7 @@
 #include "kernel_scheduler/io.h"
 #include "kernel_scheduler/kernel_memory.h"
 #include "kernel_scheduler/kernel_scheduler.h"
+#include "kernel_scheduler/mutex.h"
 #include "kernel_scheduler/queue.h"
 #include "kernel_scheduler/server.h"
 #include "utils/msg.h"
@@ -26,30 +27,21 @@ int main(int argc, char* argv[])
   char* path_proceso_inicial = argv[2];
 
   // Iniciar módulo
-  if (!iniciar_modulo(&recursos, archivo_config, cola_io))
+  if (!iniciar_modulo(&recursos, archivo_config))
   {
     cerrar_modulo_error(&recursos);
     return EXIT_FAILURE;
   }
 
-  // Esperando Instrucciones del Kernel Memory
-  bool seguir_operando = true;
-  while (seguir_operando)
-  {
-    int op_code = recibir_operacion(recursos.socket_kernel_memory);
-    char* buffer;
+  // Inicializar datos para el servidor
+  inicializar_colas_mutex(&recursos);
+  t_datos_servidor_escucha datos;
+  inicializar_datos_server_escucha(&datos, recursos->socket_server,
+                                   recursos->logger, recursos->lista_mutex,
+                                   recursos->colas);
 
-    switch (op_code)
-    {
-      case OP_CODE_ERROR:
-        seguir_operando = false;
-        break;
-      default:
-        buffer = recibir_string(recursos.socket_kernel_memory);
-        free(buffer);
-        break;
-    }
-  }
+  // Empezar a escuchar servidor
+  servidor_escucha(&datos);
 
   // Liberar y Cerrar
   cerrar_modulo(&recursos);

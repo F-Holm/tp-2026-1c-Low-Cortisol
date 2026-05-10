@@ -21,6 +21,15 @@ typedef struct
   t_colas* colas;
 } t_mutex;
 
+typedef struct
+{
+  t_list* lista;
+  pthread_mutex_t mutex_lista;
+} t_lista_mutex;
+
+t_lista_mutex* inicializar_lista_mutex(void);
+void destruir_lista_mutex(t_lista_mutex* lista_mutex);
+
 t_mutex* crear_mutex(char* id, bool prioridad_activa, t_logger* logger);
 
 // Devuelve true si el proceso puede usar el recurso directamente sin ser

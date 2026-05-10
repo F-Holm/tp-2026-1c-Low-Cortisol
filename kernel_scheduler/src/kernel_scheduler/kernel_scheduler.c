@@ -76,10 +76,17 @@ void cerrar_config(t_config_vars* config_vars, t_config* config)
   config_destroy(config);
 }
 
-t_log* iniciar_logger(t_log_level log_level)
+void iniciar_logger(t_logger* logger, t_log_level log_level)
 {
-  return log_create("kernel_scheduler.log", "kernel_scheduler", true,
-                    log_level);
+  logger->logger =
+      log_create("kernel_scheduler.log", "kernel_scheduler", true, log_level);
+  pthread_mutex_init(&(logger->mutex_logger));
+}
+
+void cerrar_logger(t_logger* logger)
+{
+  log_destroy(logger->logger);
+  pthread_mutex_destroy(&(logger->mutex_logger));
 }
 
 t_datos_hilo_escucha* inicializar_datos_hilo_escucha_recursos(
@@ -89,18 +96,7 @@ t_datos_hilo_escucha* inicializar_datos_hilo_escucha_recursos(
                                         recursos->logger);
 }
 
-bool crear_servidor(pthread_t* hilo_servidor, t_datos_hilo_escucha* datos)
-{
-  if (pthread_create(hilo_servidor, NULL, hilo_escucha, datos) != 0)
-  {
-    log_error(datos->logger, "## Error al crear el hilo del servidor");
-    return false;
-  }
-  return true;
-}
-
-bool iniciar_modulo(t_kernel_scheduler_recursos* recursos, char* archivo_config,
-                    t_cola_mutex_io* cola_mutex)
+bool iniciar_modulo(t_kernel_scheduler_recursos* recursos, char* archivo_config)
 {
   // Config
   recursos->config = iniciar_config(archivo_config, &(recursos->config_vars));
@@ -109,23 +105,30 @@ bool iniciar_modulo(t_kernel_scheduler_recursos* recursos, char* archivo_config,
 
   // Logger
   recursos->logger = iniciar_logger(recursos->config_vars.log_level);
-  if (recursos->logger == NULL)
+  if (recursos->logger->logger == NULL)
     return false;
 
   // Socket Kernel Memory
   recursos->socket_kernel_memory = iniciar_conexion_kernel_memory(
       recursos->config_vars.ip_kernel_memory,
-      recursos->config_vars.puerto_kernel_memory, recursos->logger);
+      recursos->config_vars.puerto_kernel_memory, recursos->logger->logger);
   if (recursos->socket_kernel_memory <= 0)
     return false;
 
-  // Crear servidor
+  // Crear socket servidor
   recursos->socket_server = crear_socket_servidor(
-      recursos->config_vars.puerto_servidor, recursos->logger);
-  if (recursos->socket_server <= 0)
-    return false;
-  return crear_servidor(&(recursos->hilo_servidor),
-                        inicializar_datos_hilo_escucha_recursos(recursos));
+      recursos->config_vars.puerto_servidor, recursos->logger->logger);
+
+  return recursos->socket_server > 0;
+}
+
+void inicializar_colas_mutex(t_kernel_scheduler_recursos* recursos)
+{
+  recursos->lista_mutex = inicializar_lista_mutex();
+  inicializar_colas(
+      recursos->colas, recursos->config_vars.algoritmo_planificacion,
+      recursos->config_vars.algoritmos_cmn, recursos->config_vars.rr_quantum,
+      recursos->config_vars.desalojo);
 }
 
 void cerrar_modulo_error(t_kernel_scheduler_recursos* recursos)
@@ -134,8 +137,8 @@ void cerrar_modulo_error(t_kernel_scheduler_recursos* recursos)
     close(recursos->socket_server);
   if (recursos->socket_kernel_memory > 0)
     close(recursos->socket_kernel_memory);
-  if (recursos->logger != NULL)
-    log_destroy(recursos->logger);
+  if (recursos->logger->logger != NULL)
+    cerrar_logger(recursos->logger);
   if (recursos->config != NULL)
     cerrar_config(&(recursos->config_vars), recursos->config);
 }
@@ -143,8 +146,10 @@ void cerrar_modulo_error(t_kernel_scheduler_recursos* recursos)
 void cerrar_modulo(t_kernel_scheduler_recursos* recursos)
 {
   pthread_join(recursos->hilo_servidor, NULL);
+  destruir_lista_mutex(recursos->lista_mutex);
+  destruir_colas(recursos->colas);
   close(recursos->socket_kernel_memory);
   close(recursos->socket_server);
-  log_destroy(recursos->logger);
+  cerrar_logger(recursos->logger);
   cerrar_config(&(recursos->config_vars), recursos->config);
 }
