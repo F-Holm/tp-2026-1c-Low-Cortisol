@@ -5,6 +5,7 @@
 #include <commons/collections/queue.h>
 #include <pthread.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -104,21 +105,21 @@ void cambio_new_ready(t_cola* new, t_cola_ready* ready, t_logger* logger);
 void cambio_ready_exec(t_pcb* pcb, t_lista_execute* exec, t_logger* logger);
 void cambio_exec_ready(t_pcb* pcb, t_lista_execute* exec, t_cola_ready* ready,
                        t_logger* logger);
-void cambio_exec_exit(t_pcb* pcb, t_lista_execute* exec, t_cola exit,
+void cambio_exec_exit(t_pcb* pcb, t_lista_execute* exec, t_cola* exit,
                       t_logger* logger);
-void cambio_exec_block(t_pcb* pcb, t_lista_execute* exec, t_cola block,
+void cambio_exec_block(t_pcb* pcb, t_lista_execute* exec, t_lista* block,
                        t_logger* logger);
-void cambio_block_ready(t_pcb* pcb, t_cola* block, t_cola_ready* ready,
+void cambio_block_ready(t_pcb* pcb, t_lista* block, t_cola_ready* ready,
                         t_logger* logger);
-void cambio_block_susp_block(t_pcb* pcb, t_cola* block, t_lista* susp_block,
+void cambio_block_susp_block(t_pcb* pcb, t_lista* block, t_lista* susp_block,
                              t_logger* logger);
-void cambio_susp_block_block(t_pcb* pcb, t_lista* susp_block, t_cola* block,
+void cambio_susp_block_block(t_pcb* pcb, t_lista* susp_block, t_lista* block,
                              t_logger* logger);
 void cambio_susp_block_susp_ready(t_pcb* pcb, t_lista* susp_block,
                                   t_lista* susp_ready, t_logger* logger);
 void cambio_susp_ready_ready(t_pcb* pcb, t_lista* susp_ready,
                              t_cola_ready* ready, t_logger* logger);
-void cambio_desbloquear(t_pcb* pcb, t_cola* block, t_lista* susp_block,
+void cambio_desbloquear(t_pcb* pcb, t_lista* block, t_lista* susp_block,
                         t_lista* susp_ready, t_cola_ready* ready,
                         t_logger* logger);
 
