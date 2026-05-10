@@ -2,6 +2,26 @@
 
 #include <string.h>
 
+typedef struct
+{
+  t_list* lista;
+  pthread_mutex_t mutex_lista;
+} t_lista_mutex;
+
+t_lista_mutex* inicializar_lista_mutex(void)
+{
+  t_lista_mutex* lista_mutex = malloc(sizeof(t_lista_mutex));
+  lista_mutex->lista = list_create();
+  pthread_mutex_init(&(lista_mutex->mutex_lista));
+  return lista_mutex;
+}
+
+void destruir_lista_mutex(t_lista_mutex* lista_mutex)
+{
+  list_destroy_and_destroy_elements(lista_mutex->lista, destroy_mutex);
+  pthread_mutex_destroy(&(lista_mutex->mutex_lista));
+}
+
 t_mutex* crear_mutex(char* id, bool prioridad_activa, t_logger* logger)
 {
   t_mutex* mutex = malloc(sizeof(t_mutex));

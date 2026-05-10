@@ -35,7 +35,7 @@ typedef struct
 int get_prioridad_pcb(t_pcb* pcb);
 t_pcb* crear_pcb(void);
 void destruir_pcb(t_pcb* pcb);
-bool responder_handshake(int socket_fd, int id_modulo, t_log* logger);
+bool responder_handshake(int socket_fd, int id_modulo, t_logger* logger);
 unsigned long millis(void);
 unsigned long time_diff(unsigned long time_1, unsigned long time_2);
 

@@ -31,15 +31,20 @@ void destruir_pcb(t_pcb* pcb)
   free(pcb);
 }
 
-bool responder_handshake(int socket_fd, int id_modulo, t_log* logger)
+bool responder_handshake(int socket_fd, int id_modulo, t_logger* logger)
 {
   if (!enviar_handshake(id_modulo, socket_fd))
   {
-    log_error(logger, "## Error en el envio del Handshake con %s",
+    pthread_mutex_lock(&(logger->mutex_logger));
+    log_error(logger->logger, "## Error en el envio del Handshake con %s",
               HANDSHAKE_MSG[id_modulo]);
+    pthread_mutex_unlock(&(logger->mutex_logger));
     return false;
   }
-  log_info(logger, "## Handshake exitoso con %s", HANDSHAKE_MSG[id_modulo]);
+  pthread_mutex_lock(&(logger->mutex_logger));
+  log_info(logger->logger, "## Handshake exitoso con %s",
+           HANDSHAKE_MSG[id_modulo]);
+  pthread_mutex_unlock(&(logger->mutex_logger));
   return true;
 }
 
