@@ -11,18 +11,12 @@
 #include "kernel_scheduler/kernel_scheduler.h"
 
 /****************** FUNCIONES DE IO ******************/
-
-typedef struct{
-  t_list* lista_io;
-  pthread_mutex_t mutex_lista_io;
-}t_lista_io;
 typedef struct
 {
   int socket_io;
   
   pthread_cond_t condicion_fin;
   t_pcb* proceso_actual;
-  t_lista_io* cola_io;
   bool prioridad_activa;
   pthread_cond_t nuevo_proceso;
   t_cola_ready* cola_ready;
@@ -74,9 +68,6 @@ typedef struct
   t_lista_stdin* lista_peticion_stdin;
   t_lista_stdout* lista_peticion_stdout;
   t_lista_sleep* lista_peticion_sleep;
-  t_lista_io* lista_io_sleep;
-  t_lista_io* lista_io_stdin;
-  t_lista_io* lista_io_stdout;
 } listas_peticion_io;
 
 bool atender_nuevo_io(int sockets_io[3], int socket_fd, t_log* logger);
