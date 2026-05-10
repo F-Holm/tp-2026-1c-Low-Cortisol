@@ -14,6 +14,7 @@ t_mutex* crear_mutex(char* id, bool prioridad_activa, t_logger* logger)
   mutex->proceso_actual = NULL;
   mutex->estado = 1;
   mutex->logger = logger;
+  return mutex;
 }
 
 bool mutex_lock(t_mutex* mutex, t_pcb* pcb)

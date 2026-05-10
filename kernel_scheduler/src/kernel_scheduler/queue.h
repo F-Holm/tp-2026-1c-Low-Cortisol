@@ -19,7 +19,7 @@ typedef enum
   EST_BLOCK,
   EST_SUSP_BLOCK,
   EST_SUSP_READY,
-  EXIT
+  EST_EXIT
 } t_estados;
 
 extern const char* const ESTADOS_STR[7];
@@ -54,7 +54,7 @@ typedef struct
 {
   t_list* lista;
   pthread_mutex_t mutex_lista;
-  t_pcb* priordad_mas_baja;
+  t_pcb* prioridad_mas_baja;
   int quantum;      // = 0 si no es RR
   bool desalojo;    // si el desalojo está habilitado
 } t_lista_execute;  // como algunos valores no cambian nunca (quantum y
@@ -80,17 +80,17 @@ void destruir_colas(t_colas* colas);
 void log_cambio_estado(t_logger* logger, uint32_t pid, int estado_anterior,
                        int estado_nuevo);
 bool esta_bloqueado(t_pcb* pcb);
-bool puedo_suspender(t_pcb* pcb);
+bool puedo_suspender(t_pcb* pcb, int suspension_timeout);
 void set_tiempo_bloqueado(t_pcb* pcb, unsigned long tiempo);
 void update_priordad_mas_baja_exec(t_lista_execute* exec);
 
 void cambio_a_new(t_pcb* pcb, t_cola* new);
 void cambio_a_ready(t_pcb* pcb, t_cola_ready* ready, t_logger* logger);
 void cambio_a_exec(t_pcb* pcb, t_lista_execute* exec);
-void cambio_a_block(t_pcb* pcb, t_cola block);
+void cambio_a_block(t_pcb* pcb, t_lista* block);
 void cambio_a_susp_block(t_pcb* pcb, t_lista* susp_block);
 void cambio_a_susp_ready(t_pcb* pcb, t_lista* susp_ready);
-void cambio_a_exit(t_pcb* pcb, t_cola exit);
+void cambio_a_exit(t_pcb* pcb, t_cola* exit);
 
 t_pcb* cambio_sacar_new(t_cola* new);
 t_pcb* cambio_sacar_ready(t_cola_ready* ready);
