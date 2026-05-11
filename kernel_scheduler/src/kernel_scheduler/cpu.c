@@ -45,13 +45,20 @@ static void* manejar_cliente_cpu(void* datos_hilo_cpu_void)
         break;
       case OP_SYSCALL_MUTEX_CREATE:
         char* id_mutex = recibir_string(datos->socket_fd);
-        crear_y_add_mutex(datos->lista_mutex, id, bool prioridad_activa,
-                          t_logger* logger);
+        crear_y_add_mutex(datos->lista_mutex, id_mutex,
+                          datos->colas->ready.cola_multi_nivel, datos->logger);
         free(id_mutex);
-                          break;
+        break;
       case OP_SYSCALL_MUTEX_LOCK:
+        char* id_mutex = recibir_string(datos->socket_fd);
+        if (!lista_mutex_lock(datos->lista_mutex, id_mutex, pcb))
+        {
+          pcb = NULL;
+        }
         break;
       case OP_SYSCALL_MUTEX_UNLOCK:
+        char* id_mutex = recibir_string(datos->socket_fd);
+        lista_mutex_unlock(datos->lista_mutex, id_mutex, pcb);
         break;
       case OP_SYSCALL_MEM_ALLOC:
         break;
@@ -66,19 +73,20 @@ static void* manejar_cliente_cpu(void* datos_hilo_cpu_void)
       case OP_SYSCALL_INIT_PROC:
         break;
       case OP_SYSCALL_EXIT:
+        cambio_exec_exit(pcb, datos->colas.exec, datos->logger);
+        pcb = NULL;
         break;
       default:
         seguir_operando = false;
         break;
     }
-
-    /*int operacion = recibir_operacion(datos->socket_fd);
-    if (operacion == OP_CODE_ERROR)
-      break;
-    char* buffer = recibir_string(datos->socket_fd);
-    free(buffer);*/
   }
 
+  if (pcb != NULL)
+  {
+    cambio_exec_ready(pcb, datos->colas.exec, datos->colas.ready,
+                      datos->logger);
+  }
   // Liberar conexión y eliminar socket de la lista
   cerrar_hilo_cpu(datos);
   return NULL;

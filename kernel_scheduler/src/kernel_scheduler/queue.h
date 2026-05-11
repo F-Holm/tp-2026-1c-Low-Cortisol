@@ -56,8 +56,8 @@ typedef struct
   pthread_mutex_t mutex_lista;
   t_pcb* prioridad_mas_baja;
   int quantum;      // = 0 si no es RR
-  bool desalojo;    // si el desalojo está habilitado
-} t_lista_execute;  // como algunos valores no cambian nunca (quantum y
+  bool desalojo;    // Si el desalojo está habilitado
+} t_lista_execute;  // Como algunos valores no cambian nunca (quantum y
                     // desalojo), no necesitan mutex
 
 typedef struct
@@ -120,8 +120,10 @@ void cambio_susp_ready_ready(t_pcb* pcb, t_lista* susp_ready,
 void cambio_desbloquear(t_pcb* pcb, t_lista* block, t_lista* susp_block,
                         t_lista* susp_ready, t_cola_ready* ready,
                         t_logger* logger);
-bool cambio_cualquiera_exit(t_colas* colas, t_logger* logger, int estado);
 
+// Para errores o rutinas de cierre
+void cambio_a_exit_cerrar(t_pcb* pcb);
+bool cambio_cualquiera_exit(t_colas* colas, t_logger* logger, int estado);
 void vaciar_colas(t_colas* colas, t_logger* logger);
 
 #endif /* KERNEL_SCHEDULER_QUEUE_H_ */

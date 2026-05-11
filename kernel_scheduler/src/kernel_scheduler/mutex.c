@@ -30,6 +30,34 @@ void crear_y_add_mutex(t_lista_mutex* lista_mutex, char* id,
   pthread_mutex_unlock(&(lista_mutex->mutex_lista));
 }
 
+static t_mutex* get_mutex_by_id(t_lista_mutex* lista_mutex, char* id)
+{
+  pthread_mutex_lock(&(lista_mutex->mutex_lista));
+  t_mutex* mutex;
+  t_list_iterator* iterador_mutex = list_iterator_create(lista_mutex->lista);
+  while (list_iterator_has_next(iterador_mutex))
+  {
+    mutex = list_iterator_next(iterador_mutex);
+    if (strcmp(mutex->id, id) == 0)
+    {
+      return mutex;
+    }
+  }
+  list_iterator_destroy(iterador_mutex);
+  pthread_mutex_unlock(&(lista_mutex->mutex_lista));
+  return NULL;
+}
+
+bool lista_mutex_lock(t_lista_mutex* lista_mutex, char* id, t_pcb* pcb)
+{
+  return mutex_lock(get_mutex_by_id(lista_mutex, id), pcb);
+}
+
+bool lista_mutex_unlock(t_lista_mutex* lista_mutex, char* id, t_pcb* pcb)
+{
+  return mutex_unlock(get_mutex_by_id(lista_mutex, id), pcb);
+}
+
 t_mutex* crear_mutex(char* id, bool prioridad_activa, t_logger* logger)
 {
   t_mutex* mutex = malloc(sizeof(t_mutex));

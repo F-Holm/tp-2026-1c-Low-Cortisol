@@ -32,11 +32,33 @@ typedef struct
   pthread_mutex_t mutex_socket;
 } t_socket_kernel_memory;
 
+typedef struct
+{
+  int cantidad_procesos_activos;
+  pthread_mutex_t mutex_contador;
+  int socket_servidor;
+  t_logger* logger;
+} t_contador_procesos;
+
+typedef enum
+{
+  MC_SIN_PROCESOS,
+  MC_MEMORIA_CORRUPTA,
+  MC_FALLO_CONEXION_KERNEL_MEMORY
+} t_motivo_cierre;
+
+void cerrar_kernel_scheduler(int socket_servidor, t_logger* logger,
+                             int motivo_cierre);
+
 int get_prioridad_pcb(t_pcb* pcb);
 t_pcb* crear_pcb(void);
 void destruir_pcb(t_pcb* pcb);
 bool responder_handshake(int socket_fd, int id_modulo, t_logger* logger);
 unsigned long millis(void);
 unsigned long time_diff(unsigned long time_1, unsigned long time_2);
+t_contador_procesos* inicializar_contador_procesos(int socket_servidor, t_logger* logger);
+void aumentar_contador_procesos(t_contador_procesos* contador);
+void disminuir_contador_procesos(t_contador_procesos* contador);
+void destruir_contador_procesos(t_contador_procesos* contador);
 
 #endif /* KERNEL_SCHEDULER_MISC_H_ */
