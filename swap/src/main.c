@@ -12,7 +12,7 @@
 int main(int argc, char* argv[])
 {
   t_modulo_swap sswap;
-  
+
   if (argc != 2)
     return EXIT_FAILURE;
   char* archivo_config = argv[1];
@@ -24,7 +24,7 @@ int main(int argc, char* argv[])
   {
     return EXIT_FAILURE;
   }
-  
+
   if (!iniciar_conexion(&sswap))
   {
     return EXIT_FAILURE;
