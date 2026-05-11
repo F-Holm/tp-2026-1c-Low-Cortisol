@@ -85,7 +85,7 @@ t_lista_stdout* lista_stdout;
 
 typedef struct{
 t_io* io;
-t_lista_stdin* lista_sleep;
+t_lista_sleep* lista_sleep;
 }t_hilo_io_sleep;
 
 
