@@ -71,8 +71,8 @@ typedef struct
 
 // ingresar NULL en t_list si no es CMN
 // ingresar quantum = 0 si no es RR
-void inicializar_colas(t_colas* colas, int algoritmo, t_list* algoritmos_cmn,
-                       int quantum, bool desalojo);
+t_colas* inicializar_colas(int algoritmo, t_list* algoritmos_cmn, int quantum,
+                           bool desalojo);
 void destruir_colas(t_colas* colas);
 
 void log_cambio_estado(t_logger* logger, uint32_t pid, int estado_anterior,

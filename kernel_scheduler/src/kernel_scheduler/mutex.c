@@ -19,6 +19,7 @@ void destruir_lista_mutex(t_lista_mutex* lista_mutex)
 {
   list_destroy_and_destroy_elements(lista_mutex->lista, destroy_mutex_iterator);
   pthread_mutex_destroy(&(lista_mutex->mutex_lista));
+  free(lista_mutex);
 }
 
 t_mutex* crear_mutex(char* id, bool prioridad_activa, t_logger* logger)

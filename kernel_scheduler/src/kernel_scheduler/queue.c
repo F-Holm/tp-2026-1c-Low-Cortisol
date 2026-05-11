@@ -55,14 +55,16 @@ void inicializar_lista(t_lista* lista)
   pthread_mutex_init(&(lista->mutex_lista), NULL);
 }
 
-void inicializar_colas(t_colas* colas, int algoritmo, t_list* algoritmos_cmn,
-                       int quantum, bool desalojo)
+t_colas* inicializar_colas(int algoritmo, t_list* algoritmos_cmn, int quantum,
+                           bool desalojo)
 {
+  t_colas* colas = malloc(sizeof(t_colas));
   inicializar_cola_ready(&(colas->ready), algoritmo, algoritmos_cmn);
   inicializar_lista_exec(&(colas->exec), quantum, desalojo);
   inicializar_lista(&(colas->block));
   inicializar_lista(&(colas->susp_block));
   inicializar_lista(&(colas->susp_ready));
+  return colas;
 }
 
 void destruir_cola(t_cola* cola)
@@ -100,6 +102,7 @@ void destruir_colas(t_colas* colas)
   destruir_lista(&(colas->block));
   destruir_lista(&(colas->susp_block));
   destruir_lista(&(colas->susp_ready));
+  free(colas);
 }
 
 void log_cambio_estado(t_logger* logger, uint32_t pid, int estado_anterior,
