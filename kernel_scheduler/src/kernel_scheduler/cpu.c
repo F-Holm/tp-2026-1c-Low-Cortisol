@@ -25,14 +25,58 @@ static void cerrar_hilo_cpu(t_datos_hilo_cpu* datos)
 static void* manejar_cliente_cpu(void* datos_hilo_cpu_void)
 {
   t_datos_hilo_cpu* datos = (t_datos_hilo_cpu*)datos_hilo_cpu_void;
+  bool seguir_operando = true;
+  t_pcb* pcb;
 
-  while (true)
+  while (seguir_operando)
   {
-    int operacion = recibir_operacion(datos->socket_fd);
+    // check desalojo
+    // check bloquear
+    // obtener proceso // wait proceso
+    // enviar pid
+    // obtener codigo operacion
+    // obtener respuesta
+
+    int op_code = recibir_operacion(datos->socket_fd);
+    switch (op_code)
+    {
+      case OP_CICLO_CPU_OK:
+        free(recibir_string(datos->socket_fd));
+        break;
+      case OP_SYSCALL_MUTEX_CREATE:
+        char* id_mutex = recibir_string(datos->socket_fd);
+        crear_y_add_mutex(datos->lista_mutex, id, bool prioridad_activa,
+                          t_logger* logger);
+        free(id_mutex);
+                          break;
+      case OP_SYSCALL_MUTEX_LOCK:
+        break;
+      case OP_SYSCALL_MUTEX_UNLOCK:
+        break;
+      case OP_SYSCALL_MEM_ALLOC:
+        break;
+      case OP_SYSCALL_MEM_FREE:
+        break;
+      case OP_SYSCALL_SLEEP:
+        break;
+      case OP_SYSCALL_STDOUT:
+        break;
+      case OP_SYSCALL_STDIN:
+        break;
+      case OP_SYSCALL_INIT_PROC:
+        break;
+      case OP_SYSCALL_EXIT:
+        break;
+      default:
+        seguir_operando = false;
+        break;
+    }
+
+    /*int operacion = recibir_operacion(datos->socket_fd);
     if (operacion == OP_CODE_ERROR)
       break;
     char* buffer = recibir_string(datos->socket_fd);
-    free(buffer);
+    free(buffer);*/
   }
 
   // Liberar conexión y eliminar socket de la lista

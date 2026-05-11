@@ -22,6 +22,14 @@ void destruir_lista_mutex(t_lista_mutex* lista_mutex)
   free(lista_mutex);
 }
 
+void crear_y_add_mutex(t_lista_mutex* lista_mutex, char* id,
+                       bool prioridad_activa, t_logger* logger)
+{
+  pthread_mutex_lock(&(lista_mutex->mutex_lista));
+  list_add(lista_mutex->lista, crear_mutex(id, prioridad_activa, logger));
+  pthread_mutex_unlock(&(lista_mutex->mutex_lista));
+}
+
 t_mutex* crear_mutex(char* id, bool prioridad_activa, t_logger* logger)
 {
   t_mutex* mutex = malloc(sizeof(t_mutex));

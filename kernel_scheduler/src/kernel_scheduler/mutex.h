@@ -30,6 +30,9 @@ typedef struct
 t_lista_mutex* inicializar_lista_mutex(void);
 void destruir_lista_mutex(t_lista_mutex* lista_mutex);
 
+void crear_y_add_mutex(t_lista_mutex* lista_mutex, char* id,
+                       bool prioridad_activa, t_logger* logger);
+
 t_mutex* crear_mutex(char* id, bool prioridad_activa, t_logger* logger);
 
 // Devuelve true si el proceso puede usar el recurso directamente sin ser
