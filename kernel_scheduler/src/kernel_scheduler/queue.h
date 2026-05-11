@@ -67,12 +67,14 @@ typedef struct
   t_lista block;
   t_lista susp_block;
   t_lista susp_ready;
+  t_contador_procesos* contador_procesos;
 } t_colas;
 
 // ingresar NULL en t_list si no es CMN
 // ingresar quantum = 0 si no es RR
 t_colas* inicializar_colas(int algoritmo, t_list* algoritmos_cmn, int quantum,
-                           bool desalojo);
+                           bool desalojo, int socket_servidor,
+                           t_logger* logger);
 void destruir_colas(t_colas* colas);
 
 void log_cambio_estado(t_logger* logger, uint32_t pid, int estado_anterior,
@@ -87,7 +89,7 @@ void cambio_a_exec(t_pcb* pcb, t_lista_execute* exec);
 void cambio_a_block(t_pcb* pcb, t_lista* block);
 void cambio_a_susp_block(t_pcb* pcb, t_lista* susp_block);
 void cambio_a_susp_ready(t_pcb* pcb, t_lista* susp_ready);
-void cambio_a_exit(t_pcb* pcb);
+void cambio_a_exit(t_pcb* pcb, t_contador_procesos* contador);
 
 t_pcb* cambio_sacar_ready(t_cola_ready* ready);
 void cambio_sacar_exec(t_pcb* pcb, t_lista_execute* exec);
@@ -99,7 +101,7 @@ t_pcb* cambio_sacar_susp_block_siguiente(t_lista* susp_block);
 void cambio_sacar_susp_ready(t_pcb* pcb, t_lista* susp_ready);
 t_pcb* cambio_sacar_susp_ready_siguiente(t_lista* susp_ready);
 
-void cambio_new_ready(t_pcb* pcb, t_cola_ready* ready, t_logger* logger);
+void cambio_new_ready(t_pcb* pcb, t_cola_ready* ready, t_logger* logger, t_contador_procesos* contador);
 // No implementado, solo contiene el log por ahora. Usar funciones individuales
 void cambio_ready_exec(t_pcb* pcb, t_lista_execute* exec, t_logger* logger);
 void cambio_exec_ready(t_pcb* pcb, t_lista_execute* exec, t_cola_ready* ready,
@@ -123,7 +125,8 @@ void cambio_desbloquear(t_pcb* pcb, t_lista* block, t_lista* susp_block,
 
 // Para errores o rutinas de cierre
 void cambio_a_exit_cerrar(t_pcb* pcb);
-bool cambio_cualquiera_exit(t_colas* colas, t_logger* logger, int estado);
+bool cambio_cualquiera_exit(t_colas* colas, t_logger* logger, int estado,
+                            t_contador_procesos* contador);
 void vaciar_colas(t_colas* colas, t_logger* logger);
 
 #endif /* KERNEL_SCHEDULER_QUEUE_H_ */
