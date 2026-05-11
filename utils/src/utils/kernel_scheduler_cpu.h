@@ -1,23 +1,11 @@
 #ifndef UTILS_KERNEL_SCHEDULER_CPU_H_
 #define UTILS_KERNEL_SCHEDULER_CPU_H_
+
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 
 #include "utils/registros.h"
-
-typedef enum
-{
-  NEW,
-  READY,
-  EXEC,
-  BLOCK,
-  SUSP_BLOCK,
-  SUSP_READY,
-  EXIT
-} t_estado;
-
-extern const char* const ESTADO_PROCESO[7];
 
 typedef struct
 {
