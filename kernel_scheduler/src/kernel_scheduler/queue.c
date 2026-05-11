@@ -269,12 +269,40 @@ void cambio_sacar_exec(t_pcb* pcb, t_lista_execute* exec)
   }
 }
 
+t_pcb* cambio_sacar_exec_siguiente(t_lista_execute* exec)
+{
+  t_pcb* pcb = NULL;
+  pthread_mutex_lock(&(exec->mutex_lista));
+  if (!list_is_empty(exec->lista))
+  {
+    pcb = list_remove(exec->lista, 0);
+  }
+  pthread_mutex_unlock(&(exec->mutex_lista));
+  return pcb;
+}
+
 void cambio_sacar_block(t_pcb* pcb, t_lista* block)
 {
   pthread_mutex_lock(&(block->mutex_lista));
   list_remove_element(block->lista, pcb);
   pthread_mutex_unlock(&(block->mutex_lista));
   set_tiempo_bloqueado(pcb, 0);
+}
+
+t_pcb* cambio_sacar_block_siguiente(t_lista* block)
+{
+  t_pcb* pcb = NULL;
+  pthread_mutex_lock(&(block->mutex_lista));
+  if (!list_is_empty(block->lista))
+  {
+    pcb = list_remove(block->lista, 0);
+  }
+  pthread_mutex_unlock(&(block->mutex_lista));
+  if (pcb != NULL)
+  {
+    set_tiempo_bloqueado(pcb, 0);
+  }
+  return pcb;
 }
 
 void cambio_sacar_susp_block(t_pcb* pcb, t_lista* susp_block)
@@ -284,11 +312,35 @@ void cambio_sacar_susp_block(t_pcb* pcb, t_lista* susp_block)
   pthread_mutex_unlock(&(susp_block->mutex_lista));
 }
 
+t_pcb* cambio_sacar_susp_block_siguiente(t_lista* susp_block)
+{
+  t_pcb* pcb = NULL;
+  pthread_mutex_lock(&(susp_block->mutex_lista));
+  if (!list_is_empty(susp_block->lista))
+  {
+    pcb = list_remove(susp_block->lista, 0);
+  }
+  pthread_mutex_unlock(&(susp_block->mutex_lista));
+  return pcb;
+}
+
 void cambio_sacar_susp_ready(t_pcb* pcb, t_lista* susp_ready)
 {
   pthread_mutex_lock(&(susp_ready->mutex_lista));
   list_remove_element(susp_ready->lista, pcb);
   pthread_mutex_unlock(&(susp_ready->mutex_lista));
+}
+
+t_pcb* cambio_sacar_susp_ready_siguiente(t_lista* susp_ready)
+{
+  t_pcb* pcb = NULL;
+  pthread_mutex_lock(&(susp_ready->mutex_lista));
+  if (!list_is_empty(susp_ready->lista))
+  {
+    pcb = list_remove(susp_ready->lista, 0);
+  }
+  pthread_mutex_unlock(&(susp_ready->mutex_lista));
+  return NULL;
 }
 
 void cambio_new_ready(t_pcb* pcb, t_cola_ready* ready, t_logger* logger)
@@ -378,3 +430,43 @@ void cambio_desbloquear(t_pcb* pcb, t_lista* block, t_lista* susp_block,
     cambio_susp_block_susp_ready(pcb, susp_block, susp_ready, logger);
   }
 }
+
+bool cambio_cualquiera_exit(t_colas* colas, t_logger* logger, int estado)
+{
+  t_pcb* pcb = NULL;
+  switch (estado)
+  {
+    case EST_NEW:
+      break;
+    case EST_READY:
+      pcb = cambio_sacar_ready(colas->ready);
+      break;
+    case EST_EXEC:
+      pcb = cambio_sacar_exec_siguiente(colas->exec);
+      break;
+    case EST_BLOCK:
+      pcb = cambio_sacar_block_siguiente(colas->block);
+      break;
+    case EST_SUSP_BLOCK:
+      pcb = cambio_sacar_susp_block_siguiente(colas->susp_block);
+      break;
+    case EST_SUSP_READY:
+      pcb = cambio_sacar_susp_ready_siguiente(colas->susp_ready);
+      break;
+  }
+  if (pcb == NULL)
+  {
+    return false;
+  }
+  log_cambio_estado(logger, pcb->pid, estado, EST_EXIT);
+  cambio_a_exit(pcb);
+  return true;
+}
+
+void vaciar_colas(t_colas* colas, t_logger* logger)
+{
+  for (int i = EST_READY; i < EST_EXIT; i++)
+  {
+    while (cambio_cualquiera_exit(colas, logger, i))
+      ;
+  }
