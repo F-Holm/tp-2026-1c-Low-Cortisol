@@ -123,7 +123,8 @@ void inicializar_colas_mutex(t_kernel_scheduler_recursos* recursos)
   recursos->colas = inicializar_colas(
       recursos->config_vars.algoritmo_planificacion,
       recursos->config_vars.algoritmos_cmn, recursos->config_vars.rr_quantum,
-      recursos->config_vars.desalojo);
+      recursos->config_vars.desalojo, recursos->socket_server,
+      recursos->logger);
 }
 
 void cerrar_modulo_error(t_kernel_scheduler_recursos* recursos)
