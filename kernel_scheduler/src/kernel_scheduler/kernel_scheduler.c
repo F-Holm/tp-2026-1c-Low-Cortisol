@@ -78,22 +78,17 @@ void cerrar_config(t_config_vars* config_vars, t_config* config)
 
 void iniciar_logger(t_logger* logger, t_log_level log_level)
 {
+  logger = malloc(sizeof(t_logger));
   logger->logger =
       log_create("kernel_scheduler.log", "kernel_scheduler", true, log_level);
-  pthread_mutex_init(&(logger->mutex_logger));
+  pthread_mutex_init(&(logger->mutex_logger), NULL);
 }
 
 void cerrar_logger(t_logger* logger)
 {
   log_destroy(logger->logger);
   pthread_mutex_destroy(&(logger->mutex_logger));
-}
-
-t_datos_hilo_escucha* inicializar_datos_hilo_escucha_recursos(
-    t_kernel_scheduler_recursos* recursos)
-{
-  return inicializar_datos_hilo_escucha(recursos->socket_server,
-                                        recursos->logger);
+  free(logger);
 }
 
 bool iniciar_modulo(t_kernel_scheduler_recursos* recursos, char* archivo_config)
@@ -104,7 +99,7 @@ bool iniciar_modulo(t_kernel_scheduler_recursos* recursos, char* archivo_config)
     return false;
 
   // Logger
-  recursos->logger = iniciar_logger(recursos->config_vars.log_level);
+  iniciar_logger(recursos->logger, recursos->config_vars.log_level);
   if (recursos->logger->logger == NULL)
     return false;
 
@@ -125,8 +120,8 @@ bool iniciar_modulo(t_kernel_scheduler_recursos* recursos, char* archivo_config)
 void inicializar_colas_mutex(t_kernel_scheduler_recursos* recursos)
 {
   recursos->lista_mutex = inicializar_lista_mutex();
-  inicializar_colas(
-      recursos->colas, recursos->config_vars.algoritmo_planificacion,
+  recursos->colas = inicializar_colas(
+      recursos->config_vars.algoritmo_planificacion,
       recursos->config_vars.algoritmos_cmn, recursos->config_vars.rr_quantum,
       recursos->config_vars.desalojo);
 }
@@ -145,8 +140,8 @@ void cerrar_modulo_error(t_kernel_scheduler_recursos* recursos)
 
 void cerrar_modulo(t_kernel_scheduler_recursos* recursos)
 {
-  pthread_join(recursos->hilo_servidor, NULL);
   destruir_lista_mutex(recursos->lista_mutex);
+  vaciar_colas(recursos->colas, recursos->logger);
   destruir_colas(recursos->colas);
   close(recursos->socket_kernel_memory);
   close(recursos->socket_server);

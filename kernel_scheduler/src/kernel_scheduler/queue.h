@@ -71,8 +71,8 @@ typedef struct
 
 // ingresar NULL en t_list si no es CMN
 // ingresar quantum = 0 si no es RR
-void inicializar_colas(t_colas* colas, int algoritmo, t_list* algoritmos_cmn,
-                       int quantum, bool desalojo);
+t_colas* inicializar_colas(int algoritmo, t_list* algoritmos_cmn, int quantum,
+                           bool desalojo);
 void destruir_colas(t_colas* colas);
 
 void log_cambio_estado(t_logger* logger, uint32_t pid, int estado_anterior,
@@ -91,9 +91,13 @@ void cambio_a_exit(t_pcb* pcb);
 
 t_pcb* cambio_sacar_ready(t_cola_ready* ready);
 void cambio_sacar_exec(t_pcb* pcb, t_lista_execute* exec);
+t_pcb* cambio_sacar_exec_siguiente(t_lista_execute* exec);
 void cambio_sacar_block(t_pcb* pcb, t_lista* block);
+t_pcb* cambio_sacar_block_siguiente(t_lista* block);
 void cambio_sacar_susp_block(t_pcb* pcb, t_lista* susp_block);
+t_pcb* cambio_sacar_susp_block_siguiente(t_lista* susp_block);
 void cambio_sacar_susp_ready(t_pcb* pcb, t_lista* susp_ready);
+t_pcb* cambio_sacar_susp_ready_siguiente(t_lista* susp_ready);
 
 void cambio_new_ready(t_pcb* pcb, t_cola_ready* ready, t_logger* logger);
 // No implementado, solo contiene el log por ahora. Usar funciones individuales
@@ -116,5 +120,8 @@ void cambio_susp_ready_ready(t_pcb* pcb, t_lista* susp_ready,
 void cambio_desbloquear(t_pcb* pcb, t_lista* block, t_lista* susp_block,
                         t_lista* susp_ready, t_cola_ready* ready,
                         t_logger* logger);
+bool cambio_cualquiera_exit(t_colas* colas, t_logger* logger, int estado);
+
+void vaciar_colas(t_colas* colas, t_logger* logger);
 
 #endif /* KERNEL_SCHEDULER_QUEUE_H_ */
