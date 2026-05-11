@@ -340,7 +340,7 @@ t_pcb* cambio_sacar_susp_ready_siguiente(t_lista* susp_ready)
     pcb = list_remove(susp_ready->lista, 0);
   }
   pthread_mutex_unlock(&(susp_ready->mutex_lista));
-  return NULL;
+  return pcb;
 }
 
 void cambio_new_ready(t_pcb* pcb, t_cola_ready* ready, t_logger* logger)
@@ -439,19 +439,19 @@ bool cambio_cualquiera_exit(t_colas* colas, t_logger* logger, int estado)
     case EST_NEW:
       break;
     case EST_READY:
-      pcb = cambio_sacar_ready(colas->ready);
+      pcb = cambio_sacar_ready(&(colas->ready));
       break;
     case EST_EXEC:
-      pcb = cambio_sacar_exec_siguiente(colas->exec);
+      pcb = cambio_sacar_exec_siguiente(&(colas->exec));
       break;
     case EST_BLOCK:
-      pcb = cambio_sacar_block_siguiente(colas->block);
+      pcb = cambio_sacar_block_siguiente(&(colas->block));
       break;
     case EST_SUSP_BLOCK:
-      pcb = cambio_sacar_susp_block_siguiente(colas->susp_block);
+      pcb = cambio_sacar_susp_block_siguiente(&(colas->susp_block));
       break;
     case EST_SUSP_READY:
-      pcb = cambio_sacar_susp_ready_siguiente(colas->susp_ready);
+      pcb = cambio_sacar_susp_ready_siguiente(&(colas->susp_ready));
       break;
   }
   if (pcb == NULL)
@@ -470,3 +470,4 @@ void vaciar_colas(t_colas* colas, t_logger* logger)
     while (cambio_cualquiera_exit(colas, logger, i))
       ;
   }
+}

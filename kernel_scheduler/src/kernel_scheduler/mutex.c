@@ -6,13 +6,18 @@ t_lista_mutex* inicializar_lista_mutex(void)
 {
   t_lista_mutex* lista_mutex = malloc(sizeof(t_lista_mutex));
   lista_mutex->lista = list_create();
-  pthread_mutex_init(&(lista_mutex->mutex_lista));
+  pthread_mutex_init(&(lista_mutex->mutex_lista), NULL);
   return lista_mutex;
+}
+
+static void destroy_mutex_iterator(void* mutex)
+{
+  destroy_mutex(mutex);
 }
 
 void destruir_lista_mutex(t_lista_mutex* lista_mutex)
 {
-  list_destroy_and_destroy_elements(lista_mutex->lista, destroy_mutex);
+  list_destroy_and_destroy_elements(lista_mutex->lista, destroy_mutex_iterator);
   pthread_mutex_destroy(&(lista_mutex->mutex_lista));
 }
 
