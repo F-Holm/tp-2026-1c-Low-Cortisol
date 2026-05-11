@@ -2,12 +2,6 @@
 
 #include <string.h>
 
-typedef struct
-{
-  t_list* lista;
-  pthread_mutex_t mutex_lista;
-} t_lista_mutex;
-
 t_lista_mutex* inicializar_lista_mutex(void)
 {
   t_lista_mutex* lista_mutex = malloc(sizeof(t_lista_mutex));
