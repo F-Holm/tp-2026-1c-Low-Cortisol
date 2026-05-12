@@ -1,6 +1,7 @@
 #include "kernel_scheduler/misc.h"
 
 #include <pthread.h>
+#include <sys/socket.h>
 #include <sys/time.h>
 
 #include "utils/msg.h"
@@ -58,4 +59,75 @@ unsigned long millis(void)
 unsigned long time_diff(unsigned long time_1, unsigned long time_2)
 {
   return time_1 > time_2 ? time_1 - time_2 : time_2 - time_1;
+}
+
+t_contador_procesos* inicializar_contador_procesos(int socket_servidor,
+                                                   t_logger* logger)
+{
+  t_contador_procesos* contador = malloc(sizeof(t_contador_procesos));
+  contador->cantidad_procesos_activos = 0;
+  pthread_mutex_init(&(contador->mutex_contador), NULL);
+  contador->socket_servidor = socket_servidor;
+  contador->logger = logger;
+  return contador;
+}
+
+void aumentar_contador_procesos(t_contador_procesos* contador)
+{
+  pthread_mutex_lock(&(contador->mutex_contador));
+  contador->cantidad_procesos_activos++;
+  pthread_mutex_lock(&(contador->mutex_contador));
+}
+
+void disminuir_contador_procesos(t_contador_procesos* contador)
+{
+  pthread_mutex_lock(&(contador->mutex_contador));
+  contador->cantidad_procesos_activos--;
+  if (contador->cantidad_procesos_activos == 0)
+  {
+    cerrar_kernel_scheduler(contador->socket_servidor, contador->logger,
+                            MC_SIN_PROCESOS)
+  }
+  pthread_mutex_lock(&(contador->mutex_contador));
+}
+
+void destruir_contador_procesos(t_contador_procesos* contador)
+{
+  pthread_mutex_destroy(&(contador->mutex_contador));
+  free(contador);
+}
+
+static void log_shutdown(t_logger* logger, int motivo_cierre)
+{
+  pthread_mutex_lock(&(logger->mutex_logger));
+  switch (motivo_cierre)
+  {
+    case MC_SIN_PROCESOS:
+      log_info(logger->logger, "## Procesos finalizados con éxito");
+      break;
+    case MC_MEMORIA_CORRUPTA:
+      log_error(logger->logger, "## BSOD: Corrupción de memoria detectada");
+      break;
+    case MC_FALLO_CONEXION_KERNEL_MEMORY:
+      log_error(logger->logger, "## Error en la conexión con kernel");
+      break;
+    default:
+      log_error(logger->logger, "## Error desconocido");
+      break;
+  }
+  pthread_mutex_unlock(&(logger->mutex_logger));
+}
+
+void cerrar_kernel_scheduler(int socket_servidor, t_logger* logger,
+                             int motivo_cierre)
+{
+  pthread_mutex_lock(&(logger->mutex_logger));
+  static bool shutdown_activado = false;
+  pthread_mutex_unlock(&(logger->mutex_logger));
+  if (!shutdown_activado)
+  {
+    log_shutdown(logger, motivo_cierre);
+    shutdown(socket_servidor, SHUT_RDWR);
+    shutdown_activado = true;
+  }
 }

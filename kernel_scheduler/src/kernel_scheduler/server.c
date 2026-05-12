@@ -71,9 +71,10 @@ void servidor_escucha(t_datos_servidor_escucha* datos)
     switch (recibir_handshake(socket_fd))
     {
       case MID_CPU:
-        manejo_exitoso = atender_nueva_cpu_(
-            datos, estructuras_io, socket_fd, lista_sockets_cpu,
-            &mutex_lista_sockets_cpu, &cond_fin_cpu);
+        manejo_exitoso = atender_nueva_cpu(
+            socket_fd, lista_sockets_cpu, &mutex_lista_sockets_cpu,
+            &cond_fin_cpu, datos->logger, datos->lista_mutex, datos->colas,
+            estructuras_io);
         break;
       case MID_IO:
         manejo_exitoso =
@@ -91,7 +92,7 @@ void servidor_escucha(t_datos_servidor_escucha* datos)
   }
 
   pthread_mutex_lock(&(datos->logger->mutex_logger));
-  log_info(datos->logger, "## Cerrando servidor");
+  log_info(datos->logger->logger, "## Cerrando servidor");
   pthread_mutex_unlock(&(datos->logger->mutex_logger));
   cerrar_hilo_escucha(estructuras_io, lista_sockets_cpu,
                       &mutex_lista_sockets_cpu, &cond_fin_cpu, datos);
