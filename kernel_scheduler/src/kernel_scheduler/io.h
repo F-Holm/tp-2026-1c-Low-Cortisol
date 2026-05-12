@@ -73,24 +73,25 @@ typedef struct
   pthread_mutex_t mutex_lista_sleep;
 } t_lista_sleep;
 
-typedef struct{
-t_io* io;
-t_lista_stdin* lista_stdin;
-}t_hilo_io_in;
+typedef struct
+{
+  t_io* io;
+  t_lista_stdin* lista_stdin;
+} t_hilo_io_in;
 
-typedef struct{
-t_io* io;
-t_lista_stdout* lista_stdout;
-}t_hilo_io_out;
+typedef struct
+{
+  t_io* io;
+  t_lista_stdout* lista_stdout;
+} t_hilo_io_out;
 
-typedef struct{
-t_io* io;
-t_lista_sleep* lista_sleep;
-}t_hilo_io_sleep;
+typedef struct
+{
+  t_io* io;
+  t_lista_sleep* lista_sleep;
+} t_hilo_io_sleep;
 
-
-
-bool atender_nuevo_io(t_io* io[3], int socket_fd, t_logger* logger,
+bool atender_nuevo_io(t_io io[3], int socket_fd, t_logger* logger,
                       t_socket_kernel_memory* socket_km, t_cola* block,
                       t_cola_ready* ready, t_lista* susp_block,
                       t_lista* susp_ready);
@@ -102,6 +103,6 @@ bool procesar_nuevo_stdout(t_peticion_stdout* peticion, t_io* io_stdout,
                            t_lista_stdout* lista_stdout, t_logger* logger);
 bool procesar_nuevo_sleep(t_peticion_sleep* peticion, t_io* io_sleep,
                           t_lista_sleep* lista_sleep, t_logger* logger);
-void cerrar_io(t_io* io[3]);
+void cerrar_io(t_io io[3]);
 
 #endif /* KERNEL_SCHEDULER_IO_H_ */
