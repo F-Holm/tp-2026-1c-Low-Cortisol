@@ -4,6 +4,7 @@
 #include <commons/collections/list.h>
 #include <commons/log.h>
 #include <pthread.h>
+#include <registros.h>
 
 typedef struct
 {
@@ -41,5 +42,14 @@ typedef struct
   int socket_swap;
   t_log* logger;
 } t_datos_swap;
+
+typedef struct
+{
+  uint32_t pid;
+  char* path_instrucciones;
+  t_list* instrucciones;
+  t_contexto contexto;
+} t_proceso;
+
 
 #endif
