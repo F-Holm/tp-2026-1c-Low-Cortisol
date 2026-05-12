@@ -15,6 +15,7 @@ typedef enum
 {
   ERROR_KM,
   ERROR_IO,
+  ERROR_CONEXION_KM,
   TODO_BIEN
 } devolucion_io;
 
@@ -96,7 +97,7 @@ bool atender_nuevo_io(t_io io[3], int socket_fd, t_logger* logger,
                       t_cola_ready* ready, t_lista* susp_block,
                       t_lista* susp_ready);
 
-int obtener_tipo_io(int socket_fd, t_log* logger);
+int obtener_tipo_io(int socket_fd, t_logger* logger);
 bool procesar_nuevo_stdin(t_peticion_stdin* peticion, t_io* io_stdin,
                           t_lista_stdin* lista_stdin);
 bool procesar_nuevo_stdout(t_peticion_stdout* peticion, t_io* io_stdout,
