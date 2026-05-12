@@ -365,7 +365,8 @@ t_pcb* cambio_sacar_susp_ready_siguiente(t_lista* susp_ready)
   return pcb;
 }
 
-void cambio_new_ready(t_pcb* pcb, t_cola_ready* ready, t_logger* logger, t_contador_procesos* contador)
+void cambio_new_ready(t_pcb* pcb, t_cola_ready* ready, t_logger* logger,
+                      t_contador_procesos* contador)
 {
   if (!check_prioridad_valida(pcb, ready, logger))
   {

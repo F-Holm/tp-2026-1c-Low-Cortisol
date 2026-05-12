@@ -101,7 +101,8 @@ t_pcb* cambio_sacar_susp_block_siguiente(t_lista* susp_block);
 void cambio_sacar_susp_ready(t_pcb* pcb, t_lista* susp_ready);
 t_pcb* cambio_sacar_susp_ready_siguiente(t_lista* susp_ready);
 
-void cambio_new_ready(t_pcb* pcb, t_cola_ready* ready, t_logger* logger, t_contador_procesos* contador);
+void cambio_new_ready(t_pcb* pcb, t_cola_ready* ready, t_logger* logger,
+                      t_contador_procesos* contador);
 // No implementado, solo contiene el log por ahora. Usar funciones individuales
 void cambio_ready_exec(t_pcb* pcb, t_lista_execute* exec, t_logger* logger);
 void cambio_exec_ready(t_pcb* pcb, t_lista_execute* exec, t_cola_ready* ready,
