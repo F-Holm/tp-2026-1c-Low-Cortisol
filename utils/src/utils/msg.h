@@ -45,7 +45,9 @@ typedef enum
   OP_SYSCALL_INIT_PROC,
   OP_SYSCALL_EXIT,
   OP_CONTINUAR_PROCESO,
-  OP_DESALOJO
+  OP_DESALOJO,
+  OP_CREAR_PROCESO,
+  OP_OK
 } t_op_code;
 
 typedef struct
