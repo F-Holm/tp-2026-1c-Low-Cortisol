@@ -229,8 +229,16 @@ int io_sleep(t_sleep* peticion, t_hilo_io_sleep* hilo_sleep)
   pthread_mutex_unlock(&(hilo_sleep->io->logger->mutex_logger));
 
   int peticion_size = sizeof(t_peticion_sleep);
-  enviar_buffer(OP_PETICION_IO_SLEEP, peticion->peticion, peticion_size,
+  bool envio = enviar_buffer(OP_PETICION_IO_SLEEP, peticion->peticion, peticion_size,
                 hilo_sleep->io->socket_io);
+if(!envio){
+      pthread_mutex_lock(&(hilo_out->io->logger->mutex_logger));
+    log_error(hilo_out->io->logger->logger,
+              "## Error al enviar a IO");
+    pthread_mutex_unlock(&(hilo_out->io->logger->mutex_logger));
+    return ERROR_IO;
+
+    }
 
   int cod_op = recibir_operacion(hilo_sleep->io->socket_io);
   if(!(cod_op == OP_RESPUESTA_SLEEP)){
