@@ -30,6 +30,12 @@ static void* manejar_cliente_cpu(void* datos_hilo_cpu_void)
 
   while (seguir_operando)
   {
+    if (pcb == NULL){
+      while(pcb == NULL){
+        pcb = cambio_sacar_ready(&(datos->colas.ready));
+      }
+      cambio_a_exec(pcb, &(datos->colas.exec));
+    }
     // check desalojo
     // check bloquear
     // obtener proceso // wait proceso
@@ -84,7 +90,7 @@ static void* manejar_cliente_cpu(void* datos_hilo_cpu_void)
 
   if (pcb != NULL)
   {
-    cambio_exec_ready(pcb, datos->colas.exec, datos->colas.ready,
+    cambio_exec_ready(pcb, &(datos->colas.exec), &(datos->colas.ready),
                       datos->logger);
   }
   // Liberar conexión y eliminar socket de la lista

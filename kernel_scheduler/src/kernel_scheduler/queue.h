@@ -48,6 +48,10 @@ typedef struct
   int cantidad_colas;
   t_cola_individual_ready* colas;
   bool cola_multi_nivel;
+  pthread_cond_t nuevo_proceso;
+  pthread_cond_t salida_desbloqueada;
+  pthread_mutex_t bloquear_salida;
+  bool desalojar_todo;
 } t_cola_ready;
 
 typedef struct
@@ -92,6 +96,7 @@ void cambio_a_susp_ready(t_pcb* pcb, t_lista* susp_ready);
 void cambio_a_exit(t_pcb* pcb, t_contador_procesos* contador);
 
 t_pcb* cambio_sacar_ready(t_cola_ready* ready);
+t_pcb* cambio_sacar_ready_bloqueante(t_cola_ready* ready);
 void cambio_sacar_exec(t_pcb* pcb, t_lista_execute* exec);
 t_pcb* cambio_sacar_exec_siguiente(t_lista_execute* exec);
 void cambio_sacar_block(t_pcb* pcb, t_lista* block);
@@ -103,7 +108,7 @@ t_pcb* cambio_sacar_susp_ready_siguiente(t_lista* susp_ready);
 
 void cambio_new_ready(t_pcb* pcb, t_cola_ready* ready, t_logger* logger,
                       t_contador_procesos* contador);
-// No implementado, solo contiene el log por ahora. Usar funciones individuales
+// cambio_ready_exec: No implementado, solo contiene el log por ahora. Usar funciones individuales
 void cambio_ready_exec(t_pcb* pcb, t_lista_execute* exec, t_logger* logger);
 void cambio_exec_ready(t_pcb* pcb, t_lista_execute* exec, t_cola_ready* ready,
                        t_logger* logger);

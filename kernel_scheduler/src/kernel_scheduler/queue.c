@@ -11,33 +11,37 @@ void inicializar_cola(t_cola* cola)
   pthread_mutex_init(&(cola->mutex_cola), NULL);
 }
 
-void inicializar_cola_ready(t_cola_ready* colas, int algoritmo,
+void inicializar_cola_ready(t_cola_ready* cola, int algoritmo,
                             t_list* algoritmos_cmn)
 {
   if (algoritmo == AP_CMN)
   {
-    colas->cola_multi_nivel = true;
-    colas->cantidad_colas = list_size(algoritmos_cmn);
-    colas->colas =
-        malloc(colas->cantidad_colas * sizeof(t_cola_individual_ready));
+    cola->cola_multi_nivel = true;
+    cola->cantidad_colas = list_size(algoritmos_cmn);
+    cola->colas =
+        malloc(cola->cantidad_colas * sizeof(t_cola_individual_ready));
     t_list_iterator* iterator_algoritmos = list_iterator_create(algoritmos_cmn);
-    for (int i = 0; i < colas->cantidad_colas; i++)
+    for (int i = 0; i < cola->cantidad_colas; i++)
     {
-      colas->colas[i].algoritmo =
+      cola->colas[i].algoritmo =
           *(int*)list_iterator_next(iterator_algoritmos);
-      colas->colas[i].cola = queue_create();
-      pthread_mutex_init(&(colas->colas[i].mutex_cola), NULL);
+      cola->colas[i].cola = queue_create();
+      pthread_mutex_init(&(cola->colas[i].mutex_cola), NULL);
     }
     list_iterator_destroy(iterator_algoritmos);
   }
   else
   {
-    colas->cola_multi_nivel = false;
-    colas->cantidad_colas = 1;
-    colas->colas = malloc(sizeof(t_cola_individual_ready));
-    colas->colas->cola = queue_create();
-    pthread_mutex_init(&(colas->colas->mutex_cola), NULL);
+    cola->cola_multi_nivel = false;
+    cola->cantidad_colas = 1;
+    cola->colas = malloc(sizeof(t_cola_individual_ready));
+    cola->colas->cola = queue_create();
+    pthread_mutex_init(&(cola->colas->mutex_cola), NULL);
   }
+  pthread_cond_init(&(cola->nuevo_proceso));
+  pthread_mutex_init(&(cola->bloquear_salida));
+  pthread_cond_init(&(cola->salida_desbloqueada));
+  cola->desalojar_todo = false;
 }
 
 void inicializar_lista_exec(t_lista_execute* lista, int quantum, bool desalojo)
@@ -82,6 +86,11 @@ void destruir_cola_ready(t_cola_ready* cola)
     queue_destroy(cola->colas[i].cola);
     pthread_mutex_destroy(&(cola->colas[i].mutex_cola));
   }
+  pthread_cond_broadcast(&(cola->nuevo_proceso));
+  pthread_cond_destroy(&(cola->nuevo_proceso));
+  pthread_cond_broadcast(&(cola->salida_desbloqueada));
+  pthread_cond_destroy(&(cola->salida_desbloqueada));
+  pthread_mutex_destroy(&(cola->bloquear_salida));
   free(cola->colas);
 }
 
@@ -263,6 +272,23 @@ void cambio_a_exit(t_pcb* pcb, t_contador_procesos* contador)
 }
 
 t_pcb* cambio_sacar_ready(t_cola_ready* ready)
+{
+  t_pcb* pcb = NULL;
+  for (int i = 0; i < ready->cantidad_colas; i++)
+  {
+    pthread_mutex_lock(&(ready->colas[i].mutex_cola));
+    if (!queue_is_empty(ready->colas[i].cola))
+    {
+      pcb = queue_pop(ready->colas[i].cola);
+    }
+    pthread_mutex_unlock(&(ready->colas[i].mutex_cola));
+    if (pcb != NULL)
+      return pcb;
+  }
+  return NULL;
+}
+
+t_pcb* cambio_sacar_ready_bloqueante(t_cola_ready* ready)
 {
   t_pcb* pcb = NULL;
   for (int i = 0; i < ready->cantidad_colas; i++)
