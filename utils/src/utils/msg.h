@@ -148,20 +148,12 @@ int recibir_handshake(int socket_fd);
 
 /**
  * @brief Crea un paquete
- * @return Devuelve un t_paqute* inicializado
- * @note Llamar a eliminar_paquete() para liberar la memoria reservada en esta
-         función
- */
-t_paquete* crear_paquete(void);
-
-/**
- * @brief Crea un paquete
  * @param codigo_operacion código de operación del paquete
  * @return Devuelve un t_paqute* inicializado
  * @note Llamar a eliminar_paquete() para liberar la memoria reservada en esta
          función
  */
-t_paquete* crear_paquete_op_code(int codigo_operacion);
+t_paquete* crear_paquete(int codigo_operacion);
 
 /**
  * @brief Agrega el elemento al paquete
@@ -169,7 +161,7 @@ t_paquete* crear_paquete_op_code(int codigo_operacion);
  * @param valor
  * @param tamanio
  * @return No devuelve nada
- * @note Usar después de crear_paquete() o crear_paquete_op_code()
+ * @note Usar después de crear_paquete()
  */
 void agregar_a_paquete(t_paquete* paquete, void* valor, int tamanio);
 
@@ -178,7 +170,7 @@ void agregar_a_paquete(t_paquete* paquete, void* valor, int tamanio);
  * @param paquete
  * @param valor
  * @return No devuelve nada
- * @note Usar después de crear_paquete() o crear_paquete_op_code()
+ * @note Usar después de crear_paquete()
  */
 void agregar_string_a_paquete(t_paquete* paquete, char* valor);
 

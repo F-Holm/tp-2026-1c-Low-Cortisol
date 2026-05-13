@@ -127,15 +127,7 @@ int recibir_handshake(int socket_fd)
 }
 
 // Paquete
-t_paquete* crear_paquete(void)
-{
-  t_paquete* paquete = malloc(sizeof(t_paquete));
-  paquete->codigo_operacion = OP_PAQUETE;
-  crear_buffer(paquete);
-  return paquete;
-}
-
-t_paquete* crear_paquete_op_code(int codigo_operacion)
+t_paquete* crear_paquete(int codigo_operacion)
 {
   t_paquete* paquete = malloc(sizeof(t_paquete));
   paquete->codigo_operacion = codigo_operacion;
