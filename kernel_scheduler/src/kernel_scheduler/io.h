@@ -12,7 +12,6 @@
 
 /****************** FUNCIONES DE IO ******************/
 
-
 typedef struct
 {
   int socket_io;

@@ -10,21 +10,20 @@
 #include "utils/msg.h"
 #include "utils/registros.h"
 
-
 int io_stdin(t_stdin* peticion, t_hilo_io_in* hilo_in)
 {
   // Envio peticion a IO
   int peticion_size = sizeof(t_peticion_stdin);
 
-  bool envio = enviar_buffer(OP_PETICION_IO_STDIN, peticion->peticion, peticion_size,
-                             hilo_in->io->socket_io);
+  bool envio = enviar_buffer(OP_PETICION_IO_STDIN, peticion->peticion,
+                             peticion_size, hilo_in->io->socket_io);
   if (!envio)
   {
     pthread_mutex_lock(&(hilo_in->io->logger->mutex_logger));
-        log_error(hilo_in->io->logger->logger, "## Error em el envio a IO");
+    log_error(hilo_in->io->logger->logger, "## Error em el envio a IO");
     pthread_mutex_unlock(&(hilo_in->io->logger->mutex_logger));
 
-        return ERROR_IO;
+    return ERROR_IO;
   }
 
   // recibo la respuesta de IO
@@ -41,23 +40,24 @@ int io_stdin(t_stdin* peticion, t_hilo_io_in* hilo_in)
   }
   // Le envio el paquete al Kernel Memory para que escriba en la memoria
   pthread_mutex_lock(&(hilo_in->io->socket_km->mutex_socket));
-  envio = enviar_buffer(OP_ESCRIBIR_EN_MEMORIA,peticion->peticion,
+  envio = enviar_buffer(OP_ESCRIBIR_EN_MEMORIA, peticion->peticion,
                         peticion_size, hilo_in->io->socket_km->socket_km);
   if (!envio)
   {
     pthread_mutex_lock(&(hilo_in->io->logger->mutex_logger));
     log_error(hilo_in->io->logger->logger,
               "## Error en el envio a Kernel memory");
-        pthread_mutex_unlock(&(hilo_in->io->logger->mutex_logger));
+    pthread_mutex_unlock(&(hilo_in->io->logger->mutex_logger));
     return ERROR_CONEXION_KM;
   }
-  envio = enviar_string(OP_ESCRIBIR_EN_MEMORIA, buffer, hilo_in->io->socket_km->socket_km);
+  envio = enviar_string(OP_ESCRIBIR_EN_MEMORIA, buffer,
+                        hilo_in->io->socket_km->socket_km);
   if (!envio)
   {
     pthread_mutex_lock(&(hilo_in->io->logger->mutex_logger));
     log_error(hilo_in->io->logger->logger,
               "## Error en el envio a Kernel memory");
-        pthread_mutex_unlock(&(hilo_in->io->logger->mutex_logger));
+    pthread_mutex_unlock(&(hilo_in->io->logger->mutex_logger));
     return ERROR_CONEXION_KM;
   }
   pthread_mutex_unlock(&(hilo_in->io->socket_km->mutex_socket));
@@ -85,7 +85,6 @@ int io_stdin(t_stdin* peticion, t_hilo_io_in* hilo_in)
   free(respuesta);
   free(buffer);
 
-
   pthread_mutex_lock(&(hilo_in->lista_stdin->mutex_lista_stdin));
   if (list_remove_element(hilo_in->lista_stdin->lista_stdin, peticion) == 0)
   {
@@ -98,9 +97,10 @@ int io_stdin(t_stdin* peticion, t_hilo_io_in* hilo_in)
   }
   pthread_mutex_unlock(&(hilo_in->lista_stdin->mutex_lista_stdin));
   pthread_mutex_lock(&(hilo_in->io->logger->mutex_logger));
-  log_info(hilo_in->io->logger->logger, "## PID %d - Retirado de la lista de IO", peticion->pcb->pid);
+  log_info(hilo_in->io->logger->logger,
+           "## PID %d - Retirado de la lista de IO", peticion->pcb->pid);
   pthread_mutex_unlock(&(hilo_in->io->logger->mutex_logger));
- 
+
   // Paso a ready o susp ready dependiendo del tiempo bloqueado
   if (hilo_in->io->proceso_actual->tiempo_bloqueado == 0)
   {
@@ -109,8 +109,8 @@ int io_stdin(t_stdin* peticion, t_hilo_io_in* hilo_in)
   }
   else
   {
-    cambio_block_ready(peticion->pcb, hilo_in->io->cola_block, hilo_in->io->cola_ready,
-                       hilo_in->io->logger);
+    cambio_block_ready(peticion->pcb, hilo_in->io->cola_block,
+                       hilo_in->io->cola_ready, hilo_in->io->logger);
   }
 
   return TODO_BIEN;
@@ -121,8 +121,8 @@ int io_stdout(t_stdout* peticion, t_hilo_io_out* hilo_out)
   // Envio peticion a Kernel Memory para que lea de la memoria
   int peticion_size = sizeof(t_peticion_stdout);
   pthread_mutex_lock(&(hilo_out->io->socket_km->mutex_socket));
-  bool envio = enviar_buffer(OP_PETICION_IO_STDOUT, peticion->peticion, peticion_size,
-                             hilo_out->io->socket_km->socket_km);
+  bool envio = enviar_buffer(OP_PETICION_IO_STDOUT, peticion->peticion,
+                             peticion_size, hilo_out->io->socket_km->socket_km);
   if (!envio)
   {
     pthread_mutex_lock(&(hilo_out->io->logger->mutex_logger));
@@ -166,8 +166,7 @@ int io_stdout(t_stdout* peticion, t_hilo_io_out* hilo_out)
   // Le envio el mensaje + la peticion a IO para que imprima por pantalla
   enviar_buffer(OP_PETICION_IO_STDOUT, peticion, peticion_size,
                 hilo_out->io->socket_io);
-  envio =
-      enviar_string(OP_RESPUESTA_STDOUT, buffer, hilo_out->io->socket_io);
+  envio = enviar_string(OP_RESPUESTA_STDOUT, buffer, hilo_out->io->socket_io);
 
   free(buffer);
   if (!envio)
@@ -204,7 +203,8 @@ int io_stdout(t_stdout* peticion, t_hilo_io_out* hilo_out)
   }
   pthread_mutex_unlock(&(hilo_out->lista_stdout->mutex_lista_stdout));
   pthread_mutex_lock(&(hilo_out->io->logger->mutex_logger));
-  log_info(hilo_out->io->logger->logger, "## PID %d - Retirado de la lista de IO", peticion->pcb->pid);
+  log_info(hilo_out->io->logger->logger,
+           "## PID %d - Retirado de la lista de IO", peticion->pcb->pid);
   pthread_mutex_unlock(&(hilo_out->io->logger->mutex_logger));
   // Paso a ready o susp ready dependiendo del tiempo bloqueado
   if (peticion->pcb->tiempo_bloqueado == 0)
@@ -215,8 +215,8 @@ int io_stdout(t_stdout* peticion, t_hilo_io_out* hilo_out)
   }
   else
   {
-    cambio_block_ready(peticion->pcb, hilo_out->io->cola_block, hilo_out->io->cola_ready,
-                       hilo_out->io->logger);
+    cambio_block_ready(peticion->pcb, hilo_out->io->cola_block,
+                       hilo_out->io->cola_ready, hilo_out->io->logger);
   }
   return TODO_BIEN;
 }
@@ -229,23 +229,22 @@ int io_sleep(t_sleep* peticion, t_hilo_io_sleep* hilo_sleep)
   pthread_mutex_unlock(&(hilo_sleep->io->logger->mutex_logger));
 
   int peticion_size = sizeof(t_peticion_sleep);
-  bool envio = enviar_buffer(OP_PETICION_IO_SLEEP, peticion->peticion, peticion_size,
-                hilo_sleep->io->socket_io);
-if(!envio){
-      pthread_mutex_lock(&(hilo_out->io->logger->mutex_logger));
-    log_error(hilo_out->io->logger->logger,
-              "## Error al enviar a IO");
+  bool envio = enviar_buffer(OP_PETICION_IO_SLEEP, peticion->peticion,
+                             peticion_size, hilo_sleep->io->socket_io);
+  if (!envio)
+  {
+    pthread_mutex_lock(&(hilo_out->io->logger->mutex_logger));
+    log_error(hilo_out->io->logger->logger, "## Error al enviar a IO");
     pthread_mutex_unlock(&(hilo_out->io->logger->mutex_logger));
     return ERROR_IO;
-
-    }
+  }
 
   int cod_op = recibir_operacion(hilo_sleep->io->socket_io);
-  if(!(cod_op == OP_RESPUESTA_SLEEP)){
+  if (!(cod_op == OP_RESPUESTA_SLEEP))
+  {
     pthread_mutex_lock(&(hilo_sleep->io->logger->mutex_logger));
-    log_error(
-        hilo_sleep->io->logger->logger,
-        "## Error en la respuesta de IO a Kernel Scheduler");
+    log_error(hilo_sleep->io->logger->logger,
+              "## Error en la respuesta de IO a Kernel Scheduler");
     pthread_mutex_unlock(&(hilo_sleep->io->logger->mutex_logger));
   }
   char* respuesta = recibir_string(hilo_sleep->io->socket_io);
@@ -273,7 +272,8 @@ if(!envio){
   }
   pthread_mutex_unlock(&(hilo_sleep->lista_sleep->mutex_lista_sleep));
   pthread_mutex_lock(&(hilo_sleep->io->logger->mutex_logger));
-  log_info(hilo_sleep->io->logger->logger, "## PID %d - Retirado de la lista de IO", peticion->pcb->pid);
+  log_info(hilo_sleep->io->logger->logger,
+           "## PID %d - Retirado de la lista de IO", peticion->pcb->pid);
   pthread_mutex_unlock(&(hilo_sleep->io->logger->mutex_logger));
   // Paso a ready o susp ready dependiendo del tiempo bloqueado
   if (peticion->pcb->tiempo_bloqueado == 0)
@@ -537,7 +537,8 @@ int obtener_tipo_io(int socket_fd, t_logger* logger)
   if (recibir_operacion(socket_fd) != OP_TIPO_IO)
   {
     pthread_mutex_lock(&(logger->mutex_logger));
-    log_error(logger->logger, "## Error en el tipo de operación. Expected: OP_TIPO_IO");
+    log_error(logger->logger,
+              "## Error en el tipo de operación. Expected: OP_TIPO_IO");
     pthread_mutex_unlock(&(logger->mutex_logger));
     return -1;
   }
@@ -738,9 +739,9 @@ bool procesar_nuevo_sleep(t_peticion_sleep* peticion, t_io* io_sleep,
 
 void destruir_io(t_io* io)
 {
-    pthread_mutex_destroy(&(io->mutex_socket_io));
-    pthread_mutex_destroy(&(io->mutex_fin));
-    pthread_cond_destroy(&(io->nuevo_proceso));
+  pthread_mutex_destroy(&(io->mutex_socket_io));
+  pthread_mutex_destroy(&(io->mutex_fin));
+  pthread_cond_destroy(&(io->nuevo_proceso));
 }
 
 void cerrar_io(t_io io[3])
@@ -751,6 +752,6 @@ void cerrar_io(t_io io[3])
     pthread_mutex_lock(&(io[i].mutex_fin));
     destruir_io(&io[i]);
   }
-  
+
   free(io);
 }
