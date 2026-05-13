@@ -8,6 +8,7 @@
 
 #include "configurador.h"
 #include "kernel_memory/estructuras.h"
+#include "kernel_memory/inicializador.h"
 #include "kernel_memory/liberador.h"
 #include "utils/msg.h"
 
@@ -25,6 +26,28 @@ void* escucha_scheduler(void* ptr)
                  "Llego un paquete de la memory stick");
         // comunicaciones
         break;
+
+      case OP_CREAR_PROCESO:
+        // FALTA aca recibiria el pid y el path como buffer binario (el pid) +
+        // string (el path)
+        u_int32_t pid;        //  FALTA: guardo pid localmente
+        char* path_relativo;  //  FALTA: guardo path localmente
+
+        t_proceso* proceso =
+            crear_proceso(pid, path_relativo,
+                          /*es de datos-kernel-mem pero se pierde en el medio*/
+                          script_basepaths);
+        // FALTA proteger con el mutex de proceso de datos-kernel-mem
+        list_add(/*lista procesos de datos-kernel-mem*/, proceso);
+
+        log_info(datos_scheduler->logger, "## PID: %u - Proceso Creado", pid);
+
+        enviar_string(
+            OP_OK, "OK",
+            datos_scheduler->socket_scheduler);  // Responder ok ante creacion
+                                                 // de proceso (escritura)
+        break;
+
       case OP_CODE_ERROR:
         conexion_estable = false;
         break;
