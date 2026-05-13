@@ -48,7 +48,7 @@ int io_stdin(t_stdin* peticion, t_hilo_io_in* hilo_in)
     log_error(hilo_in->io->logger->logger,
               "## Error en el envio a Kernel memory");
     pthread_mutex_unlock(&(hilo_in->io->logger->mutex_logger));
-    return ERROR_CONEXION_KM;
+    return D_ERROR_CONEXION_KM;
   }
   envio = enviar_string(OP_ESCRIBIR_EN_MEMORIA, buffer,
                         hilo_in->io->socket_km->socket_km);
@@ -58,7 +58,7 @@ int io_stdin(t_stdin* peticion, t_hilo_io_in* hilo_in)
     log_error(hilo_in->io->logger->logger,
               "## Error en el envio a Kernel memory");
     pthread_mutex_unlock(&(hilo_in->io->logger->mutex_logger));
-    return ERROR_CONEXION_KM;
+    return D_ERROR_CONEXION_KM;
   }
   pthread_mutex_unlock(&(hilo_in->io->socket_km->mutex_socket));
 
@@ -73,12 +73,12 @@ int io_stdin(t_stdin* peticion, t_hilo_io_in* hilo_in)
   if (cod_op == OP_MEMORIA_CORRUPTA)
   {
     pthread_mutex_unlock(&(hilo_in->io->socket_km->mutex_socket));
-    return ERROR_KM;
+    return D_ERROR_KM;
   }
   if (cod_op == OP_CODE_ERROR)
   {
     pthread_mutex_unlock(&(hilo_in->io->socket_km->mutex_socket));
-    return ERROR_CONEXION_KM;
+    return D_ERROR_CONEXION_KM;
   }
   char* respuesta = recibir_string(hilo_in->io->socket_km->socket_km);
   pthread_mutex_unlock(&(hilo_in->io->socket_km->mutex_socket));
@@ -113,7 +113,7 @@ int io_stdin(t_stdin* peticion, t_hilo_io_in* hilo_in)
                        hilo_in->io->cola_ready, hilo_in->io->logger);
   }
 
-  return TODO_BIEN;
+  return D_TODO_BIEN;
 }
 
 int io_stdout(t_stdout* peticion, t_hilo_io_out* hilo_out)
@@ -129,7 +129,7 @@ int io_stdout(t_stdout* peticion, t_hilo_io_out* hilo_out)
     log_error(hilo_out->io->logger->logger,
               "## Error en la comunicacion con el Kernel Memory");
     pthread_mutex_unlock(&(hilo_out->io->logger->mutex_logger));
-    return ERROR_CONEXION_KM;
+    return D_ERROR_CONEXION_KM;
     pthread_mutex_unlock(&(hilo_out->io->socket_km->mutex_socket));
   }
 
@@ -146,12 +146,12 @@ int io_stdout(t_stdout* peticion, t_hilo_io_out* hilo_out)
   if (cod_op == OP_MEMORIA_CORRUPTA)
   {
     pthread_mutex_unlock(&(hilo_out->io->socket_km->mutex_socket));
-    return ERROR_KM;
+    return D_ERROR_KM;
   }
   if (cod_op == OP_CODE_ERROR)
   {
     pthread_mutex_unlock(&(hilo_out->io->socket_km->mutex_socket));
-    return ERROR_CONEXION_KM;
+    return D_ERROR_CONEXION_KM;
   }
   char* buffer = recibir_string(hilo_out->io->socket_km->socket_km);
   pthread_mutex_unlock(&(hilo_out->io->socket_km->mutex_socket));
@@ -161,7 +161,7 @@ int io_stdout(t_stdout* peticion, t_hilo_io_out* hilo_out)
     log_error(hilo_out->io->logger->logger,
               "## Error al recibir la respuesa de Kernel Memory");
     pthread_mutex_unlock(&(hilo_out->io->logger->mutex_logger));
-    return ERROR_CONEXION_KM;
+    return D_ERROR_CONEXION_KM;
   }
   // Le envio el mensaje + la peticion a IO para que imprima por pantalla
   enviar_buffer(OP_PETICION_IO_STDOUT, peticion, peticion_size,
@@ -218,7 +218,7 @@ int io_stdout(t_stdout* peticion, t_hilo_io_out* hilo_out)
     cambio_block_ready(peticion->pcb, hilo_out->io->cola_block,
                        hilo_out->io->cola_ready, hilo_out->io->logger);
   }
-  return TODO_BIEN;
+  return D_TODO_BIEN;
 }
 
 int io_sleep(t_sleep* peticion, t_hilo_io_sleep* hilo_sleep)
@@ -287,7 +287,7 @@ int io_sleep(t_sleep* peticion, t_hilo_io_sleep* hilo_sleep)
     cambio_block_ready(peticion->pcb, hilo_sleep->io->cola_block,
                        hilo_sleep->io->cola_ready, hilo_sleep->io->logger);
   }
-  return TODO_BIEN;
+  return D_TODO_BIEN;
 }
 
 void* hilo_io_in(void* hilo_in)
@@ -319,7 +319,7 @@ void* hilo_io_in(void* hilo_in)
       seguir_atendiendo = false;
     }
     int stdin = io_stdin(peticion, hilo_stdin);
-    if (ERROR_KM == stdin)
+    if (D_ERROR_KM == stdin)
     {
       cerrar_kernel_scheduler(hilo_stdin->io->socket_server,
                               hilo_stdin->io->logger, MC_MEMORIA_CORRUPTA);
@@ -337,7 +337,7 @@ void* hilo_io_in(void* hilo_in)
       }
       else
       {
-        if (ERROR_CONEXION_KM == stdin)
+        if (D_ERROR_CONEXION_KM == stdin)
 
           cerrar_kernel_scheduler(hilo_stdin->io->socket_server,
                                   hilo_stdin->io->logger,
@@ -414,7 +414,7 @@ void* hilo_io_out(void* hilo_out)
     }
     else
     {
-      if (ERROR_KM == op_stdout)
+      if (D_ERROR_KM == op_stdout)
       {
         cerrar_kernel_scheduler(hilo_stdout->io->socket_server,
                                 hilo_stdout->io->logger, MC_MEMORIA_CORRUPTA);
@@ -422,7 +422,7 @@ void* hilo_io_out(void* hilo_out)
       }
       else
       {
-        if (ERROR_CONEXION_KM == op_stdout)
+        if (D_ERROR_CONEXION_KM == op_stdout)
         {
           cerrar_kernel_scheduler(hilo_stdout->io->socket_server,
                                   hilo_stdout->io->logger,

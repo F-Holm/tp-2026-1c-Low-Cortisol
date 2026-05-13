@@ -20,7 +20,7 @@ int allocate_memory(syscall_memory* mem_alloc, t_logger* logger,
     log_error(hilo_out->io->logger->logger,
               "## Error en la comunicacion con el Kernel Memory");
     pthread_mutex_unlock(&(hilo_out->io->logger->mutex_logger));
-    return ERROR_CONEXION_KM;
+    return D_ERROR_CONEXION_KM;
   }
 
   // Ahora aguardo a que el km me envíe el "OK"
@@ -29,19 +29,19 @@ int allocate_memory(syscall_memory* mem_alloc, t_logger* logger,
   if (cod_op == OP_MEMORIA_CORRUPTA)
   {
     pthread_mutex_unlock(&(socket_km->mutex_socket));
-    return ERROR_KM;
+    return D_ERROR_KM;
   }
   else
   {
     if (cod_op == OP_CODE_ERROR)
     {
       pthread_mutex_unlock(&(socket_km->mutex_socket));
-      return ERROR_CONEXION_KM;
+      return D_ERROR_CONEXION_KM;
     }
   }
   char* = recibir_string(socket_km->socket_km);
   pthread_mutex_unlock(&(socket_km->mutex_socket));
-  return TODO_BIEN;
+  return D_TODO_BIEN;
 }
 
 int free_memory(syscall_memory* mem_free, t_logger* logger,
@@ -64,7 +64,7 @@ int free_memory(syscall_memory* mem_free, t_logger* logger,
     log_error(hilo_out->io->logger->logger,
               "## Error en la comunicacion con el Kernel Memory");
     pthread_mutex_unlock(&(hilo_out->io->logger->mutex_logger));
-    return ERROR_CONEXION_KM;
+    return D_ERROR_CONEXION_KM;
   }
 
   // Ahora aguardo a que el km me envíe el "OK"
@@ -73,17 +73,17 @@ int free_memory(syscall_memory* mem_free, t_logger* logger,
   if (cod_op == OP_MEMORIA_CORRUPTA)
   {
     pthread_mutex_unlock(&(socket_km->mutex_socket));
-    return ERROR_KM;
+    return D_ERROR_KM;
   }
   else
   {
     if (cod_op == OP_CODE_ERROR)
     {
       pthread_mutex_unlock(&(socket_km->mutex_socket));
-      return ERROR_CONEXION_KM;
+      return D_ERROR_CONEXION_KM;
     }
   }
   char* = recibir_string(socket_km->socket_km);
   pthread_mutex_unlock(&(socket_km->mutex_socket));
-  return TODO_BIEN;
+  return D_TODO_BIEN;
 }

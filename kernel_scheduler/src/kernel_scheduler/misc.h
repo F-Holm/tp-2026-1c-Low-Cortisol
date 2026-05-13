@@ -51,10 +51,10 @@ typedef enum
 
 typedef enum
 {
-  ERROR_KM,
-  ERROR_IO,
-  ERROR_CONEXION_KM,
-  TODO_BIEN
+  D_ERROR_KM,
+  D_ERROR_IO,
+  D_ERROR_CONEXION_KM,
+  D_TODO_BIEN
 } devolucion_syscall;
 
 void cerrar_kernel_scheduler(int socket_servidor, t_logger* logger,
