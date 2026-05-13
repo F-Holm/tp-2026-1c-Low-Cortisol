@@ -78,7 +78,7 @@ extern const char* const HANDSHAKE_MSG[6];
  * @param socket_fd
  * @return Código de operación (enum / int)
  * @note Usar siempre antes de llamar a a una función de recibir o leer algo del
- * buffer
+         buffer
  */
 int recibir_operacion(int socket_fd);
 
@@ -125,7 +125,7 @@ char* recibir_string(int socket_fd);
  * usar cualquier entero)
  * @param handshake_msg char* de HANDSHAKE_MSG[]
  * @return Retorna un int que representa el id_module que es un enum (se puede
- * castear)
+           castear)
  * @note Usar después de recibir_string()
  */
 int handshake_msg_to_module_id(char* handshake_msg);
@@ -142,7 +142,7 @@ bool enviar_handshake(int id_modulo, int socket_fd);
  * @brief Recibe handshake
  * @param socket_fd
  * @return Retorna un int que representa el id_module que es un enum (se puede
- * castear)
+           castear)
  */
 int recibir_handshake(int socket_fd);
 
@@ -150,9 +150,18 @@ int recibir_handshake(int socket_fd);
  * @brief Crea un paquete
  * @return Devuelve un t_paqute* inicializado
  * @note Llamar a eliminar_paquete() para liberar la memoria reservada en esta
- * función
+         función
  */
 t_paquete* crear_paquete(void);
+
+/**
+ * @brief Crea un paquete
+ * @param codigo_operacion código de operación del paquete
+ * @return Devuelve un t_paqute* inicializado
+ * @note Llamar a eliminar_paquete() para liberar la memoria reservada en esta
+         función
+ */
+t_paquete* crear_paquete_op_code(int codigo_operacion);
 
 /**
  * @brief Agrega el elemento al paquete
@@ -160,9 +169,18 @@ t_paquete* crear_paquete(void);
  * @param valor
  * @param tamanio
  * @return No devuelve nada
- * @note Usar después de crear_paquete()
+ * @note Usar después de crear_paquete() o crear_paquete_op_code()
  */
 void agregar_a_paquete(t_paquete* paquete, void* valor, int tamanio);
+
+/**
+ * @brief Agrega el elemento al paquete
+ * @param paquete
+ * @param valor
+ * @return No devuelve nada
+ * @note Usar después de crear_paquete() o crear_paquete_op_code()
+ */
+void agregar_string_a_paquete(t_paquete* paquete, char* valor);
 
 /**
  * @brief Envia el paquete
@@ -175,9 +193,11 @@ bool enviar_paquete(t_paquete* paquete, int socket_fd);
 /**
  * @brief Recibe un paquete y lo guarda en una lista
  * @param socket_fd
- * @return Devuelve una lista con el contenido de cada elemento dentro del
- * paquete
- * @note La lista retornada debe ser liberada después de su uso con
+ * @return Devuelve una lista de void* con el contenido de cada elemento dentro
+           del paquete
+ * @note La lista retornada debe ser liberada después de su uso.
+ * @note Hay que liberar cada elemento de la lista luego de su uso.
+ * @note Los strings agregador mediante agregar_string_a_paquete ya tienen '\0'
  */
 t_list* recibir_paquete(int socket_fd);
 
