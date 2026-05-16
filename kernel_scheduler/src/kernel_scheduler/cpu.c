@@ -10,6 +10,24 @@
 #include "utils/io.h"
 #include "utils/msg.h"
 
+typedef enum
+{
+  TS_SYSCALL_MUTEX_CREATE,
+  TS_SYSCALL_MUTEX_LOCK,
+  TS_SYSCALL_MUTEX_UNLOCK,
+  TS_SYSCALL_MEM_ALLOC,
+  TS_SYSCALL_MEM_FREE,
+  TS_SYSCALL_SLEEP,
+  TS_SYSCALL_STDOUT,
+  TS_SYSCALL_STDIN,
+  TS_SYSCALL_INIT_PROC,
+  TS_SYSCALL_EXIT
+} t_tipo_syscall;
+
+const char* const SYSCALLS_STR[10] = {
+    "MUTEX_CREATE", "MUTEX_LOCK", "MUTEX_UNLOCK", "MEM_ALLOC", "MEM_FREE",
+    "SLEEP",        "STDOUT",     "STDIN",        "INIT_PROC", "EXIT"};
+
 static void cerrar_hilo_cpu(t_datos_hilo_cpu* datos)
 {
   close(datos->socket_fd);
@@ -22,18 +40,38 @@ static void cerrar_hilo_cpu(t_datos_hilo_cpu* datos)
   free(datos);
 }
 
+static void log_desalojo_fin_quantum(t_logger* logger, uint32_t pid)
+{
+  log_info(logger->logger, "## %u - Desalojado por fin de quantum", pid);
+}
+
 static void* manejar_cliente_cpu(void* datos_hilo_cpu_void)
 {
   t_datos_hilo_cpu* datos = (t_datos_hilo_cpu*)datos_hilo_cpu_void;
   bool seguir_operando = true;
   t_pcb* pcb;
+  int contador = 0;
 
   while (seguir_operando)
   {
-    if (pcb == NULL){
-      while(pcb == NULL){
-        pcb = cambio_sacar_ready(&(datos->colas.ready));
+    if (pcb != NULL)
+    {
+      if (datos->colas.exec.quantum == contador)
+      {
+        log_desalojo_fin_quantum(datos->logger, pcb->pid);
+        cambio_exec_ready(pcb, &(datos->colas.exec), &(datos->colas.ready),
+                          datos->logger);
+        pcb = NULL;
+        contador = 0;
       }
+    }
+
+    if (pcb == NULL)
+    {
+      do
+      {
+        pcb = cambio_sacar_ready(&(datos->colas.ready));
+      } while (pcb == NULL);
       cambio_a_exec(pcb, &(datos->colas.exec));
     }
     // check desalojo
@@ -86,6 +124,7 @@ static void* manejar_cliente_cpu(void* datos_hilo_cpu_void)
         seguir_operando = false;
         break;
     }
+    contador++;
   }
 
   if (pcb != NULL)

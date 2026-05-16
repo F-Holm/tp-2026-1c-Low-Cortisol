@@ -24,6 +24,15 @@ typedef enum
 
 extern const char* const ESTADOS_STR[7];
 
+typedef enum
+{
+  MFP_PRIORIDAD_NO_VALIDA,
+  MFP_INSTRUCCION_EXIT,
+  MFP_CIERRE_SISTEMA
+} t_motivos_fin_proceso;
+
+extern const char* const MOTIVOS_FIN_PROCESO[3];
+
 typedef struct
 {
   t_queue* cola;
@@ -93,7 +102,8 @@ void cambio_a_exec(t_pcb* pcb, t_lista_execute* exec);
 void cambio_a_block(t_pcb* pcb, t_lista* block);
 void cambio_a_susp_block(t_pcb* pcb, t_lista* susp_block);
 void cambio_a_susp_ready(t_pcb* pcb, t_lista* susp_ready);
-void cambio_a_exit(t_pcb* pcb, t_contador_procesos* contador);
+void cambio_a_exit(t_pcb* pcb, t_contador_procesos* contador, int motivo,
+                   t_logger* logger, t_contador_procesos* contador);
 
 t_pcb* cambio_sacar_ready(t_cola_ready* ready);
 t_pcb* cambio_sacar_ready_bloqueante(t_cola_ready* ready);
@@ -108,7 +118,8 @@ t_pcb* cambio_sacar_susp_ready_siguiente(t_lista* susp_ready);
 
 void cambio_new_ready(t_pcb* pcb, t_cola_ready* ready, t_logger* logger,
                       t_contador_procesos* contador);
-// cambio_ready_exec: No implementado, solo contiene el log por ahora. Usar funciones individuales
+// cambio_ready_exec: No implementado, solo contiene el log por ahora. Usar
+// funciones individuales
 void cambio_ready_exec(t_pcb* pcb, t_lista_execute* exec, t_logger* logger);
 void cambio_exec_ready(t_pcb* pcb, t_lista_execute* exec, t_cola_ready* ready,
                        t_logger* logger);
@@ -130,7 +141,6 @@ void cambio_desbloquear(t_pcb* pcb, t_lista* block, t_lista* susp_block,
                         t_logger* logger);
 
 // Para errores o rutinas de cierre
-void cambio_a_exit_cerrar(t_pcb* pcb);
 bool cambio_cualquiera_exit(t_colas* colas, t_logger* logger, int estado,
                             t_contador_procesos* contador);
 void vaciar_colas(t_colas* colas, t_logger* logger);
