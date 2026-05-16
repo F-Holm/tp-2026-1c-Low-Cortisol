@@ -186,6 +186,25 @@ void update_priordad_mas_baja_exec(t_lista_execute* exec)
   pthread_mutex_unlock(&(exec->mutex_lista));
 }
 
+t_pcb* cambio_a_new(char* archivo_instrucciones, int prioridad,
+                    t_logger* logger, t_socket_kernel_memory* socket_km,
+                    int socket_servidor)
+{
+  pthread_mutex_lock(&(logger->mutex_logger));
+  t_pcb* pcb = crear_pcb();
+  log_info(logger->logger, "## %u Se crea el proceso - Estado: NEW", pcb->pid);
+  pcb->prioridad = prioridad;
+  pthread_mutex_unlock(&(logger->mutex_logger));
+  if (!avisar_nuevo_proceso(socket_km, archivo_instrucciones, pcb->pid))
+  {
+    log_cambio_estado(logger, pcb->pid, EST_NEW, EST_EXIT);
+    cambio_a_exit(pcb, contador, MFP_CIERRE_SISTEMA, logger);
+    cerrar_kernel_scheduler(socket_servidor, logger,
+                            MC_FALLO_CONEXION_KERNEL_MEMORY);
+  }
+  return pcb;
+}
+
 void cambio_a_ready(t_pcb* pcb, t_cola_ready* ready, t_logger* logger)
 {
   if (ready->cola_multi_nivel)

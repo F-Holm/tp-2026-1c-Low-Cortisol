@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "kernel_scheduler/kernel_memory.h"
 #include "kernel_scheduler/misc.h"
 
 typedef enum
@@ -97,6 +98,9 @@ bool puedo_suspender(t_pcb* pcb, int suspension_timeout);
 void set_tiempo_bloqueado(t_pcb* pcb, unsigned long tiempo);
 void update_priordad_mas_baja_exec(t_lista_execute* exec);
 
+t_pcb* cambio_a_new(char* archivo_instrucciones, int prioridad,
+                    t_logger* logger, t_socket_kernel_memory* socket_km,
+                    int socket_servidor);
 void cambio_a_ready(t_pcb* pcb, t_cola_ready* ready, t_logger* logger);
 void cambio_a_exec(t_pcb* pcb, t_lista_execute* exec);
 void cambio_a_block(t_pcb* pcb, t_lista* block);

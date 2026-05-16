@@ -28,41 +28,12 @@ const char* const SYSCALLS_STR[10] = {
     "MUTEX_CREATE", "MUTEX_LOCK", "MUTEX_UNLOCK", "MEM_ALLOC", "MEM_FREE",
     "SLEEP",        "STDOUT",     "STDIN",        "INIT_PROC", "EXIT"};
 
-static int op_code_to_tipo_syscall(int op_code)
+static void log_syscall(t_logger* logger, uint32_t pid, int syscall)
 {
-  switch (op_code)
-  {
-    case OP_SYSCALL_MUTEX_CREATE:
-      return TS_SYSCALL_MUTEX_CREATE;
-      break;
-    case OP_SYSCALL_MUTEX_LOCK:
-      return TS_SYSCALL_MUTEX_LOCK;
-      break;
-    case OP_SYSCALL_MUTEX_UNLOCK:
-      return TS_SYSCALL_MUTEX_UNLOCK;
-      break;
-    case OP_SYSCALL_MEM_ALLOC:
-      return TS_SYSCALL_MEM_ALLOC;
-      break;
-    case OP_SYSCALL_MEM_FREE:
-      return TS_SYSCALL_MEM_FREE;
-      break;
-    case OP_SYSCALL_SLEEP:
-      return TS_SYSCALL_SLEEP;
-      break;
-    case OP_SYSCALL_STDOUT:
-      return TS_SYSCALL_STDOUT;
-      break;
-    case OP_SYSCALL_STDIN:
-      return TS_SYSCALL_STDIN;
-      break;
-    case OP_SYSCALL_INIT_PROC:
-      return TS_SYSCALL_INIT_PROC;
-      break;
-    case OP_SYSCALL_EXIT:
-      return TS_SYSCALL_EXIT;
-      break;
-  }
+  pthread_mutex_lock(&(logger->mutex_logger));
+  log_info(logger->logger, "## %u - Solicitó syscall: %s", pid,
+           SYSCALLS_STR[syscall]);
+  pthread_mutex_unlock(&(logger->mutex_logger));
 }
 
 static void cerrar_hilo_cpu(t_datos_hilo_cpu* datos)
@@ -99,12 +70,12 @@ static void* manejar_cliente_cpu(void* datos_hilo_cpu_void)
         cambio_exec_ready(pcb, &(datos->colas.exec), &(datos->colas.ready),
                           datos->logger);
         pcb = NULL;
-        contador = 0;
       }
     }
 
     if (pcb == NULL)
     {
+      contador = 0;
       do
       {
         pcb = cambio_sacar_ready(&(datos->colas.ready));
@@ -119,6 +90,11 @@ static void* manejar_cliente_cpu(void* datos_hilo_cpu_void)
     // obtener respuesta
 
     int op_code = recibir_operacion(datos->socket_fd);
+    if (op_code >= OP_SYSCALL_MUTEX_CREATE && op_code <= OP_SYSCALL_EXIT)
+    {
+      log_syscall(datos->logger, pcb->pid, op_code - OP_SYSCALL_MUTEX_CREATE);
+    }
+
     switch (op_code)
     {
       case OP_CICLO_CPU_OK:
