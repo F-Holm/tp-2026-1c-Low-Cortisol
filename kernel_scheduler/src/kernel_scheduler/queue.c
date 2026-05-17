@@ -28,7 +28,6 @@ void inicializar_cola_ready(t_cola_ready* cola, int algoritmo,
     {
       cola->colas[i].algoritmo = *(int*)list_iterator_next(iterator_algoritmos);
       cola->colas[i].cola = queue_create();
-      pthread_mutex_init(&(cola->colas[i].mutex_cola), NULL);
     }
     list_iterator_destroy(iterator_algoritmos);
   }
@@ -40,10 +39,12 @@ void inicializar_cola_ready(t_cola_ready* cola, int algoritmo,
     cola->colas->cola = queue_create();
     pthread_mutex_init(&(cola->colas->mutex_cola), NULL);
   }
+  pthread_mutex_init(&(cola->mutex_cola));
   pthread_cond_init(&(cola->nuevo_proceso));
   pthread_mutex_init(&(cola->bloquear_salida));
   pthread_cond_init(&(cola->salida_desbloqueada));
   cola->desalojar_todo = false;
+  cola->mayor_prioridad = 1000;
 }
 
 void inicializar_lista_exec(t_lista_execute* lista, int quantum, bool desalojo)
@@ -86,12 +87,12 @@ void destruir_cola_ready(t_cola_ready* cola)
   for (int i = 0; i < cola->cantidad_colas; i++)
   {
     queue_destroy(cola->colas[i].cola);
-    pthread_mutex_destroy(&(cola->colas[i].mutex_cola));
   }
   pthread_cond_broadcast(&(cola->nuevo_proceso));
   pthread_cond_destroy(&(cola->nuevo_proceso));
   pthread_cond_broadcast(&(cola->salida_desbloqueada));
   pthread_cond_destroy(&(cola->salida_desbloqueada));
+  pthread_mutex_destroy(&(cola->mutex_cola));
   pthread_mutex_destroy(&(cola->bloquear_salida));
   free(cola->colas);
 }
@@ -117,6 +118,29 @@ void destruir_colas(t_colas* colas)
   destruir_lista(&(colas->susp_ready));
   destruir_contador_procesos(colas->contador_procesos);
   free(colas);
+}
+
+bool esta_cola_ready_bloqueada(t_cola_ready* ready)
+{
+  pthread_mutex_lock(&(ready->bloquear_salida));
+  bool ret = ready->desalojar_todo;
+  pthread_mutex_unlock(&(ready->bloquear_salida));
+  return ret;
+}
+
+void bloquear_cola_ready(t_cola_ready* ready)
+{
+  pthread_mutex_lock(&(ready->bloquear_salida));
+  ready->desalojar_todo = true;
+  pthread_mutex_unlock(&(ready->bloquear_salida));
+}
+
+void desbloquear_cola_ready(t_cola_ready* ready)
+{
+  pthread_mutex_lock(&(ready->bloquear_salida));
+  ready->desalojar_todo = true;
+  pthread_mutex_unlock(&(ready->bloquear_salida));
+  pthread_cond_broadcast(&(ready->salida_desbloqueada));
 }
 
 void log_cambio_estado(t_logger* logger, uint32_t pid, int estado_anterior,
@@ -158,6 +182,20 @@ static bool check_prioridad_valida(t_pcb* pcb, t_cola_ready* ready,
          get_prioridad_pcb(pcb) < ready->cantidad_colas;
 }
 
+static void update_mayor_prioridad(t_cola_ready* ready)
+{
+  pthread_mutex_lock(&(ready->mutex_cola));
+  for (int i = 0; i < ready->cantidad_colas; i++)
+  {
+    if (!queue_is_empty(ready->colas[i].cola))
+    {
+      ready->mayor_prioridad = i;
+      break;
+    }
+  }
+  pthread_mutex_unlock(&(ready->mutex_cola));
+}
+
 void update_priordad_mas_baja_exec(t_lista_execute* exec)
 {
   pthread_mutex_lock(&(exec->mutex_lista));
@@ -188,19 +226,29 @@ void update_priordad_mas_baja_exec(t_lista_execute* exec)
 
 void cambio_a_ready(t_pcb* pcb, t_cola_ready* ready, t_logger* logger)
 {
+  pthread_mutex_unlock(&(ready->mutex_cola));
+  if (ready->cant_procesos_ready == 0)
+  {
+    pthread_cond_signal(&(ready->nuevo_proceso));
+  }
+
+  int prioridad = get_prioridad_pcb(pcb);
+  if (ready->cant_procesos_ready == 0 || ready->mayor_prioridad > prioridad)
+  {
+    ready->mayor_prioridad = get_prioridad_pcb(pcb);
+  }
+
+  ready->cant_procesos_ready++;
+
   if (ready->cola_multi_nivel)
   {
-    int prioridad = get_prioridad_pcb(pcb);
-    pthread_mutex_lock(&(ready->colas[prioridad].mutex_cola));
     queue_push(ready->colas[prioridad].cola, pcb);
-    pthread_mutex_unlock(&(ready->colas[prioridad].mutex_cola));
   }
   else
   {
-    pthread_mutex_lock(&(ready->colas->mutex_cola));
     queue_push(ready->colas->cola, pcb);
-    pthread_mutex_unlock(&(ready->colas->mutex_cola));
   }
+  pthread_mutex_unlock(&(ready->mutex_cola));
 }
 
 void cambio_a_exec(t_pcb* pcb, t_lista_execute* exec)
@@ -288,38 +336,56 @@ t_pcb* cambio_sacar_new(char* archivo_instrucciones, int prioridad,
   return pcb;
 }
 
-t_pcb* cambio_sacar_ready(t_cola_ready* ready)
+static t_pcb* cambio_sacar_ready_sin_mutex(t_cola_ready* ready)
 {
-  t_pcb* pcb = NULL;
   for (int i = 0; i < ready->cantidad_colas; i++)
   {
-    pthread_mutex_lock(&(ready->colas[i].mutex_cola));
     if (!queue_is_empty(ready->colas[i].cola))
     {
-      pcb = queue_pop(ready->colas[i].cola);
-    }
-    pthread_mutex_unlock(&(ready->colas[i].mutex_cola));
-    if (pcb != NULL)
+      ready->cant_procesos_ready--;
+      t_pcb* pcb = queue_pop(ready->colas[i].cola);
+      if (queue_is_empty(ready->colas[i].cola) && cola_multi_nivel &&
+          ready->mayor_prioridad == i && cant_procesos_ready != 0)
+      {
+        for (++i; i < ready->cantidad_colas; ++ +)
+        {
+          if (!queue_is_empty(ready->colas[i].cola))
+          {
+            ready->mayor_prioridad = i;
+            break;
+          }
+        }
+      }
       return pcb;
+    }
   }
   return NULL;
 }
 
+t_pcb* cambio_sacar_ready(t_cola_ready* ready)
+{
+  pthread_mutex_lock(&(ready->mutex_cola));
+  t_pcb* pcb = cambio_sacar_ready_sin_mutex(ready);
+  pthread_mutex_unlock(&(ready->mutex_cola));
+  return pcb;
+}
+
 t_pcb* cambio_sacar_ready_bloqueante(t_cola_ready* ready)
 {
-  t_pcb* pcb = NULL;
-  for (int i = 0; i < ready->cantidad_colas; i++)
+  pthread_mutex_lock(&(ready->mutex_cola));
+  while (cant_procesos_ready == 0)
   {
-    pthread_mutex_lock(&(ready->colas[i].mutex_cola));
-    if (!queue_is_empty(ready->colas[i].cola))
-    {
-      pcb = queue_pop(ready->colas[i].cola);
-    }
-    pthread_mutex_unlock(&(ready->colas[i].mutex_cola));
-    if (pcb != NULL)
-      return pcb;
+    pthread_cond_wait(&(ready->nuevo_proceso), &(ready->mutex_cola));
   }
-  return NULL;
+  pthread_mutex_lock(&(ready->bloquear_salida));
+  while (ready->desalojar_todo)
+  {
+    pthread_cond_wait(&(ready->salida_desbloqueada));
+  }
+  pthread_mutex_unlock(&(ready->bloquear_salida));
+  t_pcb* pcb = cambio_sacar_ready_sin_mutex(ready);
+  pthread_mutex_unlock(&(ready->mutex_cola));
+  return pcb;
 }
 
 void cambio_sacar_exec(t_pcb* pcb, t_lista_execute* exec)

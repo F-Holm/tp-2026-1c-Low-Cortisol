@@ -50,7 +50,23 @@ static void cerrar_hilo_cpu(t_datos_hilo_cpu* datos)
 
 static void log_desalojo_fin_quantum(t_logger* logger, uint32_t pid)
 {
+  pthread_mutex_lock(&(logger->mutex_logger));
   log_info(logger->logger, "## %u - Desalojado por fin de quantum", pid);
+  pthread_mutex_unlock(&(logger->mutex_logger));
+}
+
+static void log_desalojo_cola_prioritaria(t_logger* logger,
+                                          uint32_t pid_desalojado,
+                                          int prioridad_desalojado,
+                                          uint32_t pid_nuevo,
+                                          int prioridad_nuevo)
+{
+  pthread_mutex_lock(&(logger->mutex_logger));
+  log_info(logger->logger,
+           "## %u Prioridad: %d - Desalojado por cola más "
+           "prioritaria por el proceso %u con prioridad %d",
+           pid, prioridad_desalojado, pid_nuevo, prioridad_nuevo);
+  pthread_mutex_unlock(&(logger->mutex_logger));
 }
 
 static void* manejar_cliente_cpu(void* datos_hilo_cpu_void)
@@ -62,32 +78,56 @@ static void* manejar_cliente_cpu(void* datos_hilo_cpu_void)
 
   while (seguir_operando)
   {
-    if (pcb != NULL)
+    if (esta_cola_ready_bloqueada((datos->colas.ready)))
     {
-      if (datos->colas.exec.quantum == contador)
+      cambio_exec_ready(pcb, &(datos->colas.exec), &(datos->colas.ready),
+                        datos->logger);
+      pcb = NULL;
+    }
+
+    if (pcb != NULL && datos->colas.exec.desalojo)
+    {
+      int prioridad_desalojado = get_prioridad_pcb(pcb);
+      pthread_mutex_lock(&(datos->colas.ready.mutex_cola));
+      int prioridad_nuevo = datos->colas.ready.mayor_prioridad;
+      if (prioridad_desalojado > prioridad_nuevo)
       {
-        log_desalojo_fin_quantum(datos->logger, pcb->pid);
+        t_pcb* nueva_pcb = cambio_sacar_ready_bloqueante(&(datos->colas.ready));
+        pthread_mutex_unlock(&(datos->colas.ready.mutex_cola));
+
+        log_desalojo_cola_prioritaria(datos->logger, pcb->pid,
+                                      prioridad_desalojado, nueva_pcb->pid,
+                                      prioridad_nuevo);
         cambio_exec_ready(pcb, &(datos->colas.exec), &(datos->colas.ready),
                           datos->logger);
-        pcb = NULL;
+        pcb = nueva_pcb;
+        cambio_ready_exec(pcb, &(datos->colas.exec), datos->logger);
       }
+      pthread_mutex_unlock(&(datos->colas.ready.mutex_cola));
+    }
+
+    if (pcb != NULL && datos->colas.exec.quantum == contador)
+    {
+      log_desalojo_fin_quantum(datos->logger, pcb->pid);
+      cambio_exec_ready(pcb, &(datos->colas.exec), &(datos->colas.ready),
+                        datos->logger);
+      pcb = NULL;
     }
 
     if (pcb == NULL)
     {
       contador = 0;
-      do
+      pcb = cambio_sacar_ready_bloqueante(&(datos->colas.ready));
+      if (pcb != NULL)
       {
-        pcb = cambio_sacar_ready(&(datos->colas.ready));
-      } while (pcb == NULL);
-      cambio_a_exec(pcb, &(datos->colas.exec));
+        cambio_ready_exec(pcb, &(datos->colas.exec), datos->logger);
+      }
     }
-    // check desalojo
-    // check bloquear
-    // obtener proceso // wait proceso
-    // enviar pid
-    // obtener codigo operacion
-    // obtener respuesta
+
+    if (!enviar_buffer(OP_CONTINUAR_PROCESO, pcb->pid, sizeof(uint32_t)))
+    {
+      break;
+    }
 
     int op_code = recibir_operacion(datos->socket_fd);
     if (op_code >= OP_SYSCALL_MUTEX_CREATE && op_code <= OP_SYSCALL_EXIT)
@@ -172,7 +212,7 @@ static t_datos_hilo_cpu* inicializar_datos_hilo_cpu(
     pthread_mutex_t* mutex_lista_sockets_cpu, pthread_cond_t* cond_fin_cpu,
     char* id_cpu, t_logger* logger, t_lista_mutex* lista_mutex, t_colas* colas,
     t_io* estructuras_io, t_socket_kernel_memory* socket_km,
-    int socket_servidor)
+    int socket_servidor, pthread_mutex_t* mutex_desalojo)
 {
   t_datos_hilo_cpu* datos = malloc(sizeof(t_datos_hilo_cpu));
   datos->socket_fd = socket_cpu;
@@ -186,6 +226,7 @@ static t_datos_hilo_cpu* inicializar_datos_hilo_cpu(
   datos->estructuras_io = estructuras_io;
   datos->socket_km = socket_km;
   datos->socket_servidor = socket_servidor;
+  datos->mutex_desalojo mutex_desalojo;
   return datos;
 }
 
@@ -239,7 +280,7 @@ bool atender_nueva_cpu(int socket_cpu, t_list* lista_sockets_cpu,
                        pthread_cond_t* cond_fin_cpu, t_logger* logger,
                        t_lista_mutex* lista_mutex, t_colas* colas,
                        t_io* estructuras_io, t_socket_kernel_memory* socket_km,
-                       int socket_servidor)
+                       int socket_servidor, pthread_mutex_t* mutex_desalojo)
 {
   // Handshake con CPU
   if (!responder_handshake(socket_cpu, MID_KERNEL_SCHEDULER, datos->logger))
@@ -254,7 +295,7 @@ bool atender_nueva_cpu(int socket_cpu, t_list* lista_sockets_cpu,
   t_datos_hilo_cpu* datos_hilo_cpu = inicializar_datos_hilo_cpu(
       socket_cpu, lista_sockets_cpu, mutex_lista_sockets_cpu, cond_fin_cpu,
       id_cpu, logger, lista_mutex, colas, estructuras_io, socket_km,
-      socket_servidor);
+      socket_servidor, mutex_desalojo);
 
   // Agregar socket a la lista
   pthread_mutex_lock(mutex_lista_sockets_cpu);

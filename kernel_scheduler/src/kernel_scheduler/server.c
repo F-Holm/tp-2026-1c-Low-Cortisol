@@ -38,11 +38,14 @@ t_datos_servidor_escucha* inicializar_datos_server_escucha(
 void cerrar_hilo_escucha(t_io estructuras_io[3], t_list* lista_sockets_cpu,
                          pthread_mutex_t* mutex_lista_sockets_cpu,
                          pthread_cond_t* cond_fin_cpu,
-                         t_datos_servidor_escucha* datos)
+                         t_datos_servidor_escucha* datos,
+                         pthread_mutex_t* mutex_desalojo)
 {
   cerrar_io(estructuras_io);
   cerrar_cpu(lista_sockets_cpu, mutex_lista_sockets_cpu, cond_fin_cpu);
   pthread_mutex_destroy(&(datos->socket_km.mutex_socket));
+  pthread_mutex_destroy(mutex_desalojo);
+  free(mutex_desalojo);
   free(datos->socket_km);
   free(datos);
 }
@@ -61,9 +64,11 @@ void servidor_escucha(t_datos_servidor_escucha* datos)
   t_list* lista_sockets_cpu = list_create();
   pthread_mutex_t mutex_lista_sockets_cpu;
   pthread_cond_t cond_fin_cpu;
+  pthread_mutex_t* mutex_desalojo = malloc(sizeof(pthread_mutex_t));
 
   preparar_sockets_io(estructuras_io);
   pthread_mutex_init(&mutex_lista_sockets_cpu, NULL);
+  pthread_mutex_init(mutex_desalojo, NULL);
   pthread_cond_init(&cond_fin_cpu, NULL);
 
   while (true)
@@ -79,7 +84,8 @@ void servidor_escucha(t_datos_servidor_escucha* datos)
         manejo_exitoso = atender_nueva_cpu(
             socket_fd, lista_sockets_cpu, &mutex_lista_sockets_cpu,
             &cond_fin_cpu, datos->logger, datos->lista_mutex, datos->colas,
-            estructuras_io, datos->socket_km, datos->socket_server);
+            estructuras_io, datos->socket_km, datos->socket_server,
+            mutex_desalojo);
         break;
       case MID_IO:
         manejo_exitoso =
@@ -100,5 +106,6 @@ void servidor_escucha(t_datos_servidor_escucha* datos)
   log_info(datos->logger->logger, "## Cerrando servidor");
   pthread_mutex_unlock(&(datos->logger->mutex_logger));
   cerrar_hilo_escucha(estructuras_io, lista_sockets_cpu,
-                      &mutex_lista_sockets_cpu, &cond_fin_cpu, datos);
+                      &mutex_lista_sockets_cpu, &cond_fin_cpu, datos,
+                      mutex_desalojo);
 }
