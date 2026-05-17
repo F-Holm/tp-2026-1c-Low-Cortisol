@@ -11,13 +11,6 @@
 #include "kernel_scheduler/kernel_scheduler.h"
 
 /****************** FUNCIONES DE IO ******************/
-typedef enum
-{
-  ERROR_KM,
-  ERROR_IO,
-  ERROR_CONEXION_KM,
-  TODO_BIEN
-} devolucion_io;
 
 typedef struct
 {

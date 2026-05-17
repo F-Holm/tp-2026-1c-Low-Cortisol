@@ -50,6 +50,14 @@ typedef enum
   MC_FALLO_CONEXION_KERNEL_MEMORY
 } t_motivo_cierre;
 
+typedef enum
+{
+  D_ERROR_KM,
+  D_ERROR_IO,
+  D_ERROR_CONEXION_KM,
+  D_TODO_BIEN
+} devolucion_syscall;
+
 void cerrar_kernel_scheduler(int socket_servidor, t_logger* logger,
                              int motivo_cierre);
 
