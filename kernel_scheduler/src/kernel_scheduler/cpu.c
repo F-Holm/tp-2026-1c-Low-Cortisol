@@ -10,6 +10,32 @@
 #include "utils/io.h"
 #include "utils/msg.h"
 
+typedef enum
+{
+  TS_SYSCALL_MUTEX_CREATE,
+  TS_SYSCALL_MUTEX_LOCK,
+  TS_SYSCALL_MUTEX_UNLOCK,
+  TS_SYSCALL_MEM_ALLOC,
+  TS_SYSCALL_MEM_FREE,
+  TS_SYSCALL_SLEEP,
+  TS_SYSCALL_STDOUT,
+  TS_SYSCALL_STDIN,
+  TS_SYSCALL_INIT_PROC,
+  TS_SYSCALL_EXIT
+} t_tipo_syscall;
+
+const char* const SYSCALLS_STR[10] = {
+    "MUTEX_CREATE", "MUTEX_LOCK", "MUTEX_UNLOCK", "MEM_ALLOC", "MEM_FREE",
+    "SLEEP",        "STDOUT",     "STDIN",        "INIT_PROC", "EXIT"};
+
+static void log_syscall(t_logger* logger, uint32_t pid, int syscall)
+{
+  pthread_mutex_lock(&(logger->mutex_logger));
+  log_info(logger->logger, "## %u - Solicitó syscall: %s", pid,
+           SYSCALLS_STR[syscall]);
+  pthread_mutex_unlock(&(logger->mutex_logger));
+}
+
 static void cerrar_hilo_cpu(t_datos_hilo_cpu* datos)
 {
   close(datos->socket_fd);
@@ -22,14 +48,40 @@ static void cerrar_hilo_cpu(t_datos_hilo_cpu* datos)
   free(datos);
 }
 
+static void log_desalojo_fin_quantum(t_logger* logger, uint32_t pid)
+{
+  log_info(logger->logger, "## %u - Desalojado por fin de quantum", pid);
+}
+
 static void* manejar_cliente_cpu(void* datos_hilo_cpu_void)
 {
   t_datos_hilo_cpu* datos = (t_datos_hilo_cpu*)datos_hilo_cpu_void;
   bool seguir_operando = true;
   t_pcb* pcb;
+  int contador = 0;
 
   while (seguir_operando)
   {
+    if (pcb != NULL)
+    {
+      if (datos->colas.exec.quantum == contador)
+      {
+        log_desalojo_fin_quantum(datos->logger, pcb->pid);
+        cambio_exec_ready(pcb, &(datos->colas.exec), &(datos->colas.ready),
+                          datos->logger);
+        pcb = NULL;
+      }
+    }
+
+    if (pcb == NULL)
+    {
+      contador = 0;
+      do
+      {
+        pcb = cambio_sacar_ready(&(datos->colas.ready));
+      } while (pcb == NULL);
+      cambio_a_exec(pcb, &(datos->colas.exec));
+    }
     // check desalojo
     // check bloquear
     // obtener proceso // wait proceso
@@ -38,6 +90,11 @@ static void* manejar_cliente_cpu(void* datos_hilo_cpu_void)
     // obtener respuesta
 
     int op_code = recibir_operacion(datos->socket_fd);
+    if (op_code >= OP_SYSCALL_MUTEX_CREATE && op_code <= OP_SYSCALL_EXIT)
+    {
+      log_syscall(datos->logger, pcb->pid, op_code - OP_SYSCALL_MUTEX_CREATE);
+    }
+
     switch (op_code)
     {
       case OP_CICLO_CPU_OK:
@@ -71,20 +128,33 @@ static void* manejar_cliente_cpu(void* datos_hilo_cpu_void)
       case OP_SYSCALL_STDIN:
         break;
       case OP_SYSCALL_INIT_PROC:
+        t_list* lista = recibir_paquete(datos->socket_fd);
+        t_pcb* nueva_pcb = cambio_sacar_new(
+            list_get(lista, 0), list_get(lista, 1), datos->logger,
+            datos->socket_km, datos->socket_servidor);
+        list_destroy_and_destroy_elements(lista, free);
+        if (nueva_pcb != NULL)
+        {
+          cambio_new_ready(nueva_pcb, &(datos->colas.ready), datos->logger,
+                           datos->colas->contador_procesos)
+        }
         break;
       case OP_SYSCALL_EXIT:
-        cambio_exec_exit(pcb, datos->colas.exec, datos->logger);
+        cambio_exec_exit(pcb, datos->colas.exec, datos->logger,
+                         datos->colas->contador_procesos, datos->socket_km,
+                         datos->socket_servidor);
         pcb = NULL;
         break;
       default:
         seguir_operando = false;
         break;
     }
+    contador++;
   }
 
   if (pcb != NULL)
   {
-    cambio_exec_ready(pcb, datos->colas.exec, datos->colas.ready,
+    cambio_exec_ready(pcb, &(datos->colas.exec), &(datos->colas.ready),
                       datos->logger);
   }
   // Liberar conexión y eliminar socket de la lista
@@ -101,7 +171,8 @@ static t_datos_hilo_cpu* inicializar_datos_hilo_cpu(
     int socket_cpu, t_list* lista_sockets_cpu,
     pthread_mutex_t* mutex_lista_sockets_cpu, pthread_cond_t* cond_fin_cpu,
     char* id_cpu, t_logger* logger, t_lista_mutex* lista_mutex, t_colas* colas,
-    t_io* estructuras_io)
+    t_io* estructuras_io, t_socket_kernel_memory* socket_km,
+    int socket_servidor)
 {
   t_datos_hilo_cpu* datos = malloc(sizeof(t_datos_hilo_cpu));
   datos->socket_fd = socket_cpu;
@@ -113,6 +184,8 @@ static t_datos_hilo_cpu* inicializar_datos_hilo_cpu(
   datos->lista_mutex = lista_mutex;
   datos->colas = colas;
   datos->estructuras_io = estructuras_io;
+  datos->socket_km = socket_km;
+  datos->socket_servidor = socket_servidor;
   return datos;
 }
 
@@ -165,7 +238,8 @@ bool atender_nueva_cpu(int socket_cpu, t_list* lista_sockets_cpu,
                        pthread_mutex_t* mutex_lista_sockets_cpu,
                        pthread_cond_t* cond_fin_cpu, t_logger* logger,
                        t_lista_mutex* lista_mutex, t_colas* colas,
-                       t_io* estructuras_io)
+                       t_io* estructuras_io, t_socket_kernel_memory* socket_km,
+                       int socket_servidor)
 {
   // Handshake con CPU
   if (!responder_handshake(socket_cpu, MID_KERNEL_SCHEDULER, datos->logger))
@@ -179,7 +253,8 @@ bool atender_nueva_cpu(int socket_cpu, t_list* lista_sockets_cpu,
   // Inicializar datos hilo cpu
   t_datos_hilo_cpu* datos_hilo_cpu = inicializar_datos_hilo_cpu(
       socket_cpu, lista_sockets_cpu, mutex_lista_sockets_cpu, cond_fin_cpu,
-      id_cpu, logger, lista_mutex, colas, estructuras_io);
+      id_cpu, logger, lista_mutex, colas, estructuras_io, socket_km,
+      socket_servidor);
 
   // Agregar socket a la lista
   pthread_mutex_lock(mutex_lista_sockets_cpu);

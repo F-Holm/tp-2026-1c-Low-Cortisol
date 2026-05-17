@@ -6,6 +6,16 @@
 
 #include "utils/msg.h"
 
+static bool es_mas_prioritario(t_pcb* pcb1, t_pcb* pcb2)
+{
+  return get_prioridad_pcb(pcb1) <= get_prioridad_pcb(pcb2);
+}
+
+void insertar_pcb_en_orden(t_list* lista, t_pcb* pcb)
+{
+  list_add_sorted(lista, pcb, es_mas_prioritario);
+}
+
 int get_prioridad_pcb(t_pcb* pcb)
 {
   pthread_mutex_lock(&(pcb->mutex_pcb));
