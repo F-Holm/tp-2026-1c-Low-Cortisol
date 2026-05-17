@@ -127,10 +127,10 @@ int recibir_handshake(int socket_fd)
 }
 
 // Paquete
-t_paquete* crear_paquete(void)
+t_paquete* crear_paquete(int codigo_operacion)
 {
   t_paquete* paquete = malloc(sizeof(t_paquete));
-  paquete->codigo_operacion = OP_PAQUETE;
+  paquete->codigo_operacion = codigo_operacion;
   crear_buffer(paquete);
   return paquete;
 }
@@ -146,6 +146,11 @@ void agregar_a_paquete(t_paquete* paquete, void* valor, int tamanio)
          tamanio);
 
   paquete->buffer->size += tamanio + sizeof(int);
+}
+
+void agregar_string_a_paquete(t_paquete* paquete, char* valor)
+{
+  agregar_a_paquete(paquete, valor, strlen(valor) + 1);
 }
 
 bool enviar_paquete(t_paquete* paquete, int socket_fd)
@@ -173,9 +178,8 @@ t_list* recibir_paquete(int socket_fd)
   {
     memcpy(&tamanio, buffer + desplazamiento, sizeof(int));
     desplazamiento += sizeof(int);
-    char* valor = malloc(tamanio + 1);
+    char* valor = malloc(tamanio);
     memcpy(valor, buffer + desplazamiento, tamanio);
-    valor[tamanio] = '\0';
     desplazamiento += tamanio;
     list_add(valores, valor);
   }

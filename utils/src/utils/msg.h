@@ -34,8 +34,8 @@ typedef enum
   OP_RESPUESTA_SLEEP,
   OP_MEMORIA_CORRUPTA,
   OP_CICLO_CPU_OK,
-  OP_SYSCALL_MUTEX_CREATE,
-  OP_SYSCALL_MUTEX_LOCK,
+  OP_SYSCALL_MUTEX_CREATE,  // No cambiar el orden de las syscalls
+  OP_SYSCALL_MUTEX_LOCK,    // No poner elementos entre las syscalls
   OP_SYSCALL_MUTEX_UNLOCK,
   OP_SYSCALL_MEM_ALLOC,
   OP_SYSCALL_MEM_FREE,
@@ -45,7 +45,9 @@ typedef enum
   OP_SYSCALL_INIT_PROC,
   OP_SYSCALL_EXIT,
   OP_CONTINUAR_PROCESO,
-  OP_DESALOJO
+  OP_DESALOJO,
+  OP_NUEVO_PROCESO,    // No responder
+  OP_TERMINAR_PROCESO  // No responder
 } t_op_code;
 
 typedef struct
@@ -78,7 +80,7 @@ extern const char* const HANDSHAKE_MSG[6];
  * @param socket_fd
  * @return Código de operación (enum / int)
  * @note Usar siempre antes de llamar a a una función de recibir o leer algo del
- * buffer
+         buffer
  */
 int recibir_operacion(int socket_fd);
 
@@ -125,7 +127,7 @@ char* recibir_string(int socket_fd);
  * usar cualquier entero)
  * @param handshake_msg char* de HANDSHAKE_MSG[]
  * @return Retorna un int que representa el id_module que es un enum (se puede
- * castear)
+           castear)
  * @note Usar después de recibir_string()
  */
 int handshake_msg_to_module_id(char* handshake_msg);
@@ -142,17 +144,18 @@ bool enviar_handshake(int id_modulo, int socket_fd);
  * @brief Recibe handshake
  * @param socket_fd
  * @return Retorna un int que representa el id_module que es un enum (se puede
- * castear)
+           castear)
  */
 int recibir_handshake(int socket_fd);
 
 /**
  * @brief Crea un paquete
+ * @param codigo_operacion código de operación del paquete
  * @return Devuelve un t_paqute* inicializado
  * @note Llamar a eliminar_paquete() para liberar la memoria reservada en esta
- * función
+         función
  */
-t_paquete* crear_paquete(void);
+t_paquete* crear_paquete(int codigo_operacion);
 
 /**
  * @brief Agrega el elemento al paquete
@@ -165,6 +168,15 @@ t_paquete* crear_paquete(void);
 void agregar_a_paquete(t_paquete* paquete, void* valor, int tamanio);
 
 /**
+ * @brief Agrega el elemento al paquete
+ * @param paquete
+ * @param valor
+ * @return No devuelve nada
+ * @note Usar después de crear_paquete()
+ */
+void agregar_string_a_paquete(t_paquete* paquete, char* valor);
+
+/**
  * @brief Envia el paquete
  * @param socket_fd
  * @return Devuelve un bool: false = envio nulo o receptor desconectado
@@ -175,9 +187,11 @@ bool enviar_paquete(t_paquete* paquete, int socket_fd);
 /**
  * @brief Recibe un paquete y lo guarda en una lista
  * @param socket_fd
- * @return Devuelve una lista con el contenido de cada elemento dentro del
- * paquete
- * @note La lista retornada debe ser liberada después de su uso con
+ * @return Devuelve una lista de void* con el contenido de cada elemento dentro
+           del paquete
+ * @note La lista retornada debe ser liberada después de su uso.
+ * @note Hay que liberar cada elemento de la lista luego de su uso.
+ * @note Los strings agregador mediante agregar_string_a_paquete ya tienen '\0'
  */
 t_list* recibir_paquete(int socket_fd);
 

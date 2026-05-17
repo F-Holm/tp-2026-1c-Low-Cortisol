@@ -1,6 +1,7 @@
 #ifndef KERNEL_SCHEDULER_MISC_H_
 #define KERNEL_SCHEDULER_MISC_H_
 
+#include <commons/collections/list.h>
 #include <commons/log.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -60,6 +61,7 @@ typedef enum
 void cerrar_kernel_scheduler(int socket_servidor, t_logger* logger,
                              int motivo_cierre);
 
+void insertar_pcb_en_orden(t_list* lista, t_pcb* pcb);
 int get_prioridad_pcb(t_pcb* pcb);
 t_pcb* crear_pcb(void);
 void destruir_pcb(t_pcb* pcb);
