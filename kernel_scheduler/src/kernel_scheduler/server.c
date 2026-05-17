@@ -31,7 +31,7 @@ t_datos_servidor_escucha* inicializar_datos_server_escucha(
   datos->colas = colas;
   datos->socket_km = malloc(sizeof(t_socket_kernel_memory));
   datos->socket_km->socket_km = socket_kernel_memory;
-  pthread_mutex_init(&(datos->socket_km->mutex_socket));
+  pthread_mutex_init(&(datos->socket_km->mutex_socket), NULL);
   return datos;
 }
 
@@ -43,7 +43,7 @@ void cerrar_hilo_escucha(t_io estructuras_io[3], t_list* lista_sockets_cpu,
 {
   cerrar_io(estructuras_io);
   cerrar_cpu(lista_sockets_cpu, mutex_lista_sockets_cpu, cond_fin_cpu);
-  pthread_mutex_destroy(&(datos->socket_km.mutex_socket));
+  pthread_mutex_destroy(&(datos->socket_km->mutex_socket));
   pthread_mutex_destroy(mutex_desalojo);
   free(mutex_desalojo);
   free(datos->socket_km);
