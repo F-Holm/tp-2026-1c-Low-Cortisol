@@ -38,7 +38,7 @@ int main(int argc, char* argv[])
   t_datos_servidor_escucha datos;
   inicializar_datos_server_escucha(&datos, recursos->socket_server,
                                    recursos->logger, recursos->lista_mutex,
-                                   recursos->colas);
+                                   recursos->colas, socket_kernel_memory);
 
   // Empezar a escuchar servidor
   servidor_escucha(&datos);

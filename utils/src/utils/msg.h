@@ -46,7 +46,8 @@ typedef enum
   OP_SYSCALL_EXIT,
   OP_CONTINUAR_PROCESO,
   OP_DESALOJO,
-  OP_NUEVO_PROCESO
+  OP_NUEVO_PROCESO,    // No responder
+  OP_TERMINAR_PROCESO  // No responder
 } t_op_code;
 
 typedef struct

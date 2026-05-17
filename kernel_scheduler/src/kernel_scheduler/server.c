@@ -23,12 +23,15 @@ int crear_socket_servidor(char* puerto, t_log* logger)
 
 t_datos_servidor_escucha* inicializar_datos_server_escucha(
     t_datos_servidor_escucha* datos, int socket_server, t_logger* logger,
-    t_lista_mutex* lista_mutex, t_colas* colas)
+    t_lista_mutex* lista_mutex, t_colas* colas, int socket_kernel_memory)
 {
   datos->socket_server = socket_server;
   datos->logger = logger;
   datos->lista_mutex = lista_mutex;
   datos->colas = colas;
+  datos->socket_km = malloc(sizeof(t_socket_kernel_memory));
+  datos->socket_km->socket_km = socket_kernel_memory;
+  pthread_mutex_init(&(datos->socket_km->mutex_socket));
   return datos;
 }
 
@@ -39,6 +42,8 @@ void cerrar_hilo_escucha(t_io estructuras_io[3], t_list* lista_sockets_cpu,
 {
   cerrar_io(estructuras_io);
   cerrar_cpu(lista_sockets_cpu, mutex_lista_sockets_cpu, cond_fin_cpu);
+  pthread_mutex_destroy(&(datos->socket_km.mutex_socket));
+  free(datos->socket_km);
   free(datos);
 }
 
@@ -74,7 +79,7 @@ void servidor_escucha(t_datos_servidor_escucha* datos)
         manejo_exitoso = atender_nueva_cpu(
             socket_fd, lista_sockets_cpu, &mutex_lista_sockets_cpu,
             &cond_fin_cpu, datos->logger, datos->lista_mutex, datos->colas,
-            estructuras_io);
+            estructuras_io, datos->socket_km, datos->socket_server);
         break;
       case MID_IO:
         manejo_exitoso =

@@ -98,17 +98,18 @@ bool puedo_suspender(t_pcb* pcb, int suspension_timeout);
 void set_tiempo_bloqueado(t_pcb* pcb, unsigned long tiempo);
 void update_priordad_mas_baja_exec(t_lista_execute* exec);
 
-t_pcb* cambio_a_new(char* archivo_instrucciones, int prioridad,
-                    t_logger* logger, t_socket_kernel_memory* socket_km,
-                    int socket_servidor);
 void cambio_a_ready(t_pcb* pcb, t_cola_ready* ready, t_logger* logger);
 void cambio_a_exec(t_pcb* pcb, t_lista_execute* exec);
 void cambio_a_block(t_pcb* pcb, t_lista* block);
 void cambio_a_susp_block(t_pcb* pcb, t_lista* susp_block);
 void cambio_a_susp_ready(t_pcb* pcb, t_lista* susp_ready);
 void cambio_a_exit(t_pcb* pcb, t_contador_procesos* contador, int motivo,
-                   t_logger* logger, t_contador_procesos* contador);
+                   t_logger* logger, t_socket_kernel_memory* socket_km,
+                   int socket_servidor);
 
+t_pcb* cambio_sacar_new(char* archivo_instrucciones, int prioridad,
+                        t_logger* logger, t_socket_kernel_memory* socket_km,
+                        int socket_servidor);
 t_pcb* cambio_sacar_ready(t_cola_ready* ready);
 t_pcb* cambio_sacar_ready_bloqueante(t_cola_ready* ready);
 void cambio_sacar_exec(t_pcb* pcb, t_lista_execute* exec);
@@ -127,7 +128,9 @@ void cambio_new_ready(t_pcb* pcb, t_cola_ready* ready, t_logger* logger,
 void cambio_ready_exec(t_pcb* pcb, t_lista_execute* exec, t_logger* logger);
 void cambio_exec_ready(t_pcb* pcb, t_lista_execute* exec, t_cola_ready* ready,
                        t_logger* logger);
-void cambio_exec_exit(t_pcb* pcb, t_lista_execute* exec, t_logger* logger);
+void cambio_exec_exit(t_pcb* pcb, t_lista_execute* exec, t_logger* logger,
+                      t_contador_procesos* contador,
+                      t_socket_kernel_memory* socket_km, int socket_servidor);
 void cambio_exec_block(t_pcb* pcb, t_lista_execute* exec, t_lista* block,
                        t_logger* logger);
 void cambio_block_ready(t_pcb* pcb, t_lista* block, t_cola_ready* ready,
@@ -146,7 +149,10 @@ void cambio_desbloquear(t_pcb* pcb, t_lista* block, t_lista* susp_block,
 
 // Para errores o rutinas de cierre
 bool cambio_cualquiera_exit(t_colas* colas, t_logger* logger, int estado,
-                            t_contador_procesos* contador);
-void vaciar_colas(t_colas* colas, t_logger* logger);
+                            t_contador_procesos* contador,
+                            t_socket_kernel_memory* socket_km,
+                            int socket_servidor);
+void vaciar_colas(t_colas* colas, t_logger* logger,
+                  t_socket_kernel_memory* socket_km, int socket_servidor);
 
 #endif /* KERNEL_SCHEDULER_QUEUE_H_ */

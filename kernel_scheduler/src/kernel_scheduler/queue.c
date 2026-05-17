@@ -186,25 +186,6 @@ void update_priordad_mas_baja_exec(t_lista_execute* exec)
   pthread_mutex_unlock(&(exec->mutex_lista));
 }
 
-t_pcb* cambio_a_new(char* archivo_instrucciones, int prioridad,
-                    t_logger* logger, t_socket_kernel_memory* socket_km,
-                    int socket_servidor)
-{
-  pthread_mutex_lock(&(logger->mutex_logger));
-  t_pcb* pcb = crear_pcb();
-  log_info(logger->logger, "## %u Se crea el proceso - Estado: NEW", pcb->pid);
-  pcb->prioridad = prioridad;
-  pthread_mutex_unlock(&(logger->mutex_logger));
-  if (!avisar_nuevo_proceso(socket_km, archivo_instrucciones, pcb->pid))
-  {
-    log_cambio_estado(logger, pcb->pid, EST_NEW, EST_EXIT);
-    cambio_a_exit(pcb, contador, MFP_CIERRE_SISTEMA, logger);
-    cerrar_kernel_scheduler(socket_servidor, logger,
-                            MC_FALLO_CONEXION_KERNEL_MEMORY);
-  }
-  return pcb;
-}
-
 void cambio_a_ready(t_pcb* pcb, t_cola_ready* ready, t_logger* logger)
 {
   if (ready->cola_multi_nivel)
@@ -271,11 +252,40 @@ static void log_cambio_a_exit(t_logger* logger, uint32_t pid, int motivo)
 }
 
 void cambio_a_exit(t_pcb* pcb, t_contador_procesos* contador, int motivo,
-                   t_logger* logger)
+                   t_logger* logger, t_socket_kernel_memory* socket_km,
+                   int socket_servidor)
 {  // Creo que también hay que avisarle a kernel memory
+  if (motivo == MFP_INSTRUCCION_EXIT)
+  {
+    if (!avisar_terminar_proceso(socket_km, pcb->pid))
+    {
+      cerrar_kernel_scheduler(socket_servidor, logger,
+                              MC_FALLO_CONEXION_KERNEL_MEMORY);
+    }
+  }
   log_cambio_a_exit(logger, pcb->pid, motivo);
   destruir_pcb(pcb);
   disminuir_contador_procesos(contador);
+}
+
+t_pcb* cambio_sacar_new(char* archivo_instrucciones, int prioridad,
+                        t_logger* logger, t_socket_kernel_memory* socket_km,
+                        int socket_servidor)
+{
+  pthread_mutex_lock(&(logger->mutex_logger));
+  t_pcb* pcb = crear_pcb();
+  log_info(logger->logger, "## %u Se crea el proceso - Estado: NEW", pcb->pid);
+  pcb->prioridad = prioridad;
+  pthread_mutex_unlock(&(logger->mutex_logger));
+  if (!avisar_nuevo_proceso(socket_km, archivo_instrucciones, pcb->pid))
+  {
+    log_cambio_estado(logger, pcb->pid, EST_NEW, EST_EXIT);
+    cambio_a_exit(pcb, contador, MFP_CIERRE_SISTEMA, logger);
+    cerrar_kernel_scheduler(socket_servidor, logger,
+                            MC_FALLO_CONEXION_KERNEL_MEMORY);
+    return NULL;
+  }
+  return pcb;
 }
 
 t_pcb* cambio_sacar_ready(t_cola_ready* ready)
@@ -428,11 +438,13 @@ void cambio_exec_ready(t_pcb* pcb, t_lista_execute* exec, t_cola_ready* ready,
 }
 
 void cambio_exec_exit(t_pcb* pcb, t_lista_execute* exec, t_logger* logger,
-                      t_contador_procesos* contador)
+                      t_contador_procesos* contador,
+                      t_socket_kernel_memory* socket_km, int socket_servidor)
 {
   log_cambio_estado(logger, pcb->pid, EST_EXEC, EST_EXIT);
   cambio_sacar_exec(pcb, exec);
-  cambio_a_exit(pcb, contador, MFP_INSTRUCCION_EXIT, logger);
+  cambio_a_exit(pcb, contador, MFP_INSTRUCCION_EXIT, logger, socket_km,
+                socket_servidor);
 }
 
 void cambio_exec_block(t_pcb* pcb, t_lista_execute* exec, t_lista* block,
@@ -498,7 +510,9 @@ void cambio_desbloquear(t_pcb* pcb, t_lista* block, t_lista* susp_block,
 }
 
 bool cambio_cualquiera_exit(t_colas* colas, t_logger* logger, int estado,
-                            t_contador_procesos* contador)
+                            t_contador_procesos* contador,
+                            t_socket_kernel_memory* socket_km,
+                            int socket_servidor)
 {
   t_pcb* pcb = NULL;
   switch (estado)
@@ -524,11 +538,13 @@ bool cambio_cualquiera_exit(t_colas* colas, t_logger* logger, int estado,
     return false;
   }
   log_cambio_estado(logger, pcb->pid, estado, EST_EXIT);
-  cambio_a_exit(pcb, contador, MFP_CIERRE_SISTEMA, logger);
+  cambio_a_exit(pcb, contador, MFP_CIERRE_SISTEMA, logger, socket_km,
+                socket_servidor);
   return true;
 }
 
-void vaciar_colas(t_colas* colas, t_logger* logger)
+void vaciar_colas(t_colas* colas, t_logger* logger,
+                  t_socket_kernel_memory* socket_km, int socket_servidor)
 {
   for (int i = EST_READY; i < EST_EXIT; i++)
   {

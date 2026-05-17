@@ -128,9 +128,21 @@ static void* manejar_cliente_cpu(void* datos_hilo_cpu_void)
       case OP_SYSCALL_STDIN:
         break;
       case OP_SYSCALL_INIT_PROC:
+        t_list* lista = recibir_paquete(datos->socket_fd);
+        t_pcb* nueva_pcb = cambio_sacar_new(
+            list_get(lista, 0), list_get(lista, 1), datos->logger,
+            datos->socket_km, datos->socket_servidor);
+        list_destroy_and_destroy_elements(lista, free);
+        if (nueva_pcb != NULL)
+        {
+          cambio_new_ready(nueva_pcb, &(datos->colas.ready), datos->logger,
+                           datos->colas->contador_procesos)
+        }
         break;
       case OP_SYSCALL_EXIT:
-        cambio_exec_exit(pcb, datos->colas.exec, datos->logger);
+        cambio_exec_exit(pcb, datos->colas.exec, datos->logger,
+                         datos->colas->contador_procesos, datos->socket_km,
+                         datos->socket_servidor);
         pcb = NULL;
         break;
       default:
@@ -159,7 +171,8 @@ static t_datos_hilo_cpu* inicializar_datos_hilo_cpu(
     int socket_cpu, t_list* lista_sockets_cpu,
     pthread_mutex_t* mutex_lista_sockets_cpu, pthread_cond_t* cond_fin_cpu,
     char* id_cpu, t_logger* logger, t_lista_mutex* lista_mutex, t_colas* colas,
-    t_io* estructuras_io)
+    t_io* estructuras_io, t_socket_kernel_memory* socket_km,
+    int socket_servidor)
 {
   t_datos_hilo_cpu* datos = malloc(sizeof(t_datos_hilo_cpu));
   datos->socket_fd = socket_cpu;
@@ -171,6 +184,8 @@ static t_datos_hilo_cpu* inicializar_datos_hilo_cpu(
   datos->lista_mutex = lista_mutex;
   datos->colas = colas;
   datos->estructuras_io = estructuras_io;
+  datos->socket_km = socket_km;
+  datos->socket_servidor = socket_servidor;
   return datos;
 }
 
@@ -223,7 +238,8 @@ bool atender_nueva_cpu(int socket_cpu, t_list* lista_sockets_cpu,
                        pthread_mutex_t* mutex_lista_sockets_cpu,
                        pthread_cond_t* cond_fin_cpu, t_logger* logger,
                        t_lista_mutex* lista_mutex, t_colas* colas,
-                       t_io* estructuras_io)
+                       t_io* estructuras_io, t_socket_kernel_memory* socket_km,
+                       int socket_servidor)
 {
   // Handshake con CPU
   if (!responder_handshake(socket_cpu, MID_KERNEL_SCHEDULER, datos->logger))
@@ -237,7 +253,8 @@ bool atender_nueva_cpu(int socket_cpu, t_list* lista_sockets_cpu,
   // Inicializar datos hilo cpu
   t_datos_hilo_cpu* datos_hilo_cpu = inicializar_datos_hilo_cpu(
       socket_cpu, lista_sockets_cpu, mutex_lista_sockets_cpu, cond_fin_cpu,
-      id_cpu, logger, lista_mutex, colas, estructuras_io);
+      id_cpu, logger, lista_mutex, colas, estructuras_io, socket_km,
+      socket_servidor);
 
   // Agregar socket a la lista
   pthread_mutex_lock(mutex_lista_sockets_cpu);

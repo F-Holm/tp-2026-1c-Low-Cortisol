@@ -61,3 +61,11 @@ bool avisar_nuevo_proceso(t_socket_kernel_memory* socket_km,
   eliminar_paquete(paquete);
   return ret;
 }
+
+bool avisar_terminar_proceso(t_socket_kernel_memory* socket_km, uint32_t pid)
+{
+  pthread_mutex_lock(&(socket_km->mutex_socket));
+  bool ret = enviar_buffer(OP_TERMINAR_PROCESO, &pid, sizeof(uint32_t));
+  pthread_mutex_unlock(&(socket_km->mutex_socket));
+  return ret;
+}
