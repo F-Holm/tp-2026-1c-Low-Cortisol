@@ -88,8 +88,10 @@ void servidor_escucha(t_datos_servidor_escucha* datos)
             mutex_desalojo);
         break;
       case MID_IO:
-        manejo_exitoso =
-            atender_nuevo_io(estructuras_io, socket_fd, datos->logger);
+        manejo_exitoso = atender_nuevo_io(
+            estructuras_io, socket_fd, datos->logger, datos->socket_km,
+            &(datos->colas.block), &(datos->colas.ready),
+            &(datos->colas.susp_block), &(datos->colas.susp_ready));
         break;
       default:
         pthread_mutex_lock(&(datos->logger->mutex_logger));
@@ -99,7 +101,9 @@ void servidor_escucha(t_datos_servidor_escucha* datos)
         break;
     }
     if (!manejo_exitoso)
+    {
       close(socket_fd);
+    }
   }
 
   pthread_mutex_lock(&(datos->logger->mutex_logger));

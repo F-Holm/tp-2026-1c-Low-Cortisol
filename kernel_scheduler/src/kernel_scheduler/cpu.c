@@ -5,9 +5,11 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
+#include "kernel_scheduler/memory.h"
 #include "kernel_scheduler/misc.h"
 #include "utils/client.h"
 #include "utils/io.h"
+#include "utils/kernel_scheduler_cpu.h"
 #include "utils/msg.h"
 
 typedef enum
@@ -69,6 +71,201 @@ static void log_desalojo_cola_prioritaria(t_logger* logger,
   pthread_mutex_unlock(&(logger->mutex_logger));
 }
 
+static void gestionar_cola_bloqueada(t_datos_hilo_cpu* datos, t_pcb** pcb)
+{
+  if (esta_cola_ready_bloqueada((datos->colas.ready)))
+  {
+    cambio_exec_ready(*pcb, &(datos->colas.exec), &(datos->colas.ready),
+                      datos->logger);
+    *pcb = NULL;
+  }
+}
+
+static void gestionar_desalojo(t_datos_hilo_cpu* datos, t_pcb** pcb,
+                               int* contador);
+{
+  if (*pcb != NULL && datos->colas.exec.desalojo)
+  {
+    int prioridad_desalojado = get_prioridad_pcb(*pcb);
+    pthread_mutex_lock(&(datos->colas.ready.mutex_cola));
+    int prioridad_nuevo = datos->colas.ready.mayor_prioridad;
+    if (prioridad_desalojado > prioridad_nuevo)
+    {
+      t_pcb* nueva_pcb = cambio_sacar_ready_bloqueante(&(datos->colas.ready));
+      pthread_mutex_unlock(&(datos->colas.ready.mutex_cola));
+
+      log_desalojo_cola_prioritaria(datos->logger, (*pcb)->pid,
+                                    prioridad_desalojado, nueva_pcb->pid,
+                                    prioridad_nuevo);
+      cambio_exec_ready(*pcb, &(datos->colas.exec), &(datos->colas.ready),
+                        datos->logger);
+      *pcb = nueva_pcb;
+      cambio_ready_exec(*pcb, &(datos->colas.exec), datos->logger);
+      *contador = 0;
+    }
+    pthread_mutex_unlock(&(datos->colas.ready.mutex_cola));
+  }
+}
+
+static void gestionar_fin_quantum(t_datos_hilo_cpu* datos, t_pcb** pcb)
+{
+  if (*pcb != NULL && datos->colas.exec.quantum == contador)
+  {
+    log_desalojo_fin_quantum(datos->logger, (*pcb)->pid);
+    cambio_exec_ready(*pcb, &(datos->colas.exec), &(datos->colas.ready),
+                      datos->logger);
+    *pcb = NULL;
+  }
+}
+
+static void gestionar_pedir_proceso(t_datos_hilo_cpu* datos, t_pcb** pcb,
+                                    int* contador)
+{
+  if (*pcb == NULL)
+  {
+    *contador = 0;
+    *pcb = cambio_sacar_ready_bloqueante(&(datos->colas.ready));
+    if (*pcb != NULL)
+    {
+      cambio_ready_exec(*pcb, &(datos->colas.exec), datos->logger);
+    }
+  }
+}
+
+static void manejar_ciclo_cpu_ok(t_datos_hilo_cpu* datos)
+{
+  free(recibir_string(datos->socket_fd));
+}
+
+static void manejar_syscall_mutex_create(t_datos_hilo_cpu* datos)
+{
+  char* id_mutex = recibir_string(datos->socket_fd);
+  crear_y_add_mutex(datos->lista_mutex, id_mutex,
+                    datos->colas->ready.cola_multi_nivel, datos->logger);
+  free(id_mutex);
+}
+
+static void manejar_syscall_mutex_lock(t_datos_hilo_cpu* datos, t_pcb** pcb)
+{
+  char* id_mutex = recibir_string(datos->socket_fd);
+  if (!lista_mutex_lock(datos->lista_mutex, id_mutex, *pcb))
+  {
+    *pcb = NULL;
+  }
+  free(id_mutex);
+}
+
+static void manejar_syscall_mutex_unlock(t_datos_hilo_cpu* datos)
+{
+  char* id_mutex = recibir_string(datos->socket_fd);
+  lista_mutex_unlock(datos->lista_mutex, id_mutex, pcb);
+  free(id_mutex);
+}
+
+static void manejar_syscall_memory_allocation(t_datos_hilo_cpu* datos)
+{
+  int allocate_memory(syscall_memory * mem_alloc, t_logger * logger,
+                      t_socket_kernel_memory * t_socket_km);
+}
+
+static void manejar_syscall_memory_free(t_datos_hilo_cpu* datos)
+{
+  int free_memory(syscall_memory * mem_free, datos->logger, datos->socket_km);
+}
+
+static void manejar_syscall_io_sleep(t_datos_hilo_cpu* datos)
+{
+  if (!procesar_nuevo_sleep(t_peticion_sleep * peticion,
+                            &(datos->estructuras_io[E_SLEEP]),
+                            t_lista_sleep * lista_sleep, datos->logger))
+  {
+    pcb = NULL;
+  }
+}
+
+static void manejar_syscall_io_stdout(t_datos_hilo_cpu* datos)
+{
+  bool procesar_nuevo_stdout(t_peticion_stdout * peticion, t_io * io_stdout,
+                             t_lista_stdout * lista_stdout, t_logger * logger);
+}
+
+static void manejar_syscall_io_stdin(t_datos_hilo_cpu* datos)
+{
+  bool procesar_nuevo_stdin(t_peticion_stdin * peticion, t_io * io_stdin,
+                            t_lista_stdin * lista_stdin);
+}
+
+static void manejar_syscall_iniciar_proceso(t_datos_hilo_cpu* datos)
+{
+  t_list* lista = recibir_paquete(datos->socket_fd);
+  t_pcb* nueva_pcb =
+      cambio_sacar_new(list_get(lista, 0), list_get(lista, 1), datos->logger,
+                       datos->socket_km, datos->socket_servidor);
+  list_destroy_and_destroy_elements(lista, free);
+  if (nueva_pcb != NULL)
+  {
+    cambio_new_ready(nueva_pcb, &(datos->colas.ready), datos->logger,
+                     datos->colas->contador_procesos)
+  }
+}
+
+static void manejar_syscall_exit(t_datos_hilo_cpu* datos, t_pcb** pcb)
+{
+  cambio_exec_exit(*pcb, datos->colas.exec, datos->logger,
+                   datos->colas->contador_procesos, datos->socket_km,
+                   datos->socket_servidor);
+  *pcb = NULL;
+}
+
+static void manejar_syscall_no_conocida(bool* seguir_operando)
+{
+  *seguir_operando = false;
+}
+
+static void gestionar_op_code(t_datos_hilo_cpu* datos, int op_code, t_pcb** pcb,
+                              bool* seguir_operando)
+{
+  switch (op_code)
+  {
+    case OP_CICLO_CPU_OK:
+      manejar_ciclo_cpu_ok(datos);
+      break;
+    case OP_SYSCALL_MUTEX_CREATE:
+      manejar_syscall_mutex_create(datos);
+      break;
+    case OP_SYSCALL_MUTEX_LOCK:
+      manejar_syscall_mutex_lock(datos, pcb);
+      break;
+    case OP_SYSCALL_MUTEX_UNLOCK:
+      manejar_syscall_mutex_unlock(datos);
+      break;
+    case OP_SYSCALL_MEM_ALLOC:
+      manejar_syscall_memory_allocation(datos);
+      break;
+    case OP_SYSCALL_MEM_FREE:
+      manejar_syscall_memory_free(datos);
+      break;
+    case OP_SYSCALL_SLEEP:
+      manejar_syscall_io_sleep(datos);
+      break;
+    case OP_SYSCALL_STDOUT:
+      manejar_syscall_io_stdout(datos);
+      break;
+    case OP_SYSCALL_STDIN:
+      manejar_syscall_io_stdin(datos);
+      break;
+    case OP_SYSCALL_INIT_PROC:
+      manejar_syscall_iniciar_proceso(datos);
+      break;
+    case OP_SYSCALL_EXIT:
+      manejar_syscall_exit(datos, pcb);
+      break;
+    default:
+      manejar_syscall_no_conocida(seguir_operando);
+      break;
+  }
+}
+
 static void* manejar_cliente_cpu(void* datos_hilo_cpu_void)
 {
   t_datos_hilo_cpu* datos = (t_datos_hilo_cpu*)datos_hilo_cpu_void;
@@ -78,54 +275,15 @@ static void* manejar_cliente_cpu(void* datos_hilo_cpu_void)
 
   while (seguir_operando)
   {
-    if (esta_cola_ready_bloqueada((datos->colas.ready)))
-    {
-      cambio_exec_ready(pcb, &(datos->colas.exec), &(datos->colas.ready),
-                        datos->logger);
-      pcb = NULL;
-    }
+    gestionar_cola_bloqueada(datos, &pcb);
+    gestionar_desalojo(datos, &pcb, &contador);
+    gestionar_fin_quantum(datos, &pcb);
+    gestionar_pedir_proceso(datos, &pcb, &contador);
 
-    if (pcb != NULL && datos->colas.exec.desalojo)
+    if (pcb == NULL ||
+        !enviar_buffer(OP_CONTINUAR_PROCESO, pcb->pid, sizeof(uint32_t)))
     {
-      int prioridad_desalojado = get_prioridad_pcb(pcb);
-      pthread_mutex_lock(&(datos->colas.ready.mutex_cola));
-      int prioridad_nuevo = datos->colas.ready.mayor_prioridad;
-      if (prioridad_desalojado > prioridad_nuevo)
-      {
-        t_pcb* nueva_pcb = cambio_sacar_ready_bloqueante(&(datos->colas.ready));
-        pthread_mutex_unlock(&(datos->colas.ready.mutex_cola));
-
-        log_desalojo_cola_prioritaria(datos->logger, pcb->pid,
-                                      prioridad_desalojado, nueva_pcb->pid,
-                                      prioridad_nuevo);
-        cambio_exec_ready(pcb, &(datos->colas.exec), &(datos->colas.ready),
-                          datos->logger);
-        pcb = nueva_pcb;
-        cambio_ready_exec(pcb, &(datos->colas.exec), datos->logger);
-      }
-      pthread_mutex_unlock(&(datos->colas.ready.mutex_cola));
-    }
-
-    if (pcb != NULL && datos->colas.exec.quantum == contador)
-    {
-      log_desalojo_fin_quantum(datos->logger, pcb->pid);
-      cambio_exec_ready(pcb, &(datos->colas.exec), &(datos->colas.ready),
-                        datos->logger);
-      pcb = NULL;
-    }
-
-    if (pcb == NULL)
-    {
-      contador = 0;
-      pcb = cambio_sacar_ready_bloqueante(&(datos->colas.ready));
-      if (pcb != NULL)
-      {
-        cambio_ready_exec(pcb, &(datos->colas.exec), datos->logger);
-      }
-    }
-
-    if (!enviar_buffer(OP_CONTINUAR_PROCESO, pcb->pid, sizeof(uint32_t)))
-    {
+      seguir_operando = false;
       break;
     }
 
@@ -135,60 +293,7 @@ static void* manejar_cliente_cpu(void* datos_hilo_cpu_void)
       log_syscall(datos->logger, pcb->pid, op_code - OP_SYSCALL_MUTEX_CREATE);
     }
 
-    switch (op_code)
-    {
-      case OP_CICLO_CPU_OK:
-        free(recibir_string(datos->socket_fd));
-        break;
-      case OP_SYSCALL_MUTEX_CREATE:
-        char* id_mutex = recibir_string(datos->socket_fd);
-        crear_y_add_mutex(datos->lista_mutex, id_mutex,
-                          datos->colas->ready.cola_multi_nivel, datos->logger);
-        free(id_mutex);
-        break;
-      case OP_SYSCALL_MUTEX_LOCK:
-        char* id_mutex = recibir_string(datos->socket_fd);
-        if (!lista_mutex_lock(datos->lista_mutex, id_mutex, pcb))
-        {
-          pcb = NULL;
-        }
-        break;
-      case OP_SYSCALL_MUTEX_UNLOCK:
-        char* id_mutex = recibir_string(datos->socket_fd);
-        lista_mutex_unlock(datos->lista_mutex, id_mutex, pcb);
-        break;
-      case OP_SYSCALL_MEM_ALLOC:
-        break;
-      case OP_SYSCALL_MEM_FREE:
-        break;
-      case OP_SYSCALL_SLEEP:
-        break;
-      case OP_SYSCALL_STDOUT:
-        break;
-      case OP_SYSCALL_STDIN:
-        break;
-      case OP_SYSCALL_INIT_PROC:
-        t_list* lista = recibir_paquete(datos->socket_fd);
-        t_pcb* nueva_pcb = cambio_sacar_new(
-            list_get(lista, 0), list_get(lista, 1), datos->logger,
-            datos->socket_km, datos->socket_servidor);
-        list_destroy_and_destroy_elements(lista, free);
-        if (nueva_pcb != NULL)
-        {
-          cambio_new_ready(nueva_pcb, &(datos->colas.ready), datos->logger,
-                           datos->colas->contador_procesos)
-        }
-        break;
-      case OP_SYSCALL_EXIT:
-        cambio_exec_exit(pcb, datos->colas.exec, datos->logger,
-                         datos->colas->contador_procesos, datos->socket_km,
-                         datos->socket_servidor);
-        pcb = NULL;
-        break;
-      default:
-        seguir_operando = false;
-        break;
-    }
+    gestionar_op_code(datos, op_code, &pcb, &seguir_operando);
     contador++;
   }
 
