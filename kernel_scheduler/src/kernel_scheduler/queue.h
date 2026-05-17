@@ -49,7 +49,6 @@ typedef struct
 typedef struct
 {
   t_queue* cola;
-  pthread_mutex_t mutex_cola;
   int algoritmo;
 } t_cola_individual_ready;
 
@@ -58,10 +57,13 @@ typedef struct
   int cantidad_colas;
   t_cola_individual_ready* colas;
   bool cola_multi_nivel;
+  pthread_mutex_t mutex_cola;
+  int cant_procesos_ready;
   pthread_cond_t nuevo_proceso;
   pthread_cond_t salida_desbloqueada;
   pthread_mutex_t bloquear_salida;
   bool desalojar_todo;
+  int mayor_prioridad;
 } t_cola_ready;
 
 typedef struct
@@ -90,6 +92,10 @@ t_colas* inicializar_colas(int algoritmo, t_list* algoritmos_cmn, int quantum,
                            bool desalojo, int socket_servidor,
                            t_logger* logger);
 void destruir_colas(t_colas* colas);
+
+bool esta_cola_ready_bloqueada(t_cola_ready* ready);
+void bloquear_cola_ready(t_cola_ready* ready);
+void desbloquear_cola_ready(t_cola_ready* ready);
 
 void log_cambio_estado(t_logger* logger, uint32_t pid, int estado_anterior,
                        int estado_nuevo);
