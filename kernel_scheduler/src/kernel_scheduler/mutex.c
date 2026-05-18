@@ -86,24 +86,7 @@ bool mutex_lock(t_mutex* mutex, t_pcb* pcb)
   }
   else if (mutex->prioridad_activa && mutex->estado < 0)
   {
-    t_list_iterator* iterador_lista = list_iterator_create(mutex->lista);
-    while (true)
-    {
-      if (!list_iterator_next(iterador_lista))
-      {
-        list_add(mutex->lista, pcb);
-        break;
-      }
-      t_pcb* aux = list_iterator_next(iterador_lista);
-      int prioridad_aux = get_prioridad_pcb(aux);
-      if (prioridad_aux > prioridad_pcb)
-      {
-        list_iterator_replace(iterador_lista, pcb);
-        list_iterator_add(iterador_lista, aux);
-        break;
-      }
-    }
-    list_iterator_destroy(iterador_lista);
+    insertar_pcb_en_orden(mutex->lista, pcb);
     cambio_exec_block(pcb, &(mutex->colas->exec), &(mutex->colas->block),
                       mutex->logger);
   }

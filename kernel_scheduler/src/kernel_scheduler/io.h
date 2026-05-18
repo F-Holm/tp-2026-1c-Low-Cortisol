@@ -11,12 +11,6 @@
 #include "kernel_scheduler/kernel_scheduler.h"
 
 /****************** FUNCIONES DE IO ******************/
-typedef enum
-{
-  ERROR_KM,
-  ERROR_IO,
-  TODO_BIEN
-} devolucion_io;
 
 typedef struct
 {
@@ -91,12 +85,21 @@ typedef struct
   t_lista_sleep* lista_sleep;
 } t_hilo_io_sleep;
 
+typedef struct
+{
+  t_lista_stdin* lista_stdin;
+  t_peticion_stdout* lista_stdout;
+  t_lista_sleep* lista_sleep;
+} t_listas_io;
+
+t_listas_io* inicializar_listas_io(void);
+
 bool atender_nuevo_io(t_io io[3], int socket_fd, t_logger* logger,
                       t_socket_kernel_memory* socket_km, t_cola* block,
                       t_cola_ready* ready, t_lista* susp_block,
-                      t_lista* susp_ready);
+                      t_lista* susp_ready, t_listas_io* listas_io);
 
-int obtener_tipo_io(int socket_fd, t_log* logger);
+int obtener_tipo_io(int socket_fd, t_logger* logger);
 bool procesar_nuevo_stdin(t_peticion_stdin* peticion, t_io* io_stdin,
                           t_lista_stdin* lista_stdin);
 bool procesar_nuevo_stdout(t_peticion_stdout* peticion, t_io* io_stdout,
