@@ -53,17 +53,15 @@ static void preparar_sockets_io(t_io estructuras_io[3])
   }
 }
 
-static bool crear_proceso_inicial(t_datos_servidor_escucha* datos)
+static void crear_proceso_inicial(t_datos_servidor_escucha* datos)
 {
   t_pcb* pcb = cambio_sacar_new(datos->path_proceso_inicial, 0, datos->logger,
                                 datos->socket_km, datos->socket_server);
-  if (pcb == NULL)
+  if (pcb != NULL)
   {
-    return false;
+    cambio_new_ready(pcb, &(datos->colas.ready), datos->logger,
+                     datos->colas->contador_procesos);
   }
-  cambio_new_ready(pcb, &(datos->colas.ready), datos->logger,
-                   datos->colas->contador_procesos);
-  return true;
 }
 
 static void log_handshake_no_valido(t_logger* logger)
@@ -98,7 +96,9 @@ void servidor_escucha(t_datos_servidor_escucha* datos)
     bool manejo_exitoso = true;
     int socket_fd = esperar_cliente(datos->socket_server);
     if (socket_fd <= 0)
+    {
       break;
+    }
 
     switch (recibir_handshake(socket_fd))
     {
