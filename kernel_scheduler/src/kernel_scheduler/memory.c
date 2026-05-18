@@ -1,4 +1,4 @@
-#include <memory.h>
+#include "kernel_scheduler/memory.h"
 
 int allocate_memory(syscall_memory* mem_alloc, t_logger* logger,
                     t_socket_kernel_memory* socket_km)
@@ -29,6 +29,9 @@ int allocate_memory(syscall_memory* mem_alloc, t_logger* logger,
   if (cod_op == OP_MEMORIA_CORRUPTA)
   {
     pthread_mutex_unlock(&(socket_km->mutex_socket));
+    cerrar_kernel_scheduler(hilo_stdin->io->socket_server,
+                            hilo_stdin->io->logger,
+                            MC_FALLO_CONEXION_KERNEL_MEMORY);
     return D_ERROR_KM;
   }
   else
@@ -36,6 +39,9 @@ int allocate_memory(syscall_memory* mem_alloc, t_logger* logger,
     if (cod_op == OP_CODE_ERROR)
     {
       pthread_mutex_unlock(&(socket_km->mutex_socket));
+      cerrar_kernel_scheduler(hilo_stdin->io->socket_server,
+                              hilo_stdin->io->logger,
+                              MC_FALLO_CONEXION_KERNEL_MEMORY);
       return D_ERROR_CONEXION_KM;
     }
   }

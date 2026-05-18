@@ -86,7 +86,7 @@ bool mutex_lock(t_mutex* mutex, t_pcb* pcb)
   }
   else if (mutex->prioridad_activa && mutex->estado < 0)
   {
-    insertar_pcb_en_orden(t_list * lista, t_pcb * pcb);
+    insertar_pcb_en_orden(mutex->lista, pcb);
     cambio_exec_block(pcb, &(mutex->colas->exec), &(mutex->colas->block),
                       mutex->logger);
   }

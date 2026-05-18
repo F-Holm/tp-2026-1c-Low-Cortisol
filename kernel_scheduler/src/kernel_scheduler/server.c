@@ -23,15 +23,13 @@ int crear_socket_servidor(char* puerto, t_log* logger)
 
 t_datos_servidor_escucha* inicializar_datos_server_escucha(
     t_datos_servidor_escucha* datos, int socket_server, t_logger* logger,
-    t_lista_mutex* lista_mutex, t_colas* colas, int socket_kernel_memory)
+    t_lista_mutex* lista_mutex, t_colas* colas, t_socket_kernel_memory* socket_kernel_memory)
 {
   datos->socket_server = socket_server;
   datos->logger = logger;
   datos->lista_mutex = lista_mutex;
   datos->colas = colas;
-  datos->socket_km = malloc(sizeof(t_socket_kernel_memory));
-  datos->socket_km->socket_km = socket_kernel_memory;
-  pthread_mutex_init(&(datos->socket_km->mutex_socket), NULL);
+  datos->socket_km = socket_kernel_memory;
   return datos;
 }
 
@@ -62,6 +60,7 @@ void servidor_escucha(t_datos_servidor_escucha* datos)
 {
   t_io estructuras_io[3];
   t_list* lista_sockets_cpu = list_create();
+  t_listas_io* listas_io = inicializar_listas_io();
   pthread_mutex_t mutex_lista_sockets_cpu;
   pthread_cond_t cond_fin_cpu;
   pthread_mutex_t* mutex_desalojo = malloc(sizeof(pthread_mutex_t));
@@ -91,7 +90,7 @@ void servidor_escucha(t_datos_servidor_escucha* datos)
         manejo_exitoso = atender_nuevo_io(
             estructuras_io, socket_fd, datos->logger, datos->socket_km,
             &(datos->colas.block), &(datos->colas.ready),
-            &(datos->colas.susp_block), &(datos->colas.susp_ready));
+            &(datos->colas.susp_block), &(datos->colas.susp_ready), listas_io);
         break;
       default:
         pthread_mutex_lock(&(datos->logger->mutex_logger));
