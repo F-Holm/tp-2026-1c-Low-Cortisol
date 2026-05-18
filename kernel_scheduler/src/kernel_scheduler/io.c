@@ -23,7 +23,7 @@ int io_stdin(t_stdin* peticion, t_hilo_io_in* hilo_in)
     log_error(hilo_in->io->logger->logger, "## Error em el envio a IO");
     pthread_mutex_unlock(&(hilo_in->io->logger->mutex_logger));
 
-    return ERROR_IO;
+    return D_ERROR_IO;
   }
 
   // recibo la respuesta de IO
@@ -36,7 +36,7 @@ int io_stdin(t_stdin* peticion, t_hilo_io_in* hilo_in)
     log_error(hilo_in->io->logger->logger,
               "## Error al recibir la respuesa de IO");
     pthread_mutex_unlock(&(hilo_in->io->logger->mutex_logger));
-    return ERROR_IO;
+    return D_ERROR_IO;
   }
   // Le envio el paquete al Kernel Memory para que escriba en la memoria
   pthread_mutex_lock(&(hilo_in->io->socket_km->mutex_socket));
@@ -93,7 +93,7 @@ int io_stdin(t_stdin* peticion, t_hilo_io_in* hilo_in)
     log_error(hilo_in->io->logger->logger,
               "## Error al retirar el proceso de la lista de IO");
     pthread_mutex_unlock(&(hilo_in->io->logger->mutex_logger));
-    return ERROR_IO;
+    return D_ERROR_IO;
   }
   pthread_mutex_unlock(&(hilo_in->lista_stdin->mutex_lista_stdin));
   pthread_mutex_lock(&(hilo_in->io->logger->mutex_logger));
@@ -175,7 +175,7 @@ int io_stdout(t_stdout* peticion, t_hilo_io_out* hilo_out)
     log_error(hilo_out->io->logger->logger,
               "## Error al enviar la respuesta de Kernel Memory a IO");
     pthread_mutex_unlock(&(hilo_out->io->logger->mutex_logger));
-    return ERROR_IO;
+    return D_ERROR_IO;
   }
   cod_op = recibir_operacion(hilo_out->io->socket_io);
   char* resp_io = recibir_string(hilo_out->io->socket_io);
@@ -188,7 +188,7 @@ int io_stdout(t_stdout* peticion, t_hilo_io_out* hilo_out)
         "## Error en la respuesta de IO a Kernel Scheduler. Expected: OK");
     pthread_mutex_unlock(&(hilo_out->io->logger->mutex_logger));
     free(resp_io);
-    return ERROR_IO;
+    return D_ERROR_IO;
   }
   free(resp_io);
   pthread_mutex_lock(&(hilo_out->lista_stdout->mutex_lista_stdout));
@@ -199,7 +199,7 @@ int io_stdout(t_stdout* peticion, t_hilo_io_out* hilo_out)
     log_error(hilo_out->io->logger->logger,
               "## Error al retirar el proceso de la lista de IO");
     pthread_mutex_unlock(&(hilo_out->io->logger->mutex_logger));
-    return ERROR_IO;
+    return D_ERROR_IO;
   }
   pthread_mutex_unlock(&(hilo_out->lista_stdout->mutex_lista_stdout));
   pthread_mutex_lock(&(hilo_out->io->logger->mutex_logger));
@@ -236,7 +236,7 @@ int io_sleep(t_sleep* peticion, t_hilo_io_sleep* hilo_sleep)
     pthread_mutex_lock(&(hilo_out->io->logger->mutex_logger));
     log_error(hilo_out->io->logger->logger, "## Error al enviar a IO");
     pthread_mutex_unlock(&(hilo_out->io->logger->mutex_logger));
-    return ERROR_IO;
+    return D_ERROR_IO;
   }
 
   int cod_op = recibir_operacion(hilo_sleep->io->socket_io);
@@ -256,7 +256,7 @@ int io_sleep(t_sleep* peticion, t_hilo_io_sleep* hilo_sleep)
         "## Error en la respuesta de IO a Kernel Scheduler. Expected: OK");
     pthread_mutex_unlock(&(hilo_sleep->io->logger->mutex_logger));
     free(respuesta);
-    return ERROR_IO;
+    return D_ERROR_IO;
   }
   free(respuesta);
 
@@ -268,7 +268,7 @@ int io_sleep(t_sleep* peticion, t_hilo_io_sleep* hilo_sleep)
     log_error(hilo_sleep->io->logger->logger,
               "## Error al retirar el proceso de la lista de IO");
     pthread_mutex_unlock(&(hilo_sleep->io->logger->mutex_logger));
-    return ERROR_IO;
+    return D_ERROR_IO;
   }
   pthread_mutex_unlock(&(hilo_sleep->lista_sleep->mutex_lista_sleep));
   pthread_mutex_lock(&(hilo_sleep->io->logger->mutex_logger));
@@ -327,7 +327,7 @@ void* hilo_io_in(void* hilo_in)
     }
     else
     {
-      if (ERROR_IO == stdin)
+      if (D_ERROR_IO == stdin)
       {
         pthread_mutex_lock(&(hilo_stdin->io->logger->mutex_logger));
         log_error(hilo_stdin->io->logger->logger,
@@ -404,7 +404,7 @@ void* hilo_io_out(void* hilo_out)
       continue;
     }
     int op_stdout = io_stdout(peticion, hilo_stdout);
-    if (ERROR_IO == op_stdout)
+    if (D_ERROR_IO == op_stdout)
     {
       pthread_mutex_lock(&(hilo_stdout->io->logger->mutex_logger));
       log_error(hilo_stdout->io->logger->logger,
@@ -491,7 +491,7 @@ void* hilo_io_sleep(void* hilo_sleep)
       pthread_mutex_unlock(&(shilo_sleep->io->logger->mutex_logger));
       continue;
     }
-    if (ERROR_IO == io_sleep(peticion, shilo_sleep))
+    if (D_ERROR_IO == io_sleep(peticion, shilo_sleep))
     {
       pthread_mutex_lock(&(shilo_sleep->io->logger->mutex_logger));
       log_error(shilo_sleep->io->logger->logger,

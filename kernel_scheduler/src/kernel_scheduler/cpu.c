@@ -340,8 +340,7 @@ static t_datos_hilo_cpu* inicializar_datos_hilo_cpu(
     pthread_mutex_t* mutex_lista_sockets_cpu, pthread_cond_t* cond_fin_cpu,
     char* id_cpu, t_logger* logger, t_lista_mutex* lista_mutex, t_colas* colas,
     t_io* estructuras_io, t_socket_kernel_memory* socket_km,
-    int socket_servidor,
-    t_listas_io* listas_io)
+    int socket_servidor, t_listas_io* listas_io)
 {
   t_datos_hilo_cpu* datos = malloc(sizeof(t_datos_hilo_cpu));
   datos->socket_fd = socket_cpu;
@@ -409,8 +408,7 @@ bool atender_nueva_cpu(int socket_cpu, t_list* lista_sockets_cpu,
                        pthread_cond_t* cond_fin_cpu, t_logger* logger,
                        t_lista_mutex* lista_mutex, t_colas* colas,
                        t_io* estructuras_io, t_socket_kernel_memory* socket_km,
-                       int socket_servidor,
-                       t_listas_io* listas_io)
+                       int socket_servidor, t_listas_io* listas_io)
 {
   // Handshake con CPU
   if (!responder_handshake(socket_cpu, MID_KERNEL_SCHEDULER, datos->logger))

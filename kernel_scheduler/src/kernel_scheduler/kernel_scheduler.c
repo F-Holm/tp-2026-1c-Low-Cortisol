@@ -143,11 +143,11 @@ void cerrar_modulo_error(t_kernel_scheduler_recursos* recursos)
 
 void cerrar_modulo(t_kernel_scheduler_recursos* recursos)
 {
-  destruir_kernel_memory(recursos->socket_km_mutex);
   destruir_lista_mutex(recursos->lista_mutex);
-  vaciar_colas(recursos->colas, recursos->logger, datos->socket_km,
-               datos->socket_server);
+  vaciar_colas(recursos->colas, recursos->logger, recursos->socket_km_mutex,
+               recursos->socket_server);
   destruir_colas(recursos->colas);
+  destruir_kernel_memory(recursos->socket_km_mutex);
   close(recursos->socket_kernel_memory);
   close(recursos->socket_server);
   cerrar_logger(recursos->logger);

@@ -24,13 +24,14 @@ int crear_socket_servidor(char* puerto, t_log* logger)
 t_datos_servidor_escucha* inicializar_datos_server_escucha(
     t_datos_servidor_escucha* datos, int socket_server, t_logger* logger,
     t_lista_mutex* lista_mutex, t_colas* colas,
-    t_socket_kernel_memory* socket_kernel_memory)
+    t_socket_kernel_memory* socket_kernel_memory, char* path_proceso_inicial)
 {
   datos->socket_server = socket_server;
   datos->logger = logger;
   datos->lista_mutex = lista_mutex;
   datos->colas = colas;
   datos->socket_km = socket_kernel_memory;
+  datos->path_proceso_inicial = path_proceso_inicial;
   return datos;
 }
 
@@ -52,13 +53,28 @@ static void preparar_sockets_io(t_io estructuras_io[3])
   }
 }
 
-static void log_handshake_no_valido(t_logger* logger){
+static bool crear_proceso_inicial(t_datos_servidor_escucha* datos)
+{
+  t_pcb* pcb = cambio_sacar_new(datos->path_proceso_inicial, 0, datos->logger,
+                                datos->socket_km, datos->socket_server);
+  if (pcb == NULL)
+  {
+    return false;
+  }
+  cambio_new_ready(pcb, &(datos->colas.ready), datos->logger,
+                   datos->colas->contador_procesos);
+  return true;
+}
+
+static void log_handshake_no_valido(t_logger* logger)
+{
   pthread_mutex_lock(&(logger->mutex_logger));
   log_info(logger->logger, "## Recepción de handshake no válido");
   pthread_mutex_unlock(&(logger->mutex_logger));
 }
 
-static void log_cerrando_servidor(t_logger* logger){
+static void log_cerrando_servidor(t_logger* logger)
+{
   pthread_mutex_lock(&(logger->mutex_logger));
   log_info(logger->logger, "## Cerrando servidor");
   pthread_mutex_unlock(&(logger->mutex_logger));
@@ -76,6 +92,7 @@ void servidor_escucha(t_datos_servidor_escucha* datos)
   pthread_mutex_init(&mutex_lista_sockets_cpu, NULL);
   pthread_cond_init(&cond_fin_cpu, NULL);
 
+  crear_proceso_inicial(datos);
   while (true)
   {
     bool manejo_exitoso = true;
