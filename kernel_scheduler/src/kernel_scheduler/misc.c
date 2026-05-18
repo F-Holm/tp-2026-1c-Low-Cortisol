@@ -8,7 +8,8 @@
 
 t_socket_kernel_memory* inicializar_socket_kernel_memory(int socket_km)
 {
-  t_socket_kernel_memory* socket_km_mutex = malloc(sizeof(t_socket_kernel_memory));
+  t_socket_kernel_memory* socket_km_mutex =
+      malloc(sizeof(t_socket_kernel_memory));
   socket_km_mutex->socket_km = socket_km;
   pthread_mutex_init(&(socket_km->mutex_socket), NULL);
 }

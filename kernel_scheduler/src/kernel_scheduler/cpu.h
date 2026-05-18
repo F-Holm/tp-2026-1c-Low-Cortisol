@@ -23,7 +23,6 @@ typedef struct
   t_io* estructuras_io;
   t_socket_kernel_memory* socket_km;
   int socket_servidor;
-  pthread_mutex_t* mutex_desalojo;
   t_listas_io* listas_io;
 } t_datos_hilo_cpu;
 

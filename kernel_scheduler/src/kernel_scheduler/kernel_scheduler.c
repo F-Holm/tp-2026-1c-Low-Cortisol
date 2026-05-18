@@ -119,7 +119,8 @@ bool iniciar_modulo(t_kernel_scheduler_recursos* recursos, char* archivo_config)
 
 void inicializar_colas_mutex(t_kernel_scheduler_recursos* recursos)
 {
-  inicializar_socket_kernel_memory(int socket_km);
+  recursos->socket_km_mutex =
+      inicializar_socket_kernel_memory(recursos->socket_kernel_memory);
   recursos->lista_mutex = inicializar_lista_mutex();
   recursos->colas = inicializar_colas(
       recursos->config_vars.algoritmo_planificacion,
@@ -142,6 +143,7 @@ void cerrar_modulo_error(t_kernel_scheduler_recursos* recursos)
 
 void cerrar_modulo(t_kernel_scheduler_recursos* recursos)
 {
+  destruir_kernel_memory(recursos->socket_km_mutex);
   destruir_lista_mutex(recursos->lista_mutex);
   vaciar_colas(recursos->colas, recursos->logger, datos->socket_km,
                datos->socket_server);

@@ -36,9 +36,9 @@ int main(int argc, char* argv[])
   // Inicializar datos para el servidor
   inicializar_colas_mutex(&recursos);
   t_datos_servidor_escucha datos;
-  inicializar_datos_server_escucha(&datos, recursos->socket_server,
-                                   recursos->logger, recursos->lista_mutex,
-                                   recursos->colas, socket_kernel_memory);
+  inicializar_datos_server_escucha(
+      &datos, recursos->socket_server, recursos->logger, recursos->lista_mutex,
+      recursos->colas, socket_kernel_memory, recursos->socket_km_mutex);
 
   // Empezar a escuchar servidor
   servidor_escucha(&datos);

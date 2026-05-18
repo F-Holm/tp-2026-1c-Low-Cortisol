@@ -23,7 +23,8 @@ int crear_socket_servidor(char* puerto, t_log* logger)
 
 t_datos_servidor_escucha* inicializar_datos_server_escucha(
     t_datos_servidor_escucha* datos, int socket_server, t_logger* logger,
-    t_lista_mutex* lista_mutex, t_colas* colas, t_socket_kernel_memory* socket_kernel_memory)
+    t_lista_mutex* lista_mutex, t_colas* colas,
+    t_socket_kernel_memory* socket_kernel_memory)
 {
   datos->socket_server = socket_server;
   datos->logger = logger;
@@ -36,15 +37,10 @@ t_datos_servidor_escucha* inicializar_datos_server_escucha(
 void cerrar_hilo_escucha(t_io estructuras_io[3], t_list* lista_sockets_cpu,
                          pthread_mutex_t* mutex_lista_sockets_cpu,
                          pthread_cond_t* cond_fin_cpu,
-                         t_datos_servidor_escucha* datos,
-                         pthread_mutex_t* mutex_desalojo)
+                         t_datos_servidor_escucha* datos)
 {
   cerrar_io(estructuras_io);
   cerrar_cpu(lista_sockets_cpu, mutex_lista_sockets_cpu, cond_fin_cpu);
-  pthread_mutex_destroy(&(datos->socket_km->mutex_socket));
-  pthread_mutex_destroy(mutex_desalojo);
-  free(mutex_desalojo);
-  free(datos->socket_km);
   free(datos);
 }
 
@@ -56,6 +52,18 @@ static void preparar_sockets_io(t_io estructuras_io[3])
   }
 }
 
+static void log_handshake_no_valido(t_logger* logger){
+  pthread_mutex_lock(&(logger->mutex_logger));
+  log_info(logger->logger, "## Recepción de handshake no válido");
+  pthread_mutex_unlock(&(logger->mutex_logger));
+}
+
+static void log_cerrando_servidor(t_logger* logger){
+  pthread_mutex_lock(&(logger->mutex_logger));
+  log_info(logger->logger, "## Cerrando servidor");
+  pthread_mutex_unlock(&(logger->mutex_logger));
+}
+
 void servidor_escucha(t_datos_servidor_escucha* datos)
 {
   t_io estructuras_io[3];
@@ -63,11 +71,9 @@ void servidor_escucha(t_datos_servidor_escucha* datos)
   t_listas_io* listas_io = inicializar_listas_io();
   pthread_mutex_t mutex_lista_sockets_cpu;
   pthread_cond_t cond_fin_cpu;
-  pthread_mutex_t* mutex_desalojo = malloc(sizeof(pthread_mutex_t));
 
   preparar_sockets_io(estructuras_io);
   pthread_mutex_init(&mutex_lista_sockets_cpu, NULL);
-  pthread_mutex_init(mutex_desalojo, NULL);
   pthread_cond_init(&cond_fin_cpu, NULL);
 
   while (true)
@@ -83,8 +89,7 @@ void servidor_escucha(t_datos_servidor_escucha* datos)
         manejo_exitoso = atender_nueva_cpu(
             socket_fd, lista_sockets_cpu, &mutex_lista_sockets_cpu,
             &cond_fin_cpu, datos->logger, datos->lista_mutex, datos->colas,
-            estructuras_io, datos->socket_km, datos->socket_server,
-            mutex_desalojo);
+            estructuras_io, datos->socket_km, datos->socket_server);
         break;
       case MID_IO:
         manejo_exitoso = atender_nuevo_io(
@@ -93,9 +98,7 @@ void servidor_escucha(t_datos_servidor_escucha* datos)
             &(datos->colas.susp_block), &(datos->colas.susp_ready), listas_io);
         break;
       default:
-        pthread_mutex_lock(&(datos->logger->mutex_logger));
-        log_info(datos->logger->logger, "## Recepción de handshake no válido");
-        pthread_mutex_unlock(&(datos->logger->mutex_logger));
+        log_handshake_no_valido(datos->logger);
         manejo_exitoso = false;
         break;
     }
@@ -105,10 +108,7 @@ void servidor_escucha(t_datos_servidor_escucha* datos)
     }
   }
 
-  pthread_mutex_lock(&(datos->logger->mutex_logger));
-  log_info(datos->logger->logger, "## Cerrando servidor");
-  pthread_mutex_unlock(&(datos->logger->mutex_logger));
+  log_cerrando_servidor(datos->logger);
   cerrar_hilo_escucha(estructuras_io, lista_sockets_cpu,
-                      &mutex_lista_sockets_cpu, &cond_fin_cpu, datos,
-                      mutex_desalojo);
+                      &mutex_lista_sockets_cpu, &cond_fin_cpu, datos);
 }
