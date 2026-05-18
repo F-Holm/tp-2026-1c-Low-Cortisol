@@ -175,24 +175,32 @@ static void manejar_syscall_memory_free(t_datos_hilo_cpu* datos)
 
 static void manejar_syscall_io_sleep(t_datos_hilo_cpu* datos)
 {
-  if (!procesar_nuevo_sleep(t_peticion_sleep * peticion,
-                            &(datos->estructuras_io[E_SLEEP]),
+  t_peticion_sleep* peticion;
+  if (!procesar_nuevo_sleep(peticion, &(datos->estructuras_io[E_SLEEP]),
                             t_lista_sleep * lista_sleep, datos->logger))
   {
-    pcb = NULL;
+    *pcb = NULL;
   }
 }
 
 static void manejar_syscall_io_stdout(t_datos_hilo_cpu* datos)
 {
-  bool procesar_nuevo_stdout(t_peticion_stdout * peticion, t_io * io_stdout,
-                             t_lista_stdout * lista_stdout, t_logger * logger);
+  t_peticion_stdout* peticion;
+  if (!procesar_nuevo_stdout(peticion, &(datos->estructuras_io[E_STDOUT]),
+                             t_lista_stdout * lista_stdout, datos->logger))
+  {
+    *pcb = NULL;
+  }
 }
 
 static void manejar_syscall_io_stdin(t_datos_hilo_cpu* datos)
 {
-  bool procesar_nuevo_stdin(t_peticion_stdin * peticion, t_io * io_stdin,
-                            t_lista_stdin * lista_stdin);
+  t_peticion_stdin* peticion;
+  if (!procesar_nuevo_stdin(peticion, &(datos->estructuras_io[E_STDIN]),
+                            t_lista_stdin * lista_stdin))
+  {
+    *pcb = NULL;
+  }
 }
 
 static void manejar_syscall_iniciar_proceso(t_datos_hilo_cpu* datos)
