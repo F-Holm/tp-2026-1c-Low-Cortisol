@@ -16,7 +16,7 @@ t_listas_io* inicializar_listas_io(void){
   listas_io->lista_stdin->lista_stdin = list_create();
   listas_io->lista_stdout->lista_stdout = list_create();
   listas_io->lista_sleep->lista_sleep = list_create();
-
+  return listas_io;git
 }
 
 int io_stdin(t_stdin* peticion, t_hilo_io_in* hilo_in)

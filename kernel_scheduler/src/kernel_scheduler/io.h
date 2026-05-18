@@ -88,7 +88,7 @@ typedef struct
 typedef struct
 {
   t_lista_stdin* lista_stdin;
-  t_peticion_stdout* lista_stdout;
+  t_lista_stdout* lista_stdout;
   t_lista_sleep* lista_sleep;
 } t_listas_io;
 
