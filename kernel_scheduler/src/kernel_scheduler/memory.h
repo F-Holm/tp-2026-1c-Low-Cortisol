@@ -2,7 +2,6 @@
 #define KERNEL_SCHEDULER_MEMORY_H_
 
 #include <commons/log.h>
-#include <sdtlib.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
