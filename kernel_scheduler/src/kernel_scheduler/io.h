@@ -21,7 +21,7 @@ typedef struct
   bool prioridad_activa;
   pthread_cond_t nuevo_proceso;
   t_cola_ready* cola_ready;
-  t_cola* cola_block;
+  t_lista* cola_block;
   t_lista* susp_block;
   t_lista* susp_ready;
   t_logger* logger;

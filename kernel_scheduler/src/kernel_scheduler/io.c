@@ -10,6 +10,15 @@
 #include "utils/msg.h"
 #include "utils/registros.h"
 
+t_listas_io* inicializar_listas_io(void){
+
+  t_listas_io* listas_io;
+  listas_io->lista_stdin->lista_stdin = list_create();
+  listas_io->lista_stdout->lista_stdout = list_create();
+  listas_io->lista_sleep->lista_sleep = list_create();
+
+}
+
 int io_stdin(t_stdin* peticion, t_hilo_io_in* hilo_in)
 {
   // Envio peticion a IO
@@ -233,9 +242,9 @@ int io_sleep(t_sleep* peticion, t_hilo_io_sleep* hilo_sleep)
                              peticion_size, hilo_sleep->io->socket_io);
   if (!envio)
   {
-    pthread_mutex_lock(&(hilo_out->io->logger->mutex_logger));
-    log_error(hilo_out->io->logger->logger, "## Error al enviar a IO");
-    pthread_mutex_unlock(&(hilo_out->io->logger->mutex_logger));
+    pthread_mutex_lock(&(hilo_sleep->io->logger->mutex_logger));
+    log_error(hilo_sleep->io->logger->logger, "## Error al enviar a IO");
+    pthread_mutex_unlock(&(hilo_sleep->io->logger->mutex_logger));
     return D_ERROR_IO;
   }
 
@@ -586,11 +595,11 @@ void cargar_sleep(t_io* io, t_lista_sleep* lista_sleep,
 }
 
 bool atender_nuevo_io(t_io io[3], int socket_fd, t_logger* logger,
-                      t_socket_kernel_memory* socket_km, t_cola* block,
+                      t_socket_kernel_memory* socket_km, t_lista* block,
                       t_cola_ready* ready, t_lista* susp_block,
-                      t_lista* susp_ready)
+                      t_lista* susp_ready,t_listas_io* listas_io)
 {
-  if (!responder_handshake(socket_fd, MID_KERNEL_SCHEDULER, logger->logger))
+  if (!responder_handshake(socket_fd, MID_KERNEL_SCHEDULER, logger))
     return false;
 
   int tipo_io = obtener_tipo_io(socket_fd, logger);
@@ -621,10 +630,8 @@ bool atender_nuevo_io(t_io io[3], int socket_fd, t_logger* logger,
   switch (tipo_io)
   {
     case E_STDIN:
-      t_lista_stdin* lista_stdin;
-      lista_stdin->lista_stdin = list_create();
       t_hilo_io_in* hilo_in;
-      cargar_stdin(&io[E_STDIN], lista_stdin, hilo_in);
+      cargar_stdin(&io[E_STDIN], listas_io->lista_stdin, hilo_in);
       pthread_mutex_init(&(hilo_in->lista_stdin->mutex_lista_stdin), NULL);
       if (pthread_create(&(hilo_in->io->hilo_io), NULL, hilo_io_in,
                          (void*)hilo_in))
@@ -636,10 +643,8 @@ bool atender_nuevo_io(t_io io[3], int socket_fd, t_logger* logger,
       }
       break;
     case E_STDOUT:
-      t_lista_stdout* lista_stdout;
-      lista_stdout->lista_stdout = list_create();
       t_hilo_io_out* hilo_stdout;
-      cargar_stdout(&io[E_STDOUT], lista_stdout, hilo_stdout);
+      cargar_stdout(&io[E_STDOUT], listas_io->lista_stdout, hilo_stdout);
       pthread_mutex_init(&(hilo_stdout->lista_stdout->mutex_lista_stdout),
                          NULL);
       if (pthread_create(&(hilo_stdout->io->hilo_io), NULL, hilo_io_out,
@@ -653,10 +658,8 @@ bool atender_nuevo_io(t_io io[3], int socket_fd, t_logger* logger,
       }
       break;
     case E_SLEEP:
-      t_lista_sleep* lista_sleep;
-      lista_sleep->lista_sleep = list_create();
       t_hilo_io_sleep* hilo_sleep;
-      cargar_sleep(&io[E_SLEEP], lista_sleep, hilo_sleep);
+      cargar_sleep(&io[E_SLEEP], listas_io->lista_sleep, hilo_sleep);
       pthread_mutex_init(&(hilo_sleep->lista_sleep->mutex_lista_sleep), NULL);
       if (pthread_create(&(hilo_sleep->io->hilo_io), NULL, hilo_io_sleep,
                          (void*)hilo_sleep))
