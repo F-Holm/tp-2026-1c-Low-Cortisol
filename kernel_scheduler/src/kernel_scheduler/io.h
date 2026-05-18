@@ -95,7 +95,7 @@ typedef struct
 t_listas_io* inicializar_listas_io(void);
 
 bool atender_nuevo_io(t_io io[3], int socket_fd, t_logger* logger,
-                      t_socket_kernel_memory* socket_km, t_cola* block,
+                      t_socket_kernel_memory* socket_km, t_lista* block,
                       t_cola_ready* ready, t_lista* susp_block,
                       t_lista* susp_ready, t_listas_io* listas_io);
 

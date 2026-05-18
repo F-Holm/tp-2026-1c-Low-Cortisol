@@ -10,13 +10,13 @@
 #include "utils/msg.h"
 #include "utils/registros.h"
 
-t_listas_io* inicializar_listas_io(void){
-
+t_listas_io* inicializar_listas_io(void)
+{
   t_listas_io* listas_io;
   listas_io->lista_stdin->lista_stdin = list_create();
   listas_io->lista_stdout->lista_stdout = list_create();
   listas_io->lista_sleep->lista_sleep = list_create();
-  return listas_io;git
+  return listas_io;
 }
 
 int io_stdin(t_stdin* peticion, t_hilo_io_in* hilo_in)
@@ -597,7 +597,7 @@ void cargar_sleep(t_io* io, t_lista_sleep* lista_sleep,
 bool atender_nuevo_io(t_io io[3], int socket_fd, t_logger* logger,
                       t_socket_kernel_memory* socket_km, t_lista* block,
                       t_cola_ready* ready, t_lista* susp_block,
-                      t_lista* susp_ready,t_listas_io* listas_io)
+                      t_lista* susp_ready, t_listas_io* listas_io)
 {
   if (!responder_handshake(socket_fd, MID_KERNEL_SCHEDULER, logger))
     return false;

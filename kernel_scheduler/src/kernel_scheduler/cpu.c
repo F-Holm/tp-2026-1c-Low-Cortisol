@@ -87,23 +87,23 @@ static void gestionar_desalojo(t_datos_hilo_cpu* datos, t_pcb** pcb,
   if (*pcb != NULL && datos->colas->exec.desalojo)
   {
     int prioridad_desalojado = get_prioridad_pcb(*pcb);
-    pthread_mutex_lock(&(datos->colas.ready.mutex_cola));
-    int prioridad_nuevo = datos->colas.ready.mayor_prioridad;
+    pthread_mutex_lock(&(datos->colas->ready.mutex_cola));
+    int prioridad_nuevo = datos->colas->ready.mayor_prioridad;
     if (prioridad_desalojado > prioridad_nuevo)
     {
-      t_pcb* nueva_pcb = cambio_sacar_ready_bloqueante(&(datos->colas.ready));
-      pthread_mutex_unlock(&(datos->colas.ready.mutex_cola));
+      t_pcb* nueva_pcb = cambio_sacar_ready_bloqueante(&(datos->colas->ready));
+      pthread_mutex_unlock(&(datos->colas->ready.mutex_cola));
 
       log_desalojo_cola_prioritaria(datos->logger, (*pcb)->pid,
                                     prioridad_desalojado, nueva_pcb->pid,
                                     prioridad_nuevo);
-      cambio_exec_ready(*pcb, &(datos->colas.exec), &(datos->colas.ready),
+      cambio_exec_ready(*pcb, &(datos->colas->exec), &(datos->colas->ready),
                         datos->logger);
       *pcb = nueva_pcb;
-      cambio_ready_exec(*pcb, &(datos->colas.exec), datos->logger);
+      cambio_ready_exec(*pcb, &(datos->colas->exec), datos->logger);
       *contador = 0;
     }
-    pthread_mutex_unlock(&(datos->colas.ready.mutex_cola));
+    pthread_mutex_unlock(&(datos->colas->ready.mutex_cola));
   }
 }
 
@@ -265,10 +265,10 @@ static void gestionar_op_code(t_datos_hilo_cpu* datos, int op_code, t_pcb** pcb,
       manejar_syscall_mutex_unlock(datos, pcb);
       break;
     case OP_SYSCALL_MEM_ALLOC:
-      manejar_syscall_memory_allocation(datos, &seguir_operando);
+      manejar_syscall_memory_allocation(datos, seguir_operando);
       break;
     case OP_SYSCALL_MEM_FREE:
-      manejar_syscall_memory_free(datos, &seguir_operando);
+      manejar_syscall_memory_free(datos, seguir_operando);
       break;
     case OP_SYSCALL_SLEEP:
       manejar_syscall_io_sleep(datos, pcb);
