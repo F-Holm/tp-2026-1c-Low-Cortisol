@@ -1,5 +1,5 @@
 {
-  "name": "C++ Dev Ubuntu",
+  "name": "TP Sistemas Operativos",
   "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
   "postCreateCommand": "chmod +x ./setup.sh && sudo ./setup.sh",
   "customizations": {

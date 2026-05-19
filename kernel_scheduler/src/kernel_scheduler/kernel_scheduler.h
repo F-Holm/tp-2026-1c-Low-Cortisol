@@ -41,6 +41,7 @@ typedef struct
   t_config_vars config_vars;
   t_lista_mutex* lista_mutex;
   t_colas* colas;
+  t_socket_kernel_memory* socket_km_mutex;
 } t_kernel_scheduler_recursos;
 
 bool iniciar_modulo(t_kernel_scheduler_recursos* recursos,

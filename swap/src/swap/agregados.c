@@ -19,8 +19,8 @@ bool inicializar_configuracion(t_modulo_swap* modulo_swap)
   modulo_swap->block_size =
       config_get_int_value(modulo_swap->config, "BLOCK_SIZE");
 
-  modulo_swap->logger = log_create("swap.log", "SWAP", true,
-                                   log_level_from_string(log_levelstr););
+  modulo_swap->logger =
+      log_create("swap.log", "SWAP", true, log_level_from_string(log_levelstr));
   if (modulo_swap->logger == NULL)
   {
     config_destroy(modulo_swap->config);
@@ -62,11 +62,12 @@ bool iniciar_conexion(t_modulo_swap* modulo_swap)
   }
   log_info(modulo_swap->logger, "## Handshake exitoso con Kernel Memory");
   // Envio a memory el tamaño del swap y el tamaño de bloque
-  t_paquete* paquete = crear_paquete();
-  paquete->codigo_operacion = OP_PAQUETE;
-  agregar_a_paquete(paquete, &modulo_swap->swap_size, sizeof(int));
-  agregar_a_paquete(paquete, &modulo_swap->block_size, sizeof(int));
-  envio_correcto = enviar_paquete(paquete, modulo_swap->socket_swap);
+  t_envio_a_km* envio_km = malloc(sizeof(t_envio_a_km));
+  int size_envio = sizeof(t_envio_a_km);
+  envio_km->swap_size = modulo_swap->swap_size;
+  envio_km->block_size = modulo_swap->block_size;
+  envio_correcto = enviar_buffer(OP_INFO_SWAP, (void*)envio_km, size_envio,
+                                 modulo_swap->socket_swap);
 
   if (!envio_correcto)
   {
@@ -74,7 +75,7 @@ bool iniciar_conexion(t_modulo_swap* modulo_swap)
     cerrar_todo(modulo_swap);
     return false;
   }
-  eliminar_paquete(paquete);
+  free(envio_km);
 
   return true;
 }
