@@ -56,6 +56,32 @@ t_datos_swap* inicializar_datos_swap(int socket_swap, t_log* logger)
   return datos_swap;
 }
 
+t_proceso* crear_proceso(u_int32_t pid, char* path_relativo, char* scripts_basepath)
+{
+  t_proceso* proceso = malloc(sizeof(t_proceso));
+  proceso->pid = pid;
+  proceso->path_instrucciones = path_relativo;
+  proceso->contexto.AX = proceso->contexto.BX = proceso->contexto.CX =
+      proceso->contexto.DX = proceso->contexto.EAX = proceso->contexto.EBX =
+          proceso->contexto.ECX = proceso->contexto.EDX = proceso->contexto.DI =
+              proceso->contexto.SI = proceso->contexto.PC = 0;
+  
+  int largo = strlen(scripts_basepath) + strlen(path_relativo) + 2;
+  char* path_completo = malloc(largo);
+  snprintf(path_completo, largo, "%s/%s", scripts_basepath, path_relativo);
+
+  FILE* f = fopen(path_completo, "r");
+    if (f == NULL) {
+        log_error(, "## PID: %u - No se pudo abrir el archivo: %s", pid, path_completo);
+        free(proceso);
+        return NULL;
+    }
+
+  proceso->instrucciones = ;
+
+  free(path_completo);
+}
+
 bool inicializar_ip_stick(t_datos_stick* datos_stick, int client_socket)
 {
   struct sockaddr addr;

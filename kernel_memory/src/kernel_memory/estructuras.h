@@ -5,12 +5,18 @@
 #include <commons/log.h>
 #include <pthread.h>
 
+#include "utils/registros.h"
+
 typedef struct
 {
   int socket_kernel_memory;
+  int instruction_delay;
+  char* scripts_basepath;
   t_log* logger;
   t_list* sticks_conectados;
   t_list* cpus_conectados;
+  t_list* procesos;
+  pthread_mutex_t mutex_procesos;
   pthread_mutex_t mutex_lista_sockets;
 } t_datos_kernel_mem;
 
@@ -41,5 +47,14 @@ typedef struct
   int socket_swap;
   t_log* logger;
 } t_datos_swap;
+
+typedef struct
+{
+  uint32_t pid;
+  char* path_instrucciones;
+  char** instrucciones;
+  int cant_instrucciones;
+  t_contexto contexto;
+} t_proceso;
 
 #endif
