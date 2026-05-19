@@ -68,10 +68,10 @@ bool free_memory(t_syscall_memory* mem_free, t_logger* logger,
 
   if (!envio)
   {
-    pthread_mutex_lock(&(hilo_out->io->logger->mutex_logger));
-    log_error(hilo_out->io->logger->logger,
+    pthread_mutex_lock(&(logger->mutex_logger));
+    log_error(logger->logger,
               "## Error en la comunicacion con el Kernel Memory");
-    pthread_mutex_unlock(&(hilo_out->io->logger->mutex_logger));
+    pthread_mutex_unlock(&(logger->mutex_logger));
     cerrar_kernel_scheduler(socket_server, logger,
                             MC_FALLO_CONEXION_KERNEL_MEMORY);
     return false;
