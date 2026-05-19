@@ -124,7 +124,11 @@ int io_stdin(t_stdin* peticion, t_hilo_io_in* hilo_in)
     cambio_block_ready(peticion->pcb, hilo_in->io->cola_block,
                        hilo_in->io->cola_ready, hilo_in->io->logger);
   }
-
+  pthread_mutex_lock(&(hilo_in->io->logger->mutex_logger));
+  log_info(hilo_in->io->logger->logger,
+           "##  <%d> - Finalizó IO y pasa a READY / SUSP. READY",
+           peticion->pcb->pid);
+  pthread_mutex_unlock(&(hilo_in->io->logger->mutex_logger));
   return D_TODO_BIEN;
 }
 
@@ -230,6 +234,11 @@ int io_stdout(t_stdout* peticion, t_hilo_io_out* hilo_out)
     cambio_block_ready(peticion->pcb, hilo_out->io->cola_block,
                        hilo_out->io->cola_ready, hilo_out->io->logger);
   }
+  pthread_mutex_lock(&(hilo_out->io->logger->mutex_logger));
+  log_info(hilo_out->io->logger->logger,
+           "##  <%d> - Finalizó IO y pasa a READY / SUSP. READY",
+           peticion->pcb->pid);
+  pthread_mutex_unlock(&(hilo_out->io->logger->mutex_logger));
   return D_TODO_BIEN;
 }
 
@@ -299,6 +308,11 @@ int io_sleep(t_sleep* peticion, t_hilo_io_sleep* hilo_sleep)
     cambio_block_ready(peticion->pcb, hilo_sleep->io->cola_block,
                        hilo_sleep->io->cola_ready, hilo_sleep->io->logger);
   }
+  pthread_mutex_lock(&(hilo_sleep->io->logger->mutex_logger));
+  log_info(hilo_sleep->io->logger->logger,
+           "##  <%d> - Finalizó IO y pasa a READY / SUSP. READY",
+           peticion->pcb->pid);
+  pthread_mutex_unlock(&(hilo_sleep->io->logger->mutex_logger));
   return D_TODO_BIEN;
 }
 

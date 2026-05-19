@@ -16,8 +16,8 @@ int main(int argc, char* argv[])
   if (argc != 2)
     return EXIT_FAILURE;
   char* archivo_config = argv[1];
-  modulo_swap->config = config_create(archivo_config);
-  if (modulo_swap->config == NULL)
+  sswap.config = config_create(archivo_config);
+  if (sswap.config == NULL)
     return EXIT_FAILURE;
 
   if (!inicializar_configuracion(&sswap))
