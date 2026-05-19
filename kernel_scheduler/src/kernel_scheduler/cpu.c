@@ -168,7 +168,8 @@ static void manejar_syscall_memory_allocation(t_datos_hilo_cpu* datos,
 {
   int size;
   t_syscall_memory* peticion = recibir_buffer(&size, datos->socket_fd);
-  if (!allocate_memory(peticion, datos->logger, datos->socket_km, datos->socket_servidor))
+  if (!allocate_memory(peticion, datos->logger, datos->socket_km,
+                       datos->socket_servidor))
   {
     *seguir_operando = false;
   }
@@ -180,7 +181,8 @@ static void manejar_syscall_memory_free(t_datos_hilo_cpu* datos,
 {
   int size;
   t_syscall_memory* peticion = recibir_buffer(&size, datos->socket_fd);
-  if (!free_memory(peticion, datos->logger, datos->socket_km, datos->socket_servidor))
+  if (!free_memory(peticion, datos->logger, datos->socket_km,
+                   datos->socket_servidor))
   {
     *seguir_operando = false;
   }

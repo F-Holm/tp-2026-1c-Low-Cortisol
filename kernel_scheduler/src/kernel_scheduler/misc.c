@@ -11,7 +11,8 @@ t_socket_kernel_memory* inicializar_socket_kernel_memory(int socket_km)
   t_socket_kernel_memory* socket_km_mutex =
       malloc(sizeof(t_socket_kernel_memory));
   socket_km_mutex->socket_km = socket_km;
-  pthread_mutex_init(&(socket_km->mutex_socket), NULL);
+  pthread_mutex_init(&(socket_km_mutex->mutex_socket), NULL);
+  return socket_km_mutex;
 }
 
 void destruir_kernel_memory(t_socket_kernel_memory* socket_km)
@@ -20,14 +21,14 @@ void destruir_kernel_memory(t_socket_kernel_memory* socket_km)
   free(socket_km);
 }
 
-static bool es_mas_prioritario(t_pcb* pcb1, t_pcb* pcb2)
+static bool es_mas_prioritario(void* pcb1, void* pcb2)
 {
-  return get_prioridad_pcb(pcb1) <= get_prioridad_pcb(pcb2);
+  return get_prioridad_pcb((t_pcb*)pcb1) <= get_prioridad_pcb((t_pcb*)pcb2);
 }
 
-void insertar_pcb_en_orden(t_list* lista, t_pcb* pcb)
+int insertar_pcb_en_orden(t_list* lista, t_pcb* pcb)
 {
-  list_add_sorted(lista, pcb, es_mas_prioritario);
+  return list_add_sorted(lista, pcb, es_mas_prioritario);
 }
 
 int get_prioridad_pcb(t_pcb* pcb)
@@ -44,10 +45,11 @@ t_pcb* crear_pcb(void)
   t_pcb* pcb = malloc(sizeof(t_pcb));
 
   pcb->pid = pid;
-  pthread_mutex_init(&(pcb->mutex_pcb));
+  pthread_mutex_init(&(pcb->mutex_pcb), NULL);
   pcb->tiempo_bloqueado = 0;
 
   pid++;
+  return pcb;
 }
 
 void destruir_pcb(t_pcb* pcb)
@@ -110,7 +112,7 @@ void disminuir_contador_procesos(t_contador_procesos* contador)
   if (contador->cantidad_procesos_activos == 0)
   {
     cerrar_kernel_scheduler(contador->socket_servidor, contador->logger,
-                            MC_SIN_PROCESOS)
+                            MC_SIN_PROCESOS);
   }
   pthread_mutex_lock(&(contador->mutex_contador));
 }
