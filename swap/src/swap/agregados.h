@@ -30,6 +30,12 @@ typedef struct
   int block_size;
 } t_modulo_swap;
 
+typedef struct
+{
+  int swap_size;
+  int block_size;
+} t_envio_a_km;
+
 void cerrar_todo(t_modulo_swap* modulo_swap);
 bool iniciar_conexion(t_modulo_swap* modulo_swap);
 bool inicializar_configuracion(t_modulo_swap* modulo_swap);
