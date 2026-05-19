@@ -21,7 +21,7 @@ typedef struct
   bool prioridad_activa;
   pthread_cond_t nuevo_proceso;
   t_cola_ready* cola_ready;
-  t_cola* cola_block;
+  t_lista* cola_block;
   t_lista* susp_block;
   t_lista* susp_ready;
   t_logger* logger;
@@ -88,14 +88,14 @@ typedef struct
 typedef struct
 {
   t_lista_stdin* lista_stdin;
-  t_peticion_stdout* lista_stdout;
+  t_lista_stdout* lista_stdout;
   t_lista_sleep* lista_sleep;
 } t_listas_io;
 
 t_listas_io* inicializar_listas_io(void);
 
 bool atender_nuevo_io(t_io io[3], int socket_fd, t_logger* logger,
-                      t_socket_kernel_memory* socket_km, t_cola* block,
+                      t_socket_kernel_memory* socket_km, t_lista* block,
                       t_cola_ready* ready, t_lista* susp_block,
                       t_lista* susp_ready, t_listas_io* listas_io);
 
@@ -106,6 +106,6 @@ bool procesar_nuevo_stdout(t_peticion_stdout* peticion, t_io* io_stdout,
                            t_lista_stdout* lista_stdout, t_logger* logger);
 bool procesar_nuevo_sleep(t_peticion_sleep* peticion, t_io* io_sleep,
                           t_lista_sleep* lista_sleep, t_logger* logger);
-void cerrar_io(t_io io[3]);
+void cerrar_io(t_io io[3], t_listas_io* listas_io);
 
 #endif /* KERNEL_SCHEDULER_IO_H_ */

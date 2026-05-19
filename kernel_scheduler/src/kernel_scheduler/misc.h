@@ -63,7 +63,8 @@ void cerrar_kernel_scheduler(int socket_servidor, t_logger* logger,
 
 t_socket_kernel_memory* inicializar_socket_kernel_memory(int socket_km);
 void destruir_kernel_memory(t_socket_kernel_memory* socket_km);
-void insertar_pcb_en_orden(t_list* lista, t_pcb* pcb);
+// retorna el indice del elemento ingresado
+int insertar_pcb_en_orden(t_list* lista, t_pcb* pcb);
 int get_prioridad_pcb(t_pcb* pcb);
 t_pcb* crear_pcb(void);
 void destruir_pcb(t_pcb* pcb);

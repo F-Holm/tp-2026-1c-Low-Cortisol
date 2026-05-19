@@ -31,8 +31,7 @@ bool atender_nueva_cpu(int socket_cpu, t_list* lista_sockets_cpu,
                        pthread_cond_t* cond_fin_cpu, t_logger* logger,
                        t_lista_mutex* lista_mutex, t_colas* colas,
                        t_io* estructuras_io, t_socket_kernel_memory* socket_km,
-                       int socket_servidor, pthread_mutex_t* mutex_desalojo,
-                       t_listas_io* listas_io);
+                       int socket_servidor, t_listas_io* listas_io);
 void cerrar_cpu(t_list* lista_sockets_cpu,
                 pthread_mutex_t* mutex_lista_sockets_cpu,
                 pthread_cond_t* cond_fin_cpu);

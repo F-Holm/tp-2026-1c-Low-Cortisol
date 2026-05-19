@@ -37,12 +37,11 @@ void inicializar_cola_ready(t_cola_ready* cola, int algoritmo,
     cola->cantidad_colas = 1;
     cola->colas = malloc(sizeof(t_cola_individual_ready));
     cola->colas->cola = queue_create();
-    pthread_mutex_init(&(cola->colas->mutex_cola), NULL);
   }
-  pthread_mutex_init(&(cola->mutex_cola));
-  pthread_cond_init(&(cola->nuevo_proceso));
-  pthread_mutex_init(&(cola->bloquear_salida));
-  pthread_cond_init(&(cola->salida_desbloqueada));
+  pthread_mutex_init(&(cola->mutex_cola), NULL);
+  pthread_cond_init(&(cola->nuevo_proceso), NULL);
+  pthread_mutex_init(&(cola->bloquear_salida), NULL);
+  pthread_cond_init(&(cola->salida_desbloqueada), NULL);
   cola->desalojar_todo = false;
   cola->mayor_prioridad = 1000;
 }
@@ -182,20 +181,6 @@ static bool check_prioridad_valida(t_pcb* pcb, t_cola_ready* ready,
          get_prioridad_pcb(pcb) < ready->cantidad_colas;
 }
 
-static void update_mayor_prioridad(t_cola_ready* ready)
-{
-  pthread_mutex_lock(&(ready->mutex_cola));
-  for (int i = 0; i < ready->cantidad_colas; i++)
-  {
-    if (!queue_is_empty(ready->colas[i].cola))
-    {
-      ready->mayor_prioridad = i;
-      break;
-    }
-  }
-  pthread_mutex_unlock(&(ready->mutex_cola));
-}
-
 void update_priordad_mas_baja_exec(t_lista_execute* exec)
 {
   pthread_mutex_lock(&(exec->mutex_lista));
@@ -318,17 +303,19 @@ void cambio_a_exit(t_pcb* pcb, t_contador_procesos* contador, int motivo,
 
 t_pcb* cambio_sacar_new(char* archivo_instrucciones, int prioridad,
                         t_logger* logger, t_socket_kernel_memory* socket_km,
-                        int socket_servidor)
+                        int socket_servidor, t_contador_procesos* contador)
 {
   pthread_mutex_lock(&(logger->mutex_logger));
   t_pcb* pcb = crear_pcb();
   log_info(logger->logger, "## %u Se crea el proceso - Estado: NEW", pcb->pid);
   pcb->prioridad = prioridad;
   pthread_mutex_unlock(&(logger->mutex_logger));
+  aumentar_contador_procesos(contador);
   if (!avisar_nuevo_proceso(socket_km, archivo_instrucciones, pcb->pid))
   {
     log_cambio_estado(logger, pcb->pid, EST_NEW, EST_EXIT);
-    cambio_a_exit(pcb, contador, MFP_CIERRE_SISTEMA, logger);
+    cambio_a_exit(pcb, contador, MFP_CIERRE_SISTEMA, logger, socket_km,
+                  socket_servidor);
     cerrar_kernel_scheduler(socket_servidor, logger,
                             MC_FALLO_CONEXION_KERNEL_MEMORY);
     return NULL;
@@ -344,10 +331,10 @@ static t_pcb* cambio_sacar_ready_sin_mutex(t_cola_ready* ready)
     {
       ready->cant_procesos_ready--;
       t_pcb* pcb = queue_pop(ready->colas[i].cola);
-      if (queue_is_empty(ready->colas[i].cola) && cola_multi_nivel &&
-          ready->mayor_prioridad == i && cant_procesos_ready != 0)
+      if (queue_is_empty(ready->colas[i].cola) && ready->cola_multi_nivel &&
+          ready->mayor_prioridad == i && ready->cant_procesos_ready != 0)
       {
-        for (++i; i < ready->cantidad_colas; ++ +)
+        for (++i; i < ready->cantidad_colas; i++)
         {
           if (!queue_is_empty(ready->colas[i].cola))
           {
@@ -373,14 +360,14 @@ t_pcb* cambio_sacar_ready(t_cola_ready* ready)
 t_pcb* cambio_sacar_ready_bloqueante(t_cola_ready* ready)
 {
   pthread_mutex_lock(&(ready->mutex_cola));
-  while (cant_procesos_ready == 0)
+  while (ready->cant_procesos_ready == 0)
   {
     pthread_cond_wait(&(ready->nuevo_proceso), &(ready->mutex_cola));
   }
   pthread_mutex_lock(&(ready->bloquear_salida));
   while (ready->desalojar_todo)
   {
-    pthread_cond_wait(&(ready->salida_desbloqueada));
+    pthread_cond_wait(&(ready->salida_desbloqueada), &(ready->bloquear_salida));
   }
   pthread_mutex_unlock(&(ready->bloquear_salida));
   t_pcb* pcb = cambio_sacar_ready_sin_mutex(ready);
@@ -475,16 +462,17 @@ t_pcb* cambio_sacar_susp_ready_siguiente(t_lista* susp_ready)
 }
 
 void cambio_new_ready(t_pcb* pcb, t_cola_ready* ready, t_logger* logger,
-                      t_contador_procesos* contador)
+                      t_contador_procesos* contador,
+                      t_socket_kernel_memory* socket_km, int socket_servidor)
 {
   if (!check_prioridad_valida(pcb, ready, logger))
   {
     log_cambio_estado(logger, pcb->pid, EST_NEW, EST_EXIT);
-    cambio_a_exit(pcb, contador, MFP_PRIORIDAD_NO_VALIDA, logger);
+    cambio_a_exit(pcb, contador, MFP_PRIORIDAD_NO_VALIDA, logger, socket_km,
+                  socket_servidor);
   }
   else
   {
-    aumentar_contador_procesos(contador);
     log_cambio_estado(logger, pcb->pid, EST_NEW, EST_READY);
     cambio_a_ready(pcb, ready, logger);
   }
@@ -614,7 +602,8 @@ void vaciar_colas(t_colas* colas, t_logger* logger,
 {
   for (int i = EST_READY; i < EST_EXIT; i++)
   {
-    while (cambio_cualquiera_exit(colas, logger, i, colas->contador_procesos))
+    while (cambio_cualquiera_exit(colas, logger, i, colas->contador_procesos,
+                                  socket_km, socket_servidor))
       ;
   }
 }

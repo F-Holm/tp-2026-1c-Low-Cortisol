@@ -35,12 +35,14 @@ t_datos_servidor_escucha* inicializar_datos_server_escucha(
   return datos;
 }
 
-void cerrar_hilo_escucha(t_io estructuras_io[3], t_list* lista_sockets_cpu,
-                         pthread_mutex_t* mutex_lista_sockets_cpu,
-                         pthread_cond_t* cond_fin_cpu,
-                         t_datos_servidor_escucha* datos)
+static void cerrar_hilo_escucha(t_io estructuras_io[3],
+                                t_list* lista_sockets_cpu,
+                                pthread_mutex_t* mutex_lista_sockets_cpu,
+                                pthread_cond_t* cond_fin_cpu,
+                                t_datos_servidor_escucha* datos,
+                                t_listas_io* listas_io)
 {
-  cerrar_io(estructuras_io);
+  cerrar_io(estructuras_io, listas_io);
   cerrar_cpu(lista_sockets_cpu, mutex_lista_sockets_cpu, cond_fin_cpu);
   free(datos);
 }
@@ -56,11 +58,13 @@ static void preparar_sockets_io(t_io estructuras_io[3])
 static void crear_proceso_inicial(t_datos_servidor_escucha* datos)
 {
   t_pcb* pcb = cambio_sacar_new(datos->path_proceso_inicial, 0, datos->logger,
-                                datos->socket_km, datos->socket_server);
+                                datos->socket_km, datos->socket_server,
+                                datos->colas->contador_procesos);
   if (pcb != NULL)
   {
-    cambio_new_ready(pcb, &(datos->colas.ready), datos->logger,
-                     datos->colas->contador_procesos);
+    cambio_new_ready(pcb, &(datos->colas->ready), datos->logger,
+                     datos->colas->contador_procesos, datos->socket_km,
+                     datos->socket_server);
   }
 }
 
@@ -106,13 +110,14 @@ void servidor_escucha(t_datos_servidor_escucha* datos)
         manejo_exitoso = atender_nueva_cpu(
             socket_fd, lista_sockets_cpu, &mutex_lista_sockets_cpu,
             &cond_fin_cpu, datos->logger, datos->lista_mutex, datos->colas,
-            estructuras_io, datos->socket_km, datos->socket_server);
+            estructuras_io, datos->socket_km, datos->socket_server, listas_io);
         break;
       case MID_IO:
         manejo_exitoso = atender_nuevo_io(
             estructuras_io, socket_fd, datos->logger, datos->socket_km,
-            &(datos->colas.block), &(datos->colas.ready),
-            &(datos->colas.susp_block), &(datos->colas.susp_ready), listas_io);
+            &(datos->colas->block), &(datos->colas->ready),
+            &(datos->colas->susp_block), &(datos->colas->susp_ready),
+            listas_io);
         break;
       default:
         log_handshake_no_valido(datos->logger);
@@ -127,5 +132,6 @@ void servidor_escucha(t_datos_servidor_escucha* datos)
 
   log_cerrando_servidor(datos->logger);
   cerrar_hilo_escucha(estructuras_io, lista_sockets_cpu,
-                      &mutex_lista_sockets_cpu, &cond_fin_cpu, datos);
+                      &mutex_lista_sockets_cpu, &cond_fin_cpu, datos,
+                      listas_io);
 }

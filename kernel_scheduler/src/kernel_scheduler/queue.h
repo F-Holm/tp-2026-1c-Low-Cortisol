@@ -115,7 +115,7 @@ void cambio_a_exit(t_pcb* pcb, t_contador_procesos* contador, int motivo,
 
 t_pcb* cambio_sacar_new(char* archivo_instrucciones, int prioridad,
                         t_logger* logger, t_socket_kernel_memory* socket_km,
-                        int socket_servidor);
+                        int socket_servidor, t_contador_procesos* contador);
 t_pcb* cambio_sacar_ready(t_cola_ready* ready);
 t_pcb* cambio_sacar_ready_bloqueante(t_cola_ready* ready);
 void cambio_sacar_exec(t_pcb* pcb, t_lista_execute* exec);
@@ -128,7 +128,8 @@ void cambio_sacar_susp_ready(t_pcb* pcb, t_lista* susp_ready);
 t_pcb* cambio_sacar_susp_ready_siguiente(t_lista* susp_ready);
 
 void cambio_new_ready(t_pcb* pcb, t_cola_ready* ready, t_logger* logger,
-                      t_contador_procesos* contador);
+                      t_contador_procesos* contador,
+                      t_socket_kernel_memory* socket_km, int socket_servidor);
 // cambio_ready_exec: No implementado, solo contiene el log por ahora. Usar
 // funciones individuales
 void cambio_ready_exec(t_pcb* pcb, t_lista_execute* exec, t_logger* logger);

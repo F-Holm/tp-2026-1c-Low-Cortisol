@@ -52,7 +52,7 @@ bool avisar_nuevo_proceso(t_socket_kernel_memory* socket_km,
 {
   t_paquete* paquete = crear_paquete(OP_NUEVO_PROCESO);
   agregar_string_a_paquete(paquete, archivo_instrucciones);
-  agregar_a_paquete(paquete, pid, sizeof(uint32_t));
+  agregar_a_paquete(paquete, &pid, sizeof(uint32_t));
 
   pthread_mutex_lock(&(socket_km->mutex_socket));
   bool ret = enviar_paquete(paquete, socket_km->socket_km);
@@ -65,7 +65,8 @@ bool avisar_nuevo_proceso(t_socket_kernel_memory* socket_km,
 bool avisar_terminar_proceso(t_socket_kernel_memory* socket_km, uint32_t pid)
 {
   pthread_mutex_lock(&(socket_km->mutex_socket));
-  bool ret = enviar_buffer(OP_TERMINAR_PROCESO, &pid, sizeof(uint32_t));
+  bool ret = enviar_buffer(OP_TERMINAR_PROCESO, &pid, sizeof(uint32_t),
+                           socket_km->socket_km);
   pthread_mutex_unlock(&(socket_km->mutex_socket));
   return ret;
 }
