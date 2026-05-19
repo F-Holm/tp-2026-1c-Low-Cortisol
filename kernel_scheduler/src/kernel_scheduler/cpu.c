@@ -227,12 +227,14 @@ static void manejar_syscall_iniciar_proceso(t_datos_hilo_cpu* datos)
   t_list* lista = recibir_paquete(datos->socket_fd);
   t_pcb* nueva_pcb =
       cambio_sacar_new(list_get(lista, 0), *(int*)list_get(lista, 1),
-                       datos->logger, datos->socket_km, datos->socket_servidor);
+                       datos->logger, datos->socket_km, datos->socket_servidor,
+                       datos->colas->contador_procesos);
   list_destroy_and_destroy_elements(lista, free);
   if (nueva_pcb != NULL)
   {
     cambio_new_ready(nueva_pcb, &(datos->colas->ready), datos->logger,
-                     datos->colas->contador_procesos);
+                     datos->colas->contador_procesos, datos->socket_km,
+                     datos->socket_servidor);
   }
 }
 
