@@ -666,7 +666,7 @@ bool atender_nuevo_io(t_io io[3], int socket_fd, t_logger* logger,
       break;
     case E_SLEEP:
       t_hilo_io_sleep* hilo_sleep;
-      hilo_sleep = malloc(sizeof(t_hilo_sleep));
+      hilo_sleep = malloc(sizeof(t_hilo_io_sleep));
       cargar_sleep(&io[E_SLEEP], listas_io->lista_sleep, hilo_sleep);
       pthread_mutex_init(&(hilo_sleep->lista_sleep->mutex_lista_sleep), NULL);
       if (pthread_create(&(hilo_sleep->io->hilo_io), NULL, hilo_io_sleep,
@@ -756,7 +756,7 @@ void destruir_io(t_io* io)
   close(io->socket_io);
 }
 
-void cerrar_io(t_io io[3], t_listas_io listas_io)
+void cerrar_io(t_io io[3], t_listas_io* listas_io)
 {
   for (int i = 0; i < 3; i++)
   {
@@ -764,4 +764,5 @@ void cerrar_io(t_io io[3], t_listas_io listas_io)
     pthread_mutex_lock(&(io[i].mutex_fin));
     destruir_io(&io[i]);
   }
+  free(listas_io);
 }
