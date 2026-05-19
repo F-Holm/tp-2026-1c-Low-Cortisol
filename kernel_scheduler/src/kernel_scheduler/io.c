@@ -10,13 +10,17 @@
 #include "utils/msg.h"
 #include "utils/registros.h"
 
-t_listas_io* inicializar_listas_io(void){
-
+t_listas_io* inicializar_listas_io(void)
+{
   t_listas_io* listas_io;
+  listas_io = malloc(sizeof(t_listas_io));
+  listas_io->lista_stdin = malloc(sizeof(t_lista_stdin));
+  listas_io->lista_stdout = malloc(sizeof(t_lista_stdout));
+  listas_io->lista_sleep = malloc(sizeof(t_lista_sleep));
   listas_io->lista_stdin->lista_stdin = list_create();
   listas_io->lista_stdout->lista_stdout = list_create();
   listas_io->lista_sleep->lista_sleep = list_create();
-  return listas_io;git
+  return listas_io;
 }
 
 int io_stdin(t_stdin* peticion, t_hilo_io_in* hilo_in)
@@ -92,7 +96,6 @@ int io_stdin(t_stdin* peticion, t_hilo_io_in* hilo_in)
   char* respuesta = recibir_string(hilo_in->io->socket_km->socket_km);
   pthread_mutex_unlock(&(hilo_in->io->socket_km->mutex_socket));
   free(respuesta);
-  free(buffer);
 
   pthread_mutex_lock(&(hilo_in->lista_stdin->mutex_lista_stdin));
   if (list_remove_element(hilo_in->lista_stdin->lista_stdin, peticion) == 0)
@@ -381,6 +384,7 @@ void* hilo_io_in(void* hilo_in)
   list_destroy(hilo_stdin->lista_stdin->lista_stdin);
   free(hilo_stdin->lista_stdin);
   pthread_mutex_unlock(&(hilo_stdin->io->mutex_fin));
+  free(hilo_stdin);
   return NULL;
 }
 
@@ -470,6 +474,7 @@ void* hilo_io_out(void* hilo_out)
   list_destroy(hilo_stdout->lista_stdout->lista_stdout);
   free(hilo_stdout->lista_stdout);
   pthread_mutex_unlock(&(hilo_stdout->io->mutex_fin));
+  free(hilo_stdout);
   return NULL;
 }
 
@@ -536,8 +541,8 @@ void* hilo_io_sleep(void* hilo_sleep)
   list_destroy(shilo_sleep->lista_sleep->lista_sleep);
   free(shilo_sleep->lista_sleep->lista_sleep);
   free(shilo_sleep->lista_sleep);
-
   pthread_mutex_unlock(&(shilo_sleep->io->mutex_fin));
+  free(shilo_sleep);
   return NULL;
 }
 
@@ -597,7 +602,7 @@ void cargar_sleep(t_io* io, t_lista_sleep* lista_sleep,
 bool atender_nuevo_io(t_io io[3], int socket_fd, t_logger* logger,
                       t_socket_kernel_memory* socket_km, t_lista* block,
                       t_cola_ready* ready, t_lista* susp_block,
-                      t_lista* susp_ready,t_listas_io* listas_io)
+                      t_lista* susp_ready, t_listas_io* listas_io)
 {
   if (!responder_handshake(socket_fd, MID_KERNEL_SCHEDULER, logger))
     return false;
@@ -631,6 +636,7 @@ bool atender_nuevo_io(t_io io[3], int socket_fd, t_logger* logger,
   {
     case E_STDIN:
       t_hilo_io_in* hilo_in;
+      hilo_in = malloc(sizeof(t_hilo_io_in));
       cargar_stdin(&io[E_STDIN], listas_io->lista_stdin, hilo_in);
       pthread_mutex_init(&(hilo_in->lista_stdin->mutex_lista_stdin), NULL);
       if (pthread_create(&(hilo_in->io->hilo_io), NULL, hilo_io_in,
@@ -644,6 +650,7 @@ bool atender_nuevo_io(t_io io[3], int socket_fd, t_logger* logger,
       break;
     case E_STDOUT:
       t_hilo_io_out* hilo_stdout;
+      hilo_stdout = malloc(sizeof(t_hilo_io_out));
       cargar_stdout(&io[E_STDOUT], listas_io->lista_stdout, hilo_stdout);
       pthread_mutex_init(&(hilo_stdout->lista_stdout->mutex_lista_stdout),
                          NULL);
@@ -659,6 +666,7 @@ bool atender_nuevo_io(t_io io[3], int socket_fd, t_logger* logger,
       break;
     case E_SLEEP:
       t_hilo_io_sleep* hilo_sleep;
+      hilo_sleep = malloc(sizeof(t_hilo_sleep));
       cargar_sleep(&io[E_SLEEP], listas_io->lista_sleep, hilo_sleep);
       pthread_mutex_init(&(hilo_sleep->lista_sleep->mutex_lista_sleep), NULL);
       if (pthread_create(&(hilo_sleep->io->hilo_io), NULL, hilo_io_sleep,
@@ -745,9 +753,10 @@ void destruir_io(t_io* io)
   pthread_mutex_destroy(&(io->mutex_socket_io));
   pthread_mutex_destroy(&(io->mutex_fin));
   pthread_cond_destroy(&(io->nuevo_proceso));
+  close(io->socket_io);
 }
 
-void cerrar_io(t_io io[3])
+void cerrar_io(t_io io[3], t_listas_io listas_io)
 {
   for (int i = 0; i < 3; i++)
   {
@@ -755,6 +764,4 @@ void cerrar_io(t_io io[3])
     pthread_mutex_lock(&(io[i].mutex_fin));
     destruir_io(&io[i]);
   }
-
-  free(io);
 }
