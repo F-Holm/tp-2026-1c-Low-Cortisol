@@ -61,7 +61,7 @@ static void crear_proceso_inicial(t_datos_servidor_escucha* datos)
                                 datos->socket_km, datos->socket_server);
   if (pcb != NULL)
   {
-    cambio_new_ready(pcb, &(datos->colas.ready), datos->logger,
+    cambio_new_ready(pcb, &(datos->colas->ready), datos->logger,
                      datos->colas->contador_procesos);
   }
 }
@@ -108,13 +108,13 @@ void servidor_escucha(t_datos_servidor_escucha* datos)
         manejo_exitoso = atender_nueva_cpu(
             socket_fd, lista_sockets_cpu, &mutex_lista_sockets_cpu,
             &cond_fin_cpu, datos->logger, datos->lista_mutex, datos->colas,
-            estructuras_io, datos->socket_km, datos->socket_server);
+            estructuras_io, datos->socket_km, datos->socket_server, listas_io);
         break;
       case MID_IO:
         manejo_exitoso = atender_nuevo_io(
             estructuras_io, socket_fd, datos->logger, datos->socket_km,
-            &(datos->colas.block), &(datos->colas.ready),
-            &(datos->colas.susp_block), &(datos->colas.susp_ready), listas_io);
+            &(datos->colas->block), &(datos->colas->ready),
+            &(datos->colas->susp_block), &(datos->colas->susp_ready), listas_io);
         break;
       default:
         log_handshake_no_valido(datos->logger);
@@ -129,6 +129,6 @@ void servidor_escucha(t_datos_servidor_escucha* datos)
 
   log_cerrando_servidor(datos->logger);
   cerrar_hilo_escucha(estructuras_io, lista_sockets_cpu,
-                      &mutex_lista_sockets_cpu, &cond_fin_cpu, datos, ,
+                      &mutex_lista_sockets_cpu, &cond_fin_cpu, datos,
                       listas_io);
 }
