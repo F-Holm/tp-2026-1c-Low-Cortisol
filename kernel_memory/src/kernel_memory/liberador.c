@@ -42,7 +42,7 @@ void liberar_datos_kernel_mem(t_datos_kernel_mem* datos_kernel)
     return;
 
   // Liberar mutex
-  pthread_mutex_destroy(&datos_kernel->mutex_lista_sockets);
+  pthread_mutex_destroy(datos_kernel->mutex_lista_sockets);
 
   // Liberar listas (solo la estructura, no los elementos)
   if (datos_kernel->sticks_conectados != NULL)
@@ -55,4 +55,14 @@ void liberar_datos_kernel_mem(t_datos_kernel_mem* datos_kernel)
     terminar_comunicacion(datos_kernel->socket_kernel_memory);
 
   free(datos_kernel);
+}
+
+void liberar_proceso(t_proceso* proceso)
+{
+  for (int i = 0; i < proceso->cant_instrucciones; i++)
+  {
+    free(proceso->instrucciones[i]);
+  }
+  free(proceso->instrucciones);
+  free(proceso);
 }

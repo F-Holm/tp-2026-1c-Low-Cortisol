@@ -20,32 +20,47 @@ void* escucha_scheduler(void* ptr)
   {
     switch (recibir_operacion(datos_scheduler->socket_scheduler))
     {
-      case OP_PAQUETE:
-        // t_list* paquete = recibir_paquete(datos_scheduler->socket_scheduler);
-        log_info(datos_scheduler->logger,
-                 "Llego un paquete de la memory stick");
-        // comunicaciones
+      case OP_NUEVO_PROCESO:
+        t_list* paquete = recibir_paquete(datos_scheduler->socket_scheduler);
+        char* path_relativo = list_get(paquete, 0);
+        u_int32_t* pid = list_get(paquete, 1);
+
+        t_proceso* proceso = inicializar_proceso(
+            *pid, path_relativo, datos_scheduler->scripts_basepath,
+            datos_scheduler->logger);
+
+        pthread_mutex_lock(datos_scheduler->mutex_procesos);
+        list_add(datos_scheduler->procesos, proceso);
+        pthread_mutex_unlock(datos_scheduler->mutex_procesos);
+
+        log_info(datos_scheduler->logger, "## PID: %ls - Proceso Creado", pid);
+
+        free(pid);
+        list_clean(paquete);
+        list_destroy(paquete);
+        break;
+      case OP_SYSCALL_MEM_ALLOC:
+        log_info(datos_scheduler->logger, "Llego una syscall de MEM_ALLOC");
         break;
 
-      case OP_CREAR_PROCESO:
-        // FALTA aca recibiria el pid y el path como buffer binario (el pid) +
-        // string (el path)
-        u_int32_t pid;        //  FALTA: guardo pid localmente
-        char* path_relativo;  //  FALTA: guardo path localmente
-
-        t_proceso* proceso =
-            crear_proceso(pid, path_relativo,
-                          /*es de datos-kernel-mem pero se pierde en el medio*/
-                          script_basepaths);
-        // FALTA proteger con el mutex de proceso de datos-kernel-mem
-        list_add(/*lista procesos de datos-kernel-mem*/, proceso);
-
-        log_info(datos_scheduler->logger, "## PID: %u - Proceso Creado", pid);
-
-        enviar_string(
-            OP_OK, "OK",
-            datos_scheduler->socket_scheduler);  // Responder ok ante creacion
-                                                 // de proceso (escritura)
+      case OP_SYSCALL_MEM_FREE:
+        log_info(datos_scheduler->logger, "Llego una syscall de MEM_FREE");
+        break;
+      case OP_PETICION_IO_STDIN:
+        log_info(datos_scheduler->logger,
+                 "Llego una syscall de PETICION_IO_STDIN");
+        t_list* paquete_stdin = recibir_paquete(
+            datos_scheduler
+                ->socket_scheduler);  // RECIBE STRUCT DE PETICION STDOUT
+        enviar_string(OP_OK, "OK", datos_scheduler->socket_scheduler);
+        break;
+      case OP_PETICION_IO_STDOUT:
+        log_info(datos_scheduler->logger,
+                 "Llego una syscall de PETICION_IO_STDOUT");
+        t_list* paquete_stdout = recibir_paquete(
+            datos_scheduler
+                ->socket_scheduler);  // RECIBE STRUCT DE PETICION STDIN
+        enviar_string(OP_OK, "OK", datos_scheduler->socket_scheduler);
         break;
 
       case OP_CODE_ERROR:
@@ -60,6 +75,19 @@ void* escucha_scheduler(void* ptr)
   return NULL;
 }
 
+t_proceso* buscar_proceso(t_datos_cpu* datos_cpu, uint32_t pid)
+{
+  for (int i = 0; i < list_size(datos_cpu->procesos); i++)
+  {
+    pthread_mutex_lock(datos_cpu->mutex_procesos);
+    t_proceso* proceso = list_get(datos_cpu->procesos, i);
+    pthread_mutex_unlock(datos_cpu->mutex_procesos);
+    if (proceso->pid == pid)
+      return proceso;
+  }
+  return NULL;
+}
+
 void* escucha_cpu(void* ptr)
 {
   t_datos_cpu* datos_cpu = (t_datos_cpu*)ptr;
@@ -68,10 +96,21 @@ void* escucha_cpu(void* ptr)
   {
     switch (recibir_operacion(datos_cpu->socket_cpu))
     {
-      case OP_PAQUETE:
-        // t_list* paquete = recibir_paquete(datos_cpu->socket_cpu);
-        log_info(datos_cpu->logger, "Llego un paquete de la memory stick");
-        // comunicaciones
+      case OP_SIGUIENTE_INSTRUCCION:
+        t_list* paquete = recibir_paquete(datos_cpu->socket_cpu);
+        uint32_t pid = *(uint32_t*)list_get(paquete, 0);
+        uint32_t pc = *(uint32_t*)list_get(paquete, 1);
+
+        t_proceso* proceso = buscar_proceso(datos_cpu, pid);
+        char* instruccion = proceso->instrucciones[pc];
+
+        log_info(datos_cpu->logger,
+                 "## PID: %u - Obtener instrucción: %u - Instrucción: %s", pid,
+                 pc, instruccion);
+
+        usleep(datos_cpu->instruction_delay * 1000);
+        enviar_string(OP_ENVIAR_INSTRUCCION, instruccion,
+                      datos_cpu->socket_cpu);
         break;
       case OP_CODE_ERROR:
         conexion_estable = false;

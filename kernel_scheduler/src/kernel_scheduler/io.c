@@ -53,8 +53,8 @@ int io_stdin(t_stdin* peticion, t_hilo_io_in* hilo_in)
   }
   // Le envio el paquete al Kernel Memory para que escriba en la memoria
   pthread_mutex_lock(&(hilo_in->io->socket_km->mutex_socket));
-  envio = enviar_buffer(OP_ESCRIBIR_EN_MEMORIA, peticion->peticion,
-                        peticion_size, hilo_in->io->socket_km->socket_km);
+  envio = enviar_buffer(OP_PETICION_IO_STDIN, peticion->peticion, peticion_size,
+                        hilo_in->io->socket_km->socket_km);
   if (!envio)
   {
     pthread_mutex_lock(&(hilo_in->io->logger->mutex_logger));
@@ -63,7 +63,7 @@ int io_stdin(t_stdin* peticion, t_hilo_io_in* hilo_in)
     pthread_mutex_unlock(&(hilo_in->io->logger->mutex_logger));
     return D_ERROR_CONEXION_KM;
   }
-  envio = enviar_string(OP_ESCRIBIR_EN_MEMORIA, buffer,
+  envio = enviar_string(OP_PETICION_IO_STDIN, buffer,
                         hilo_in->io->socket_km->socket_km);
   if (!envio)
   {

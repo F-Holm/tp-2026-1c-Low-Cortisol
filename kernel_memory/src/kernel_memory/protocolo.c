@@ -77,32 +77,35 @@ bool recibir_puerto_escucha_stick(t_datos_stick* datos_stick)
 void agregar_conexion_stick(t_datos_kernel_mem* datos_kernel_memory,
                             t_datos_stick* datos_stick)
 {
-  pthread_mutex_lock(&datos_kernel_memory->mutex_lista_sockets);
+  pthread_mutex_lock(datos_kernel_memory->mutex_lista_sockets);
   list_add(datos_kernel_memory->sticks_conectados, datos_stick);
-  pthread_mutex_unlock(&datos_kernel_memory->mutex_lista_sockets);
+  pthread_mutex_unlock(datos_kernel_memory->mutex_lista_sockets);
   return;
 }
 
 void agregar_conexion_cpu(t_datos_kernel_mem* datos_kernel_memory,
                           t_datos_cpu* datos_cpu)
 {
-  pthread_mutex_lock(&datos_kernel_memory->mutex_lista_sockets);
+  pthread_mutex_lock(datos_kernel_memory->mutex_lista_sockets);
   list_add(datos_kernel_memory->cpus_conectados, datos_cpu);
-  pthread_mutex_unlock(&datos_kernel_memory->mutex_lista_sockets);
+  pthread_mutex_unlock(datos_kernel_memory->mutex_lista_sockets);
   return;
 }
 
-void enviar_sticks_conectadas(t_datos_kernel_mem* datos_kernel_memory,
+void enviar_sticks_conectadas(t_list* sticks_conectados,
+                              pthread_mutex_t* mutex_lista_sockets,
                               t_datos_cpu* datos_cpu)
 {
-  pthread_mutex_lock(&datos_kernel_memory->mutex_lista_sockets);
-  int total_sticks = list_size(datos_kernel_memory->sticks_conectados);
+  pthread_mutex_lock(mutex_lista_sockets);
+  t_list* copia_sticks = list_duplicate(sticks_conectados);
+  pthread_mutex_unlock(mutex_lista_sockets);
+
+  int total_sticks = list_size(copia_sticks);
 
   for (int i = 0; i < total_sticks; i++)
   {
     t_paquete* paquete = crear_paquete(OP_PAQUETE);
-    t_datos_stick* stick_actual =
-        (t_datos_stick*)list_get(datos_kernel_memory->sticks_conectados, i);
+    t_datos_stick* stick_actual = (t_datos_stick*)list_get(copia_sticks, i);
 
     char puerto[6];
     snprintf(puerto, sizeof(puerto), "%u", stick_actual->puerto_stick);
@@ -113,7 +116,7 @@ void enviar_sticks_conectadas(t_datos_kernel_mem* datos_kernel_memory,
     enviar_paquete(paquete, datos_cpu->socket_cpu);
     eliminar_paquete(paquete);
   }
-  pthread_mutex_unlock(&datos_kernel_memory->mutex_lista_sockets);
+  list_destroy(copia_sticks);
 }
 
 void enviar_conexion_cpu(t_datos_stick* datos_stick, t_list* cpus_conectados)
@@ -135,5 +138,33 @@ void enviar_conexion_cpu(t_datos_stick* datos_stick, t_list* cpus_conectados)
     t_datos_cpu* cpu_actual = (t_datos_cpu*)list_get(cpus_conectados, i);
     enviar_paquete(paquete, cpu_actual->socket_cpu);
   }
+  eliminar_paquete(paquete);
+}
+
+u_int32_t calcular_memoria_total(t_list* sticks_conectados,
+                                 pthread_mutex_t* mutex_lista_sockets)
+{
+  u_int32_t total = 0;
+  for (int i = 0; i < list_size(sticks_conectados); i++)
+  {
+    pthread_mutex_lock(mutex_lista_sockets);
+    t_datos_stick* stick_actual =
+        (t_datos_stick*)list_get(sticks_conectados, i);
+    pthread_mutex_unlock(mutex_lista_sockets);
+    total += stick_actual->tamanio_stick;
+  }
+  return total;
+}
+
+void enviar_tamanio_disponible_scheduler(int socket_scheduler,
+                                         t_list* sticks_conectados,
+                                         pthread_mutex_t* mutex_lista_sockets,
+                                         t_log* logger)
+{
+  t_paquete* paquete = crear_paquete(OP_TAMANIO_TOTAL_MEMORIA);
+  u_int32_t tamanio_total =
+      calcular_memoria_total(sticks_conectados, mutex_lista_sockets);
+  agregar_a_paquete(paquete, &tamanio_total, sizeof(u_int32_t));
+  enviar_paquete(paquete, socket_scheduler);
   eliminar_paquete(paquete);
 }

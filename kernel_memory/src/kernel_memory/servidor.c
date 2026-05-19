@@ -25,7 +25,10 @@ void handshake(t_datos_kernel_mem* datos_kernel_memory, int client_socket)
                "## Kernel Scheduler Conectado - FD del socket: %i",
                client_socket);
       t_datos_scheduler* datos_scheduler = inicializar_datos_scheduler(
-          client_socket, datos_kernel_memory->logger);
+          client_socket, datos_kernel_memory->procesos,
+          datos_kernel_memory->scripts_basepath,
+          datos_kernel_memory->mutex_procesos, datos_kernel_memory->logger);
+      datos_kernel_memory->socket_scheduler = client_socket;
       empezar_escucha_scheduler(datos_scheduler);
     }
     break;
@@ -40,13 +43,17 @@ void handshake(t_datos_kernel_mem* datos_kernel_memory, int client_socket)
       }
       bool inicializar_correcto = true;
       log_info(datos_kernel_memory->logger, "Se ha conectado una CPU!");
-      t_datos_cpu* datos_cpu =
-          inicializar_datos_cpu(client_socket, datos_kernel_memory->logger);
+      t_datos_cpu* datos_cpu = inicializar_datos_cpu(
+          client_socket, datos_kernel_memory->procesos,
+          datos_kernel_memory->mutex_procesos,
+          datos_kernel_memory->instruction_delay, datos_kernel_memory->logger);
       inicializar_correcto = recibir_id_cpu(datos_cpu);
       agregar_conexion_cpu(datos_kernel_memory, datos_cpu);
       if (inicializar_correcto)
       {
-        enviar_sticks_conectadas(datos_kernel_memory, datos_cpu);
+        enviar_sticks_conectadas(datos_kernel_memory->sticks_conectados,
+                                 datos_kernel_memory->mutex_lista_sockets,
+                                 datos_cpu);
 
         empezar_escucha_cpu(datos_cpu);
       }
@@ -77,6 +84,11 @@ void handshake(t_datos_kernel_mem* datos_kernel_memory, int client_socket)
       if (inicializar_correcto)
       {
         enviar_conexion_cpu(datos_stick, datos_kernel_memory->cpus_conectados);
+        enviar_tamanio_disponible_scheduler(
+            datos_kernel_memory->socket_scheduler,
+            datos_kernel_memory->sticks_conectados,
+            datos_kernel_memory->mutex_lista_sockets,
+            datos_kernel_memory->logger);
         empezar_escucha_stick(datos_stick);
       }
       else

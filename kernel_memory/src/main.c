@@ -22,9 +22,15 @@ int main(int argc, char* argv[])
   t_log* logger = iniciar_logger(config);
   int socket_kernel_memory =
       iniciar_servidor(config_get_string_value(config, "PUERTO_KERNEL_MEMORY"));
+  char* scripts_basepath = iniciar_basepath(config);
+  int instruction_delay = iniciar_instruction_delay(config);
+  int compaction_delay = iniciar_compaction_delay(config);
+  int segment_max_size = iniciar_segment_max_size(config);
+  int allocation_strategy = iniciar_allocation_strategy(config);
 
-  t_datos_kernel_mem* datos_kernel =
-      inicializar_datos_kernel_memory(socket_kernel_memory, logger);
+  t_datos_kernel_mem* datos_kernel = inicializar_datos_kernel_memory(
+      socket_kernel_memory, scripts_basepath, instruction_delay,
+      compaction_delay, segment_max_size, allocation_strategy, logger);
 
   while (true)
   {
