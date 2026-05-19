@@ -73,22 +73,23 @@ typedef struct
   pthread_mutex_t mutex_lista_sleep;
 } t_lista_sleep;
 
-typedef struct{
-t_io* io;
-t_lista_stdin* lista_stdin;
-}t_hilo_io_in;
+typedef struct
+{
+  t_io* io;
+  t_lista_stdin* lista_stdin;
+} t_hilo_io_in;
 
-typedef struct{
-t_io* io;
-t_lista_stdout* lista_stdout;
-}t_hilo_io_out;
+typedef struct
+{
+  t_io* io;
+  t_lista_stdout* lista_stdout;
+} t_hilo_io_out;
 
-typedef struct{
-t_io* io;
-t_lista_sleep* lista_sleep;
-}t_hilo_io_sleep;
-
-
+typedef struct
+{
+  t_io* io;
+  t_lista_sleep* lista_sleep;
+} t_hilo_io_sleep;
 
 bool atender_nuevo_io(t_io* io[3], int socket_fd, t_logger* logger,
                       t_socket_kernel_memory* socket_km, t_cola* block,

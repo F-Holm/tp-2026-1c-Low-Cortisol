@@ -1,8 +1,8 @@
 #include "kernel_scheduler/misc.h"
 
 #include <pthread.h>
-#include <sys/time.h>
 #include <sys/socket.h>
+#include <sys/time.h>
 
 #include "utils/msg.h"
 
@@ -61,7 +61,8 @@ unsigned long time_diff(unsigned long time_1, unsigned long time_2)
   return time_1 > time_2 ? time_1 - time_2 : time_2 - time_1;
 }
 
-t_contador_procesos* inicializar_contador_procesos(int socket_servidor, t_logger* logger)
+t_contador_procesos* inicializar_contador_procesos(int socket_servidor,
+                                                   t_logger* logger)
 {
   t_contador_procesos* contador = malloc(sizeof(t_contador_procesos));
   contador->cantidad_procesos_activos = 0;
@@ -81,9 +82,10 @@ void disminuir_contador_procesos(t_contador_procesos* contador)
 {
   pthread_mutex_lock(&(contador->mutex_contador));
   contador->cantidad_procesos_activos--;
-  if (contador->cantidad_procesos_activos == 0){
+  if (contador->cantidad_procesos_activos == 0)
+  {
     cerrar_kernel_scheduler(int socket_servidor, t_logger* logger,
-                             int motivo_cierre)
+                            int motivo_cierre)
   }
   pthread_mutex_lock(&(contador->mutex_contador));
 }

@@ -11,5 +11,6 @@ void liberar_datos_scheduler(t_datos_scheduler* datos_scheduler);
 void liberar_datos_cpu(t_datos_cpu* datos_cpu);
 void liberar_datos_stick(t_datos_stick* datos_stick);
 void liberar_datos_swap(t_datos_swap* datos_swap);
+void liberar_proceso(t_proceso* proceso);
 
 #endif

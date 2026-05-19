@@ -228,7 +228,7 @@ int io_sleep(t_pcb* pcb, t_io* io_sleep, t_cola* block, t_cola_ready* ready,
 
 void* hilo_io_in(void* hilo_in)
 {
-   t_hilo_io_in* hilo_stdin = (t_hilo_io_in*)hilo_in;
+  t_hilo_io_in* hilo_stdin = (t_hilo_io_in*)hilo_in;
   pthread_mutex_lock(&(hilo_stdin->io->mutex_fin));
   bool seguir_atendiendo = true;
   while (seguir_atendiendo)
@@ -254,12 +254,15 @@ void* hilo_io_in(void* hilo_in)
       pthread_mutex_unlock(&(hilo_stdin->io->logger->mutex_logger));
       seguir_atendiendo = false;
     }
-    int stdin = io_stdin(peticion->pcb, hilo_stdin->io, hilo_stdin->io->cola_block, hilo_stdin->io->cola_ready,
-                         hilo_stdin->io->susp_block, hilo_stdin->io->susp_ready, peticion->peticion,
-                         hilo_stdin->io->logger, hilo_stdin->io->socket_km, hilo_stdin->lista_stdin);
+    int stdin = io_stdin(peticion->pcb, hilo_stdin->io,
+                         hilo_stdin->io->cola_block, hilo_stdin->io->cola_ready,
+                         hilo_stdin->io->susp_block, hilo_stdin->io->susp_ready,
+                         peticion->peticion, hilo_stdin->io->logger,
+                         hilo_stdin->io->socket_km, hilo_stdin->lista_stdin);
     if (ERROR_KM == stdin)
     {
-      cerrar_kernel_scheduler(hilo_stdin->io->socket_server, hilo_stdin->io->logger, MC_MEMORIA_CORRUPTA);
+      cerrar_kernel_scheduler(hilo_stdin->io->socket_server,
+                              hilo_stdin->io->logger, MC_MEMORIA_CORRUPTA);
       continue;
     }
     else
@@ -267,7 +270,8 @@ void* hilo_io_in(void* hilo_in)
       if (ERROR_IO == stdin)
       {
         pthread_mutex_lock(&(hilo_stdin->io->logger->mutex_logger));
-        log_error(hilo_stdin->io->logger->logger, "## Error al atender la petición de stdin");
+        log_error(hilo_stdin->io->logger->logger,
+                  "## Error al atender la petición de stdin");
         pthread_mutex_unlock(&(hilo_stdin->io->logger->mutex_logger));
         seguir_atendiendo = false;
       }
@@ -288,7 +292,8 @@ void* hilo_io_in(void* hilo_in)
   {
     t_stdin* peticion = list_remove(hilo_stdin->lista_stdin->lista_stdin, 0);
     t_pcb* pcb = peticion->pcb;
-    cambio_desbloquear(pcb, hilo_stdin->io->cola_block, hilo_stdin->io->susp_block, hilo_stdin->io->susp_ready,
+    cambio_desbloquear(pcb, hilo_stdin->io->cola_block,
+                       hilo_stdin->io->susp_block, hilo_stdin->io->susp_ready,
                        hilo_stdin->io->cola_ready, hilo_stdin->io->logger);
     free(peticion->peticion);
     free(peticion);
@@ -303,7 +308,6 @@ void* hilo_io_in(void* hilo_in)
 
 void* hilo_io_out(void* hilo_out)
 {
-  
   t_hilo_io_out* hilo_stdout = (t_hilo_io_out*)hilo_out;
 
   pthread_mutex_lock(&(hilo_stdout->io->mutex_fin));
@@ -330,13 +334,17 @@ void* hilo_io_out(void* hilo_out)
       pthread_mutex_unlock(&(hilo_stdout->io->logger->mutex_logger));
       continue;
     }
-    int op_stdout = io_stdout(
-        peticion->pcb, hilo_stdout->io, hilo_stdout->io->cola_block, hilo_stdout->io->cola_ready, hilo_stdout->io->susp_block,
-        hilo_stdout->io->susp_ready, peticion->peticion, hilo_stdout->io->logger, hilo_stdout->io->socket_km, hilo_stdout->lista_stdout);
+    int op_stdout =
+        io_stdout(peticion->pcb, hilo_stdout->io, hilo_stdout->io->cola_block,
+                  hilo_stdout->io->cola_ready, hilo_stdout->io->susp_block,
+                  hilo_stdout->io->susp_ready, peticion->peticion,
+                  hilo_stdout->io->logger, hilo_stdout->io->socket_km,
+                  hilo_stdout->lista_stdout);
     if (ERROR_IO == op_stdout)
     {
       pthread_mutex_lock(&(hilo_stdout->io->logger->mutex_logger));
-      log_error(hilo_stdout->io->logger->logger, "## Error al atender la petición de stdout");
+      log_error(hilo_stdout->io->logger->logger,
+                "## Error al atender la petición de stdout");
       pthread_mutex_unlock(&(hilo_stdout->io->logger->mutex_logger));
       seguir_atendiendo = false;
     }
@@ -344,7 +352,8 @@ void* hilo_io_out(void* hilo_out)
     {
       if (ERROR_KM == op_stdout)
       {
-        cerrar_kernel_scheduler(hilo_stdout->io->socket_server, hilo_stdout->io->logger, MC_MEMORIA_CORRUPTA);
+        cerrar_kernel_scheduler(hilo_stdout->io->socket_server,
+                                hilo_stdout->io->logger, MC_MEMORIA_CORRUPTA);
         continue;
       }
     }
@@ -364,9 +373,11 @@ void* hilo_io_out(void* hilo_out)
   pthread_mutex_lock(&(hilo_stdout->lista_stdout->mutex_lista_stdout));
   while (!list_is_empty(hilo_stdout->lista_stdout->lista_stdout))
   {
-    t_stdout* peticion = list_remove(hilo_stdout->lista_stdout->lista_stdout, 0);
+    t_stdout* peticion =
+        list_remove(hilo_stdout->lista_stdout->lista_stdout, 0);
     t_pcb* pcb = peticion->pcb;
-    cambio_desbloquear(pcb, hilo_stdout->io->cola_block, hilo_stdout->io->susp_block, hilo_stdout->io->susp_ready,
+    cambio_desbloquear(pcb, hilo_stdout->io->cola_block,
+                       hilo_stdout->io->susp_block, hilo_stdout->io->susp_ready,
                        hilo_stdout->io->cola_ready, hilo_stdout->io->logger);
     free(peticion->peticion);
     free(peticion);
@@ -406,12 +417,15 @@ void* hilo_io_sleep(void* hilo_sleep)
       pthread_mutex_unlock(&(shilo_sleep->io->logger->mutex_logger));
       continue;
     }
-    if (ERROR_IO == io_sleep(peticion->pcb, shilo_sleep->io, shilo_sleep->io->cola_block, shilo_sleep->io->cola_ready,
-                             shilo_sleep->io->susp_block, shilo_sleep->io->susp_ready, peticion->peticion,
-                             shilo_sleep->io->logger, shilo_sleep->lista_sleep))
+    if (ERROR_IO ==
+        io_sleep(peticion->pcb, shilo_sleep->io, shilo_sleep->io->cola_block,
+                 shilo_sleep->io->cola_ready, shilo_sleep->io->susp_block,
+                 shilo_sleep->io->susp_ready, peticion->peticion,
+                 shilo_sleep->io->logger, shilo_sleep->lista_sleep))
     {
       pthread_mutex_lock(&(shilo_sleep->io->logger->mutex_logger));
-      log_error(shilo_sleep->io->logger->logger, "## Error al atender la petición de sleep");
+      log_error(shilo_sleep->io->logger->logger,
+                "## Error al atender la petición de sleep");
       pthread_mutex_unlock(&(shilo_sleep->io->logger->mutex_logger));
       seguir_atendiendo = false;
     }
@@ -432,7 +446,8 @@ void* hilo_io_sleep(void* hilo_sleep)
   {
     t_sleep* peticion = list_remove(shilo_sleep->lista_sleep->lista_sleep, 0);
     t_pcb* pcb = peticion->pcb;
-    cambio_desbloquear(pcb, shilo_sleep->io->cola_block, shilo_sleep->io->susp_block, shilo_sleep->io->susp_ready,
+    cambio_desbloquear(pcb, shilo_sleep->io->cola_block,
+                       shilo_sleep->io->susp_block, shilo_sleep->io->susp_ready,
                        shilo_sleep->io->cola_ready, shilo_sleep->io->logger);
     free(peticion->peticion);
     free(peticion);
@@ -476,19 +491,23 @@ int obtener_tipo_io(int socket_fd, t_log* logger)
   return tipo_io;
 }
 
-void cargar_stdin(t_io* io, t_lista_stdin* lista_stdin, t_hilo_io_in* hilo_in ){
-  hilo_in->io = io; 
+void cargar_stdin(t_io* io, t_lista_stdin* lista_stdin, t_hilo_io_in* hilo_in)
+{
+  hilo_in->io = io;
   hilo_in->lista_stdin = lista_stdin;
 }
-void cargar_stdout(t_io* io, t_lista_stdout* lista_stdout, t_hilo_io_out* hilo_out ){
-  hilo_out->io = io; 
+void cargar_stdout(t_io* io, t_lista_stdout* lista_stdout,
+                   t_hilo_io_out* hilo_out)
+{
+  hilo_out->io = io;
   hilo_out->lista_stdout = lista_stdout;
 }
-void cargar_sleep(t_io* io, t_lista_sleep* lista_sleep, t_hilo_io_sleep* hilo_sleep ){
-  hilo_sleep->io = io; 
+void cargar_sleep(t_io* io, t_lista_sleep* lista_sleep,
+                  t_hilo_io_sleep* hilo_sleep)
+{
+  hilo_sleep->io = io;
   hilo_sleep->lista_sleep = lista_sleep;
 }
-
 
 bool atender_nuevo_io(t_io* io[3], int socket_fd, t_logger* logger,
                       t_socket_kernel_memory* socket_km, t_cola* block,
@@ -527,11 +546,13 @@ bool atender_nuevo_io(t_io* io[3], int socket_fd, t_logger* logger,
       t_lista_stdin* lista_stdin;
       lista_stdin->lista_stdin = list_create();
       t_hilo_io_in* hilo_in;
-      cargar_stdin(io[E_STDIN],lista_stdin,hilo_in);
+      cargar_stdin(io[E_STDIN], lista_stdin, hilo_in);
       pthread_mutex_init(&(hilo_in->lista_stdin->mutex_lista_stdin), NULL);
-      if (pthread_create(&(hilo_in->io->hilo_io), NULL, hilo_io_in, (void*)hilo_in))
+      if (pthread_create(&(hilo_in->io->hilo_io), NULL, hilo_io_in,
+                         (void*)hilo_in))
       {
-        log_error(logger->logger, "## Error al crear el hilo para IO de tipo stdin");
+        log_error(logger->logger,
+                  "## Error al crear el hilo para IO de tipo stdin");
         return false;
       }
       break;
@@ -539,11 +560,14 @@ bool atender_nuevo_io(t_io* io[3], int socket_fd, t_logger* logger,
       t_lista_stdout* lista_stdout;
       lista_stdout->lista_stdout = list_create();
       t_hilo_io_out* hilo_stdout;
-      cargar_stdout(io[E_STDOUT],  lista_stdout, hilo_stdout );
-      pthread_mutex_init(&(hilo_stdout->lista_stdout->mutex_lista_stdout), NULL);
-      if (pthread_create(&(hilo_stdout->io->hilo_io), NULL, hilo_io_out, (void*)hilo_stdout))
+      cargar_stdout(io[E_STDOUT], lista_stdout, hilo_stdout);
+      pthread_mutex_init(&(hilo_stdout->lista_stdout->mutex_lista_stdout),
+                         NULL);
+      if (pthread_create(&(hilo_stdout->io->hilo_io), NULL, hilo_io_out,
+                         (void*)hilo_stdout))
       {
-        log_error(logger->logger, "## Error al crear el hilo para IO de tipo stdout");
+        log_error(logger->logger,
+                  "## Error al crear el hilo para IO de tipo stdout");
         return false;
       }
       break;
@@ -551,11 +575,13 @@ bool atender_nuevo_io(t_io* io[3], int socket_fd, t_logger* logger,
       t_lista_sleep* lista_sleep;
       lista_sleep->lista_sleep = list_create();
       t_hilo_io_sleep* hilo_sleep;
-      cargar_sleep( io[E_SLEEP],  lista_sleep,  hilo_sleep);
+      cargar_sleep(io[E_SLEEP], lista_sleep, hilo_sleep);
       pthread_mutex_init(&(hilo_sleep->lista_sleep->mutex_lista_sleep), NULL);
-      if (pthread_create(&(hilo_sleep->io->hilo_io), NULL, hilo_io_sleep, (void*)hilo_sleep))
+      if (pthread_create(&(hilo_sleep->io->hilo_io), NULL, hilo_io_sleep,
+                         (void*)hilo_sleep))
       {
-        log_error(logger->logger, "## Error al crear el hilo para IO de tipo sleep");
+        log_error(logger->logger,
+                  "## Error al crear el hilo para IO de tipo sleep");
         return false;
       }
       break;
@@ -572,13 +598,12 @@ bool procesar_nuevo_stdin(t_peticion_stdin* peticion, t_io* io_stdin,
   {
     return false;
   }
- 
 
   pthread_mutex_lock(&(lista_stdin->mutex_lista_stdin));
   bool lista_vacia = list_is_empty(lista_stdin->lista_stdin);
   list_add(lista_stdin->lista_stdin, peticion);
   pthread_mutex_unlock(&(lista_stdin->mutex_lista_stdin));
-   pthread_mutex_unlock(&(io_stdin->mutex_socket_io));
+  pthread_mutex_unlock(&(io_stdin->mutex_socket_io));
   if (lista_vacia)
   {
     pthread_cond_signal(&(io_stdin->nuevo_proceso));
@@ -594,14 +619,13 @@ bool procesar_nuevo_stdout(t_peticion_stdout* peticion, t_io* io_stdout,
   {
     return false;
   }
-  
 
   pthread_mutex_lock(&(lista_stdout->mutex_lista_stdout));
   bool lista_vacia = list_is_empty(lista_stdout->lista_stdout);
   list_add(lista_stdout->lista_stdout, peticion);
   pthread_mutex_unlock(&(lista_stdout->mutex_lista_stdout));
   pthread_mutex_unlock(&(io_stdout->mutex_socket_io));
-  
+
   if (lista_vacia)
   {
     pthread_cond_signal(&(io_stdout->nuevo_proceso));
@@ -617,7 +641,6 @@ bool procesar_nuevo_sleep(t_peticion_sleep* peticion, t_io* io_sleep,
   {
     return false;
   }
-  
 
   pthread_mutex_lock(&(lista_sleep->mutex_lista_sleep));
   bool lista_vacia = list_is_empty(lista_sleep->lista_sleep);
