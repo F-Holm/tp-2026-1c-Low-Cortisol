@@ -8,11 +8,12 @@
 
 #include "utils/client.h"
 #include "utils/msg.h"
+#include "utils/registros.h"
 
 typedef struct
 {
   pthread_t kernel_memory_hilo;
-  pthread_mutex_t mutex_memory_sticks;
+  pthread_t kernel_scheduler_hilo;
 } t_hilo_cpu;
 
 typedef struct
@@ -30,7 +31,21 @@ typedef struct
   t_config* config;
 } t_cpu;
 
-void iniciar_hilo(void* arg);
+typedef struct 
+{
+  NOOP,
+  SET,
+  MOV_IN,
+  MOV_OUT,
+  SUM,
+  SUB,
+  JNZ,
+  COPY_MEM
+} t_instruccines;
+
+
+void iniciar_hilo_kernel_memory(void* arg);
+void iniciar_hilo_kernel_scheduler(void* arg);
 void* escuchar_kernel_memory(void* arg);
 bool iniciar_conexion_kmemory(t_cpu* cpu);
 bool iniciar_conexion_scheduler(t_cpu* cpu);

@@ -57,7 +57,7 @@ int main(int argc, char* argv[])
 
   // CONEXION CON MEMORY STICK
   // hilo de escucha
-  iniciar_hilo(cpu);
+  iniciar_hilo_kernel_memory(cpu);
 
   pthread_join(cpu->hilos.kernel_memory_hilo, NULL);
   log_destroy(cpu->logger);
