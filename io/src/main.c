@@ -31,16 +31,35 @@ int main(int argc, char* argv[])
     return EXIT_FAILURE;
   }
   // Esperando Instrucciones del Kernel Scheduler
-  while (true)
+  bool seguir_operando;
+  while (seguir_operando)
   {
-    int op_code = recibir_operacion(sio.socket_io);
-    char* buffer;
-
-    if (op_code == OP_CODE_ERROR || op_code == -1)
+    int op_code;
+    op_code = recibir_operacion(sio.socket_io);
+    switch(op_code)
+    {
+      case OP_PETICION_IO_STDIN:
+      if (!io_tipo_stdin){
+        seguir_operando = false;
+      }
+      break;
+    
+      case OP_PETICION_IO_STDOUT:
+      if(!io_tipo_stdout){
+        seguir_operando = false;
+      }
       break;
 
-    buffer = recibir_string(sio.socket_io);
-    free(buffer);
+      case OP_PETICION_IO_SLEEP:
+      if(!io_tipo_sleep){
+        seguir_operando = false;
+      }
+      break;
+
+      default:
+      seguir_operando = false;
+  }
+    
   }
   // Liberar y Cerrar
   cerrar_todo(&sio);

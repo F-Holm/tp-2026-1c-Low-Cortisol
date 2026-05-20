@@ -25,5 +25,7 @@
 #include "utils/registros.h"
 
 bool io_tipo_stdin(t_modulo_io* sio);
+bool io_tipo_stdout(t_modulo_io* sio);
+bool io_tipo_sleep(t_modulo_io* sio);
 
 #endif  // IO_IOOPS_H_

@@ -25,7 +25,6 @@ bool io_tipo_stdin(t_modulo_io* sio)
     // Trunco el buffer si es necesario
   }
 
-  // FALTA ARREGLAR ESTO
   bool envio_correcto =
       enviar_string(OP_RESPUESTA_STDIN, buffer, sio->socket_io);
   if (!envio_correcto)
