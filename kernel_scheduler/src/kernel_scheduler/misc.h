@@ -1,6 +1,7 @@
 #ifndef KERNEL_SCHEDULER_MISC_H_
 #define KERNEL_SCHEDULER_MISC_H_
 
+#include <commons/collections/list.h>
 #include <commons/log.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -49,9 +50,21 @@ typedef enum
   MC_FALLO_CONEXION_KERNEL_MEMORY
 } t_motivo_cierre;
 
+typedef enum
+{
+  D_ERROR_KM,
+  D_ERROR_IO,
+  D_ERROR_CONEXION_KM,
+  D_TODO_BIEN
+} devolucion_syscall;
+
 void cerrar_kernel_scheduler(int socket_servidor, t_logger* logger,
                              int motivo_cierre);
 
+t_socket_kernel_memory* inicializar_socket_kernel_memory(int socket_km);
+void destruir_kernel_memory(t_socket_kernel_memory* socket_km);
+// retorna el indice del elemento ingresado
+int insertar_pcb_en_orden(t_list* lista, t_pcb* pcb);
 int get_prioridad_pcb(t_pcb* pcb);
 t_pcb* crear_pcb(void);
 void destruir_pcb(t_pcb* pcb);
