@@ -253,21 +253,22 @@ void manejo_instrucciones(t_cpu* cpu)
   {
     pid = recibir_pid_kernel_scheduler(cpu);
 
-    pedir_contexto_kernel_memory(cpu, pid);
+    if (!pedir_contexto_kernel_memory(cpu, pid));
+      break;
 
     contexto = recibir_contexto_kernel_memory(cpu);
 
     ejecutar_ciclo_instruccion(cpu, pid, contexto);
 
+    enviar_contexto_actualizado(cpu, contexto);
 
   }
+  cerrar_modulo(cpu);
 }
 
 
 uint32_t recibir_pid_kernel_scheduler(t_cpu* cpu)
 {
- 
-
   int codigo_operacion = recibir_operacion(cpu->socket_kernel_scheduler);
 
   if (codigo_operacion == OP_CONTINUAR_PROCESO)
@@ -294,17 +295,21 @@ bool pedir_contexto_kernel_memory(t_cpu* cpu, uint32_t pid)
 
 t_contexto* recibir_contexto_kernel_memory(t_cpu* cpu)
 {
-  t_list* respuesta = recibir_paquete(cpu->socket_kernel_memory);
+  int codigo_operacion = recibir_operacion(cpu->socket_kernel_memory);
 
-  t_contexto* contexto = malloc(sizeof(t_contexto));
-
-  
-  contexto->PC  = *(uint32_t*) list_get(respuesta, 0);
-  contexto->AX  = *(uint8_t*)  list_get(respuesta, 1);
-  contexto->BX  = *(uint8_t*)  list_get(respuesta, 2);
-  //revisar como me lo mandan
-
-  list_destroy_and_destroy_elements(respuesta, free);
+  if (codigo_operacion == OP_) // ??
+  {
+    int size;
+    void* buffer = recibir_buffer(&size, cpu->socket_kernel_memory);
+    t_contexto* contexto = malloc(sizeof(t_contexto));
+    memcpy(contexto, buffer, size);
+    free(buffer);
+    return contexto;
+  }
+  else
+  {
+    
+  }
 }
 
 
@@ -313,15 +318,19 @@ void ejecutar_ciclo_instruccion(t_cpu* cpu, uint32_t pid, t_contexto* contexto)
     bool seguir = true;
     while (seguir)
     {
-      char* instruccion = fetch(cpu, pid, contexto->PC);
-      
-      // decode + execute usan el contexto local
+      char* instruccion = etapa_fetch(cpu, pid, contexto->PC);
+      log_info(cpu->logger, "## PID: %u - FETCH - Program Counter: %u", pid, contexto->PC); 
+
+
+      etapa_decode(instruccion);
+
       seguir = execute(cpu, contexto, instruccion, pid);
       
       if (seguir)
           seguir = check_interrupt(cpu, pid);
       
       free(instruccion);
+      contexto->PC ++;
     }
     
     // devolvés contexto actualizado y KernelMemory lo guarda
@@ -334,17 +343,35 @@ char* etapa_fetch(t_cpu* cpu, uint32_t pid, uint32_t pc)
 {
   pedir_instruccion_kernel_memory(cpu, pid, pc);
 
-  return recibir_instruccion_kernel_memory();
+  return recibir_instruccion_kernel_memory(cpu);
 }
 
 
 void pedir_instruccion_kernel_memory(t_cpu* cpu, uint32_t pid, uint32_t pc) 
 {
-  t_paquete* paquete = crear_paquete(OP_SOLICITAR_INSTRUCCION); // ??
+  t_paquete* paquete = crear_paquete(OP_SIGUIENTE_INSTRUCCION); 
   agregar_a_paquete(paquete, &pid, sizeof(uint32_t));
   agregar_a_paquete(paquete, &pc, sizeof(uint32_t));
   enviar_paquete(paquete, cpu->socket_kernel_memory);
   eliminar_paquete(paquete);
+}
+
+
+char* recibir_instruccion_kernel_memory(t_cpu* cpu)
+{
+
+}
+
+
+bool etapa_decode(char* instruccion)
+{
+
+}
+
+
+bool enviar_contexto_actualizado(t_cpu* cpu, t_contexto* contexto_actualizado)
+{
+  return enviar_buffer(OP_CONTEXTO_ACTUALIZADO, contexto_actualizado, sizeof(t_contexto), cpu->socket_kernel_memory);
 }
 
 
@@ -362,12 +389,3 @@ void cerrar_modulo(t_cpu* cpu)
   if (cpu->config != NULL)
     config_destroy(cpu->config);
 }
-
-
-
-/*
-if (!pedir_contexto_kernel_memory(cpu, pid));
-        break;
-
-      contexto_ejecucion = recibir_contexto_kernel_memory(cpu);
-*/
