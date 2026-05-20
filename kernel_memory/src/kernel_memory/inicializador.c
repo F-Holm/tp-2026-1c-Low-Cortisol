@@ -1,22 +1,32 @@
 #include "kernel_memory/inicializador.h"
 
+#include <commons/collections/list.h>
 #include <commons/log.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
 
-#include "commons/collections/list.h"
 #include "kernel_memory/estructuras.h"
 
-t_datos_kernel_mem* inicializar_datos_kernel_memory(int socket_kernel_memory,
-                                                    t_log* logger)
+t_datos_kernel_mem* inicializar_datos_kernel_memory(
+    int socket_kernel_memory, char* scripts_basepath, int instruction_delay,
+    int compaction_delay, int segment_max_size, int allocation_strategy,
+    t_log* logger)
 {
   t_datos_kernel_mem* datos_kernel = malloc(sizeof(t_datos_kernel_mem));
   datos_kernel->socket_kernel_memory = socket_kernel_memory;
   datos_kernel->logger = logger;
+  datos_kernel->socket_scheduler = -1;
+  datos_kernel->scripts_basepath = scripts_basepath;
+  datos_kernel->instruction_delay = instruction_delay;
+  datos_kernel->compaction_delay = compaction_delay;
+  datos_kernel->segment_max_size = segment_max_size;
+  datos_kernel->allocation_strategy = allocation_strategy;
   datos_kernel->sticks_conectados = list_create();
   datos_kernel->cpus_conectados = list_create();
-  pthread_mutex_init(&datos_kernel->mutex_lista_sockets, NULL);
+  datos_kernel->procesos = list_create();
+  pthread_mutex_init(datos_kernel->mutex_procesos, NULL);
+  pthread_mutex_init(datos_kernel->mutex_lista_sockets, NULL);
   return datos_kernel;
 }
 

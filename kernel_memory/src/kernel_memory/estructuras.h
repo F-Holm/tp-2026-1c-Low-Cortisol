@@ -10,6 +10,10 @@
 typedef struct
 {
   int socket_kernel_memory;
+  int instruction_delay;
+  int compaction_delay;
+  int segment_max_size;
+  int allocation_strategy;
   int socket_scheduler;
   char* scripts_basepath;
   t_log* logger;
