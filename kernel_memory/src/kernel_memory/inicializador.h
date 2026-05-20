@@ -4,8 +4,10 @@
 #include "commons/collections/list.h"
 #include "kernel_memory/estructuras.h"
 
-t_datos_kernel_mem* inicializar_datos_kernel_memory(int socket_kernel_memory,
-                                                    t_log* logger);
+t_datos_kernel_mem* inicializar_datos_kernel_memory(
+    int socket_kernel_memory, char* scripts_basepath, int instruction_delay,
+    int compaction_delay, int segment_max_size, int allocation_strategy,
+    t_log* logger);
 t_datos_scheduler* inicializar_datos_scheduler(int socket_scheduler,
                                                t_list* procesos,
                                                char* scripts_basepath,

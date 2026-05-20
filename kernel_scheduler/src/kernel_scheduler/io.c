@@ -56,7 +56,7 @@ int io_stdin(t_stdin* peticion, t_hilo_io_in* hilo_in)
     return D_ERROR_IO;
   }
   // Le envio el paquete al Kernel Memory para que escriba en la memoria
-  t_paquete* paquete = crear_paquete(OP_ESCRIBIR_EN_MEMORIA);
+  t_paquete* paquete = crear_paquete(OP_PETICION_IO_STDIN);
   agregar_string_a_paquete(paquete, buffer);
   agregar_a_paquete(paquete, peticion->peticion, peticion_size);
   pthread_mutex_lock(&(hilo_in->io->socket_km->mutex_socket));

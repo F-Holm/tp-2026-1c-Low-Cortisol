@@ -7,5 +7,11 @@
 t_log* iniciar_logger(t_config* config);
 t_config* iniciar_config(char* path);
 void terminar_comunicacion(int socket_cliente);
+char* iniciar_basepath(t_config* config);
+
+int iniciar_instruction_delay(t_config* config);
+int iniciar_compaction_delay(t_config* config);
+int iniciar_segment_max_size(t_config* config);
+int iniciar_allocation_strategy(t_config* config);
 
 #endif

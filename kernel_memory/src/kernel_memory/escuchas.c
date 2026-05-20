@@ -8,6 +8,7 @@
 
 #include "configurador.h"
 #include "kernel_memory/estructuras.h"
+#include "kernel_memory/inicializador.h"
 #include "kernel_memory/liberador.h"
 #include "utils/msg.h"
 
@@ -38,6 +39,30 @@ void* escucha_scheduler(void* ptr)
         list_clean(paquete);
         list_destroy(paquete);
         break;
+      case OP_SYSCALL_MEM_ALLOC:
+        log_info(datos_scheduler->logger, "Llego una syscall de MEM_ALLOC");
+        break;
+
+      case OP_SYSCALL_MEM_FREE:
+        log_info(datos_scheduler->logger, "Llego una syscall de MEM_FREE");
+        break;
+      case OP_PETICION_IO_STDIN:
+        log_info(datos_scheduler->logger,
+                 "Llego una syscall de PETICION_IO_STDIN");
+        t_list* paquete_stdin = recibir_paquete(
+            datos_scheduler
+                ->socket_scheduler);  // RECIBE STRUCT DE PETICION STDOUT
+        enviar_string(OP_OK, "OK", datos_scheduler->socket_scheduler);
+        break;
+      case OP_PETICION_IO_STDOUT:
+        log_info(datos_scheduler->logger,
+                 "Llego una syscall de PETICION_IO_STDOUT");
+        t_list* paquete_stdout = recibir_paquete(
+            datos_scheduler
+                ->socket_scheduler);  // RECIBE STRUCT DE PETICION STDIN
+        enviar_string(OP_OK, "OK", datos_scheduler->socket_scheduler);
+        break;
+
       case OP_CODE_ERROR:
         conexion_estable = false;
         break;
