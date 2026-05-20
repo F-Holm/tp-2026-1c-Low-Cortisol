@@ -45,7 +45,8 @@ int io_stdin(t_stdin* peticion, t_hilo_io_in* hilo_in)
 
   // recibo la respuesta de IO
   int cod_op = recibir_operacion(hilo_in->io->socket_io);
-  if (cod_op == OP_CODE_ERROR){
+  if (cod_op == OP_CODE_ERROR)
+  {
     return D_ERROR_IO;
   }
   char* buffer = recibir_string(hilo_in->io->socket_io);
@@ -190,7 +191,8 @@ int io_stdout(t_stdout* peticion, t_hilo_io_out* hilo_out)
     return D_ERROR_IO;
   }
   cod_op = recibir_operacion(hilo_out->io->socket_io);
-   if (cod_op == OP_CODE_ERROR){
+  if (cod_op == OP_CODE_ERROR)
+  {
     return D_ERROR_IO;
   }
   char* resp_io = recibir_string(hilo_out->io->socket_io);
