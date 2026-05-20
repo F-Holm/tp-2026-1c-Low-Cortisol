@@ -56,3 +56,13 @@ void liberar_datos_kernel_mem(t_datos_kernel_mem* datos_kernel)
 
   free(datos_kernel);
 }
+
+void liberar_proceso(t_proceso* proceso)
+{
+  for (int i = 0; i < proceso->cant_instrucciones; i++)
+  {
+    free(proceso->instrucciones[i]);
+  }
+  free(proceso->instrucciones);
+  free(proceso);
+}

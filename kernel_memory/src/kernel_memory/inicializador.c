@@ -21,18 +21,29 @@ t_datos_kernel_mem* inicializar_datos_kernel_memory(int socket_kernel_memory,
 }
 
 t_datos_scheduler* inicializar_datos_scheduler(int socket_scheduler,
+                                               t_list* procesos,
+                                               char* scripts_basepath,
+                                               pthread_mutex_t* mutex_procesos,
                                                t_log* logger)
 {
   t_datos_scheduler* datos_scheduler = malloc(sizeof(t_datos_scheduler));
   datos_scheduler->socket_scheduler = socket_scheduler;
+  datos_scheduler->mutex_procesos = mutex_procesos;
   datos_scheduler->logger = logger;
+  datos_scheduler->procesos = procesos;
+  datos_scheduler->scripts_basepath = scripts_basepath;
   return datos_scheduler;
 }
 
-t_datos_cpu* inicializar_datos_cpu(int socket_cpu, t_log* logger)
+t_datos_cpu* inicializar_datos_cpu(int socket_cpu, t_list* procesos,
+                                   pthread_mutex_t* mutex_procesos,
+                                   int instruction_delay, t_log* logger)
 {
   t_datos_cpu* datos_cpu = malloc(sizeof(t_datos_cpu));
   datos_cpu->socket_cpu = socket_cpu;
+  datos_cpu->procesos = procesos;
+  datos_cpu->mutex_procesos = mutex_procesos;
+  datos_cpu->instruction_delay = instruction_delay;
   datos_cpu->logger = logger;
   datos_cpu->id = -1;
   return datos_cpu;
@@ -56,30 +67,51 @@ t_datos_swap* inicializar_datos_swap(int socket_swap, t_log* logger)
   return datos_swap;
 }
 
-t_proceso* crear_proceso(u_int32_t pid, char* path_relativo, char* scripts_basepath)
+int cantidad_instrucciones(FILE* f)
+{
+  int contador = 0;
+  char linea[256];
+  while (fgets(linea, sizeof(linea), f))
+    contador++;
+  rewind(f);
+  return contador;
+}
+
+t_proceso* inicializar_proceso(u_int32_t pid, char* path_relativo,
+                               char* scripts_basepath, t_log* logger)
 {
   t_proceso* proceso = malloc(sizeof(t_proceso));
   proceso->pid = pid;
   proceso->path_instrucciones = path_relativo;
-  proceso->contexto.AX = proceso->contexto.BX = proceso->contexto.CX =
-      proceso->contexto.DX = proceso->contexto.EAX = proceso->contexto.EBX =
-          proceso->contexto.ECX = proceso->contexto.EDX = proceso->contexto.DI =
-              proceso->contexto.SI = proceso->contexto.PC = 0;
-  
+  memset(&proceso->contexto, 0,
+         sizeof(t_contexto));  // pone todos los campos de contexto en 0
+
   int largo = strlen(scripts_basepath) + strlen(path_relativo) + 2;
   char* path_completo = malloc(largo);
   snprintf(path_completo, largo, "%s/%s", scripts_basepath, path_relativo);
 
   FILE* f = fopen(path_completo, "r");
-    if (f == NULL) {
-        log_error(, "## PID: %u - No se pudo abrir el archivo: %s", pid, path_completo);
-        free(proceso);
-        return NULL;
-    }
+  if (f == NULL)
+  {
+    log_error(logger, "## PID: %u - No se pudo abrir el archivo: %s", pid,
+              path_completo);
+    free(path_completo);
+    free(proceso);
+    return NULL;
+  }
+  proceso->cant_instrucciones = cantidad_instrucciones(f);
+  proceso->instrucciones = malloc(sizeof(char*) * proceso->cant_instrucciones);
 
-  proceso->instrucciones = ;
-
+  char linea[256];
+  int i = 0;
+  while (fgets(linea, sizeof(linea), f))
+  {
+    linea[strcspn(linea, "\n")] = '\0';
+    proceso->instrucciones[i++] = strdup(linea);
+  }
+  fclose(f);
   free(path_completo);
+  return proceso;
 }
 
 bool inicializar_ip_stick(t_datos_stick* datos_stick, int client_socket)

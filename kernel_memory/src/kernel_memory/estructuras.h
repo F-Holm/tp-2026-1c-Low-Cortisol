@@ -10,20 +10,23 @@
 typedef struct
 {
   int socket_kernel_memory;
-  int instruction_delay;
+  int socket_scheduler;
   char* scripts_basepath;
   t_log* logger;
   t_list* sticks_conectados;
   t_list* cpus_conectados;
   t_list* procesos;
-  pthread_mutex_t mutex_procesos;
-  pthread_mutex_t mutex_lista_sockets;
+  pthread_mutex_t* mutex_procesos;
+  pthread_mutex_t* mutex_lista_sockets;
 } t_datos_kernel_mem;
 
 typedef struct
 {
   int socket_scheduler;
   t_log* logger;
+  t_list* procesos;
+  pthread_mutex_t* mutex_procesos;
+  char* scripts_basepath;
 } t_datos_scheduler;
 
 typedef struct
@@ -31,6 +34,9 @@ typedef struct
   int id;
   int socket_cpu;
   t_log* logger;
+  int instruction_delay;
+  t_list* procesos;
+  pthread_mutex_t* mutex_procesos;
 } t_datos_cpu;
 
 typedef struct
