@@ -45,6 +45,10 @@ int io_stdin(t_stdin* peticion, t_hilo_io_in* hilo_in)
 
   // recibo la respuesta de IO
   int cod_op = recibir_operacion(hilo_in->io->socket_io);
+  if (cod_op == OP_CODE_ERROR)
+  {
+    return D_ERROR_IO;
+  }
   char* buffer = recibir_string(hilo_in->io->socket_io);
 
   if (buffer == NULL)
@@ -56,7 +60,7 @@ int io_stdin(t_stdin* peticion, t_hilo_io_in* hilo_in)
     return D_ERROR_IO;
   }
   // Le envio el paquete al Kernel Memory para que escriba en la memoria
-  t_paquete* paquete = crear_paquete(OP_ESCRIBIR_EN_MEMORIA);
+  t_paquete* paquete = crear_paquete(OP_PETICION_IO_STDIN);
   agregar_string_a_paquete(paquete, buffer);
   agregar_a_paquete(paquete, peticion->peticion, peticion_size);
   pthread_mutex_lock(&(hilo_in->io->socket_km->mutex_socket));
@@ -187,6 +191,10 @@ int io_stdout(t_stdout* peticion, t_hilo_io_out* hilo_out)
     return D_ERROR_IO;
   }
   cod_op = recibir_operacion(hilo_out->io->socket_io);
+  if (cod_op == OP_CODE_ERROR)
+  {
+    return D_ERROR_IO;
+  }
   char* resp_io = recibir_string(hilo_out->io->socket_io);
 
   if (strcmp(resp_io, "OK") != 0)
@@ -254,12 +262,13 @@ int io_sleep(t_sleep* peticion, t_hilo_io_sleep* hilo_sleep)
   }
 
   int cod_op = recibir_operacion(hilo_sleep->io->socket_io);
-  if (!(cod_op == OP_RESPUESTA_SLEEP))
+  if (cod_op == OP_CODE_ERROR)
   {
     pthread_mutex_lock(&(hilo_sleep->io->logger->mutex_logger));
     log_error(hilo_sleep->io->logger->logger,
               "## Error en la respuesta de IO a Kernel Scheduler");
     pthread_mutex_unlock(&(hilo_sleep->io->logger->mutex_logger));
+    return D_ERROR_IO;
   }
   char* respuesta = recibir_string(hilo_sleep->io->socket_io);
   if (strcmp(respuesta, "OK") != 0)
