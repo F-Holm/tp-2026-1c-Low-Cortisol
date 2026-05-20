@@ -100,7 +100,7 @@ void enviar_sticks_conectadas(t_datos_kernel_mem* datos_kernel_memory,
 
   for (int i = 0; i < total_sticks; i++)
   {
-    t_paquete* paquete = crear_paquete(OP_PAQUETE);
+    t_paquete* paquete = crear_paquete();
     t_datos_stick* stick_actual =
         (t_datos_stick*)list_get(datos_kernel_memory->sticks_conectados, i);
 
@@ -122,7 +122,7 @@ void enviar_conexion_cpu(t_datos_stick* datos_stick, t_list* cpus_conectados)
   {
     return;
   }
-  t_paquete* paquete = crear_paquete(OP_PAQUETE);
+  t_paquete* paquete = crear_paquete();
 
   agregar_a_paquete(paquete, datos_stick->ip_memory_stick, sizeof(char[16]));
 
