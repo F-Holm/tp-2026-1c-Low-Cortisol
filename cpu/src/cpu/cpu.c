@@ -180,72 +180,84 @@ bool manejar_paquete(t_cpu* cpu, t_list* lista_paquete, char ip_stick[16],
   return true;
 }
 
-void* escuchar_kernel_memory(t_cpu* cpu)
-{
- 
-  t_list* lista_paquete;
 
-  while (1)
+void escuchar_kernel_memory(t_cpu* cpu)
+{
+  bool seguir = true;
+  while (seguir)
   {
-    char ip_stick[16];
-    char puerto_stick[6];
-    int nuevo_socket;
     int codigo_operacion = recibir_operacion(cpu->socket_kernel_memory);
-    if (codigo_operacion == OP_CODE_ERROR)
+    switch (codigo_operacion)
     {
-      log_error(cpu->logger, "## Cerrando hilo");
+    case OP_ENVIAR_CONTEXTO:
+      seguir = false;
+      break;
+    
+    case OP_ENVIAR_INSTRUCCION:
+      seguir = false;
+      break;
+
+    case OP_PAQUETE:
+      if(!conectar_memory_stick(cpu));
+        cerrar_modulo(cpu);
+      break;
+    
+    default:
+      cerrar_modulo(cpu);
       break;
     }
-    else if (codigo_operacion != OP_PAQUETE)
-    {
-      log_error(cpu->logger, "## Tipo de operación no válido");
-      continue;
-    }
+  }
+}
 
-    lista_paquete = recibir_paquete(cpu->socket_kernel_memory);
-    if (!manejar_paquete(cpu, lista_paquete, ip_stick, puerto_stick))
-      continue;
 
-    nuevo_socket = crear_conexion(ip_stick, puerto_stick);
+bool conectar_memory_stick(t_cpu* cpu)
+{
+  t_list* lista_paquete;
+  lista_paquete = recibir_paquete(cpu->socket_kernel_memory);
 
-    if (nuevo_socket <= 0)
-    {
-      log_error(cpu->logger, "## Error en la conexión con Memory stick");
-      continue;
-    }
+  char ip_stick[16];
+  char puerto_stick[6];
+  int nuevo_socket;
 
-    log_info(cpu->logger,
-             "## Conectandose a memory stick con ip %s y puerto %s", ip_stick,
-             puerto_stick);
+  if (!manejar_paquete(cpu, lista_paquete, ip_stick, puerto_stick))
+    return false;
 
-    if (!conexion_memory_stick(cpu, nuevo_socket))
-    {
-      log_error(cpu->logger, "## Error en el handshake con Memory stick");
-      continue;
-    }
+  nuevo_socket = crear_conexion(ip_stick, puerto_stick);
 
-    if (!enviar_string(OP_ID_CPU, cpu->id, nuevo_socket))
-    {
-      log_error(cpu->logger, "## Error en el envío de ID con Memory stick");
-      close(nuevo_socket);
-      continue;
-    }
-
-    int* p_socket = malloc(sizeof(int));
-    *p_socket = nuevo_socket;
-
-    list_add(cpu->memory_sticks, p_socket);
+  if (nuevo_socket <= 0)
+  {
+    log_error(cpu->logger, "## Error en la conexión con Memory stick");
+    return false;
   }
 
-  list_destroy_and_destroy_elements(cpu->memory_sticks,
-                                    (void*)iterator_close_socket);
-  return NULL;
+  log_info(cpu->logger,
+          "## Conectandose a memory stick con ip %s y puerto %s", ip_stick,
+          puerto_stick);
+
+  if (!conexion_memory_stick(cpu, nuevo_socket))
+  {
+    log_error(cpu->logger, "## Error en el handshake con Memory stick");
+    return false;
+  }
+
+  if (!enviar_string(OP_ID_CPU, cpu->id, nuevo_socket))
+  {
+    log_error(cpu->logger, "## Error en el envío de ID con Memory stick");
+    close(nuevo_socket);
+    return false;
+  }
+
+  int* p_socket = malloc(sizeof(int));
+  *p_socket = nuevo_socket;
+
+  list_add(cpu->memory_sticks, p_socket);
+  return true;
 }
+
 
 
 void manejo_instrucciones(t_cpu* cpu)
 {
- 
   t_contexto* contexto;
   uint32_t pid;
 
@@ -295,21 +307,14 @@ bool pedir_contexto_kernel_memory(t_cpu* cpu, uint32_t pid)
 
 t_contexto* recibir_contexto_kernel_memory(t_cpu* cpu)
 {
-  int codigo_operacion = recibir_operacion(cpu->socket_kernel_memory);
-
-  if (codigo_operacion == OP_) // ??
-  {
-    int size;
-    void* buffer = recibir_buffer(&size, cpu->socket_kernel_memory);
-    t_contexto* contexto = malloc(sizeof(t_contexto));
-    memcpy(contexto, buffer, size);
-    free(buffer);
-    return contexto;
-  }
-  else
-  {
-    
-  }
+  escuchar_kernel_memory(cpu);
+  
+  int size;
+  void* buffer = recibir_buffer(&size, cpu->socket_kernel_memory);
+  t_contexto* contexto = malloc(sizeof(t_contexto));
+  memcpy(contexto, buffer, size);
+  free(buffer);
+  return contexto;  
 }
 
 
@@ -359,13 +364,47 @@ void pedir_instruccion_kernel_memory(t_cpu* cpu, uint32_t pid, uint32_t pc)
 
 char* recibir_instruccion_kernel_memory(t_cpu* cpu)
 {
+  escuchar_kernel_memory(cpu);
 
+  int size;
+  void* buffer = recibir_buffer(&size, cpu->socket_kernel_memory);
+  char* instruccion = *(char*)buffer;
+  free(buffer);
+
+  return instruccion;
 }
 
 
-bool etapa_decode(char* instruccion)
-{
 
+t_instruccion* etapa_decode(char* instruccion_raw)
+{
+    t_instruccion* instrucion = malloc(sizeof(t_instruccion));
+    instrucion->cantidad_parametros = 0;
+
+    char** partes = string_split(instruccion_raw, " ");
+
+    instrucion->nombre = strdup(partes[0]);
+
+    for (int i = 1; partes[i] != NULL; i++)
+    {
+        instrucion->parametros[instrucion->cantidad_parametros] = strdup(partes[i]);
+        instrucion->cantidad_parametros++;
+    }
+
+    // liberar el array temporal
+    for (int i = 0; partes[i] != NULL; i++)
+        free(partes[i]);
+    free(partes);
+
+    return instrucion;
+}
+
+void destruir_instruccion(t_instruccion* instrucion)
+{
+    free(instrucion->nombre);
+    for (int i = 0; i < instrucion->cantidad_parametros; i++)
+        free(instrucion->cantidad_parametros[i]);
+    free(instrucion);
 }
 
 

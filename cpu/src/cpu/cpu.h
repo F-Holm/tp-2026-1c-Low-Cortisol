@@ -31,16 +31,24 @@ typedef struct
   t_config* config;
 } t_cpu;
 
-typedef struct 
+
+typedef struct {
+    char* nombre;
+    char* parametros[3];
+    int cantidad_parametros;
+} t_instruccion;
+
+typedef enum 
 {
-  NOOP,
-  SET,
-  MOV_IN,
-  MOV_OUT,
-  SUM,
-  SUB,
-  JNZ,
-  COPY_MEM
+  I_NOOP,
+  I_SET,
+  I_MOV_IN,
+  I_MOV_OUT,
+  I_SUM,
+  I_SUB,
+  I_JNZ,
+  I_COPY_MEM,
+
 } t_instruccines;
 
 
