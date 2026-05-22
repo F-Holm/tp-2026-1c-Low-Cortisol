@@ -293,6 +293,7 @@ static void* manejar_cliente_cpu(void* datos_hilo_cpu_void)
     {
       op_code = OP_SYSCALL_EXIT + 1;
     }
+    op_code -= OP_CICLO_CPU_OK;
 
     log_syscall(&datos_syscall, op_code);
     funciones_syscalls[op_code](&datos_syscall);
