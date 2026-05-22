@@ -27,6 +27,8 @@ typedef struct
 
   t_hilo_cpu hilos;
 
+  t_dictionary* handlers;
+
   t_log* logger;
   t_config* config;
 } t_cpu;
@@ -38,28 +40,19 @@ typedef struct {
     int cantidad_parametros;
 } t_instruccion;
 
-typedef enum 
-{
-  I_NOOP,
-  I_SET,
-  I_MOV_IN,
-  I_MOV_OUT,
-  I_SUM,
-  I_SUB,
-  I_JNZ,
-  I_COPY_MEM,
+// void iniciar_hilo_kernel_memory(void* arg);
+// void iniciar_hilo_kernel_scheduler(void* arg);
+void escuchar_kernel_memory(t_cpu* arg);
+bool manejar_paquete(t_cpu* cpu, t_list* lista_paquete, char ip_stick[16], char puerto_stick[6]);
+uint32_t recibir_pid_kernel_scheduler(t_cpu* cpu);
+bool pedir_contexto_kernel_memory(t_cpu* cpu, uint32_t pid);
+t_contexto* recibir_contexto_kernel_memory(t_cpu* cpu);
+void ejecutar_ciclo_instruccion(t_cpu* cpu, uint32_t pid, t_contexto* contexto);
+char* etapa_fetch(t_cpu* cpu, uint32_t pid, uint32_t pc);
+void pedir_instruccion_kernel_memory(t_cpu* cpu, uint32_t pid, uint32_t pc);
+char* recibir_instruccion_kernel_memory(t_cpu* cpu);
+t_instruccion* etapa_decode(char* instruccion_KM);
+bool enviar_contexto_actualizado(t_cpu* cpu, t_contexto* contexto_actualizado);
 
-} t_instruccines;
-
-
-void iniciar_hilo_kernel_memory(void* arg);
-void iniciar_hilo_kernel_scheduler(void* arg);
-void* escuchar_kernel_memory(void* arg);
-bool iniciar_conexion_kmemory(t_cpu* cpu);
-bool iniciar_conexion_scheduler(t_cpu* cpu);
-bool conexion_memory_stick(t_cpu* cpu, int nuevo_socket);
-bool iniciar_modulo(t_cpu* cpu, char* path_config);
-bool verificar_argumentos(int argc, char** argv);
-void cerrar_modulo(t_cpu* cpu);
 
 #endif /* CPU_CPU_H_ */

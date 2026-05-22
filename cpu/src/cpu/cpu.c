@@ -1,17 +1,23 @@
 #include "cpu/cpu.h"
+#include "cpu/conexiones.h"
+#include "cpu/liberacion.h"
+#include "cpu/handlers.h"
 
 #include <commons/log.h>
 #include <stdio.h>
 
 #include "utils/kernel_memory_cpu.h"
 
-void iniciar_hilo_kernel_memory(t_cpu* cpu)
+/*
+void iniciar_hilo_kernel_memory(void* arg)
 {
+  t_cpu* cpu = (t_cpu*) arg;
   pthread_create(&cpu->hilos.kernel_memory_hilo, NULL, escuchar_kernel_memory,
                  cpu);
 
   log_info(cpu->logger, "Hilo de escucha de Kernel Memory iniciado");
 }
+
 
 void iniciar_hilo_kernel_scheduler(t_cpu* cpu)
 {
@@ -19,147 +25,8 @@ void iniciar_hilo_kernel_scheduler(t_cpu* cpu)
                  cpu);
 
   log_info(cpu->logger, "Hilo de escucha de Kernel Memory iniciado");
-}
+}*/
 
-void iterator_close_socket(void* value)
-{
-  close(*((int*)value));
-  free(value);
-}
-
-bool verificar_argumentos(int argc, char** argv)
-{
-  if (argc < 3)
-  {
-    printf("Uso: %s [config] [id]\n", argv[0]);
-    return false;
-  }
-  return true;
-}
-
-bool iniciar_modulo(t_cpu* cpu, char* path_config)
-{
-  // CONFIG Y LOGS
-  cpu->config = config_create(path_config);
-
-  t_log_level log_level =
-      log_level_from_string(config_get_string_value(cpu->config, "LOG_LEVEL"));
-
-  cpu->logger = log_create("cpu.log", cpu->id, true, log_level);
-
-  if (cpu->config == NULL)
-  {
-    log_error(cpu->logger, "## No se pudo cargar el config");
-    return false;
-  }
-
-  if (cpu->logger == NULL)
-  {
-    log_error(cpu->logger, "## No se pudo cargar el logger");
-    return false;
-  }
-
-  log_info(cpu->logger, "Iniciando CPU %s", cpu->id);
-  log_info(cpu->logger, "cpu->configcargado correctamente");
-
-  cpu->memory_sticks = list_create();
-  return true;
-}
-
-bool iniciar_conexion_scheduler(t_cpu* cpu)
-{
-  // CONEXION CON EL KERNEL SCHEDULER
-  char* ip_kernel_scheduler =
-      config_get_string_value(cpu->config, "KERNEL_SCHEDULER_IP");
-
-  char* puerto_kernel_scheduler =
-      config_get_string_value(cpu->config, "KERNEL_SCHEDULER_PUERTO");
-
-  cpu->socket_kernel_scheduler =
-      crear_conexion(ip_kernel_scheduler, puerto_kernel_scheduler);
-
-  // Handshake con Kernel scheduler
-  if (enviar_handshake(MID_CPU, cpu->socket_kernel_scheduler))
-  {
-    log_info(cpu->logger,
-             "handshake correctamente enviado al kernel scheduler");
-  }
-  else
-  {
-    log_error(cpu->logger,
-              "## fallo en el envio del hanshake con kernel scheduler");
-  }
-
-  int id_modulo = recibir_handshake(cpu->socket_kernel_scheduler);
-  if (id_modulo != MID_KERNEL_SCHEDULER)
-  {
-    log_error(cpu->logger,
-              "## Error al recibir el Handshake con Kernel_scheduler");
-    close(cpu->socket_kernel_scheduler);
-    return false;
-  }
-  log_info(cpu->logger, "Handshake recibido con exitoso del Kernel scheduler");
-
-  return true;
-}
-
-bool iniciar_conexion_kmemory(t_cpu* cpu)
-{
-  // CONEXION CON EL KERNEL MEMORY
-  char* ip_kernel_memory =
-      config_get_string_value(cpu->config, "KERNEL_MEMORY_IP");
-
-  char* puerto_kernel_memory =
-      config_get_string_value(cpu->config, "KERNEL_MEMORY_PUERTO");
-
-  cpu->socket_kernel_memory =
-      crear_conexion(ip_kernel_memory, puerto_kernel_memory);
-
-  // Handshake con Kernel Memory
-  if (enviar_handshake(MID_CPU, cpu->socket_kernel_memory))
-  {
-    log_info(cpu->logger, "handshake correctamente enviado al kernel memory");
-  }
-  else
-  {
-    log_error(cpu->logger,
-              "## fallo en el envio del hanshake con kernel memory");
-  }
-
-  int id_modulo = recibir_handshake(cpu->socket_kernel_memory);
-  if (id_modulo != MID_KERNEL_MEMORY)
-  {
-    log_error(cpu->logger,
-              "## Error al recibir el Handshake con Kernel_Memory");
-    close(cpu->socket_kernel_memory);
-    return false;
-  }
-  log_info(cpu->logger, "Handshake recibido del Kernel Memory");
-
-  return true;
-}
-
-bool conexion_memory_stick(t_cpu* cpu, int nuevo_socket)
-{
-  // Handshake con memory stick
-  if (!enviar_handshake(MID_CPU, nuevo_socket))
-  {
-    log_error(cpu->logger, "## Error en el Handshake con Memory stick");
-    close(nuevo_socket);
-    return false;
-  }
-
-  int id_modulo = recibir_handshake(nuevo_socket);
-  if (id_modulo != MID_MEMORY_STICK)
-  {
-    log_error(cpu->logger, "## Error en el Handshake con Memory stick");
-    close(nuevo_socket);
-    return false;
-  }
-  log_info(cpu->logger, "## Handshake exitoso con Memory stick");
-
-  return true;
-}
 
 bool manejar_paquete(t_cpu* cpu, t_list* lista_paquete, char ip_stick[16],
                      char puerto_stick[6])
@@ -198,7 +65,7 @@ void escuchar_kernel_memory(t_cpu* cpu)
       break;
 
     case OP_PAQUETE:
-      if(!conectar_memory_stick(cpu));
+      if(!conectar_memory_stick(cpu))
         cerrar_modulo(cpu);
       break;
     
@@ -210,52 +77,6 @@ void escuchar_kernel_memory(t_cpu* cpu)
 }
 
 
-bool conectar_memory_stick(t_cpu* cpu)
-{
-  t_list* lista_paquete;
-  lista_paquete = recibir_paquete(cpu->socket_kernel_memory);
-
-  char ip_stick[16];
-  char puerto_stick[6];
-  int nuevo_socket;
-
-  if (!manejar_paquete(cpu, lista_paquete, ip_stick, puerto_stick))
-    return false;
-
-  nuevo_socket = crear_conexion(ip_stick, puerto_stick);
-
-  if (nuevo_socket <= 0)
-  {
-    log_error(cpu->logger, "## Error en la conexión con Memory stick");
-    return false;
-  }
-
-  log_info(cpu->logger,
-          "## Conectandose a memory stick con ip %s y puerto %s", ip_stick,
-          puerto_stick);
-
-  if (!conexion_memory_stick(cpu, nuevo_socket))
-  {
-    log_error(cpu->logger, "## Error en el handshake con Memory stick");
-    return false;
-  }
-
-  if (!enviar_string(OP_ID_CPU, cpu->id, nuevo_socket))
-  {
-    log_error(cpu->logger, "## Error en el envío de ID con Memory stick");
-    close(nuevo_socket);
-    return false;
-  }
-
-  int* p_socket = malloc(sizeof(int));
-  *p_socket = nuevo_socket;
-
-  list_add(cpu->memory_sticks, p_socket);
-  return true;
-}
-
-
-
 void manejo_instrucciones(t_cpu* cpu)
 {
   t_contexto* contexto;
@@ -265,7 +86,7 @@ void manejo_instrucciones(t_cpu* cpu)
   {
     pid = recibir_pid_kernel_scheduler(cpu);
 
-    if (!pedir_contexto_kernel_memory(cpu, pid));
+    if (!pedir_contexto_kernel_memory(cpu, pid))
       break;
 
     contexto = recibir_contexto_kernel_memory(cpu);
@@ -323,17 +144,20 @@ void ejecutar_ciclo_instruccion(t_cpu* cpu, uint32_t pid, t_contexto* contexto)
     bool seguir = true;
     while (seguir)
     {
-      char* instruccion = etapa_fetch(cpu, pid, contexto->PC);
+      char* instruccion_KM = etapa_fetch(cpu, pid, contexto->PC);
       log_info(cpu->logger, "## PID: %u - FETCH - Program Counter: %u", pid, contexto->PC); 
 
 
-      etapa_decode(instruccion);
+      t_instruccion* instruccion = etapa_decode(instruccion_KM);
 
-      seguir = execute(cpu, contexto, instruccion, pid);
+      seguir = etapa_execute(cpu, contexto, instruccion, pid);
       
-      if (seguir)
-          seguir = check_interrupt(cpu, pid);
-      
+      if (!seguir)
+      {
+        cerrar_modulo(cpu);
+      }
+
+      check_interrupt(cpu, pid);
       free(instruccion);
       contexto->PC ++;
     }
@@ -376,18 +200,18 @@ char* recibir_instruccion_kernel_memory(t_cpu* cpu)
 
 
 
-t_instruccion* etapa_decode(char* instruccion_raw)
+t_instruccion* etapa_decode(char* instruccion_KM)
 {
     t_instruccion* instrucion = malloc(sizeof(t_instruccion));
     instrucion->cantidad_parametros = 0;
 
-    char** partes = string_split(instruccion_raw, " ");
+    char** partes = string_split(instruccion_KM, " ");
 
     instrucion->nombre = strdup(partes[0]);
 
     for (int i = 1; partes[i] != NULL; i++)
     {
-        instrucion->parametros[instrucion->cantidad_parametros] = strdup(partes[i]);
+        instrucion->parametros[i-1] = strdup(partes[i]);
         instrucion->cantidad_parametros++;
     }
 
@@ -399,32 +223,22 @@ t_instruccion* etapa_decode(char* instruccion_raw)
     return instrucion;
 }
 
-void destruir_instruccion(t_instruccion* instrucion)
+
+bool etapa_execute(t_cpu* cpu, t_contexto* contexto, t_instruccion* instruccion, uint32_t pid)
 {
-    free(instrucion->nombre);
-    for (int i = 0; i < instrucion->cantidad_parametros; i++)
-        free(instrucion->cantidad_parametros[i]);
-    free(instrucion);
+t_handler handler = dictionary_get(cpu->handlers, instruccion->nombre);
+
+  if(handler == NULL)
+  {
+    log_error(cpu->logger, "## instruccion desconocida: %s", instruccion->nombre);
+    return false;
+  }
+
+  return handler(cpu, contexto, instruccion, pid);
 }
 
 
 bool enviar_contexto_actualizado(t_cpu* cpu, t_contexto* contexto_actualizado)
 {
   return enviar_buffer(OP_CONTEXTO_ACTUALIZADO, contexto_actualizado, sizeof(t_contexto), cpu->socket_kernel_memory);
-}
-
-
-void cerrar_modulo(t_cpu* cpu)
-{
-  if (cpu->socket_kernel_memory > 0)
-    close(cpu->socket_kernel_memory);
-
-  if (cpu->socket_kernel_scheduler > 0)
-    close(cpu->socket_kernel_scheduler);
-
-  if (cpu->logger != NULL)
-    log_destroy(cpu->logger);
-
-  if (cpu->config != NULL)
-    config_destroy(cpu->config);
 }
