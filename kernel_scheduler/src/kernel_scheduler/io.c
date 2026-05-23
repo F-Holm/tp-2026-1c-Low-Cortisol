@@ -71,6 +71,7 @@ int io_stdin(t_stdin* peticion, t_hilo_io_in* hilo_in)
     log_error(hilo_in->io->logger->logger,
               "## Error en el envio a Kernel memory");
     pthread_mutex_unlock(&(hilo_in->io->logger->mutex_logger));
+    pthread_mutex_unlock(&(hilo_in->io->socket_km->mutex_socket));
     return D_ERROR_CONEXION_KM;
   }
 
