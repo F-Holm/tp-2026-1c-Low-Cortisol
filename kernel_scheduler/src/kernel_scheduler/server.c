@@ -21,7 +21,7 @@ int crear_socket_servidor(char* puerto, t_log* logger)
   return ret;
 }
 
-t_datos_servidor_escucha* inicializar_datos_server_escucha(
+void inicializar_datos_server_escucha(
     t_datos_servidor_escucha* datos, int socket_server, t_logger* logger,
     t_lista_mutex* lista_mutex, t_colas* colas,
     t_socket_kernel_memory* socket_kernel_memory, char* path_proceso_inicial)
@@ -32,7 +32,6 @@ t_datos_servidor_escucha* inicializar_datos_server_escucha(
   datos->colas = colas;
   datos->socket_km = socket_kernel_memory;
   datos->path_proceso_inicial = path_proceso_inicial;
-  return datos;
 }
 
 static void cerrar_hilo_escucha(t_io estructuras_io[3],
@@ -94,7 +93,7 @@ void servidor_escucha(t_datos_servidor_escucha* datos)
   pthread_mutex_init(&mutex_lista_sockets_cpu, NULL);
   pthread_cond_init(&cond_fin_cpu, NULL);
 
-  crear_proceso_inicial(datos);
+  // crear_proceso_inicial(datos);
   while (true)
   {
     bool manejo_exitoso = true;

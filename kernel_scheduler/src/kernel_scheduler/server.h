@@ -18,7 +18,7 @@ typedef struct
 } t_datos_servidor_escucha;
 
 int crear_socket_servidor(char* puerto, t_log* logger);
-t_datos_servidor_escucha* inicializar_datos_server_escucha(
+void inicializar_datos_server_escucha(
     t_datos_servidor_escucha* datos, int socket_server, t_logger* logger,
     t_lista_mutex* lista_mutex, t_colas* colas,
     t_socket_kernel_memory* socket_kernel_memory, char* path_proceso_inicial);
