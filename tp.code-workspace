@@ -45,7 +45,8 @@
         "kernel_scheduler/": true,
         "memory_stick/": true,
         "swap/": true,
-        "utils/": true
+        "utils/": true,
+        "pseudocodigo/": true
     },
     "debug.onTaskErrors": "abort",
     "files.associations": {

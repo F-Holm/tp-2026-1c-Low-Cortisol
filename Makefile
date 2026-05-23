@@ -38,7 +38,7 @@ run: all
 	@echo "Lanzando sistema..."
 	./kernel_memory/bin/kernel_memory ./kernel_memory/kernel_memory.config > ./output/kernel_memory.txt 2>&1 &
 	@sleep $(SLEEP_TIME)
-	./kernel_scheduler/bin/kernel_scheduler ./kernel_scheduler/kernel_scheduler.config ./kernel_scheduler/proceso_inicial > ./output/kernel_scheduler.txt 2>&1 &
+	./kernel_scheduler/bin/kernel_scheduler ./kernel_scheduler/kernel_scheduler.config proceso_inicial.asm > ./output/kernel_scheduler.txt 2>&1 &
 	@sleep $(SLEEP_TIME)
 	./memory_stick/bin/memory_stick ./memory_stick/memory_stick.config 1000 > ./output/memory_stick_1.txt 2>&1 &
 	@sleep $(SLEEP_TIME)
