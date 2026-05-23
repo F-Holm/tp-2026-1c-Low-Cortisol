@@ -32,9 +32,9 @@ int main(int argc, char* argv[])
       socket_kernel_memory, scripts_basepath, instruction_delay,
       compaction_delay, segment_max_size, allocation_strategy, logger);
 
-  pthread_mutex_lock(logger);
+  pthread_mutex_lock(datos_kernel->mutex_logger);
   log_info(logger, "## Kernel Memory Iniciado ");
-  pthread_mutex_unlock(logger);
+  pthread_mutex_unlock(datos_kernel->mutex_logger);
 
   while (true)
   {
