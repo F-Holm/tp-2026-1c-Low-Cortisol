@@ -139,7 +139,14 @@ void ejecutar_ciclo_instruccion(t_cpu* cpu, uint32_t pid, t_contexto* contexto)
       contexto->PC++;
 
     if (seguir)
-      seguir = check_interrupt(cpu, pid, contexto);
+      if (!enviar_string(OP_CICLO_CPU_OK, "OK", cpu->socket_kernel_scheduler))
+      {
+        log_error(cpu->logger, "## Error en la confirmación del fin de ciclo");
+        cerrar_modulo(cpu);
+        return;
+      }
+    log_info(cpu->logger, "Scheduler notificado del fin de ciclo");
+    seguir = check_interrupt(cpu, pid, contexto);
 
     destruir_instruccion(instruccion);
   }
