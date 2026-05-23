@@ -1,158 +1,32 @@
 #include "cpu/cpu.h"
 
 #include <commons/log.h>
+#include <commons/string.h>
 #include <stdio.h>
 
+#include "cpu/conexiones.h"
+#include "cpu/handlers.h"
+#include "cpu/liberacion.h"
 #include "utils/kernel_memory_cpu.h"
 
-void iniciar_hilo(void* arg)
+/*
+void iniciar_hilo_kernel_memory(void* arg)
 {
-  t_cpu* cpu = (t_cpu*)arg;
+  t_cpu* cpu = (t_cpu*) arg;
   pthread_create(&cpu->hilos.kernel_memory_hilo, NULL, escuchar_kernel_memory,
                  cpu);
 
   log_info(cpu->logger, "Hilo de escucha de Kernel Memory iniciado");
 }
 
-void iterator_close_socket(void* value)
+
+void iniciar_hilo_kernel_scheduler(t_cpu* cpu)
 {
-  close(*((int*)value));
-  free(value);
-}
+  pthread_create(&cpu->hilos.kernel_scheduler_hilo, NULL, manejo_instrucciones,
+                 cpu);
 
-bool verificar_argumentos(int argc, char** argv)
-{
-  if (argc < 3)
-  {
-    printf("Uso: %s [config] [id]\n", argv[0]);
-    return false;
-  }
-  return true;
-}
-
-bool iniciar_modulo(t_cpu* cpu, char* path_config)
-{
-  // CONFIG Y LOGS
-  cpu->config = config_create(path_config);
-
-  t_log_level log_level =
-      log_level_from_string(config_get_string_value(cpu->config, "LOG_LEVEL"));
-
-  cpu->logger = log_create("cpu.log", cpu->id, true, log_level);
-
-  if (cpu->config == NULL)
-  {
-    log_error(cpu->logger, "## No se pudo cargar el config");
-    return false;
-  }
-
-  if (cpu->logger == NULL)
-  {
-    log_error(cpu->logger, "## No se pudo cargar el logger");
-    return false;
-  }
-
-  log_info(cpu->logger, "Iniciando CPU %s", cpu->id);
-  log_info(cpu->logger, "cpu->configcargado correctamente");
-
-  cpu->memory_sticks = list_create();
-  return true;
-}
-
-bool iniciar_conexion_scheduler(t_cpu* cpu)
-{
-  // CONEXION CON EL KERNEL SCHEDULER
-  char* ip_kernel_scheduler =
-      config_get_string_value(cpu->config, "KERNEL_SCHEDULER_IP");
-
-  char* puerto_kernel_scheduler =
-      config_get_string_value(cpu->config, "KERNEL_SCHEDULER_PUERTO");
-
-  cpu->socket_kernel_scheduler =
-      crear_conexion(ip_kernel_scheduler, puerto_kernel_scheduler);
-
-  // Handshake con Kernel scheduler
-  if (enviar_handshake(MID_CPU, cpu->socket_kernel_scheduler))
-  {
-    log_info(cpu->logger,
-             "handshake correctamente enviado al kernel scheduler");
-  }
-  else
-  {
-    log_error(cpu->logger,
-              "## fallo en el envio del hanshake con kernel scheduler");
-  }
-
-  int id_modulo = recibir_handshake(cpu->socket_kernel_scheduler);
-  if (id_modulo != MID_KERNEL_SCHEDULER)
-  {
-    log_error(cpu->logger,
-              "## Error al recibir el Handshake con Kernel_scheduler");
-    close(cpu->socket_kernel_scheduler);
-    return false;
-  }
-  log_info(cpu->logger, "Handshake recibido con exitoso del Kernel scheduler");
-
-  return true;
-}
-
-bool iniciar_conexion_kmemory(t_cpu* cpu)
-{
-  // CONEXION CON EL KERNEL MEMORY
-  char* ip_kernel_memory =
-      config_get_string_value(cpu->config, "KERNEL_MEMORY_IP");
-
-  char* puerto_kernel_memory =
-      config_get_string_value(cpu->config, "KERNEL_MEMORY_PUERTO");
-
-  cpu->socket_kernel_memory =
-      crear_conexion(ip_kernel_memory, puerto_kernel_memory);
-
-  // Handshake con Kernel Memory
-  if (enviar_handshake(MID_CPU, cpu->socket_kernel_memory))
-  {
-    log_info(cpu->logger, "handshake correctamente enviado al kernel memory");
-  }
-  else
-  {
-    log_error(cpu->logger,
-              "## fallo en el envio del hanshake con kernel memory");
-  }
-
-  int id_modulo = recibir_handshake(cpu->socket_kernel_memory);
-  if (id_modulo != MID_KERNEL_MEMORY)
-  {
-    log_error(cpu->logger,
-              "## Error al recibir el Handshake con Kernel_Memory");
-    close(cpu->socket_kernel_memory);
-    return false;
-  }
-  log_info(cpu->logger, "Handshake recibido del Kernel Memory");
-
-  return true;
-}
-
-bool conexion_memory_stick(t_cpu* cpu, int nuevo_socket)
-{
-  // Handshake con memory stick
-  if (!enviar_handshake(MID_CPU, nuevo_socket))
-  {
-    log_error(cpu->logger, "## Error en el Handshake con Memory stick");
-    close(nuevo_socket);
-    return false;
-  }
-
-  int id_modulo = recibir_handshake(nuevo_socket);
-  if (id_modulo != MID_MEMORY_STICK)
-  {
-    log_error(cpu->logger, "## Error en el Handshake con Memory stick");
-    close(nuevo_socket);
-    return false;
-  }
-  log_info(cpu->logger, "## Handshake exitoso con Memory stick");
-
-  return true;
-}
+  log_info(cpu->logger, "Hilo de escucha de Kernel Memory iniciado");
+}*/
 
 bool manejar_paquete(t_cpu* cpu, t_list* lista_paquete, char ip_stick[16],
                      char puerto_stick[6])
@@ -173,79 +47,220 @@ bool manejar_paquete(t_cpu* cpu, t_list* lista_paquete, char ip_stick[16],
   return true;
 }
 
-void* escuchar_kernel_memory(void* arg)
+void escuchar_kernel_memory(t_cpu* cpu)
 {
-  t_cpu* cpu = (t_cpu*)arg;
-  t_list* lista_paquete;
-
-  while (1)
+  bool seguir = true;
+  while (seguir)
   {
-    char ip_stick[16];
-    char puerto_stick[6];
-    int nuevo_socket;
     int codigo_operacion = recibir_operacion(cpu->socket_kernel_memory);
-    if (codigo_operacion == OP_CODE_ERROR)
+    switch (codigo_operacion)
     {
-      log_error(cpu->logger, "## Cerrando hilo");
-      break;
+      case OP_ENVIAR_CONTEXTO:
+        seguir = false;
+        break;
+
+      case OP_ENVIAR_INSTRUCCION:
+        seguir = false;
+        break;
+
+      case OP_PAQUETE:
+        if (!conectar_memory_stick(cpu))
+          cerrar_modulo(cpu);
+        break;
+
+      default:
+        cerrar_modulo(cpu);
+        break;
     }
-    else if (codigo_operacion != OP_PAQUETE)
-    {
-      log_error(cpu->logger, "## Tipo de operación no válido");
-      continue;
-    }
-
-    lista_paquete = recibir_paquete(cpu->socket_kernel_memory);
-    if (!manejar_paquete(cpu, lista_paquete, ip_stick, puerto_stick))
-      continue;
-
-    nuevo_socket = crear_conexion(ip_stick, puerto_stick);
-
-    if (nuevo_socket <= 0)
-    {
-      log_error(cpu->logger, "## Error en la conexión con Memory stick");
-      continue;
-    }
-
-    log_info(cpu->logger,
-             "## Conectandose a memory stick con ip %s y puerto %s", ip_stick,
-             puerto_stick);
-
-    if (!conexion_memory_stick(cpu, nuevo_socket))
-    {
-      log_error(cpu->logger, "## Error en el handshake con Memory stick");
-      continue;
-    }
-
-    if (!enviar_string(OP_ID_CPU, cpu->id, nuevo_socket))
-    {
-      log_error(cpu->logger, "## Error en el envío de ID con Memory stick");
-      close(nuevo_socket);
-      continue;
-    }
-
-    int* p_socket = malloc(sizeof(int));
-    *p_socket = nuevo_socket;
-
-    list_add(cpu->memory_sticks, p_socket);
   }
-
-  list_destroy_and_destroy_elements(cpu->memory_sticks,
-                                    (void*)iterator_close_socket);
-  return NULL;
 }
 
-void cerrar_modulo(t_cpu* cpu)
+void manejo_instrucciones(t_cpu* cpu)
 {
-  if (cpu->socket_kernel_memory > 0)
-    close(cpu->socket_kernel_memory);
+  t_contexto* contexto;
+  uint32_t pid;
 
-  if (cpu->socket_kernel_scheduler > 0)
-    close(cpu->socket_kernel_scheduler);
+  while (true)
+  {
+    pid = recibir_pid_kernel_scheduler(cpu);
 
-  if (cpu->logger != NULL)
-    log_destroy(cpu->logger);
+    if (!pedir_contexto_kernel_memory(cpu, pid))
+      break;
 
-  if (cpu->config != NULL)
-    config_destroy(cpu->config);
+    contexto = recibir_contexto_kernel_memory(cpu);
+
+    ejecutar_ciclo_instruccion(cpu, pid, contexto);
+  }
+  cerrar_modulo(cpu);
+}
+
+uint32_t recibir_pid_kernel_scheduler(t_cpu* cpu)
+{
+  int codigo_operacion = recibir_operacion(cpu->socket_kernel_scheduler);
+  uint32_t pid;
+  if (codigo_operacion == OP_CONTINUAR_PROCESO)
+  {
+    int size;
+    void* buffer = recibir_buffer(&size, cpu->socket_kernel_scheduler);
+    pid = *(uint32_t*)buffer;
+    free(buffer);
+
+    log_info(cpu->logger,
+             "## PID recibido: %u - Iniciando ciclo de instrucción", pid);
+  }
+  else
+  {
+    cerrar_modulo(cpu);
+  }
+  return pid;
+}
+
+bool pedir_contexto_kernel_memory(t_cpu* cpu, uint32_t pid)
+{
+  return enviar_buffer(OP_PEDIR_CONTEXTO, &pid, sizeof(uint32_t),
+                       cpu->socket_kernel_memory);
+}
+
+t_contexto* recibir_contexto_kernel_memory(t_cpu* cpu)
+{
+  escuchar_kernel_memory(cpu);
+
+  int size;
+  void* buffer = recibir_buffer(&size, cpu->socket_kernel_memory);
+  t_contexto* contexto = malloc(sizeof(t_contexto));
+  memcpy(contexto, buffer, size);
+  free(buffer);
+  return contexto;
+}
+
+void ejecutar_ciclo_instruccion(t_cpu* cpu, uint32_t pid, t_contexto* contexto)
+{
+  bool seguir = true;
+  while (seguir)
+  {
+    char* instruccion_KM = etapa_fetch(cpu, pid, contexto->PC);
+    log_info(cpu->logger, "## PID: %u - FETCH - Program Counter: %u", pid,
+             contexto->PC);
+
+    t_instruccion* instruccion = etapa_decode(instruccion_KM);
+
+    uint32_t pc_inicial = contexto->PC;
+    log_info(cpu->logger, "## PID: %u - Ejecutando: %s ", pid, instruccion_KM);
+    free(instruccion_KM);
+
+    seguir = etapa_execute(cpu, contexto, instruccion, pid);
+
+    if (seguir && pc_inicial == contexto->PC)
+      contexto->PC++;
+
+    if (seguir)
+      seguir = check_interrupt(cpu, pid, contexto);
+
+    destruir_instruccion(instruccion);
+  }
+  enviar_contexto_actualizado(cpu, pid, contexto);
+}
+
+char* etapa_fetch(t_cpu* cpu, uint32_t pid, uint32_t pc)
+{
+  pedir_instruccion_kernel_memory(cpu, pid, pc);
+
+  return recibir_instruccion_kernel_memory(cpu);
+}
+
+void pedir_instruccion_kernel_memory(t_cpu* cpu, uint32_t pid, uint32_t pc)
+{
+  t_paquete* paquete = crear_paquete(OP_SIGUIENTE_INSTRUCCION);
+  agregar_a_paquete(paquete, &pid, sizeof(uint32_t));
+  agregar_a_paquete(paquete, &pc, sizeof(uint32_t));
+  if (enviar_paquete(paquete, cpu->socket_kernel_memory))
+  {
+    log_error(cpu->logger, "## error en la petición de la instrucción");
+    cerrar_modulo(cpu);
+  }
+  log_info(cpu->logger, "Instrucción pedida correctamente");
+  eliminar_paquete(paquete);
+}
+
+char* recibir_instruccion_kernel_memory(t_cpu* cpu)
+{
+  escuchar_kernel_memory(cpu);
+
+  int size;
+  void* buffer = recibir_buffer(&size, cpu->socket_kernel_memory);
+  char* instruccion = strdup((char*)buffer);
+  free(buffer);
+
+  return instruccion;
+}
+
+t_instruccion* etapa_decode(char* instruccion_KM)
+{
+  t_instruccion* instrucion = malloc(sizeof(t_instruccion));
+  instrucion->cantidad_parametros = 0;
+
+  char** partes = string_split(instruccion_KM, " ");  // array de strings
+
+  instrucion->nombre = strdup(partes[0]);
+
+  for (int i = 1; partes[i] != NULL; i++)
+  {
+    instrucion->parametros[i - 1] = strdup(partes[i]);
+    instrucion->cantidad_parametros++;
+  }
+
+  // liberar el array temporal
+  for (int i = 0; partes[i] != NULL; i++)
+    free(partes[i]);
+  free(partes);
+
+  return instrucion;
+}
+
+bool etapa_execute(t_cpu* cpu, t_contexto* contexto, t_instruccion* instruccion,
+                   uint32_t pid)
+{
+  t_handler handler = dictionary_get(cpu->handlers, instruccion->nombre);
+
+  if (handler == NULL)
+  {
+    log_error(cpu->logger, "## instruccion desconocida: %s",
+              instruccion->nombre);
+    cerrar_modulo(cpu);
+  }
+
+  return handler(cpu, contexto, instruccion, pid);
+}
+
+bool check_interrupt(t_cpu* cpu, uint32_t pid, t_contexto* contexto)
+{
+  int codigo = recibir_operacion(cpu->socket_kernel_scheduler);
+
+  if (codigo == OP_INTERRUPCION)
+  {
+    log_info(cpu->logger, "## Interrupción recibida");
+    return false;
+  }
+  else if (codigo == OP_SIN_INTERRUPCION)
+  {
+    return true;
+  }
+  log_error(cpu->logger, "## Operacion no reconocida");
+  cerrar_modulo(cpu);
+  return 0;
+}
+
+void enviar_contexto_actualizado(t_cpu* cpu, uint32_t pid,
+                                 t_contexto* contexto_actualizado)
+{
+  t_paquete* paquete = crear_paquete(OP_CONTEXTO_ACTUALIZADO);
+  agregar_a_paquete(paquete, &pid, sizeof(uint32_t));
+  agregar_a_paquete(paquete, contexto_actualizado, sizeof(t_contexto));
+  if (!enviar_paquete(paquete, cpu->socket_kernel_memory))
+  {
+    log_error(cpu->logger, "## error en el envio del contexto actualizado");
+    cerrar_modulo(cpu);
+  }
+  log_info(cpu->logger, "Envio correcto del contexto actualizado");
+  eliminar_paquete(paquete);
 }
