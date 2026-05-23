@@ -51,7 +51,7 @@ void iniciar_diccionario(t_dictionary* handlers)
   dictionary_put(handlers, "SET", (void*)handler_set);
   dictionary_put(handlers, "SUM", (void*)handler_sum);
   dictionary_put(handlers, "SUB", (void*)handler_sub);
-  dictionary_put(handlers, "JZN", (void*)handler_jnz);
+  dictionary_put(handlers, "JNZ", (void*)handler_jnz);
   dictionary_put(handlers, "MOV_IN", (void*)handler_mov_in);
   dictionary_put(handlers, "MOV_OUT", (void*)handler_mov_out);
   dictionary_put(handlers, "CAPY_MEM", (void*)handler_copy_mem);
