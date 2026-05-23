@@ -142,7 +142,6 @@ static void enviar_desalojo(t_datos_syscall* datos)
                                                  : OP_SIN_INTERRUPCION),
       (char*)MOTIVOS_COMPACTACION[datos->motivo_desalojo],
       datos->datos->socket_fd);
-  datos->motivo_desalojo = MD_SIN_DESALOJO;
 }
 
 static void gestionar_pedir_proceso(t_datos_syscall* datos)
@@ -322,10 +321,20 @@ static void* manejar_cliente_cpu(void* datos_hilo_cpu_void)
 
     gestionar_pedir_proceso(&datos_syscall);
 
-    if (datos_syscall.pcb == NULL || !enviar_codigo(&datos_syscall))
+    if (datos_syscall.pcb == NULL)
     {
       datos_syscall.seguir_operando = false;
       break;
+    }
+
+    if (datos_syscall.motivo_desalojo != MD_SIN_DESALOJO)
+    {
+      if (!enviar_codigo(&datos_syscall))
+      {
+        datos_syscall.seguir_operando = false;
+        break;
+      }
+      datos_syscall.motivo_desalojo = MD_SIN_DESALOJO;
     }
 
     int op_code = recibir_operacion(datos_syscall.datos->socket_fd);

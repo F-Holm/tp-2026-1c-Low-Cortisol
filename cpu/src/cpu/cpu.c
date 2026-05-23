@@ -227,7 +227,8 @@ bool check_interrupt(t_cpu* cpu, uint32_t pid, t_contexto* contexto)
   {
     log_info(cpu->logger, "## Interrupción recibida");
     char* interrucpcion_recibida = recibir_string(cpu->socket_kernel_scheduler);
-    log_info (cpu->logger, "Razon de la interrupcion: %s", interrucpcion_recibida);
+    log_info(cpu->logger, "Razon de la interrupcion: %s",
+             interrucpcion_recibida);
     free(interrucpcion_recibida);
     return false;
   }
