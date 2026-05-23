@@ -135,7 +135,7 @@ void ejecutar_ciclo_instruccion(t_cpu* cpu, uint32_t pid, t_contexto* contexto)
 
     seguir = etapa_execute(cpu, contexto, instruccion, pid);
 
-    if (seguir && pc_inicial == contexto->PC)
+    if (pc_inicial == contexto->PC)
       contexto->PC++;
 
     if (seguir)
