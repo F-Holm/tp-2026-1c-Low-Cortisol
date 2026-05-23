@@ -230,6 +230,7 @@ bool check_interrupt(t_cpu* cpu, uint32_t pid, t_contexto* contexto)
   }
   else if (codigo == OP_SIN_INTERRUPCION)
   {
+    log_info(cpu->logger, "## Sin interrupción");
     return true;
   }
   log_error(cpu->logger, "## Operacion no reconocida: %d", codigo);
