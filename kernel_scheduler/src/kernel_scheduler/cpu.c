@@ -331,6 +331,7 @@ static void* manejar_cliente_cpu(void* datos_hilo_cpu_void)
         break;
       }
       datos_syscall.motivo_desalojo = MD_SIN_DESALOJO;
+      primer_ciclo = false;
     }
 
     int op_code = recibir_operacion(datos_syscall.datos->socket_fd);
