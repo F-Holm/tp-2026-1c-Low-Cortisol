@@ -3,7 +3,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "cpu/conexiones.h"
 #include "cpu/cpu.h"
+#include "cpu/inicializador.h"
+#include "cpu/liberacion.h"
 #include "utils/hello.h"
 #include "utils/msg.h"
 
@@ -55,11 +58,15 @@ int main(int argc, char* argv[])
     log_error(cpu->logger, "## fallo el envio del mensaje al kernel memory");
   }
 
+  cpu->handlers = dictionary_create();
+  iniciar_diccionario(cpu->handlers);
   // CONEXION CON MEMORY STICK
   // hilo de escucha
-  iniciar_hilo(cpu);
+  // iniciar_hilo_kernel_memory(cpu);
 
-  pthread_join(cpu->hilos.kernel_memory_hilo, NULL);
+  manejo_instrucciones(cpu);
+
+  // pthread_join(cpu->hilos.kernel_memory_hilo, NULL);
   log_destroy(cpu->logger);
   config_destroy(cpu->config);
   return 0;
