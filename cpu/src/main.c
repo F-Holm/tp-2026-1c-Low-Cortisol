@@ -63,6 +63,5 @@ int main(int argc, char* argv[])
 
   manejo_instrucciones(cpu);
 
-  cerrar_modulo(cpu);
   return 0;
 }
