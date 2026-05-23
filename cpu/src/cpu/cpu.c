@@ -71,7 +71,7 @@ void manejo_instrucciones(t_cpu* cpu)
       break;
     }
     log_info(cpu->logger, "contexto pedido correctamente");
-    
+
     contexto = recibir_contexto_kernel_memory(cpu);
 
     ejecutar_ciclo_instruccion(cpu, pid, contexto);
