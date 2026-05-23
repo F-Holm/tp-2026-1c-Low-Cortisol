@@ -46,14 +46,16 @@ void* escucha_scheduler(void* ptr)
       {
         log_info(datos_scheduler->logger, "Llego una syscall de MEM_ALLOC");
         int a;
-        t_syscall_memory* syscall = (t_syscall_memory*)recibir_buffer(&a, datos_scheduler->socket_scheduler);
+        t_syscall_memory* syscall = (t_syscall_memory*)recibir_buffer(
+            &a, datos_scheduler->socket_scheduler);
         break;
       }
       case OP_SYSCALL_MEM_FREE:
       {
         log_info(datos_scheduler->logger, "Llego una syscall de MEM_FREE");
         int a;
-        t_syscall_memory* syscall = (t_syscall_memory*)recibir_buffer(&a, datos_scheduler->socket_scheduler);
+        t_syscall_memory* syscall = (t_syscall_memory*)recibir_buffer(
+            &a, datos_scheduler->socket_scheduler);
         break;
       }
       case OP_PETICION_IO_STDIN:
@@ -71,7 +73,8 @@ void* escucha_scheduler(void* ptr)
         log_info(datos_scheduler->logger,
                  "Llego una syscall de PETICION_IO_STDOUT");
         int a;
-        t_peticion_stdout*  stdout = (t_peticion_stdout*)recibir_buffer(&a, datos_scheduler->socket_scheduler);
+        t_peticion_stdout* stdout = (t_peticion_stdout*)recibir_buffer(
+            &a, datos_scheduler->socket_scheduler);
         enviar_string(OP_OK, "OK", datos_scheduler->socket_scheduler);
         break;
       }

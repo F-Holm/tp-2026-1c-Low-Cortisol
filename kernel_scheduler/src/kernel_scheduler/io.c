@@ -458,7 +458,7 @@ void* hilo_io_out(void* hilo_out)
         }
       }
     }
-    
+
     if (hilo_stdout->io->cerrar_hilo)
     {
       seguir_atendiendo = false;
@@ -526,7 +526,7 @@ void* hilo_io_sleep(void* hilo_sleep)
       pthread_mutex_unlock(&(shilo_sleep->io->logger->mutex_logger));
       seguir_atendiendo = false;
     }
-    
+
     if (shilo_sleep->io->cerrar_hilo)
     {
       seguir_atendiendo = false;
@@ -745,12 +745,10 @@ bool procesar_nuevo_sleep(t_peticion_sleep* peticion, t_io* io_sleep,
   pthread_mutex_lock(&(io_sleep->mutex_socket_io));
   if (io_sleep->socket_io == -1)
   {
-    
     return false;
     pthread_mutex_unlock(&(io_sleep->mutex_socket_io));
-
   }
-  
+
   pthread_mutex_lock(&(lista_sleep->mutex_lista_sleep));
   bool lista_vacia = list_is_empty(lista_sleep->lista_sleep);
   list_add(lista_sleep->lista_sleep, peticion);
