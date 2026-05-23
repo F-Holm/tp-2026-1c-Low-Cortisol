@@ -6,14 +6,14 @@
 static void log_mutex_tomado(t_logger* logger, uint32_t pid, char* id_mutex)
 {
   pthread_mutex_lock(&(logger->mutex_logger));
-  log_info(logger->logger, "%u Toma el Mutex %s", pid, id_mutex);
+  log_info(logger->logger, "## %u Toma el Mutex %s", pid, id_mutex);
   pthread_mutex_unlock(&(logger->mutex_logger));
 }
 
 static void log_mutex_liberado(t_logger* logger, uint32_t pid, char* id_mutex)
 {
   pthread_mutex_lock(&(logger->mutex_logger));
-  log_info(logger->logger, "%u Toma el Mutex %s", pid, id_mutex);
+  log_info(logger->logger, "## %u Toma el Mutex %s", pid, id_mutex);
   pthread_mutex_unlock(&(logger->mutex_logger));
 }
 
@@ -153,9 +153,6 @@ bool mutex_unlock(t_mutex* mutex, t_pcb* pcb)
     cambio_de_prioridad(pcb, mutex->prioridad_original_proceso, mutex->logger);
   }
   log_mutex_liberado(mutex->logger, pcb->pid, mutex->id);
-  cambio_desbloquear(pcb, &(mutex->colas->block), &(mutex->colas->susp_block),
-                     &(mutex->colas->susp_ready), &(mutex->colas->ready),
-                     mutex->logger);
   if (mutex->estado == 0)
   {
     mutex->proceso_actual = NULL;
@@ -170,8 +167,9 @@ bool mutex_unlock(t_mutex* mutex, t_pcb* pcb)
           get_prioridad_pcb(mutex->proceso_actual);
     }
     log_mutex_tomado(mutex->logger, mutex->proceso_actual->pid, mutex->id);
-    cambio_exec_block(mutex->proceso_actual, &(mutex->colas->exec),
-                      &(mutex->colas->block), mutex->logger);
+    cambio_desbloquear(pcb, &(mutex->colas->block), &(mutex->colas->susp_block),
+                       &(mutex->colas->susp_ready), &(mutex->colas->ready),
+                       mutex->logger);
   }
   mutex->estado++;
   pthread_mutex_unlock(&(mutex->mutex));
