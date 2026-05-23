@@ -105,8 +105,10 @@ t_proceso* inicializar_proceso(u_int32_t pid, char* path_relativo,
   FILE* f = fopen(path_completo, "r");
   if (f == NULL)
   {
+    pthread_mutex_lock(logger);
     log_error(logger, "## PID: %u - No se pudo abrir el archivo: %s", pid,
               path_completo);
+    pthread_mutex_unlock(logger);
     free(path_completo);
     free(proceso);
     return NULL;
@@ -142,7 +144,9 @@ bool inicializar_ip_stick(t_datos_stick* datos_stick, int client_socket)
     strcpy(datos_stick->ip_memory_stick, ip_traducida);
     return true;
   }
+  pthread_mutex_lock(datos_stick->logger);
   log_info(datos_stick->logger,
            "## NO SE HA PODIDO CONSEGUIR LA IP DE MEMORY_STICK");
+  pthread_mutex_unlock(datos_stick->logger);
   return false;
 }
