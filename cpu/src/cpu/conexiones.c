@@ -1,9 +1,9 @@
 #include "cpu/conexiones.h"
-#include "cpu/cpu.h"
 
 #include <commons/log.h>
 #include <stdio.h>
 
+#include "cpu/cpu.h"
 #include "utils/kernel_memory_cpu.h"
 
 bool iniciar_conexion_scheduler(t_cpu* cpu)
@@ -79,7 +79,6 @@ bool iniciar_conexion_kmemory(t_cpu* cpu)
   return true;
 }
 
-
 bool conectar_memory_stick(t_cpu* cpu)
 {
   t_list* lista_paquete;
@@ -100,9 +99,8 @@ bool conectar_memory_stick(t_cpu* cpu)
     return false;
   }
 
-  log_info(cpu->logger,
-          "## Conectandose a memory stick con ip %s y puerto %s", ip_stick,
-          puerto_stick);
+  log_info(cpu->logger, "## Conectandose a memory stick con ip %s y puerto %s",
+           ip_stick, puerto_stick);
 
   if (!handshake_memory_stick(cpu, nuevo_socket))
   {
@@ -123,7 +121,6 @@ bool conectar_memory_stick(t_cpu* cpu)
   list_add(cpu->memory_sticks, p_socket);
   return true;
 }
-
 
 bool handshake_memory_stick(t_cpu* cpu, int nuevo_socket)
 {

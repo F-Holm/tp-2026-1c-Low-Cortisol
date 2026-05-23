@@ -1,14 +1,12 @@
 #include <commons/config.h>
 #include <commons/log.h>
-
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "cpu/cpu.h"
 #include "cpu/conexiones.h"
+#include "cpu/cpu.h"
 #include "cpu/inicializador.h"
 #include "cpu/liberacion.h"
-
 #include "utils/hello.h"
 #include "utils/msg.h"
 
@@ -64,7 +62,7 @@ int main(int argc, char* argv[])
   iniciar_diccionario(cpu->handlers);
   // CONEXION CON MEMORY STICK
   // hilo de escucha
-  //iniciar_hilo_kernel_memory(cpu);
+  // iniciar_hilo_kernel_memory(cpu);
 
   manejo_instrucciones(cpu);
 

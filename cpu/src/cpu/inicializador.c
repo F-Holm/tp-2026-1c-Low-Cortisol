@@ -1,10 +1,10 @@
-#include "cpu/cpu.h"
 #include "cpu/inicializador.h"
-#include "cpu/handlers.h"
 
 #include <commons/log.h>
 #include <stdio.h>
 
+#include "cpu/cpu.h"
+#include "cpu/handlers.h"
 
 bool verificar_argumentos(int argc, char** argv)
 {
@@ -45,27 +45,24 @@ bool iniciar_modulo(t_cpu* cpu, char* path_config)
   return true;
 }
 
-
 void iniciar_diccionario(t_dictionary* handlers)
 {
-  dictionary_put(handlers, "NOOP",         (void*)handler_noop);
-  dictionary_put(handlers, "SET",          (void*)handler_set);
-  dictionary_put(handlers, "SUM",          (void*)handler_sum);
-  dictionary_put(handlers, "SUB",          (void*)handler_sub);
-  dictionary_put(handlers, "JZN",          (void*)handler_jnz);
-  dictionary_put(handlers, "MOV_IN",       (void*)handler_mov_in);
-  dictionary_put(handlers, "MOV_OUT",      (void*)handler_mov_out);
-  dictionary_put(handlers, "CAPY_MEM",     (void*)handler_copy_mem);
+  dictionary_put(handlers, "NOOP", (void*)handler_noop);
+  dictionary_put(handlers, "SET", (void*)handler_set);
+  dictionary_put(handlers, "SUM", (void*)handler_sum);
+  dictionary_put(handlers, "SUB", (void*)handler_sub);
+  dictionary_put(handlers, "JZN", (void*)handler_jnz);
+  dictionary_put(handlers, "MOV_IN", (void*)handler_mov_in);
+  dictionary_put(handlers, "MOV_OUT", (void*)handler_mov_out);
+  dictionary_put(handlers, "CAPY_MEM", (void*)handler_copy_mem);
   dictionary_put(handlers, "MUTEX_CREATE", (void*)handler_mutex_create);
-  dictionary_put(handlers, "MUTEX_LOCK",   (void*)handler_mutex_lock);
+  dictionary_put(handlers, "MUTEX_LOCK", (void*)handler_mutex_lock);
   dictionary_put(handlers, "MUTEX_UNLOCK", (void*)handler_mutex_unlock);
-  dictionary_put(handlers, "MEM_ALLOC",    (void*)handler_mem_alloc);
-  dictionary_put(handlers, "MEM_FREE",     (void*)handler_mem_free);
-  dictionary_put(handlers, "SLEEP",        (void*)handler_sleep);
-  dictionary_put(handlers, "STDOUT",       (void*)handler_stdout);
-  dictionary_put(handlers, "STDIN",        (void*)handler_stdin);
-  dictionary_put(handlers, "INIT_PROC",    (void*)handler_init_proc);
-  dictionary_put(handlers, "EXIT",         (void*)handler_exit);
+  dictionary_put(handlers, "MEM_ALLOC", (void*)handler_mem_alloc);
+  dictionary_put(handlers, "MEM_FREE", (void*)handler_mem_free);
+  dictionary_put(handlers, "SLEEP", (void*)handler_sleep);
+  dictionary_put(handlers, "STDOUT", (void*)handler_stdout);
+  dictionary_put(handlers, "STDIN", (void*)handler_stdin);
+  dictionary_put(handlers, "INIT_PROC", (void*)handler_init_proc);
+  dictionary_put(handlers, "EXIT", (void*)handler_exit);
 }
-
-

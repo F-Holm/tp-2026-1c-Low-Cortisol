@@ -33,17 +33,18 @@ typedef struct
   t_config* config;
 } t_cpu;
 
-
-typedef struct {
-    char* nombre;
-    char* parametros[3];
-    int cantidad_parametros;
+typedef struct
+{
+  char* nombre;
+  char* parametros[3];
+  int cantidad_parametros;
 } t_instruccion;
 
 // void iniciar_hilo_kernel_memory(void* arg);
 // void iniciar_hilo_kernel_scheduler(void* arg);
 void escuchar_kernel_memory(t_cpu* arg);
-bool manejar_paquete(t_cpu* cpu, t_list* lista_paquete, char ip_stick[16], char puerto_stick[6]);
+bool manejar_paquete(t_cpu* cpu, t_list* lista_paquete, char ip_stick[16],
+                     char puerto_stick[6]);
 void manejo_instrucciones(t_cpu* cpu);
 uint32_t recibir_pid_kernel_scheduler(t_cpu* cpu);
 bool pedir_contexto_kernel_memory(t_cpu* cpu, uint32_t pid);
@@ -53,9 +54,10 @@ char* etapa_fetch(t_cpu* cpu, uint32_t pid, uint32_t pc);
 void pedir_instruccion_kernel_memory(t_cpu* cpu, uint32_t pid, uint32_t pc);
 char* recibir_instruccion_kernel_memory(t_cpu* cpu);
 t_instruccion* etapa_decode(char* instruccion_KM);
-bool etapa_execute(t_cpu* cpu, t_contexto* contexto, t_instruccion* instruccion, uint32_t pid);
+bool etapa_execute(t_cpu* cpu, t_contexto* contexto, t_instruccion* instruccion,
+                   uint32_t pid);
 bool check_interrupt(t_cpu* cpu, uint32_t pid, t_contexto* contexto);
-void enviar_contexto_actualizado(t_cpu* cpu, uint32_t pid, t_contexto* contexto_actualizado);
-
+void enviar_contexto_actualizado(t_cpu* cpu, uint32_t pid,
+                                 t_contexto* contexto_actualizado);
 
 #endif /* CPU_CPU_H_ */

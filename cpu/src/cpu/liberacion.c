@@ -1,8 +1,9 @@
-#include "cpu/cpu.h"
 #include "cpu/liberacion.h"
 
 #include <commons/log.h>
 #include <stdio.h>
+
+#include "cpu/cpu.h"
 
 void iterator_close_socket(void* value)
 {
@@ -12,10 +13,10 @@ void iterator_close_socket(void* value)
 
 void destruir_instruccion(t_instruccion* instrucion)
 {
-    free(instrucion->nombre);
-    for (int i = 0; i < instrucion->cantidad_parametros; i++)
-        free(instrucion->parametros[i]);
-    free(instrucion);
+  free(instrucion->nombre);
+  for (int i = 0; i < instrucion->cantidad_parametros; i++)
+    free(instrucion->parametros[i]);
+  free(instrucion);
 }
 
 void cerrar_modulo(t_cpu* cpu)
