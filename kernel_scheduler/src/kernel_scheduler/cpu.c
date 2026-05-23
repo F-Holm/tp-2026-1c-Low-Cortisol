@@ -310,11 +310,7 @@ static void* manejar_cliente_cpu(void* datos_hilo_cpu_void)
     gestionar_desalojo(&datos_syscall);
     gestionar_fin_quantum(&datos_syscall);
 
-    if (primer_ciclo)
-    {
-      primer_ciclo = false;
-    }
-    else
+    if (!primer_ciclo)
     {
       enviar_desalojo(&datos_syscall);
     }
@@ -327,7 +323,7 @@ static void* manejar_cliente_cpu(void* datos_hilo_cpu_void)
       break;
     }
 
-    if (datos_syscall.motivo_desalojo != MD_SIN_DESALOJO)
+    if (datos_syscall.motivo_desalojo != MD_SIN_DESALOJO || primer_ciclo)
     {
       if (!enviar_codigo(&datos_syscall))
       {
