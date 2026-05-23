@@ -29,13 +29,15 @@ void* escucha_scheduler(void* ptr)
 
         t_proceso* proceso = inicializar_proceso(
             *pid, path_relativo, datos_scheduler->scripts_basepath,
-            datos_scheduler->logger);
+            datos_scheduler->logger, datos_scheduler->mutex_logger);
 
         pthread_mutex_lock(datos_scheduler->mutex_procesos);
         list_add(datos_scheduler->procesos, proceso);
         pthread_mutex_unlock(datos_scheduler->mutex_procesos);
 
+        pthread_mutex_lock(datos_scheduler->mutex_logger);
         log_info(datos_scheduler->logger, "## PID: %ls - Proceso Creado", pid);
+        pthread_mutex_unlock(datos_scheduler->mutex_logger);
 
         free(pid);
         list_clean(paquete);
@@ -44,22 +46,28 @@ void* escucha_scheduler(void* ptr)
       }
       case OP_SYSCALL_MEM_ALLOC:
       {
+        pthread_mutex_lock(datos_scheduler->mutex_logger);
         log_info(datos_scheduler->logger, "Llego una syscall de MEM_ALLOC");
+        pthread_mutex_unlock(datos_scheduler->mutex_logger);
         int a;
         t_syscall_memory* syscall = (t_syscall_memory*)recibir_buffer(&a, datos_scheduler->socket_scheduler);
         break;
       }
       case OP_SYSCALL_MEM_FREE:
       {
+        pthread_mutex_lock(datos_scheduler->mutex_logger);
         log_info(datos_scheduler->logger, "Llego una syscall de MEM_FREE");
+        pthread_mutex_unlock(datos_scheduler->mutex_logger);
         int a;
         t_syscall_memory* syscall = (t_syscall_memory*)recibir_buffer(&a, datos_scheduler->socket_scheduler);
         break;
       }
       case OP_PETICION_IO_STDIN:
       {
+        pthread_mutex_lock(datos_scheduler->mutex_logger);
         log_info(datos_scheduler->logger,
                  "Llego una syscall de PETICION_IO_STDIN");
+        pthread_mutex_unlock(datos_scheduler->mutex_logger);
         t_list* paquete_stdin = recibir_paquete(
             datos_scheduler
                 ->socket_scheduler);  // RECIBE STRUCT DE PETICION STDOUT
@@ -68,8 +76,10 @@ void* escucha_scheduler(void* ptr)
       }
       case OP_PETICION_IO_STDOUT:
       {
+        pthread_mutex_lock(datos_scheduler->mutex_logger);
         log_info(datos_scheduler->logger,
                  "Llego una syscall de PETICION_IO_STDOUT");
+        pthread_mutex_unlock(datos_scheduler->mutex_logger);
         int a;
         t_peticion_stdout*  stdout = (t_peticion_stdout*)recibir_buffer(&a, datos_scheduler->socket_scheduler);
         enviar_string(OP_OK, "OK", datos_scheduler->socket_scheduler);
@@ -119,9 +129,11 @@ void* escucha_cpu(void* ptr)
         t_proceso* proceso = buscar_proceso(datos_cpu, pid);
         char* instruccion = proceso->instrucciones[pc];
 
+        pthread_mutex_lock(datos_cpu->mutex_logger);
         log_info(datos_cpu->logger,
                  "## PID: %u - Obtener instrucción: %u - Instrucción: %s", pid,
                  pc, instruccion);
+        pthread_mutex_unlock(datos_cpu->mutex_logger);
 
         usleep(datos_cpu->instruction_delay * 1000);
         enviar_string(OP_ENVIAR_INSTRUCCION, instruccion,
@@ -133,7 +145,9 @@ void* escucha_cpu(void* ptr)
         int a;
         uint32_t* pid = (uint32_t*)recibir_buffer(&a, datos_cpu->socket_cpu);
         t_proceso* proceso = buscar_proceso(datos_cpu, *pid);
+        pthread_mutex_lock(datos_cpu->mutex_logger);
         log_info(datos_cpu->logger, "## PID: %u - Obtener contexto", *pid);
+        pthread_mutex_unlock(datos_cpu->mutex_logger);
         free(pid);
         usleep(datos_cpu->instruction_delay * 1000);
         enviar_buffer(OP_ENVIAR_CONTEXTO, &proceso->contexto,
@@ -162,7 +176,9 @@ void* escucha_swap(void* ptr)
     {
       case OP_PAQUETE:
         // t_list* paquete = recibir_paquete(datos_swap->socket_swap);
+        pthread_mutex_lock(datos_swap->mutex_logger);
         log_info(datos_swap->logger, "Llego un paquete de la memory stick");
+        pthread_mutex_unlock(datos_swap->mutex_logger);
         // comunicaciones
         break;
       case OP_CODE_ERROR:
@@ -187,7 +203,9 @@ void* escucha_stick(void* ptr)
     {
       case OP_PAQUETE:
         // t_list* paquete = recibir_paquete(datos_stick->socket_stick);
+        pthread_mutex_lock(datos_stick->mutex_logger);
         log_info(datos_stick->logger, "Llego un paquete de la memory stick");
+        pthread_mutex_unlock(datos_stick->mutex_logger);
         // comunicaciones
         break;
       case OP_CODE_ERROR:

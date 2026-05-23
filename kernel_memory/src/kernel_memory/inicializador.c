@@ -27,8 +27,10 @@ t_datos_kernel_mem* inicializar_datos_kernel_memory(
   datos_kernel->procesos = list_create();
   datos_kernel->mutex_procesos = malloc(sizeof(pthread_mutex_t));
   datos_kernel->mutex_lista_sockets = malloc(sizeof(pthread_mutex_t));
+  datos_kernel->mutex_logger = malloc(sizeof(pthread_mutex_t));
   pthread_mutex_init(datos_kernel->mutex_procesos, NULL);
   pthread_mutex_init(datos_kernel->mutex_lista_sockets, NULL);
+  pthread_mutex_init(datos_kernel->mutex_logger, NULL);
   return datos_kernel;
 }
 
@@ -36,11 +38,13 @@ t_datos_scheduler* inicializar_datos_scheduler(int socket_scheduler,
                                                t_list* procesos,
                                                char* scripts_basepath,
                                                pthread_mutex_t* mutex_procesos,
+                                               pthread_mutex_t* mutex_logger,
                                                t_log* logger)
 {
   t_datos_scheduler* datos_scheduler = malloc(sizeof(t_datos_scheduler));
   datos_scheduler->socket_scheduler = socket_scheduler;
   datos_scheduler->mutex_procesos = mutex_procesos;
+  datos_scheduler->mutex_logger = mutex_logger;
   datos_scheduler->logger = logger;
   datos_scheduler->procesos = procesos;
   datos_scheduler->scripts_basepath = scripts_basepath;
@@ -49,33 +53,39 @@ t_datos_scheduler* inicializar_datos_scheduler(int socket_scheduler,
 
 t_datos_cpu* inicializar_datos_cpu(int socket_cpu, t_list* procesos,
                                    pthread_mutex_t* mutex_procesos,
+                                   pthread_mutex_t* mutex_logger,
                                    int instruction_delay, t_log* logger)
 {
   t_datos_cpu* datos_cpu = malloc(sizeof(t_datos_cpu));
   datos_cpu->socket_cpu = socket_cpu;
   datos_cpu->procesos = procesos;
   datos_cpu->mutex_procesos = mutex_procesos;
+  datos_cpu->mutex_logger = mutex_logger;
   datos_cpu->instruction_delay = instruction_delay;
   datos_cpu->logger = logger;
   datos_cpu->id = -1;
   return datos_cpu;
 }
 
-t_datos_stick* inicializar_datos_stick(int socket_stick, t_log* logger)
+t_datos_stick* inicializar_datos_stick(int socket_stick, t_log* logger,
+                                       pthread_mutex_t* mutex_logger)
 {
   t_datos_stick* datos_stick = malloc(sizeof(t_datos_stick));
   datos_stick->socket_stick = socket_stick;
   datos_stick->logger = logger;
+  datos_stick->mutex_logger = mutex_logger;
   datos_stick->tamanio_stick = -1;
   datos_stick->puerto_stick = -1;
   return datos_stick;
 }
 
-t_datos_swap* inicializar_datos_swap(int socket_swap, t_log* logger)
+t_datos_swap* inicializar_datos_swap(int socket_swap, t_log* logger,
+                                     pthread_mutex_t* mutex_logger)
 {
   t_datos_swap* datos_swap = malloc(sizeof(t_datos_swap));
   datos_swap->socket_swap = socket_swap;
   datos_swap->logger = logger;
+  datos_swap->mutex_logger = mutex_logger;
   return datos_swap;
 }
 
@@ -90,7 +100,8 @@ int cantidad_instrucciones(FILE* f)
 }
 
 t_proceso* inicializar_proceso(u_int32_t pid, char* path_relativo,
-                               char* scripts_basepath, t_log* logger)
+                               char* scripts_basepath, t_log* logger,
+                               pthread_mutex_t* mutex_logger)
 {
   t_proceso* proceso = malloc(sizeof(t_proceso));
   proceso->pid = pid;
@@ -105,8 +116,10 @@ t_proceso* inicializar_proceso(u_int32_t pid, char* path_relativo,
   FILE* f = fopen(path_completo, "r");
   if (f == NULL)
   {
+    pthread_mutex_lock(mutex_logger);
     log_error(logger, "## PID: %u - No se pudo abrir el archivo: %s", pid,
               path_completo);
+    pthread_mutex_unlock(mutex_logger);
     free(path_completo);
     free(proceso);
     return NULL;
@@ -142,7 +155,9 @@ bool inicializar_ip_stick(t_datos_stick* datos_stick, int client_socket)
     strcpy(datos_stick->ip_memory_stick, ip_traducida);
     return true;
   }
+  pthread_mutex_lock(datos_stick->mutex_logger);
   log_info(datos_stick->logger,
            "## NO SE HA PODIDO CONSEGUIR LA IP DE MEMORY_STICK");
+  pthread_mutex_unlock(datos_stick->mutex_logger);
   return false;
 }
