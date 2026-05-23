@@ -15,7 +15,6 @@
 int main(int argc, char* argv[])
 {
   t_modulo_io sio;
-  t_peticion_stdin peticion_stdin;
 
   if (!args(argc, argv, &sio))
   {
@@ -32,6 +31,7 @@ int main(int argc, char* argv[])
   }
   // Esperando Instrucciones del Kernel Scheduler
   bool seguir_operando;
+  bool operacion;
   while (seguir_operando)
   {
     int op_code;
@@ -39,21 +39,24 @@ int main(int argc, char* argv[])
     switch (op_code)
     {
       case OP_PETICION_IO_STDIN:
-        if (!io_tipo_stdin)
+        operacion = io_tipo_stdin(&sio);
+        if (!operacion)
         {
           seguir_operando = false;
         }
         break;
 
       case OP_PETICION_IO_STDOUT:
-        if (!io_tipo_stdout)
+        operacion = io_tipo_stdout(&sio);
+        if (!operacion)
         {
           seguir_operando = false;
         }
         break;
 
       case OP_PETICION_IO_SLEEP:
-        if (!io_tipo_sleep)
+        operacion = io_tipo_sleep(&sio);
+        if (!operacion)
         {
           seguir_operando = false;
         }
