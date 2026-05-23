@@ -226,11 +226,15 @@ bool check_interrupt(t_cpu* cpu, uint32_t pid, t_contexto* contexto)
   if (codigo == OP_INTERRUPCION)
   {
     log_info(cpu->logger, "## Interrupción recibida");
+    char* interrucpcion_recibida = recibir_string(cpu->socket_kernel_scheduler);
+    log_info (cpu->logger, "Razon de la interrupcion: %s", interrucpcion_recibida);
+    free(interrucpcion_recibida);
     return false;
   }
   else if (codigo == OP_SIN_INTERRUPCION)
   {
     log_info(cpu->logger, "## Sin interrupción");
+    free(recibir_string(cpu->socket_kernel_scheduler));
     return true;
   }
   log_error(cpu->logger, "## Operacion no reconocida: %d", codigo);
