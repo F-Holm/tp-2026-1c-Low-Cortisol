@@ -7,14 +7,14 @@ static void log_mutex_tomado(t_logger* logger, uint32_t pid, char* id_mutex)
 {
   pthread_mutex_lock(&(logger->mutex_logger));
   log_info(logger->logger, "%u Toma el Mutex %s", pid, id_mutex);
-  pthread_mutex_lock(&(logger->mutex_logger));
+  pthread_mutex_unlock(&(logger->mutex_logger));
 }
 
 static void log_mutex_liberado(t_logger* logger, uint32_t pid, char* id_mutex)
 {
   pthread_mutex_lock(&(logger->mutex_logger));
   log_info(logger->logger, "%u Toma el Mutex %s", pid, id_mutex);
-  pthread_mutex_lock(&(logger->mutex_logger));
+  pthread_mutex_unlock(&(logger->mutex_logger));
 }
 
 static void log_cambio_de_prioridad(t_logger* logger, uint32_t pid,
@@ -23,7 +23,7 @@ static void log_cambio_de_prioridad(t_logger* logger, uint32_t pid,
   pthread_mutex_lock(&(logger->mutex_logger));
   log_info(logger->logger, "## %u Cambio de prioridad: %d - %d", pid,
            prioridad_anterior, prioridad_nueva);
-  pthread_mutex_lock(&(logger->mutex_logger));
+  pthread_mutex_unlock(&(logger->mutex_logger));
 }
 
 t_lista_mutex* inicializar_lista_mutex(void)
@@ -56,20 +56,22 @@ void crear_y_add_mutex(t_lista_mutex* lista_mutex, char* id,
 
 static t_mutex* get_mutex_by_id(t_lista_mutex* lista_mutex, char* id)
 {
-  pthread_mutex_lock(&(lista_mutex->mutex_lista));
+  bool encontro = false;
   t_mutex* mutex;
+  pthread_mutex_lock(&(lista_mutex->mutex_lista));
   t_list_iterator* iterador_mutex = list_iterator_create(lista_mutex->lista);
   while (list_iterator_has_next(iterador_mutex))
   {
     mutex = list_iterator_next(iterador_mutex);
     if (strcmp(mutex->id, id) == 0)
     {
-      return mutex;
+      encontro = true;
+      break;
     }
   }
   list_iterator_destroy(iterador_mutex);
   pthread_mutex_unlock(&(lista_mutex->mutex_lista));
-  return NULL;
+  return encontro ? mutex : NULL;
 }
 
 bool lista_mutex_lock(t_lista_mutex* lista_mutex, char* id, t_pcb* pcb)

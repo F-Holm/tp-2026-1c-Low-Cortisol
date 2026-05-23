@@ -211,7 +211,7 @@ void update_priordad_mas_baja_exec(t_lista_execute* exec)
 
 void cambio_a_ready(t_pcb* pcb, t_cola_ready* ready, t_logger* logger)
 {
-  pthread_mutex_unlock(&(ready->mutex_cola));
+  pthread_mutex_lock(&(ready->mutex_cola));
   if (ready->cant_procesos_ready == 0)
   {
     pthread_cond_signal(&(ready->nuevo_proceso));
