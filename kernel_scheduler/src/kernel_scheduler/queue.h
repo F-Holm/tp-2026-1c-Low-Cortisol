@@ -29,10 +29,11 @@ typedef enum
 {
   MFP_PRIORIDAD_NO_VALIDA,
   MFP_INSTRUCCION_EXIT,
-  MFP_CIERRE_SISTEMA
+  MFP_CIERRE_SISTEMA,
+  MFP_FALLO_IO
 } t_motivos_fin_proceso;
 
-extern const char* const MOTIVOS_FIN_PROCESO[3];
+extern const char* const MOTIVOS_FIN_PROCESO[4];
 
 typedef struct
 {
@@ -158,7 +159,7 @@ void cambio_desbloquear(t_pcb* pcb, t_lista* block, t_lista* susp_block,
 bool cambio_cualquiera_exit(t_colas* colas, t_logger* logger, int estado,
                             t_contador_procesos* contador,
                             t_socket_kernel_memory* socket_km,
-                            int socket_servidor);
+                            int socket_servidor, int motivo);
 void vaciar_colas(t_colas* colas, t_logger* logger,
                   t_socket_kernel_memory* socket_km, int socket_servidor);
 

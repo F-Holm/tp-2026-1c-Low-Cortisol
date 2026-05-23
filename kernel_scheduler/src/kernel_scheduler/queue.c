@@ -5,8 +5,9 @@
 const char* const ESTADOS_STR[7] = {
     "NEW", "READY", "EXEC", "BLOCK", "SUSP. BLOCK", "SUSP. READY", "EXIT"};
 
-const char* const MOTIVOS_FIN_PROCESO[3] = {
-    "prioridad no válida", "instrucción EXIT", "cierre del sistema"};
+const char* const MOTIVOS_FIN_PROCESO[4] = {
+    "prioridad no válida", "instrucción EXIT", "cierre del sistema",
+    "fallo de io"};
 
 void inicializar_cola(t_cola* cola)
 {
@@ -504,7 +505,7 @@ void cambio_exec_exit(t_pcb* pcb, t_lista_execute* exec, t_logger* logger,
 void cambio_exec_block(t_pcb* pcb, t_lista_execute* exec, t_lista* block,
                        t_logger* logger)
 {
-  log_cambio_estado(logger, pcb->pid, EST_EXEC, EST_EXIT);
+  log_cambio_estado(logger, pcb->pid, EST_EXEC, EST_BLOCK);
   cambio_sacar_exec(pcb, exec);
   cambio_a_block(pcb, block);
 }
@@ -566,7 +567,7 @@ void cambio_desbloquear(t_pcb* pcb, t_lista* block, t_lista* susp_block,
 bool cambio_cualquiera_exit(t_colas* colas, t_logger* logger, int estado,
                             t_contador_procesos* contador,
                             t_socket_kernel_memory* socket_km,
-                            int socket_servidor)
+                            int socket_servidor, int motivo)
 {
   t_pcb* pcb = NULL;
   switch (estado)
@@ -592,8 +593,7 @@ bool cambio_cualquiera_exit(t_colas* colas, t_logger* logger, int estado,
     return false;
   }
   log_cambio_estado(logger, pcb->pid, estado, EST_EXIT);
-  cambio_a_exit(pcb, contador, MFP_CIERRE_SISTEMA, logger, socket_km,
-                socket_servidor);
+  cambio_a_exit(pcb, contador, motivo, logger, socket_km, socket_servidor);
   return true;
 }
 
@@ -603,7 +603,8 @@ void vaciar_colas(t_colas* colas, t_logger* logger,
   for (int i = EST_READY; i < EST_EXIT; i++)
   {
     while (cambio_cualquiera_exit(colas, logger, i, colas->contador_procesos,
-                                  socket_km, socket_servidor))
+                                  socket_km, socket_servidor,
+                                  MFP_CIERRE_SISTEMA))
       ;
   }
 }

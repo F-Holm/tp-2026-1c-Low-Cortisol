@@ -227,7 +227,16 @@ static void manejar_syscall_io_sleep(t_datos_syscall* datos)
                             datos->datos->listas_io->lista_sleep,
                             datos->datos->logger))
   {
+    cambio_cualquiera_exit(datos->datos->colas, datos->datos->logger, EST_EXEC,
+                           datos->datos->colas->contador_procesos,
+                           datos->datos->socket_km,
+                           datos->datos->socket_servidor, MFP_FALLO_IO);
     datos->pcb = NULL;
+  }
+  else
+  {
+    cambio_exec_block(datos->pcb, &(datos->datos->colas->exec),
+                      &(datos->datos->colas->block), datos->datos->logger);
   }
 }
 
@@ -240,6 +249,13 @@ static void manejar_syscall_io_stdout(t_datos_syscall* datos)
           datos->datos->listas_io->lista_stdout, datos->datos->logger))
   {
     datos->pcb = NULL;
+    cambio_exec_block(datos->pcb, &(datos->datos->colas->exec),
+                      &(datos->datos->colas->block), datos->datos->logger);
+  }
+  else
+  {
+    cambio_exec_block(datos->pcb, &(datos->datos->colas->exec),
+                      &(datos->datos->colas->block), datos->datos->logger);
   }
 }
 
@@ -251,6 +267,13 @@ static void manejar_syscall_io_stdin(t_datos_syscall* datos)
                             datos->datos->listas_io->lista_stdin))
   {
     datos->pcb = NULL;
+    cambio_exec_block(datos->pcb, &(datos->datos->colas->exec),
+                      &(datos->datos->colas->block), datos->datos->logger);
+  }
+  else
+  {
+    cambio_exec_block(datos->pcb, &(datos->datos->colas->exec),
+                      &(datos->datos->colas->block), datos->datos->logger);
   }
 }
 
