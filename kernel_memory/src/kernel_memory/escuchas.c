@@ -126,13 +126,11 @@ void* escucha_cpu(void* ptr)
       }
       case OP_PEDIR_CONTEXTO:
       {
-        t_list* paquete = recibir_paquete(datos_cpu->socket_cpu);
-        uint32_t pid = *(uint32_t*)list_get(paquete, 0);
-        list_destroy_and_destroy_elements(paquete, free);
-        t_proceso* proceso = buscar_proceso(datos_cpu, pid);
-
-        log_info(datos_cpu->logger, "## PID: %u - Obtener contexto", pid);
-
+        int a;
+        uint32_t* pid = (uint32_t*)recibir_buffer(&a, datos_cpu->socket_cpu);
+        t_proceso* proceso = buscar_proceso(datos_cpu, *pid);
+        log_info(datos_cpu->logger, "## PID: %u - Obtener contexto", *pid);
+        free(pid);
         usleep(datos_cpu->instruction_delay * 1000);
         enviar_buffer(OP_ENVIAR_CONTEXTO, &proceso->contexto,
                       sizeof(t_contexto), datos_cpu->socket_cpu);
