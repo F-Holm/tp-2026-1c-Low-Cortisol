@@ -71,6 +71,7 @@ run: all
 kill:
 	@echo "Cerrando el sistema..."
 	-pkill -f kernel_memory
+	-pkill -f kernel_scheduler
 
 $(MODULES):
 	$(MAKE) -C $@
