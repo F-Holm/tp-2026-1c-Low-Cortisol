@@ -34,8 +34,7 @@ void handshake(t_datos_kernel_mem* datos_kernel_memory, int client_socket)
           client_socket, datos_kernel_memory->procesos,
           datos_kernel_memory->scripts_basepath,
           datos_kernel_memory->mutex_procesos,
-          datos_kernel_memory->mutex_logger,
-        datos_kernel_memory->logger);
+          datos_kernel_memory->mutex_logger, datos_kernel_memory->logger);
       datos_kernel_memory->socket_scheduler = client_socket;
       empezar_escucha_scheduler(datos_scheduler);
     }
@@ -57,7 +56,8 @@ void handshake(t_datos_kernel_mem* datos_kernel_memory, int client_socket)
       pthread_mutex_unlock(datos_kernel_memory->mutex_logger);
       t_datos_cpu* datos_cpu = inicializar_datos_cpu(
           client_socket, datos_kernel_memory->procesos,
-          datos_kernel_memory->mutex_procesos, datos_kernel_memory->mutex_logger,
+          datos_kernel_memory->mutex_procesos,
+          datos_kernel_memory->mutex_logger,
           datos_kernel_memory->instruction_delay, datos_kernel_memory->logger);
       inicializar_correcto = recibir_id_cpu(datos_cpu);
       agregar_conexion_cpu(datos_kernel_memory, datos_cpu);
@@ -92,7 +92,8 @@ void handshake(t_datos_kernel_mem* datos_kernel_memory, int client_socket)
       pthread_mutex_unlock(datos_kernel_memory->mutex_logger);
       bool inicializar_correcto = true;
       t_datos_stick* datos_stick =
-          inicializar_datos_stick(client_socket, datos_kernel_memory->logger, datos_kernel_memory->mutex_logger);
+          inicializar_datos_stick(client_socket, datos_kernel_memory->logger,
+                                  datos_kernel_memory->mutex_logger);
       inicializar_correcto = inicializar_ip_stick(datos_stick, client_socket);
       inicializar_correcto = recibir_tamanio_stick(datos_stick);
       inicializar_correcto = recibir_puerto_escucha_stick(datos_stick);
@@ -133,7 +134,8 @@ void handshake(t_datos_kernel_mem* datos_kernel_memory, int client_socket)
       log_info(datos_kernel_memory->logger, "Se ha conectado el SWAP!");
       pthread_mutex_unlock(datos_kernel_memory->mutex_logger);
       t_datos_swap* datos_swap =
-          inicializar_datos_swap(client_socket, datos_kernel_memory->logger, datos_kernel_memory->mutex_logger);
+          inicializar_datos_swap(client_socket, datos_kernel_memory->logger,
+                                 datos_kernel_memory->mutex_logger);
       empezar_escucha_swap(datos_swap);
       break;
     }
