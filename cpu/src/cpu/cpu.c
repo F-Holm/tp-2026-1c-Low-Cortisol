@@ -9,25 +9,6 @@
 #include "cpu/liberacion.h"
 #include "utils/kernel_memory_cpu.h"
 
-/*
-void iniciar_hilo_kernel_memory(void* arg)
-{
-  t_cpu* cpu = (t_cpu*) arg;
-  pthread_create(&cpu->hilos.kernel_memory_hilo, NULL, escuchar_kernel_memory,
-                 cpu);
-
-  log_info(cpu->logger, "Hilo de escucha de Kernel Memory iniciado");
-}
-
-
-void iniciar_hilo_kernel_scheduler(t_cpu* cpu)
-{
-  pthread_create(&cpu->hilos.kernel_scheduler_hilo, NULL, manejo_instrucciones,
-                 cpu);
-
-  log_info(cpu->logger, "Hilo de escucha de Kernel Memory iniciado");
-}*/
-
 bool manejar_paquete(t_cpu* cpu, t_list* lista_paquete, char ip_stick[16],
                      char puerto_stick[6])
 {
