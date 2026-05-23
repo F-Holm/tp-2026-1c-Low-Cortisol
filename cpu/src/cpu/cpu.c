@@ -66,8 +66,12 @@ void manejo_instrucciones(t_cpu* cpu)
     pid = recibir_pid_kernel_scheduler(cpu);
 
     if (!pedir_contexto_kernel_memory(cpu, pid))
+    {
+      log_error(cpu->logger, "## Fallo en la petición del contexto");
       break;
-
+    }
+    log_info(cpu->logger, "contexto pedido correctamente");
+    
     contexto = recibir_contexto_kernel_memory(cpu);
 
     ejecutar_ciclo_instruccion(cpu, pid, contexto);
@@ -167,12 +171,7 @@ char* recibir_instruccion_kernel_memory(t_cpu* cpu)
 {
   escuchar_kernel_memory(cpu);
 
-  int size;
-  void* buffer = recibir_buffer(&size, cpu->socket_kernel_memory);
-  char* instruccion = strdup((char*)buffer);
-  free(buffer);
-
-  return instruccion;
+  return recibir_string(cpu->socket_kernel_memory);
 }
 
 t_instruccion* etapa_decode(char* instruccion_KM)
