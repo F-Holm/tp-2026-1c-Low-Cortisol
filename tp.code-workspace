@@ -5,6 +5,10 @@
       "path": "."
     },
     {
+      "name": "pseudocódigo",
+      "path": "pseudocodigo"
+    },
+    {
       "name": "kernel_scheduler",
       "path": "kernel_scheduler"
     },
