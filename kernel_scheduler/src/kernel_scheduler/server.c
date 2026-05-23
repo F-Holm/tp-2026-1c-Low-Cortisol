@@ -93,7 +93,7 @@ void servidor_escucha(t_datos_servidor_escucha* datos)
   pthread_mutex_init(&mutex_lista_sockets_cpu, NULL);
   pthread_cond_init(&cond_fin_cpu, NULL);
 
-  // crear_proceso_inicial(datos);
+  crear_proceso_inicial(datos);
   while (true)
   {
     bool manejo_exitoso = true;

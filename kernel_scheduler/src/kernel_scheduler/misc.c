@@ -102,7 +102,7 @@ void aumentar_contador_procesos(t_contador_procesos* contador)
 {
   pthread_mutex_lock(&(contador->mutex_contador));
   contador->cantidad_procesos_activos++;
-  pthread_mutex_lock(&(contador->mutex_contador));
+  pthread_mutex_unlock(&(contador->mutex_contador));
 }
 
 void disminuir_contador_procesos(t_contador_procesos* contador)
@@ -114,7 +114,7 @@ void disminuir_contador_procesos(t_contador_procesos* contador)
     cerrar_kernel_scheduler(contador->socket_servidor, contador->logger,
                             MC_SIN_PROCESOS);
   }
-  pthread_mutex_lock(&(contador->mutex_contador));
+  pthread_mutex_unlock(&(contador->mutex_contador));
 }
 
 void destruir_contador_procesos(t_contador_procesos* contador)
