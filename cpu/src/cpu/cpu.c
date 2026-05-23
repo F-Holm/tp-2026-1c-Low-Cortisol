@@ -232,7 +232,7 @@ bool check_interrupt(t_cpu* cpu, uint32_t pid, t_contexto* contexto)
   {
     return true;
   }
-  log_error(cpu->logger, "## Operacion no reconocida");
+  log_error(cpu->logger, "## Operacion no reconocida: %d", codigo);
   cerrar_modulo(cpu);
   return 0;
 }
