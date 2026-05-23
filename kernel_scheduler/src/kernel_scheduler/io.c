@@ -250,6 +250,7 @@ int io_sleep(t_sleep* peticion, t_hilo_io_sleep* hilo_sleep)
            peticion->peticion->pid);
   pthread_mutex_unlock(&(hilo_sleep->io->logger->mutex_logger));
 
+ 
   int peticion_size = sizeof(t_peticion_sleep);
   bool envio = enviar_buffer(OP_PETICION_IO_SLEEP, peticion->peticion,
                              peticion_size, hilo_sleep->io->socket_io);
@@ -702,6 +703,7 @@ bool procesar_nuevo_stdin(t_peticion_stdin* peticion, t_io* io_stdin,
   pthread_mutex_lock(&(io_stdin->mutex_socket_io));
   if (io_stdin->socket_io == -1)
   {
+    pthread_mutex_unlock(&(io_stdin->mutex_socket_io));
     return false;
   }
 
@@ -723,6 +725,7 @@ bool procesar_nuevo_stdout(t_peticion_stdout* peticion, t_io* io_stdout,
   pthread_mutex_lock(&(io_stdout->mutex_socket_io));
   if (io_stdout->socket_io == -1)
   {
+    pthread_mutex_unlock(&(io_stdout->mutex_socket_io));
     return false;
   }
 
@@ -745,8 +748,9 @@ bool procesar_nuevo_sleep(t_peticion_sleep* peticion, t_io* io_sleep,
   pthread_mutex_lock(&(io_sleep->mutex_socket_io));
   if (io_sleep->socket_io == -1)
   {
-    return false;
     pthread_mutex_unlock(&(io_sleep->mutex_socket_io));
+    return false;
+
   }
 
   pthread_mutex_lock(&(lista_sleep->mutex_lista_sleep));
