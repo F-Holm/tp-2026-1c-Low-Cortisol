@@ -154,7 +154,7 @@ void pedir_instruccion_kernel_memory(t_cpu* cpu, uint32_t pid, uint32_t pc)
   t_paquete* paquete = crear_paquete(OP_SIGUIENTE_INSTRUCCION);
   agregar_a_paquete(paquete, &pid, sizeof(uint32_t));
   agregar_a_paquete(paquete, &pc, sizeof(uint32_t));
-  if (enviar_paquete(paquete, cpu->socket_kernel_memory))
+  if (!enviar_paquete(paquete, cpu->socket_kernel_memory))
   {
     log_error(cpu->logger, "## error en la petición de la instrucción");
     cerrar_modulo(cpu);
