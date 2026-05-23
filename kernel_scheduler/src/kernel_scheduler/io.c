@@ -334,7 +334,7 @@ void* hilo_io_in(void* hilo_in)
 
     pthread_mutex_unlock(&(hilo_stdin->lista_stdin->mutex_lista_stdin));
 
-    t_stdin* peticion = malloc(sizeof(t_stdin));
+    t_stdin* peticion = NULL;
     pthread_mutex_lock(&(hilo_stdin->lista_stdin->mutex_lista_stdin));
     peticion = list_get(hilo_stdin->lista_stdin->lista_stdin, 0);
     pthread_mutex_unlock(&(hilo_stdin->lista_stdin->mutex_lista_stdin));
@@ -373,8 +373,6 @@ void* hilo_io_in(void* hilo_in)
         continue;
       }
     }
-    free(peticion->peticion);
-    free(peticion);
     if (hilo_stdin->io->cerrar_hilo)
     {
       seguir_atendiendo = false;
@@ -420,7 +418,7 @@ void* hilo_io_out(void* hilo_out)
     }
 
     pthread_mutex_unlock(&(hilo_stdout->lista_stdout->mutex_lista_stdout));
-    t_stdout* peticion = malloc(sizeof(t_stdout));
+    t_stdout* peticion = NULL;
     pthread_mutex_lock(&(hilo_stdout->lista_stdout->mutex_lista_stdout));
     peticion = list_get(hilo_stdout->lista_stdout->lista_stdout, 0);
     pthread_mutex_unlock(&(hilo_stdout->lista_stdout->mutex_lista_stdout));
@@ -460,8 +458,7 @@ void* hilo_io_out(void* hilo_out)
         }
       }
     }
-    free(peticion->peticion);
-    free(peticion);
+    
     if (hilo_stdout->io->cerrar_hilo)
     {
       seguir_atendiendo = false;
@@ -509,7 +506,7 @@ void* hilo_io_sleep(void* hilo_sleep)
     }
 
     pthread_mutex_unlock(&(shilo_sleep->lista_sleep->mutex_lista_sleep));
-    t_sleep* peticion = malloc(sizeof(t_sleep));
+    t_sleep* peticion = NULL;
     pthread_mutex_lock(&(shilo_sleep->lista_sleep->mutex_lista_sleep));
     peticion = list_get(shilo_sleep->lista_sleep->lista_sleep, 0);
     pthread_mutex_unlock(&(shilo_sleep->lista_sleep->mutex_lista_sleep));
@@ -529,8 +526,7 @@ void* hilo_io_sleep(void* hilo_sleep)
       pthread_mutex_unlock(&(shilo_sleep->io->logger->mutex_logger));
       seguir_atendiendo = false;
     }
-    free(peticion->peticion);
-    free(peticion);
+    
     if (shilo_sleep->io->cerrar_hilo)
     {
       seguir_atendiendo = false;
@@ -749,9 +745,12 @@ bool procesar_nuevo_sleep(t_peticion_sleep* peticion, t_io* io_sleep,
   pthread_mutex_lock(&(io_sleep->mutex_socket_io));
   if (io_sleep->socket_io == -1)
   {
+    
     return false;
-  }
+    pthread_mutex_unlock(&(io_sleep->mutex_socket_io));
 
+  }
+  
   pthread_mutex_lock(&(lista_sleep->mutex_lista_sleep));
   bool lista_vacia = list_is_empty(lista_sleep->lista_sleep);
   list_add(lista_sleep->lista_sleep, peticion);
