@@ -25,6 +25,8 @@ t_datos_kernel_mem* inicializar_datos_kernel_memory(
   datos_kernel->sticks_conectados = list_create();
   datos_kernel->cpus_conectados = list_create();
   datos_kernel->procesos = list_create();
+  datos_kernel->mutex_procesos = malloc(sizeof(pthread_mutex_t));
+  datos_kernel->mutex_lista_sockets = malloc(sizeof(pthread_mutex_t));
   pthread_mutex_init(datos_kernel->mutex_procesos, NULL);
   pthread_mutex_init(datos_kernel->mutex_lista_sockets, NULL);
   return datos_kernel;
