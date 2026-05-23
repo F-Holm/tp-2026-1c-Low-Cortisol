@@ -36,35 +36,35 @@ format:
 run: all
 	@mkdir -p ./output
 	@echo "Lanzando sistema..."
-	./kernel_memory/bin/kernel_memory ./kernel_memory/kernel_memory.config > ./output/kernel_memory.txt 2>&1 &
+	./kernel_memory/bin/kernel_memory ./kernel_memory/kernel_memory.config > ./output/kernel_memory.log 2>&1 &
 	@sleep $(SLEEP_TIME)
-	./kernel_scheduler/bin/kernel_scheduler ./kernel_scheduler/kernel_scheduler.config proceso_inicial.asm > ./output/kernel_scheduler.txt 2>&1 &
+	./kernel_scheduler/bin/kernel_scheduler ./kernel_scheduler/kernel_scheduler.config proceso_inicial.asm > ./output/kernel_scheduler.log 2>&1 &
 	@sleep $(SLEEP_TIME)
-	./memory_stick/bin/memory_stick ./memory_stick/memory_stick.config 1000 > ./output/memory_stick_1.txt 2>&1 &
+	./memory_stick/bin/memory_stick ./memory_stick/memory_stick.config 1000 > ./output/memory_stick_1.log 2>&1 &
 	@sleep $(SLEEP_TIME)
-	./memory_stick/bin/memory_stick ./memory_stick/memory_stick.config 2000 > ./output/memory_stick_2.txt 2>&1 &
+	./memory_stick/bin/memory_stick ./memory_stick/memory_stick.config 2000 > ./output/memory_stick_2.log 2>&1 &
 	@sleep $(SLEEP_TIME)
-	./memory_stick/bin/memory_stick ./memory_stick/memory_stick.config 3000 > ./output/memory_stick_3.txt 2>&1 &
+	./memory_stick/bin/memory_stick ./memory_stick/memory_stick.config 3000 > ./output/memory_stick_3.log 2>&1 &
 	@sleep $(SLEEP_TIME)
-	./swap/bin/swap ./swap/swap.config > ./output/swap.txt 2>&1 &
+	./swap/bin/swap ./swap/swap.config > ./output/swap.log 2>&1 &
 	@sleep $(SLEEP_TIME)
-	./io/bin/io ./io/io.config SLEEP > ./output/io_sleep.txt 2>&1 &
+	./io/bin/io ./io/io.config SLEEP > ./output/io_sleep.log 2>&1 &
 	@sleep $(SLEEP_TIME)
-	./io/bin/io ./io/io.config STDIN > ./output/io_stdin.txt 2>&1 &
+	./io/bin/io ./io/io.config STDIN > ./output/io_stdin.log 2>&1 &
 	@sleep $(SLEEP_TIME)
-	./io/bin/io ./io/io.config STDOUT > ./output/io_stdout.txt 2>&1 &
+	./io/bin/io ./io/io.config STDOUT > ./output/io_stdout.log 2>&1 &
 	@sleep $(SLEEP_TIME)
-	./cpu/bin/cpu ./cpu/cpu.config CPU-1 > ./output/cpu_1.txt 2>&1 &
+	./cpu/bin/cpu ./cpu/cpu.config CPU-1 > ./output/cpu_1.log 2>&1 &
 	@sleep $(SLEEP_TIME)
-	./cpu/bin/cpu ./cpu/cpu.config CPU-2 > ./output/cpu_2.txt 2>&1 &
+	./cpu/bin/cpu ./cpu/cpu.config CPU-2 > ./output/cpu_2.log 2>&1 &
 	@sleep $(SLEEP_TIME)
-	./cpu/bin/cpu ./cpu/cpu.config CPU-3 > ./output/cpu_3.txt 2>&1 &
+	./cpu/bin/cpu ./cpu/cpu.config CPU-3 > ./output/cpu_3.log 2>&1 &
 	@sleep $(SLEEP_TIME)
-	./memory_stick/bin/memory_stick ./memory_stick/memory_stick.config 4000 > ./output/memory_stick_4.txt 2>&1 &
+	./memory_stick/bin/memory_stick ./memory_stick/memory_stick.config 4000 > ./output/memory_stick_4.log 2>&1 &
 	@sleep $(SLEEP_TIME)
-	./memory_stick/bin/memory_stick ./memory_stick/memory_stick.config 5000 > ./output/memory_stick_5.txt 2>&1 &
+	./memory_stick/bin/memory_stick ./memory_stick/memory_stick.config 5000 > ./output/memory_stick_5.log 2>&1 &
 	@sleep $(SLEEP_TIME)
-	./memory_stick/bin/memory_stick ./memory_stick/memory_stick.config 6000 > ./output/memory_stick_6.txt 2>&1 &
+	./memory_stick/bin/memory_stick ./memory_stick/memory_stick.config 6000 > ./output/memory_stick_6.log 2>&1 &
 	@echo "Sistema lanzado con éxito. La terminal está libre."
 	@echo "Usa 'make kill' para detener todo (si no falló antes)."
 
