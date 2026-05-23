@@ -60,14 +60,9 @@ int main(int argc, char* argv[])
 
   cpu->handlers = dictionary_create();
   iniciar_diccionario(cpu->handlers);
-  // CONEXION CON MEMORY STICK
-  // hilo de escucha
-  // iniciar_hilo_kernel_memory(cpu);
 
   manejo_instrucciones(cpu);
 
-  // pthread_join(cpu->hilos.kernel_memory_hilo, NULL);
-  log_destroy(cpu->logger);
-  config_destroy(cpu->config);
+  cerrar_modulo(cpu);
   return 0;
 }

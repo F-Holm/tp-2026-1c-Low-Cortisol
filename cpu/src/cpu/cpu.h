@@ -40,8 +40,6 @@ typedef struct
   int cantidad_parametros;
 } t_instruccion;
 
-// void iniciar_hilo_kernel_memory(void* arg);
-// void iniciar_hilo_kernel_scheduler(void* arg);
 void escuchar_kernel_memory(t_cpu* arg);
 bool manejar_paquete(t_cpu* cpu, t_list* lista_paquete, char ip_stick[16],
                      char puerto_stick[6]);
