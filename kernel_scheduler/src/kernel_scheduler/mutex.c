@@ -161,7 +161,7 @@ bool mutex_unlock(t_mutex* mutex, t_pcb* pcb)
     mutex->proceso_actual = NULL;
     mutex->prioridad_original_proceso = 0;
   }
-  else
+  else if (mutex->estado < 0)
   {
     mutex->proceso_actual = list_remove(mutex->lista, 0);
     if (mutex->prioridad_activa)
