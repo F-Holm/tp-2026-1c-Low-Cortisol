@@ -76,12 +76,12 @@ void cerrar_config(t_config_vars* config_vars, t_config* config)
   config_destroy(config);
 }
 
-void iniciar_logger(t_logger* logger, t_log_level log_level)
+void iniciar_logger(t_logger** logger, t_log_level log_level)
 {
-  logger = malloc(sizeof(t_logger));
-  logger->logger =
+  *logger = malloc(sizeof(t_logger));
+  (*logger)->logger =
       log_create("kernel_scheduler.log", "kernel_scheduler", true, log_level);
-  pthread_mutex_init(&(logger->mutex_logger), NULL);
+  pthread_mutex_init(&((*logger)->mutex_logger), NULL);
 }
 
 void cerrar_logger(t_logger* logger)
@@ -99,7 +99,7 @@ bool iniciar_modulo(t_kernel_scheduler_recursos* recursos, char* archivo_config)
     return false;
 
   // Logger
-  iniciar_logger(recursos->logger, recursos->config_vars.log_level);
+  iniciar_logger(&(recursos->logger), recursos->config_vars.log_level);
   if (recursos->logger->logger == NULL)
     return false;
 
