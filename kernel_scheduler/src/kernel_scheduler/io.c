@@ -332,11 +332,7 @@ void* hilo_io_in(void* hilo_in)
                         &(hilo_stdin->lista_stdin->mutex_lista_stdin));
     }
 
-    pthread_mutex_unlock(&(hilo_stdin->lista_stdin->mutex_lista_stdin));
-
-    t_stdin* peticion = NULL;
-    pthread_mutex_lock(&(hilo_stdin->lista_stdin->mutex_lista_stdin));
-    peticion = list_get(hilo_stdin->lista_stdin->lista_stdin, 0);
+    t_stdin* peticion = list_get(hilo_stdin->lista_stdin->lista_stdin, 0);
     pthread_mutex_unlock(&(hilo_stdin->lista_stdin->mutex_lista_stdin));
     if (peticion == NULL)
     {
@@ -417,10 +413,7 @@ void* hilo_io_out(void* hilo_out)
                         &(hilo_stdout->lista_stdout->mutex_lista_stdout));
     }
 
-    pthread_mutex_unlock(&(hilo_stdout->lista_stdout->mutex_lista_stdout));
-    t_stdout* peticion = NULL;
-    pthread_mutex_lock(&(hilo_stdout->lista_stdout->mutex_lista_stdout));
-    peticion = list_get(hilo_stdout->lista_stdout->lista_stdout, 0);
+    t_stdout* peticion = list_get(hilo_stdout->lista_stdout->lista_stdout, 0);
     pthread_mutex_unlock(&(hilo_stdout->lista_stdout->mutex_lista_stdout));
     if (peticion == NULL)
     {
@@ -505,10 +498,7 @@ void* hilo_io_sleep(void* hilo_sleep)
                         &(shilo_sleep->lista_sleep->mutex_lista_sleep));
     }
 
-    pthread_mutex_unlock(&(shilo_sleep->lista_sleep->mutex_lista_sleep));
-    t_sleep* peticion = NULL;
-    pthread_mutex_lock(&(shilo_sleep->lista_sleep->mutex_lista_sleep));
-    peticion = list_get(shilo_sleep->lista_sleep->lista_sleep, 0);
+    t_sleep* peticion = list_get(shilo_sleep->lista_sleep->lista_sleep, 0);
     pthread_mutex_unlock(&(shilo_sleep->lista_sleep->mutex_lista_sleep));
     if (peticion == NULL)
     {
