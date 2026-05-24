@@ -382,7 +382,7 @@ void cambio_sacar_exec(t_pcb* pcb, t_lista_execute* exec)
   list_remove_element(exec->lista, pcb);
   bool actualizar_elemento = pcb == exec->prioridad_mas_baja;
   pthread_mutex_unlock(&(exec->mutex_lista));
-  if (actualizar_elemento)
+  if (exec->desalojo && actualizar_elemento)
   {
     update_priordad_mas_baja_exec(exec);
   }
