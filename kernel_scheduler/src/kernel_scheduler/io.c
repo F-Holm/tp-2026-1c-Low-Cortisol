@@ -110,16 +110,9 @@ int io_stdin_f(t_stdin* peticion, t_hilo_io_in* hilo_in)
   pthread_mutex_unlock(&(hilo_in->io->logger->mutex_logger));
 
   // Paso a ready o susp ready dependiendo del tiempo bloqueado
-  if (hilo_in->io->proceso_actual->tiempo_bloqueado == 0)
-  {
-    cambio_susp_block_susp_ready(peticion->pcb, hilo_in->io->susp_block,
-                                 hilo_in->io->susp_ready, hilo_in->io->logger);
-  }
-  else
-  {
-    cambio_block_ready(peticion->pcb, hilo_in->io->cola_block,
-                       hilo_in->io->cola_ready, hilo_in->io->logger);
-  }
+  cambio_desbloquear(peticion->pcb, hilo_sleep->io->cola_block,
+                     hilo_sleep->io->susp_block, hilo_sleep->io->susp_ready,
+                     hilo_sleep->io->cola_ready, hilo_sleep->io->logger);
   pthread_mutex_lock(&(hilo_in->io->logger->mutex_logger));
   log_info(hilo_in->io->logger->logger,
            "##  <%d> - Finalizó IO y pasa a READY / SUSP. READY",
@@ -224,17 +217,9 @@ int io_stdout_f(t_stdout* peticion, t_hilo_io_out* hilo_out)
            "## PID %d - Retirado de la lista de IO", peticion->pcb->pid);
   pthread_mutex_unlock(&(hilo_out->io->logger->mutex_logger));
   // Paso a ready o susp ready dependiendo del tiempo bloqueado
-  if (peticion->pcb->tiempo_bloqueado == 0)
-  {
-    cambio_susp_block_susp_ready(peticion->pcb, hilo_out->io->susp_block,
-                                 hilo_out->io->susp_ready,
-                                 hilo_out->io->logger);
-  }
-  else
-  {
-    cambio_block_ready(peticion->pcb, hilo_out->io->cola_block,
-                       hilo_out->io->cola_ready, hilo_out->io->logger);
-  }
+  cambio_desbloquear(peticion->pcb, hilo_sleep->io->cola_block,
+                     hilo_sleep->io->susp_block, hilo_sleep->io->susp_ready,
+                     hilo_sleep->io->cola_ready, hilo_sleep->io->logger);
   pthread_mutex_lock(&(hilo_out->io->logger->mutex_logger));
   log_info(hilo_out->io->logger->logger,
            "##  <%d> - Finalizó IO y pasa a READY / SUSP. READY",
@@ -299,17 +284,9 @@ int io_sleep_f(t_sleep* peticion, t_hilo_io_sleep* hilo_sleep)
            "## PID %d - Retirado de la lista de IO", peticion->pcb->pid);
   pthread_mutex_unlock(&(hilo_sleep->io->logger->mutex_logger));
   // Paso a ready o susp ready dependiendo del tiempo bloqueado
-  if (peticion->pcb->tiempo_bloqueado == 0)
-  {
-    cambio_susp_block_susp_ready(peticion->pcb, hilo_sleep->io->susp_block,
-                                 hilo_sleep->io->susp_ready,
-                                 hilo_sleep->io->logger);
-  }
-  else
-  {
-    cambio_block_ready(peticion->pcb, hilo_sleep->io->cola_block,
-                       hilo_sleep->io->cola_ready, hilo_sleep->io->logger);
-  }
+  cambio_desbloquear(peticion->pcb, hilo_sleep->io->cola_block,
+                     hilo_sleep->io->susp_block, hilo_sleep->io->susp_ready,
+                     hilo_sleep->io->cola_ready, hilo_sleep->io->logger);
   pthread_mutex_lock(&(hilo_sleep->io->logger->mutex_logger));
   log_info(hilo_sleep->io->logger->logger,
            "##  <%d> - Finalizó IO y pasa a READY / SUSP. READY",

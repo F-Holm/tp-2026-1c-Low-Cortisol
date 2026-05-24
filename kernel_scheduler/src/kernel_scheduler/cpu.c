@@ -118,7 +118,10 @@ static void gestionar_desalojo(t_datos_syscall* datos)
       datos->contador = 0;
       datos->motivo_desalojo = MD_PROCESO_PRIORITARIO;
     }
-    pthread_mutex_unlock(&(datos->datos->colas->ready.mutex_cola));
+    else
+    {
+      pthread_mutex_unlock(&(datos->datos->colas->ready.mutex_cola));
+    }
   }
 }
 
