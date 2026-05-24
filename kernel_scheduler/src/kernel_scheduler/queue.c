@@ -43,6 +43,7 @@ void inicializar_cola_ready(t_cola_ready* cola, int algoritmo,
   pthread_cond_init(&(cola->nuevo_proceso), NULL);
   pthread_mutex_init(&(cola->bloquear_salida), NULL);
   pthread_cond_init(&(cola->salida_desbloqueada), NULL);
+  pthread_mutex_init(&(cola->mutex_desalojo_prioritario), NULL);
   cola->desalojar_todo = false;
   cola->mayor_prioridad = 1000;
 }
@@ -94,6 +95,7 @@ void destruir_cola_ready(t_cola_ready* cola)
   pthread_cond_destroy(&(cola->salida_desbloqueada));
   pthread_mutex_destroy(&(cola->mutex_cola));
   pthread_mutex_destroy(&(cola->bloquear_salida));
+  pthread_mutex_destroy(&(cola->mutex_desalojo_prioritario));
   free(cola->colas);
 }
 
@@ -213,11 +215,6 @@ void update_priordad_mas_baja_exec(t_lista_execute* exec)
 void cambio_a_ready(t_pcb* pcb, t_cola_ready* ready, t_logger* logger)
 {
   pthread_mutex_lock(&(ready->mutex_cola));
-  if (ready->cant_procesos_ready == 0)
-  {
-    pthread_cond_signal(&(ready->nuevo_proceso));
-  }
-
   int prioridad = get_prioridad_pcb(pcb);
   if (ready->cant_procesos_ready == 0 || ready->mayor_prioridad > prioridad)
   {
@@ -225,6 +222,10 @@ void cambio_a_ready(t_pcb* pcb, t_cola_ready* ready, t_logger* logger)
   }
 
   ready->cant_procesos_ready++;
+  if (ready->cant_procesos_ready == 0)
+  {
+    pthread_cond_signal(&(ready->nuevo_proceso));
+  }
 
   if (ready->cola_multi_nivel)
   {
@@ -324,6 +325,23 @@ t_pcb* cambio_sacar_new(char* archivo_instrucciones, int prioridad,
   return pcb;
 }
 
+static void actualizar_mayor_prioridad_ready_sin_mutex(t_cola_ready* ready,
+                                                       int index)
+{
+  if (ready->cant_procesos_ready > 0 && ready->cola_multi_nivel)
+  {
+    while (index < ready->cantidad_colas)
+    {
+      if (!queue_is_empty(ready->colas[index].cola))
+      {
+        ready->mayor_prioridad = index;
+        return;
+      }
+    }
+  }
+  ready->mayor_prioridad = ready->cantidad_colas;
+}
+
 static t_pcb* cambio_sacar_ready_sin_mutex(t_cola_ready* ready)
 {
   for (int i = 0; i < ready->cantidad_colas; i++)
@@ -332,17 +350,9 @@ static t_pcb* cambio_sacar_ready_sin_mutex(t_cola_ready* ready)
     {
       ready->cant_procesos_ready--;
       t_pcb* pcb = queue_pop(ready->colas[i].cola);
-      if (queue_is_empty(ready->colas[i].cola) && ready->cola_multi_nivel &&
-          ready->mayor_prioridad == i && ready->cant_procesos_ready != 0)
+      if (queue_is_empty(ready->colas[i].cola))
       {
-        for (++i; i < ready->cantidad_colas; i++)
-        {
-          if (!queue_is_empty(ready->colas[i].cola))
-          {
-            ready->mayor_prioridad = i;
-            break;
-          }
-        }
+        actualizar_mayor_prioridad_ready_sin_mutex(ready, ++i);
       }
       return pcb;
     }

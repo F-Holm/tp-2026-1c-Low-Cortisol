@@ -65,6 +65,7 @@ typedef struct
   pthread_mutex_t bloquear_salida;
   bool desalojar_todo;
   int mayor_prioridad;
+  pthread_mutex_t mutex_desalojo_prioritario;
 } t_cola_ready;
 
 typedef struct

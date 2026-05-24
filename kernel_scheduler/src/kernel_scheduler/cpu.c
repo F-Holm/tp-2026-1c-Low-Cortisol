@@ -27,7 +27,8 @@ typedef enum
   MD_FIN_QUANTUM,
   MD_PROCESO_PRIORITARIO,
   MD_COMPACTACION,
-  MD_FIN_PROCESO
+  MD_FIN_PROCESO,
+  MD_PRIMER_CICLO
 } t_motivo_desalojo;
 
 const char* const MOTIVOS_COMPACTACION[5] = {
@@ -89,23 +90,27 @@ static void gestionar_cola_bloqueada(t_datos_syscall* datos)
   {
     cambio_exec_ready(datos->pcb, &(datos->datos->colas->exec),
                       &(datos->datos->colas->ready), datos->datos->logger);
-    datos->pcb = NULL;
     datos->motivo_desalojo = MD_COMPACTACION;
   }
 }
 
 static void gestionar_desalojo(t_datos_syscall* datos)
 {
-  if (datos->pcb != NULL && datos->datos->colas->exec.desalojo)
+  if (datos->motivo_desalojo == MD_SIN_DESALOJO &&
+      datos->datos->colas->exec.desalojo)
   {
     int prioridad_desalojado = get_prioridad_pcb(datos->pcb);
+    pthread_mutex_lock(
+        &(datos->datos->colas->ready.mutex_desalojo_prioritario));
     pthread_mutex_lock(&(datos->datos->colas->ready.mutex_cola));
     int prioridad_nuevo = datos->datos->colas->ready.mayor_prioridad;
+    pthread_mutex_unlock(&(datos->datos->colas->ready.mutex_cola));
     if (prioridad_desalojado > prioridad_nuevo)
     {
       t_pcb* nueva_pcb =
           cambio_sacar_ready_bloqueante(&(datos->datos->colas->ready));
-      pthread_mutex_unlock(&(datos->datos->colas->ready.mutex_cola));
+      pthread_mutex_unlock(
+          &(datos->datos->colas->ready.mutex_desalojo_prioritario));
 
       log_desalojo_cola_prioritaria(datos->datos->logger, datos->pcb->pid,
                                     prioridad_desalojado, nueva_pcb->pid,
@@ -115,25 +120,25 @@ static void gestionar_desalojo(t_datos_syscall* datos)
       datos->pcb = nueva_pcb;
       cambio_ready_exec(datos->pcb, &(datos->datos->colas->exec),
                         datos->datos->logger);
-      datos->contador = 0;
+      cambio_a_exec(nueva_pcb, &(datos->datos->colas->exec));
       datos->motivo_desalojo = MD_PROCESO_PRIORITARIO;
     }
     else
     {
-      pthread_mutex_unlock(&(datos->datos->colas->ready.mutex_cola));
+      pthread_mutex_unlock(
+          &(datos->datos->colas->ready.mutex_desalojo_prioritario));
     }
   }
 }
 
 static void gestionar_fin_quantum(t_datos_syscall* datos)
 {
-  if (datos->pcb != NULL &&
+  if (datos->motivo_desalojo == MD_SIN_DESALOJO &&
       datos->datos->colas->exec.quantum == datos->contador)
   {
     log_desalojo_fin_quantum(datos->datos->logger, datos->pcb->pid);
     cambio_exec_ready(datos->pcb, &(datos->datos->colas->exec),
                       &(datos->datos->colas->ready), datos->datos->logger);
-    datos->pcb = NULL;
     datos->motivo_desalojo = MD_FIN_QUANTUM;
   }
 }
@@ -149,7 +154,7 @@ static void enviar_desalojo(t_datos_syscall* datos)
 
 static void gestionar_pedir_proceso(t_datos_syscall* datos)
 {
-  if (datos->pcb == NULL)
+  if (datos->motivo_desalojo != MD_SIN_DESALOJO)
   {
     datos->contador = 0;
     datos->pcb = cambio_sacar_ready_bloqueante(&(datos->datos->colas->ready));
@@ -313,9 +318,8 @@ static void manejar_syscall_no_valida(t_datos_syscall* datos)
 
 static void* manejar_cliente_cpu(void* datos_hilo_cpu_void)
 {
-  bool primer_ciclo = true;
   t_datos_syscall datos_syscall = {(t_datos_hilo_cpu*)datos_hilo_cpu_void, NULL,
-                                   true, 0, MD_SIN_DESALOJO};
+                                   true, 0, MD_PRIMER_CICLO};
   void (*funciones_syscalls[OP_SYSCALL_EXIT - OP_CICLO_CPU_OK + 2])(
       t_datos_syscall*) = {manejar_ciclo_cpu_ok,
                            manejar_syscall_mutex_create,
@@ -332,15 +336,6 @@ static void* manejar_cliente_cpu(void* datos_hilo_cpu_void)
 
   while (datos_syscall.seguir_operando)
   {
-    gestionar_cola_bloqueada(&datos_syscall);
-    gestionar_desalojo(&datos_syscall);
-    gestionar_fin_quantum(&datos_syscall);
-
-    if (!primer_ciclo)
-    {
-      enviar_desalojo(&datos_syscall);
-    }
-
     gestionar_pedir_proceso(&datos_syscall);
 
     if (datos_syscall.pcb == NULL)
@@ -349,7 +344,7 @@ static void* manejar_cliente_cpu(void* datos_hilo_cpu_void)
       break;
     }
 
-    if (datos_syscall.motivo_desalojo != MD_SIN_DESALOJO || primer_ciclo)
+    if (datos_syscall.motivo_desalojo != MD_SIN_DESALOJO)
     {
       if (!enviar_codigo(&datos_syscall))
       {
@@ -357,7 +352,6 @@ static void* manejar_cliente_cpu(void* datos_hilo_cpu_void)
         break;
       }
       datos_syscall.motivo_desalojo = MD_SIN_DESALOJO;
-      primer_ciclo = false;
     }
 
     int op_code = recibir_operacion(datos_syscall.datos->socket_fd);
@@ -369,6 +363,11 @@ static void* manejar_cliente_cpu(void* datos_hilo_cpu_void)
     log_syscall(&datos_syscall, op_code);
     funciones_syscalls[op_code - OP_CICLO_CPU_OK](&datos_syscall);
     datos_syscall.contador++;
+
+    gestionar_cola_bloqueada(&datos_syscall);
+    gestionar_desalojo(&datos_syscall);
+    gestionar_fin_quantum(&datos_syscall);
+    enviar_desalojo(&datos_syscall);
   }
 
   if (datos_syscall.pcb != NULL)
