@@ -736,7 +736,7 @@ void destruir_io(t_io* io)
   close(io->socket_io);
 }
 
-void cerrar_io(t_io io[3], t_listas_io* listas_io)
+void cerrar_io(t_io* io, t_listas_io* listas_io)
 {
   for (int i = 0; i < 3; i++)
   {
@@ -745,4 +745,5 @@ void cerrar_io(t_io io[3], t_listas_io* listas_io)
     destruir_io(&io[i]);
   }
   free(listas_io);
+  free(io);
 }

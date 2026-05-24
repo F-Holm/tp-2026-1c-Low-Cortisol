@@ -34,8 +34,7 @@ void inicializar_datos_server_escucha(
   datos->path_proceso_inicial = path_proceso_inicial;
 }
 
-static void cerrar_hilo_escucha(t_io estructuras_io[3],
-                                t_list* lista_sockets_cpu,
+static void cerrar_hilo_escucha(t_io* estructuras_io, t_list* lista_sockets_cpu,
                                 pthread_mutex_t* mutex_lista_sockets_cpu,
                                 pthread_cond_t* cond_fin_cpu,
                                 t_datos_servidor_escucha* datos,
@@ -83,7 +82,7 @@ static void log_cerrando_servidor(t_logger* logger)
 
 void servidor_escucha(t_datos_servidor_escucha* datos)
 {
-  t_io estructuras_io[3];
+  t_io* estructuras_io = malloc(3 * sizeof(t_io));
   t_list* lista_sockets_cpu = list_create();
   t_listas_io* listas_io = inicializar_listas_io();
   pthread_mutex_t mutex_lista_sockets_cpu;
