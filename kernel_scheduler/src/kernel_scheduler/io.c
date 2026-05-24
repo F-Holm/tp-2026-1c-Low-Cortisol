@@ -750,16 +750,14 @@ bool procesar_nuevo_sleep(t_peticion_sleep* peticion, t_io* io_sleep,
     pthread_mutex_unlock(&(io_sleep->mutex_socket_io));
     return false;
   }
-
   pthread_mutex_lock(&(lista_sleep->mutex_lista_sleep));
-  bool lista_vacia = list_is_empty(lista_sleep->lista_sleep);
-  list_add(lista_sleep->lista_sleep, peticion);
-  pthread_mutex_unlock(&(lista_sleep->mutex_lista_sleep));
-  pthread_mutex_unlock(&(io_sleep->mutex_socket_io));
-  if (lista_vacia)
+  if (list_is_empty(lista_sleep->lista_sleep))
   {
     pthread_cond_signal(&(io_sleep->nuevo_proceso));
   }
+  list_add(lista_sleep->lista_sleep, peticion);
+  pthread_mutex_unlock(&(lista_sleep->mutex_lista_sleep));
+  pthread_mutex_unlock(&(io_sleep->mutex_socket_io));
   return true;
 }
 
