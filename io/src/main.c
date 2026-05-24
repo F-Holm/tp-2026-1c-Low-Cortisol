@@ -30,7 +30,7 @@ int main(int argc, char* argv[])
     return EXIT_FAILURE;
   }
   // Esperando Instrucciones del Kernel Scheduler
-  bool seguir_operando;
+  bool seguir_operando = true;
   bool operacion;
   while (seguir_operando)
   {
