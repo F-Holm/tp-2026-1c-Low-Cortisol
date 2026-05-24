@@ -664,7 +664,7 @@ bool atender_nuevo_io(t_io io[3], int socket_fd, t_logger* logger,
 }
 
 bool procesar_nuevo_stdin(t_peticion_stdin* peticion, t_io* io_stdin,
-                          t_lista_stdin* lista_stdin)
+                          t_lista_stdin* lista_stdin, t_pcb* pcb)
 {
   pthread_mutex_lock(&(io_stdin->mutex_socket_io));
   if (io_stdin->socket_io == -1)
@@ -672,10 +672,13 @@ bool procesar_nuevo_stdin(t_peticion_stdin* peticion, t_io* io_stdin,
     pthread_mutex_unlock(&(io_stdin->mutex_socket_io));
     return false;
   }
+  t_stdin* stdin = malloc(sizeof(t_stdin));
+  stdin->peticion = peticion;
+  stdin->pcb = pcb;
 
   pthread_mutex_lock(&(lista_stdin->mutex_lista_stdin));
   bool lista_vacia = list_is_empty(lista_stdin->lista_stdin);
-  list_add(lista_stdin->lista_stdin, peticion);
+  list_add(lista_stdin->lista_stdin, stdin);
   pthread_mutex_unlock(&(lista_stdin->mutex_lista_stdin));
   pthread_mutex_unlock(&(io_stdin->mutex_socket_io));
   if (lista_vacia)
@@ -686,7 +689,7 @@ bool procesar_nuevo_stdin(t_peticion_stdin* peticion, t_io* io_stdin,
 }
 
 bool procesar_nuevo_stdout(t_peticion_stdout* peticion, t_io* io_stdout,
-                           t_lista_stdout* lista_stdout, t_logger* logger)
+                           t_lista_stdout* lista_stdout, t_pcb* pcb)
 {
   pthread_mutex_lock(&(io_stdout->mutex_socket_io));
   if (io_stdout->socket_io == -1)
@@ -694,10 +697,13 @@ bool procesar_nuevo_stdout(t_peticion_stdout* peticion, t_io* io_stdout,
     pthread_mutex_unlock(&(io_stdout->mutex_socket_io));
     return false;
   }
+  t_stdout* stdout = malloc(sizeof(t_stdout));
+  stdout->peticion = peticion;
+  stdout->pcb = pcb;
 
   pthread_mutex_lock(&(lista_stdout->mutex_lista_stdout));
   bool lista_vacia = list_is_empty(lista_stdout->lista_stdout);
-  list_add(lista_stdout->lista_stdout, peticion);
+  list_add(lista_stdout->lista_stdout, stdout);
   pthread_mutex_unlock(&(lista_stdout->mutex_lista_stdout));
   pthread_mutex_unlock(&(io_stdout->mutex_socket_io));
 
@@ -709,7 +715,7 @@ bool procesar_nuevo_stdout(t_peticion_stdout* peticion, t_io* io_stdout,
 }
 
 bool procesar_nuevo_sleep(t_peticion_sleep* peticion, t_io* io_sleep,
-                          t_lista_sleep* lista_sleep, t_logger* logger)
+                          t_lista_sleep* lista_sleep, t_pcb* pcb)
 {
   pthread_mutex_lock(&(io_sleep->mutex_socket_io));
   if (io_sleep->socket_io == -1)
@@ -717,12 +723,16 @@ bool procesar_nuevo_sleep(t_peticion_sleep* peticion, t_io* io_sleep,
     pthread_mutex_unlock(&(io_sleep->mutex_socket_io));
     return false;
   }
+  t_sleep* sleep = malloc(sizeof(t_sleep));
+  sleep->peticion = peticion;
+  sleep->pcb = pcb;
+
   pthread_mutex_lock(&(lista_sleep->mutex_lista_sleep));
   if (list_is_empty(lista_sleep->lista_sleep))
   {
     pthread_cond_signal(&(io_sleep->nuevo_proceso));
   }
-  list_add(lista_sleep->lista_sleep, peticion);
+  list_add(lista_sleep->lista_sleep, sleep);
   pthread_mutex_unlock(&(lista_sleep->mutex_lista_sleep));
   pthread_mutex_unlock(&(io_sleep->mutex_socket_io));
   return true;

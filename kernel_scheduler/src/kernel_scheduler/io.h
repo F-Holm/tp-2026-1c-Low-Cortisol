@@ -101,11 +101,11 @@ bool atender_nuevo_io(t_io io[3], int socket_fd, t_logger* logger,
 
 int obtener_tipo_io(int socket_fd, t_logger* logger);
 bool procesar_nuevo_stdin(t_peticion_stdin* peticion, t_io* io_stdin,
-                          t_lista_stdin* lista_stdin);
+                          t_lista_stdin* lista_stdin, t_pcb* pcb);
 bool procesar_nuevo_stdout(t_peticion_stdout* peticion, t_io* io_stdout,
-                           t_lista_stdout* lista_stdout, t_logger* logger);
+                           t_lista_stdout* lista_stdout, t_pcb* pcb);
 bool procesar_nuevo_sleep(t_peticion_sleep* peticion, t_io* io_sleep,
-                          t_lista_sleep* lista_sleep, t_logger* logger);
+                          t_lista_sleep* lista_sleep, t_pcb* pcb);
 void cerrar_io(t_io* io, t_listas_io* listas_io);
 
 #endif /* KERNEL_SCHEDULER_IO_H_ */
