@@ -23,7 +23,7 @@ t_listas_io* inicializar_listas_io(void)
   return listas_io;
 }
 
-int io_stdin(t_stdin* peticion, t_hilo_io_in* hilo_in)
+int io_stdin_f(t_stdin* peticion, t_hilo_io_in* hilo_in)
 {
   // Envio peticion a IO
   int peticion_size = sizeof(t_peticion_stdin);
@@ -129,7 +129,7 @@ int io_stdin(t_stdin* peticion, t_hilo_io_in* hilo_in)
   return D_TODO_BIEN;
 }
 
-int io_stdout(t_stdout* peticion, t_hilo_io_out* hilo_out)
+int io_stdout_f(t_stdout* peticion, t_hilo_io_out* hilo_out)
 {
   // Envio peticion a Kernel Memory para que lea de la memoria
   int peticion_size = sizeof(t_peticion_stdout);
@@ -243,7 +243,7 @@ int io_stdout(t_stdout* peticion, t_hilo_io_out* hilo_out)
   return D_TODO_BIEN;
 }
 
-int io_sleep(t_sleep* peticion, t_hilo_io_sleep* hilo_sleep)
+int io_sleep_f(t_sleep* peticion, t_hilo_io_sleep* hilo_sleep)
 {
   pthread_mutex_lock(&(hilo_sleep->io->logger->mutex_logger));
   log_info(hilo_sleep->io->logger->logger, "## (%d) - Solicitó syscall: SLEEP",
@@ -342,7 +342,7 @@ void* hilo_io_in(void* hilo_in)
       pthread_mutex_unlock(&(hilo_stdin->io->logger->mutex_logger));
       seguir_atendiendo = false;
     }
-    int stdin = io_stdin(peticion, hilo_stdin);
+    int stdin = io_stdin_f(peticion, hilo_stdin);
     if (D_ERROR_KM == stdin)
     {
       cerrar_kernel_scheduler(hilo_stdin->io->socket_server,
@@ -423,7 +423,7 @@ void* hilo_io_out(void* hilo_out)
       pthread_mutex_unlock(&(hilo_stdout->io->logger->mutex_logger));
       continue;
     }
-    int op_stdout = io_stdout(peticion, hilo_stdout);
+    int op_stdout = io_stdout_f(peticion, hilo_stdout);
     if (D_ERROR_IO == op_stdout)
     {
       pthread_mutex_lock(&(hilo_stdout->io->logger->mutex_logger));
@@ -508,7 +508,7 @@ void* hilo_io_sleep(void* hilo_sleep)
       pthread_mutex_unlock(&(shilo_sleep->io->logger->mutex_logger));
       continue;
     }
-    if (D_ERROR_IO == io_sleep(peticion, shilo_sleep))
+    if (D_ERROR_IO == io_sleep_f(peticion, shilo_sleep))
     {
       pthread_mutex_lock(&(shilo_sleep->io->logger->mutex_logger));
       log_error(shilo_sleep->io->logger->logger,
