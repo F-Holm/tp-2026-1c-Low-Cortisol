@@ -23,6 +23,30 @@ t_listas_io* inicializar_listas_io(void)
   return listas_io;
 }
 
+ bool envio_stdout(int cod_op, t_hilo_io_out* hilo_out, t_stdout* peticion, char* buffer ){
+  int peticion_size = sizeof(t_peticion_stdout);
+  t_paquete* paquete = crear_paquete(OP_PETICION_IO_STDOUT);
+  agregar_a_paquete(paquete, peticion->peticion, peticion_size);
+  agregar_string_a_paquete(paquete, buffer);
+  bool envio = enviar_paquete(paquete, hilo_out->io->socket_io);
+  eliminar_paquete(paquete);
+  free(buffer);
+  if (!envio)
+  {
+    pthread_mutex_lock(&(hilo_out->io->logger->mutex_logger));
+    log_error(hilo_out->io->logger->logger,
+              "## Error al enviar la respuesta de Kernel Memory a IO");
+    pthread_mutex_unlock(&(hilo_out->io->logger->mutex_logger));
+    return false;
+  }
+  cod_op = recibir_operacion(hilo_out->io->socket_io);
+  if (cod_op == OP_CODE_ERROR)
+  {
+    return false;
+  }
+  return true;
+}
+
 int io_stdin_f(t_stdin* peticion, t_hilo_io_in* hilo_in)
 {
   // Envio peticion a IO
@@ -141,14 +165,12 @@ int io_stdout_f(t_stdout* peticion, t_hilo_io_out* hilo_out)
 
   pthread_mutex_unlock(&(hilo_out->io->socket_km->mutex_socket));
 
-  pthread_mutex_lock(&(hilo_out->io->logger->mutex_logger));
-  log_info(hilo_out->io->logger->logger, "## (%d) - Solicitó syscall: STDOUT ",
-           peticion->peticion->pid);
-  pthread_mutex_unlock(&(hilo_out->io->logger->mutex_logger));
+ 
 
   // Recibo la respuesta de Kernel Memory
   pthread_mutex_lock(&(hilo_out->io->socket_km->mutex_socket));
   int cod_op = recibir_operacion(hilo_out->io->socket_km->socket_km);
+  
   if (cod_op == OP_MEMORIA_CORRUPTA)
   {
     pthread_mutex_unlock(&(hilo_out->io->socket_km->mutex_socket));
@@ -169,25 +191,13 @@ int io_stdout_f(t_stdout* peticion, t_hilo_io_out* hilo_out)
     pthread_mutex_unlock(&(hilo_out->io->logger->mutex_logger));
     return D_ERROR_CONEXION_KM;
   }
+  
   // Le envio el mensaje + la peticion a IO para que imprima por pantalla
-  enviar_buffer(OP_PETICION_IO_STDOUT, peticion, peticion_size,
-                hilo_out->io->socket_io);
-  envio = enviar_string(OP_RESPUESTA_STDOUT, buffer, hilo_out->io->socket_io);
-
-  free(buffer);
-  if (!envio)
-  {
-    pthread_mutex_lock(&(hilo_out->io->logger->mutex_logger));
-    log_error(hilo_out->io->logger->logger,
-              "## Error al enviar la respuesta de Kernel Memory a IO");
-    pthread_mutex_unlock(&(hilo_out->io->logger->mutex_logger));
+  envio = envio_stdout(cod_op, hilo_out, peticion, buffer);
+  if(!envio){
     return D_ERROR_IO;
   }
-  cod_op = recibir_operacion(hilo_out->io->socket_io);
-  if (cod_op == OP_CODE_ERROR)
-  {
-    return D_ERROR_IO;
-  }
+  
   char* resp_io = recibir_string(hilo_out->io->socket_io);
 
   if (strcmp(resp_io, "OK") != 0)
