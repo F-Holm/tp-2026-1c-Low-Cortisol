@@ -250,7 +250,6 @@ int io_sleep(t_sleep* peticion, t_hilo_io_sleep* hilo_sleep)
            peticion->peticion->pid);
   pthread_mutex_unlock(&(hilo_sleep->io->logger->mutex_logger));
 
- 
   int peticion_size = sizeof(t_peticion_sleep);
   bool envio = enviar_buffer(OP_PETICION_IO_SLEEP, peticion->peticion,
                              peticion_size, hilo_sleep->io->socket_io);
@@ -552,7 +551,6 @@ void* hilo_io_sleep(void* hilo_sleep)
   pthread_mutex_unlock(&(shilo_sleep->lista_sleep->mutex_lista_sleep));
   pthread_mutex_destroy(&(shilo_sleep->lista_sleep->mutex_lista_sleep));
   list_destroy(shilo_sleep->lista_sleep->lista_sleep);
-  free(shilo_sleep->lista_sleep->lista_sleep);
   free(shilo_sleep->lista_sleep);
   pthread_mutex_unlock(&(shilo_sleep->io->mutex_fin));
   free(shilo_sleep);
@@ -658,6 +656,7 @@ bool atender_nuevo_io(t_io io[3], int socket_fd, t_logger* logger,
         pthread_mutex_lock(&(logger->mutex_logger));
         log_error(logger->logger,
                   "## Error al crear el hilo para IO de tipo stdin");
+        pthread_mutex_unlock(&(logger->mutex_logger));
         return false;
       }
       break;
@@ -750,7 +749,6 @@ bool procesar_nuevo_sleep(t_peticion_sleep* peticion, t_io* io_sleep,
   {
     pthread_mutex_unlock(&(io_sleep->mutex_socket_io));
     return false;
-
   }
 
   pthread_mutex_lock(&(lista_sleep->mutex_lista_sleep));
