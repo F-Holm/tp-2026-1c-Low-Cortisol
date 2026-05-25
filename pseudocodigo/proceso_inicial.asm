@@ -1,4 +1,9 @@
-NOOP 
+NOOP
+INIT_PROC proceso1.asm 3
+INIT_PROC proceso1.asm 3
+INIT_PROC proceso1.asm 3
+INIT_PROC proceso1.asm 3
+INIT_PROC proceso1.asm 3
 SET AX 6
 SET BX 2
 SET PC 5
