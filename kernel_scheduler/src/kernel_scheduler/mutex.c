@@ -5,25 +5,19 @@
 
 static void log_mutex_tomado(t_logger* logger, uint32_t pid, char* id_mutex)
 {
-  pthread_mutex_lock(&(logger->mutex_logger));
-  log_info(logger->logger, "## %u Toma el Mutex %s", pid, id_mutex);
-  pthread_mutex_unlock(&(logger->mutex_logger));
+  logger_info(logger, "## %u Toma el Mutex %s", pid, id_mutex);
 }
 
 static void log_mutex_liberado(t_logger* logger, uint32_t pid, char* id_mutex)
 {
-  pthread_mutex_lock(&(logger->mutex_logger));
-  log_info(logger->logger, "## %u Toma el Mutex %s", pid, id_mutex);
-  pthread_mutex_unlock(&(logger->mutex_logger));
+  logger_info(logger, "## %u Toma el Mutex %s", pid, id_mutex);
 }
 
 static void log_cambio_de_prioridad(t_logger* logger, uint32_t pid,
                                     int prioridad_anterior, int prioridad_nueva)
 {
-  pthread_mutex_lock(&(logger->mutex_logger));
-  log_info(logger->logger, "## %u Cambio de prioridad: %d - %d", pid,
-           prioridad_anterior, prioridad_nueva);
-  pthread_mutex_unlock(&(logger->mutex_logger));
+  logger_info(logger, "## %u Cambio de prioridad: %d - %d", pid,
+              prioridad_anterior, prioridad_nueva);
 }
 
 t_lista_mutex* inicializar_lista_mutex(void)

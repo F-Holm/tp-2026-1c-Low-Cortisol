@@ -6,6 +6,10 @@
 
 #include "utils/msg.h"
 
+const char* const MOTIVOS_CIERE[4] = {
+    "Procesos finalizados con éxito", "BSOD: Corrupción de memoria detectada",
+    "Error en la conexión con Kernel Memory", "Error desconocido"};
+
 t_socket_kernel_memory* inicializar_socket_kernel_memory(int socket_km)
 {
   t_socket_kernel_memory* socket_km_mutex =
@@ -62,16 +66,11 @@ bool responder_handshake(int socket_fd, int id_modulo, t_logger* logger)
 {
   if (!enviar_handshake(id_modulo, socket_fd))
   {
-    pthread_mutex_lock(&(logger->mutex_logger));
-    log_error(logger->logger, "## Error en el envio del Handshake con %s",
-              HANDSHAKE_MSG[id_modulo]);
-    pthread_mutex_unlock(&(logger->mutex_logger));
+    logger_error(logger, "## Error en el envio del Handshake con %s",
+                 HANDSHAKE_MSG[id_modulo]);
     return false;
   }
-  pthread_mutex_lock(&(logger->mutex_logger));
-  log_info(logger->logger, "## Handshake exitoso con %s",
-           HANDSHAKE_MSG[id_modulo]);
-  pthread_mutex_unlock(&(logger->mutex_logger));
+  logger_info(logger, "## Handshake exitoso con %s", HANDSHAKE_MSG[id_modulo]);
   return true;
 }
 
@@ -125,31 +124,20 @@ void destruir_contador_procesos(t_contador_procesos* contador)
 
 static void log_shutdown(t_logger* logger, int motivo_cierre)
 {
-  pthread_mutex_lock(&(logger->mutex_logger));
-  switch (motivo_cierre)
+  if (motivo_cierre == MC_SIN_PROCESOS)
   {
-    case MC_SIN_PROCESOS:
-      log_info(logger->logger, "## Procesos finalizados con éxito");
-      break;
-    case MC_MEMORIA_CORRUPTA:
-      log_error(logger->logger, "## BSOD: Corrupción de memoria detectada");
-      break;
-    case MC_FALLO_CONEXION_KERNEL_MEMORY:
-      log_error(logger->logger, "## Error en la conexión con kernel");
-      break;
-    default:
-      log_error(logger->logger, "## Error desconocido");
-      break;
+    logger_info(logger, "## %s", MOTIVOS_CIERE[motivo_cierre]);
   }
-  pthread_mutex_unlock(&(logger->mutex_logger));
+  else
+  {
+    logger_error(logger, "## %s", MOTIVOS_CIERE[motivo_cierre]);
+  }
 }
 
 void cerrar_kernel_scheduler(int socket_servidor, t_logger* logger,
                              int motivo_cierre)
 {
-  pthread_mutex_lock(&(logger->mutex_logger));
   static bool shutdown_activado = false;
-  pthread_mutex_unlock(&(logger->mutex_logger));
   if (!shutdown_activado)
   {
     log_shutdown(logger, motivo_cierre);

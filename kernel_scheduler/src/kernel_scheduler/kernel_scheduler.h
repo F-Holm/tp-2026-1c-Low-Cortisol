@@ -15,6 +15,7 @@
 #include "kernel_scheduler/mutex.h"
 #include "kernel_scheduler/queue.h"
 #include "utils/kernel_scheduler_cpu.h"
+#include "utils/logger.h"
 #include "utils/registros.h"
 
 extern const char* const ALGORITMOS_PLANIFICACION[3];

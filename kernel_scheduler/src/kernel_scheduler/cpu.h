@@ -9,6 +9,7 @@
 #include "kernel_scheduler/io.h"
 #include "kernel_scheduler/mutex.h"
 #include "kernel_scheduler/queue.h"
+#include "utils/logger.h"
 
 typedef struct
 {
@@ -25,6 +26,31 @@ typedef struct
   int socket_servidor;
   t_listas_io* listas_io;
 } t_datos_hilo_cpu;
+
+typedef struct
+{
+  t_datos_hilo_cpu* datos;
+  t_pcb* pcb;
+  bool seguir_operando;
+  int contador;
+  int motivo_desalojo;
+} t_datos_syscall;
+
+typedef enum
+{
+  MD_SIN_DESALOJO,
+  MD_FIN_QUANTUM,
+  MD_PROCESO_PRIORITARIO,
+  MD_COMPACTACION,
+  MD_FIN_PROCESO,
+  MD_PRIMER_CICLO,
+  MD_IO,
+  MD_MUTEX_BLOQUEADO
+} t_motivo_desalojo;
+
+extern const char* const MOTIVOS_DESALOJO[8];
+
+extern const char* const SYSCALLS_STR[10];
 
 bool atender_nueva_cpu(int socket_cpu, t_list* lista_sockets_cpu,
                        pthread_mutex_t* mutex_lista_sockets_cpu,

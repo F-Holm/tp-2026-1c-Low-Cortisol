@@ -11,6 +11,7 @@
 
 #include "kernel_scheduler/kernel_memory.h"
 #include "kernel_scheduler/misc.h"
+#include "utils/logger.h"
 
 typedef enum
 {

@@ -5,10 +5,8 @@
 bool allocate_memory(t_syscall_memory* mem_alloc, t_logger* logger,
                      t_socket_kernel_memory* socket_km, int socket_server)
 {
-  pthread_mutex_lock(&(logger->mutex_logger));
-  log_info(logger->logger, "## <%d> - Solicitó syscall: <MEM_ALLOC>",
-           mem_alloc->pid);
-  pthread_mutex_unlock(&(logger->mutex_logger));
+  logger_info(logger, "## <%d> - Solicitó syscall: <MEM_ALLOC>",
+              mem_alloc->pid);
 
   int mem_alloc_size = sizeof(t_syscall_memory);
   pthread_mutex_lock(&(socket_km->mutex_socket));
@@ -18,10 +16,7 @@ bool allocate_memory(t_syscall_memory* mem_alloc, t_logger* logger,
 
   if (!envio)
   {
-    pthread_mutex_lock(&(logger->mutex_logger));
-    log_error(logger->logger,
-              "## Error en la comunicacion con el Kernel Memory");
-    pthread_mutex_unlock(&(logger->mutex_logger));
+    logger_error(logger, "## Error en la comunicacion con el Kernel Memory");
     cerrar_kernel_scheduler(socket_server, logger,
                             MC_FALLO_CONEXION_KERNEL_MEMORY);
     return false;
@@ -55,10 +50,7 @@ bool allocate_memory(t_syscall_memory* mem_alloc, t_logger* logger,
 bool free_memory(t_syscall_memory* mem_free, t_logger* logger,
                  t_socket_kernel_memory* socket_km, int socket_server)
 {
-  pthread_mutex_lock(&(logger->mutex_logger));
-  log_info(logger->logger, "## <%d> - Solicitó syscall: <MEM_FREE>",
-           mem_free->pid);
-  pthread_mutex_unlock(&(logger->mutex_logger));
+  logger_info(logger, "## <%d> - Solicitó syscall: <MEM_FREE>", mem_free->pid);
 
   int mem_free_size = sizeof(t_syscall_memory);
   pthread_mutex_lock(&(socket_km->mutex_socket));
@@ -68,10 +60,7 @@ bool free_memory(t_syscall_memory* mem_free, t_logger* logger,
 
   if (!envio)
   {
-    pthread_mutex_lock(&(logger->mutex_logger));
-    log_error(logger->logger,
-              "## Error en la comunicacion con el Kernel Memory");
-    pthread_mutex_unlock(&(logger->mutex_logger));
+    logger_error(logger, "## Error en la comunicacion con el Kernel Memory");
     cerrar_kernel_scheduler(socket_server, logger,
                             MC_FALLO_CONEXION_KERNEL_MEMORY);
     return false;
