@@ -45,9 +45,6 @@ bool io_tipo_stdin(t_modulo_io* sio)
 bool io_tipo_stdout(t_modulo_io* sio)
 {
   // Recibo la peticion de IO
- 
-  int cod_op;
-  
   t_list* paquete = recibir_paquete(sio->socket_io);
   t_peticion_stdout* peticion = (t_peticion_stdout*)list_remove(paquete, 0);
   char* buffer = (char*)list_remove(paquete, 0);

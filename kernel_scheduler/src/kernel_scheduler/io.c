@@ -33,10 +33,8 @@ t_listas_io* inicializar_listas_io(void)
   free(buffer);
   if (!envio)
   {
-    pthread_mutex_lock(&(hilo_out->io->logger->mutex_logger));
-    log_error(hilo_out->io->logger->logger,
+    logger_error(hilo_out->io->logger,
               "## Error al enviar la respuesta de Kernel Memory a IO");
-    pthread_mutex_unlock(&(hilo_out->io->logger->mutex_logger));
     return false;
   }
   cod_op = recibir_operacion(hilo_out->io->socket_io);
