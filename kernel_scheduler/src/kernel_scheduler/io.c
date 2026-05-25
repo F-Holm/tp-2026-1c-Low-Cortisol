@@ -23,7 +23,9 @@ t_listas_io* inicializar_listas_io(void)
   return listas_io;
 }
 
- bool envio_stdout(int cod_op, t_hilo_io_out* hilo_out, t_stdout* peticion, char* buffer ){
+bool envio_stdout(int cod_op, t_hilo_io_out* hilo_out, t_stdout* peticion,
+                  char* buffer)
+{
   int peticion_size = sizeof(t_peticion_stdout);
   t_paquete* paquete = crear_paquete(OP_PETICION_IO_STDOUT);
   agregar_a_paquete(paquete, peticion->peticion, peticion_size);
@@ -34,7 +36,7 @@ t_listas_io* inicializar_listas_io(void)
   if (!envio)
   {
     logger_error(hilo_out->io->logger,
-              "## Error al enviar la respuesta de Kernel Memory a IO");
+                 "## Error al enviar la respuesta de Kernel Memory a IO");
     return false;
   }
   cod_op = recibir_operacion(hilo_out->io->socket_io);
@@ -145,12 +147,10 @@ int io_stdout_f(t_stdout* peticion, t_hilo_io_out* hilo_out)
 
   pthread_mutex_unlock(&(hilo_out->io->socket_km->mutex_socket));
 
- 
-
   // Recibo la respuesta de Kernel Memory
   pthread_mutex_lock(&(hilo_out->io->socket_km->mutex_socket));
   int cod_op = recibir_operacion(hilo_out->io->socket_km->socket_km);
-  
+
   if (cod_op == OP_MEMORIA_CORRUPTA)
   {
     pthread_mutex_unlock(&(hilo_out->io->socket_km->mutex_socket));
@@ -169,13 +169,14 @@ int io_stdout_f(t_stdout* peticion, t_hilo_io_out* hilo_out)
                  "## Error al recibir la respuesa de Kernel Memory");
     return D_ERROR_CONEXION_KM;
   }
-  
+
   // Le envio el mensaje + la peticion a IO para que imprima por pantalla
   envio = envio_stdout(cod_op, hilo_out, peticion, buffer);
-  if(!envio){
+  if (!envio)
+  {
     return D_ERROR_IO;
   }
-  
+
   char* resp_io = recibir_string(hilo_out->io->socket_io);
 
   if (strcmp(resp_io, "OK") != 0)
