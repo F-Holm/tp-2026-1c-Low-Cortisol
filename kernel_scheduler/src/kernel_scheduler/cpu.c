@@ -133,8 +133,8 @@ static void gestionar_fin_quantum(t_datos_syscall* datos)
 
 static bool enviar_desalojo(t_datos_syscall* datos)
 {
-  logger_info(datos->datos->logger,
-                "## CPU %s: Enviando mensaje de desalojo", datos->datos->id);
+  logger_info(datos->datos->logger, "## CPU %s: Enviando mensaje de desalojo",
+              datos->datos->id);
   return enviar_string(
       (datos->motivo_desalojo != MD_SIN_DESALOJO ? OP_INTERRUPCION
                                                  : OP_SIN_INTERRUPCION),
@@ -146,9 +146,11 @@ static void gestionar_pedir_proceso(t_datos_syscall* datos)
   if (datos->motivo_desalojo != MD_SIN_DESALOJO)
   {
     logger_info(datos->datos->logger, "## CPU %s: Pidiendo nuevo proceso",
-                  datos->datos->id);
+                datos->datos->id);
     datos->contador = 0;
     datos->pcb = cambio_sacar_ready_bloqueante(&(datos->datos->colas->ready));
+    logger_info(datos->datos->logger, "## CPU %s: obtuvo proceso: %p",
+                datos->datos->id, datos->pcb);
     if (datos->pcb != NULL)
     {
       cambio_ready_exec(datos->pcb, &(datos->datos->colas->exec),

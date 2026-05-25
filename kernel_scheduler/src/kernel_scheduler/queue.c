@@ -158,6 +158,7 @@ bool esta_bloqueado(t_pcb* pcb)
   bool ret = pcb->tiempo_bloqueado != 0;
   pthread_mutex_unlock(&(pcb->mutex_pcb));
   return ret;
+  return true;
 }
 
 bool puedo_suspender(t_pcb* pcb, int suspension_timeout)
@@ -219,11 +220,11 @@ void cambio_a_ready(t_pcb* pcb, t_cola_ready* ready, t_logger* logger)
     ready->mayor_prioridad = get_prioridad_pcb(pcb);
   }
 
-  ready->cant_procesos_ready++;
   if (ready->cant_procesos_ready == 0)
   {
     pthread_cond_signal(&(ready->nuevo_proceso));
   }
+  ready->cant_procesos_ready++;
 
   if (ready->cola_multi_nivel)
   {
