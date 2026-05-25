@@ -9,15 +9,15 @@
 #include "utils/msg.h"
 #include "utils/server.h"
 
-int crear_socket_servidor(char* puerto, t_log* logger)
+int crear_socket_servidor(char* puerto, t_logger* logger)
 {
   int ret = iniciar_servidor(puerto);
   if (ret <= 0)
   {
-    log_error(logger, "## Error en la creación del servidor");
+    logger_error(logger, "## Error en la creación del servidor");
     return -1;
   }
-  log_info(logger, "## Creación del servidor exitosa");
+  logger_info(logger, "## Creación del servidor exitosa");
   return ret;
 }
 
@@ -66,20 +66,6 @@ static void crear_proceso_inicial(t_datos_servidor_escucha* datos)
   }
 }
 
-static void log_handshake_no_valido(t_logger* logger)
-{
-  pthread_mutex_lock(&(logger->mutex_logger));
-  log_info(logger->logger, "## Recepción de handshake no válido");
-  pthread_mutex_unlock(&(logger->mutex_logger));
-}
-
-static void log_cerrando_servidor(t_logger* logger)
-{
-  pthread_mutex_lock(&(logger->mutex_logger));
-  log_info(logger->logger, "## Cerrando servidor");
-  pthread_mutex_unlock(&(logger->mutex_logger));
-}
-
 void servidor_escucha(t_datos_servidor_escucha* datos)
 {
   t_io* estructuras_io = malloc(3 * sizeof(t_io));
@@ -118,7 +104,7 @@ void servidor_escucha(t_datos_servidor_escucha* datos)
             listas_io);
         break;
       default:
-        log_handshake_no_valido(datos->logger);
+        logger_info(datos->logger, "## Recepción de handshake no válido");
         manejo_exitoso = false;
         break;
     }
@@ -128,7 +114,7 @@ void servidor_escucha(t_datos_servidor_escucha* datos)
     }
   }
 
-  log_cerrando_servidor(datos->logger);
+  logger_info(datos->logger, "## Cerrando servidor");
   cerrar_hilo_escucha(estructuras_io, lista_sockets_cpu,
                       &mutex_lista_sockets_cpu, &cond_fin_cpu, datos,
                       listas_io);

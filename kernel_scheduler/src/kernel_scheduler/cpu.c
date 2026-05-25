@@ -12,27 +12,6 @@
 #include "utils/kernel_scheduler_cpu.h"
 #include "utils/msg.h"
 
-typedef struct
-{
-  t_datos_hilo_cpu* datos;
-  t_pcb* pcb;
-  bool seguir_operando;
-  int contador;
-  int motivo_desalojo;
-} t_datos_syscall;
-
-typedef enum
-{
-  MD_SIN_DESALOJO,
-  MD_FIN_QUANTUM,
-  MD_PROCESO_PRIORITARIO,
-  MD_COMPACTACION,
-  MD_FIN_PROCESO,
-  MD_PRIMER_CICLO,
-  MD_IO,
-  MD_MUTEX_BLOQUEADO
-} t_motivo_desalojo;
-
 const char* const MOTIVOS_DESALOJO[8] = {"no hubo desalojo",
                                          "desalojo por fin de quantum",
                                          "desalojo por proceso prioritario",
@@ -50,10 +29,9 @@ static void log_syscall(t_datos_syscall* datos, int op_code)
 {
   if (op_code >= OP_SYSCALL_MUTEX_CREATE && op_code <= OP_SYSCALL_EXIT)
   {
-    pthread_mutex_lock(&(datos->datos->logger->mutex_logger));
-    log_info(datos->datos->logger->logger, "## %u - Solicitó syscall: %s",
-             datos->pcb->pid, SYSCALLS_STR[op_code - OP_SYSCALL_MUTEX_CREATE]);
-    pthread_mutex_unlock(&(datos->datos->logger->mutex_logger));
+    logger_info(datos->datos->logger, "## %u - Solicitó syscall: %s",
+                datos->pcb->pid,
+                SYSCALLS_STR[op_code - OP_SYSCALL_MUTEX_CREATE]);
   }
 }
 
@@ -69,25 +47,16 @@ static void cerrar_hilo_cpu(t_datos_hilo_cpu* datos)
   free(datos);
 }
 
-static void log_desalojo_fin_quantum(t_logger* logger, uint32_t pid)
-{
-  pthread_mutex_lock(&(logger->mutex_logger));
-  log_info(logger->logger, "## %u - Desalojado por fin de quantum", pid);
-  pthread_mutex_unlock(&(logger->mutex_logger));
-}
-
 static void log_desalojo_cola_prioritaria(t_logger* logger,
                                           uint32_t pid_desalojado,
                                           int prioridad_desalojado,
                                           uint32_t pid_nuevo,
                                           int prioridad_nuevo)
 {
-  pthread_mutex_lock(&(logger->mutex_logger));
-  log_info(logger->logger,
-           "## %u Prioridad: %d - Desalojado por cola más "
-           "prioritaria por el proceso %u con prioridad %d",
-           pid_desalojado, prioridad_desalojado, pid_nuevo, prioridad_nuevo);
-  pthread_mutex_unlock(&(logger->mutex_logger));
+  logger_info(logger,
+              "## %u Prioridad: %d - Desalojado por cola más "
+              "prioritaria por el proceso %u con prioridad %d",
+              pid_desalojado, prioridad_desalojado, pid_nuevo, prioridad_nuevo);
 }
 
 static void gestionar_cola_bloqueada(t_datos_syscall* datos)
@@ -99,6 +68,11 @@ static void gestionar_cola_bloqueada(t_datos_syscall* datos)
                       &(datos->datos->colas->ready), datos->datos->logger);
     datos->motivo_desalojo = MD_COMPACTACION;
   }
+}
+
+static void log_desalojo_fin_quantum(t_logger* logger, uint32_t pid)
+{
+  logger_info(logger, "## %u - Desalojado por fin de quantum", pid);
 }
 
 static void gestionar_desalojo(t_datos_syscall* datos)
@@ -434,10 +408,7 @@ static bool crear_hilo_cpu(t_datos_hilo_cpu* datos)
   pthread_t hilo_cpu;
   if (pthread_create(&hilo_cpu, NULL, manejar_cliente_cpu, datos) != 0)
   {
-    pthread_mutex_lock(&(datos->logger->mutex_logger));
-    log_error(datos->logger->logger,
-              "## Error en la creación del hilo de la CPU");
-    pthread_mutex_unlock(&(datos->logger->mutex_logger));
+    logger_error(datos->logger, "## Error en la creación del hilo de la CPU");
     return false;
   }
   pthread_detach(hilo_cpu);
@@ -462,15 +433,11 @@ static char* obtener_id_cpu(int socket_cpu, t_logger* logger)
 {
   if (recibir_operacion(socket_cpu) != OP_ID_CPU)
   {
-    pthread_mutex_lock(&(logger->mutex_logger));
-    log_error(logger->logger, "## Error en la recepción del ID de la CPU");
-    pthread_mutex_unlock(&(logger->mutex_logger));
+    logger_error(logger, "## Error en la recepción del ID de la CPU");
     return NULL;
   }
   char* id_cpu = recibir_string(socket_cpu);
-  pthread_mutex_lock(&(logger->mutex_logger));
-  log_info(logger->logger, "## CPU %s Conectada", id_cpu);
-  pthread_mutex_unlock(&(logger->mutex_logger));
+  logger_info(logger, "## CPU %s Conectada", id_cpu);
   return id_cpu;
 }
 

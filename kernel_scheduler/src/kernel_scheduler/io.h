@@ -9,6 +9,7 @@
 #include <stdbool.h>
 
 #include "kernel_scheduler/kernel_scheduler.h"
+#include "utils/logger.h"
 
 /****************** FUNCIONES DE IO ******************/
 

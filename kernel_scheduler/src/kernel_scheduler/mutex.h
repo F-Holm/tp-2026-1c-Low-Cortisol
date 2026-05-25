@@ -7,6 +7,7 @@
 
 #include "kernel_scheduler/misc.h"
 #include "kernel_scheduler/queue.h"
+#include "utils/logger.h"
 
 typedef struct
 {

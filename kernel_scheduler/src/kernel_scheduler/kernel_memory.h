@@ -4,8 +4,9 @@
 #include <commons/log.h>
 
 #include "kernel_scheduler/misc.h"
+#include "utils/logger.h"
 
-int iniciar_conexion_kernel_memory(char* ip, char* puerto, t_log* logger);
+int iniciar_conexion_kernel_memory(char* ip, char* puerto, t_logger* logger);
 bool avisar_nuevo_proceso(t_socket_kernel_memory* socket_km,
                           char* archivo_instrucciones, uint32_t pid);
 bool avisar_terminar_proceso(t_socket_kernel_memory* socket_km, uint32_t pid);

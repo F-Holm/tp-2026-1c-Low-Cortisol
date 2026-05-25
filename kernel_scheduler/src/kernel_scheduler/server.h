@@ -6,6 +6,7 @@
 #include "kernel_scheduler/misc.h"
 #include "kernel_scheduler/mutex.h"
 #include "kernel_scheduler/queue.h"
+#include "utils/logger.h"
 
 typedef struct
 {
@@ -17,7 +18,7 @@ typedef struct
   char* path_proceso_inicial;
 } t_datos_servidor_escucha;
 
-int crear_socket_servidor(char* puerto, t_log* logger);
+int crear_socket_servidor(char* puerto, t_logger* logger);
 void inicializar_datos_server_escucha(
     t_datos_servidor_escucha* datos, int socket_server, t_logger* logger,
     t_lista_mutex* lista_mutex, t_colas* colas,

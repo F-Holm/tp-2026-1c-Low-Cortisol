@@ -8,6 +8,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "utils/logger.h"
+
 typedef enum
 {
   AP_FIFO,
@@ -22,12 +24,6 @@ typedef struct
   pthread_mutex_t mutex_pcb;
   unsigned long tiempo_bloqueado;
 } t_pcb;
-
-typedef struct
-{
-  t_log* logger;
-  pthread_mutex_t mutex_logger;
-} t_logger;
 
 typedef struct
 {
@@ -47,8 +43,11 @@ typedef enum
 {
   MC_SIN_PROCESOS,
   MC_MEMORIA_CORRUPTA,
-  MC_FALLO_CONEXION_KERNEL_MEMORY
+  MC_FALLO_CONEXION_KERNEL_MEMORY,
+  MC_CAUSA_DESCONOCIDA
 } t_motivo_cierre;
+
+extern const char* const MOTIVOS_CIERE[4];
 
 typedef enum
 {

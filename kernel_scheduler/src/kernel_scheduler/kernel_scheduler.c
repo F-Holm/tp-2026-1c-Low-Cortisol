@@ -14,7 +14,8 @@
 
 const char* const ALGORITMOS_PLANIFICACION[] = {"FIFO", "RR", "CMN"};
 
-t_config* iniciar_config(char* archivo_config, t_config_vars* config_vars)
+static t_config* iniciar_config(char* archivo_config,
+                                t_config_vars* config_vars)
 {
   int i;
   t_config* config = config_create(archivo_config);
@@ -70,25 +71,16 @@ t_config* iniciar_config(char* archivo_config, t_config_vars* config_vars)
   return config;
 }
 
-void cerrar_config(t_config_vars* config_vars, t_config* config)
+static void cerrar_config(t_config_vars* config_vars, t_config* config)
 {
   list_clean_and_destroy_elements(config_vars->algoritmos_cmn, free);
   config_destroy(config);
 }
 
-void iniciar_logger(t_logger** logger, t_log_level log_level)
+static t_logger* iniciar_logger(t_log_level log_level)
 {
-  *logger = malloc(sizeof(t_logger));
-  (*logger)->logger =
-      log_create("kernel_scheduler.log", "kernel_scheduler", true, log_level);
-  pthread_mutex_init(&((*logger)->mutex_logger), NULL);
-}
-
-void cerrar_logger(t_logger* logger)
-{
-  log_destroy(logger->logger);
-  pthread_mutex_destroy(&(logger->mutex_logger));
-  free(logger);
+  return logger_create("kernel_scheduler.log", "kernel_scheduler", true,
+                       log_level);
 }
 
 bool iniciar_modulo(t_kernel_scheduler_recursos* recursos, char* archivo_config)
@@ -99,20 +91,20 @@ bool iniciar_modulo(t_kernel_scheduler_recursos* recursos, char* archivo_config)
     return false;
 
   // Logger
-  iniciar_logger(&(recursos->logger), recursos->config_vars.log_level);
-  if (recursos->logger->logger == NULL)
+  recursos->logger = iniciar_logger(recursos->config_vars.log_level);
+  if (recursos->logger == NULL)
     return false;
 
   // Socket Kernel Memory
   recursos->socket_kernel_memory = iniciar_conexion_kernel_memory(
       recursos->config_vars.ip_kernel_memory,
-      recursos->config_vars.puerto_kernel_memory, recursos->logger->logger);
+      recursos->config_vars.puerto_kernel_memory, recursos->logger);
   if (recursos->socket_kernel_memory <= 0)
     return false;
 
   // Crear socket servidor
   recursos->socket_server = crear_socket_servidor(
-      recursos->config_vars.puerto_servidor, recursos->logger->logger);
+      recursos->config_vars.puerto_servidor, recursos->logger);
 
   return recursos->socket_server > 0;
 }
@@ -135,8 +127,8 @@ void cerrar_modulo_error(t_kernel_scheduler_recursos* recursos)
     close(recursos->socket_server);
   if (recursos->socket_kernel_memory > 0)
     close(recursos->socket_kernel_memory);
-  if (recursos->logger->logger != NULL)
-    cerrar_logger(recursos->logger);
+  if (recursos->logger != NULL)
+    logger_destroy(recursos->logger);
   if (recursos->config != NULL)
     cerrar_config(&(recursos->config_vars), recursos->config);
 }
@@ -150,6 +142,6 @@ void cerrar_modulo(t_kernel_scheduler_recursos* recursos)
   destruir_kernel_memory(recursos->socket_km_mutex);
   close(recursos->socket_kernel_memory);
   close(recursos->socket_server);
-  cerrar_logger(recursos->logger);
+  logger_destroy(recursos->logger);
   cerrar_config(&(recursos->config_vars), recursos->config);
 }

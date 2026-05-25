@@ -9,6 +9,7 @@
 
 #include "kernel_scheduler/misc.h"
 #include "utils/kernel_scheduler_cpu.h"
+#include "utils/logger.h"
 
 bool allocate_memory(t_syscall_memory* mem_alloc, t_logger* logger,
                      t_socket_kernel_memory* socket_km, int socket_server);

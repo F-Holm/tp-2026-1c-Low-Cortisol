@@ -148,10 +148,8 @@ void desbloquear_cola_ready(t_cola_ready* ready)
 void log_cambio_estado(t_logger* logger, uint32_t pid, int estado_anterior,
                        int estado_nuevo)
 {
-  pthread_mutex_lock(&(logger->mutex_logger));
-  log_info(logger->logger, "## %d Pasa del estado %s al estado %s", pid,
-           ESTADOS_STR[estado_anterior], ESTADOS_STR[estado_nuevo]);
-  pthread_mutex_unlock(&(logger->mutex_logger));
+  logger_info(logger, "## %d Pasa del estado %s al estado %s", pid,
+              ESTADOS_STR[estado_anterior], ESTADOS_STR[estado_nuevo]);
 }
 
 bool esta_bloqueado(t_pcb* pcb)
@@ -280,10 +278,8 @@ void cambio_a_susp_ready(t_pcb* pcb, t_lista* susp_ready)
 
 static void log_cambio_a_exit(t_logger* logger, uint32_t pid, int motivo)
 {
-  pthread_mutex_lock(&(logger->mutex_logger));
-  log_info(logger->logger, "## %u finalizó su ejecución con motivo de %s", pid,
-           MOTIVOS_FIN_PROCESO[motivo]);
-  pthread_mutex_unlock(&(logger->mutex_logger));
+  logger_info(logger, "## %u finalizó su ejecución con motivo de %s",
+              pid, MOTIVOS_FIN_PROCESO[motivo]);
 }
 
 void cambio_a_exit(t_pcb* pcb, t_contador_procesos* contador, int motivo,
@@ -307,11 +303,10 @@ t_pcb* cambio_sacar_new(char* archivo_instrucciones, int prioridad,
                         t_logger* logger, t_socket_kernel_memory* socket_km,
                         int socket_servidor, t_contador_procesos* contador)
 {
-  pthread_mutex_lock(&(logger->mutex_logger));
   t_pcb* pcb = crear_pcb();
-  log_info(logger->logger, "## %u Se crea el proceso - Estado: NEW", pcb->pid);
+  logger_info(logger, "## %u Se crea el proceso - Estado: NEW",
+              pcb->pid);
   pcb->prioridad = prioridad;
-  pthread_mutex_unlock(&(logger->mutex_logger));
   aumentar_contador_procesos(contador);
   if (!avisar_nuevo_proceso(socket_km, archivo_instrucciones, pcb->pid))
   {
