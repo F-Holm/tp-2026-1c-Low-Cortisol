@@ -45,21 +45,24 @@ bool io_tipo_stdin(t_modulo_io* sio)
 bool io_tipo_stdout(t_modulo_io* sio)
 {
   // Recibo la peticion de IO
-  int size_peticion;
-  t_peticion_stdout* peticion_stdout =
-      (t_peticion_stdout*)recibir_buffer(&size_peticion, sio->socket_io);
-  char* buffer = recibir_string(sio->socket_io);
+ 
+  int cod_op;
+  
+  t_list* paquete = recibir_paquete(sio->socket_io);
+  t_peticion_stdout* peticion = (t_peticion_stdout*)list_remove(paquete, 0);
+  char* buffer = (char*)list_remove(paquete, 0);
+  list_destroy(paquete);
   if (buffer == NULL)
   {
     log_error(sio->logger,
               "## Error - No se recibió nada para escribir en pantalla");
-    free(peticion_stdout);
+    free(peticion);
     return false;
   }
-  log_info(sio->logger, "## PID %d -Inicio de IO", peticion_stdout->pid);
+  log_info(sio->logger, "## PID %d -Inicio de IO", peticion->pid);
 
   // Imprimo por pantalla el mensaje recibido
-  log_info(sio->logger, "## PID: %d - %s", peticion_stdout->pid, buffer);
+  log_info(sio->logger, "## PID: %d - %s", peticion->pid, buffer);
 
   // Envio OK a Scheduler para que sepa que ya terminó el IO
   bool envio_correcto =
@@ -68,12 +71,12 @@ bool io_tipo_stdout(t_modulo_io* sio)
   {
     log_error(sio->logger,
               "## Error al enviar la respuesta de IO a Kernel Scheduler");
-    free(peticion_stdout);
+    free(peticion);
     free(buffer);
     return false;
   }
-  log_info(sio->logger, "## PID %d -Fin de IO", peticion_stdout->pid);
-  free(peticion_stdout);
+  log_info(sio->logger, "## PID %d -Fin de IO", peticion->pid);
+  free(peticion);
   free(buffer);
   return true;
 }
