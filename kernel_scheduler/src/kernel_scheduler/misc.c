@@ -10,6 +10,29 @@ const char* const MOTIVOS_CIERE[4] = {
     "Procesos finalizados con éxito", "BSOD: Corrupción de memoria detectada",
     "Error en la conexión con Kernel Memory", "Error desconocido"};
 
+static pthread_mutex_t mutex_pid_pcb;
+static pthread_mutex_t mutex_shutdown;
+
+void inicializar_mutex_pid_pcb(void)
+{
+  pthread_mutex_init(&mutex_pid_pcb, NULL);
+}
+
+void inicializar_mutex_shutdown(void)
+{
+  pthread_mutex_init(&mutex_shutdown, NULL);
+}
+
+void destruir_mutex_pid_pcb(void)
+{
+  pthread_mutex_destroy(&mutex_pid_pcb);
+}
+
+void destruir_mutex_shutdown(void)
+{
+  pthread_mutex_destroy(&mutex_shutdown);
+}
+
 t_socket_kernel_memory* inicializar_socket_kernel_memory(int socket_km)
 {
   t_socket_kernel_memory* socket_km_mutex =
@@ -48,11 +71,13 @@ t_pcb* crear_pcb(void)
   static uint32_t pid = 0;
   t_pcb* pcb = malloc(sizeof(t_pcb));
 
-  pcb->pid = pid;
   pthread_mutex_init(&(pcb->mutex_pcb), NULL);
   pcb->tiempo_bloqueado = 0;
 
+  pthread_mutex_lock(&mutex_pid_pcb);
+  pcb->pid = pid;
   pid++;
+  pthread_mutex_unlock(&mutex_pid_pcb);
   return pcb;
 }
 
@@ -138,10 +163,12 @@ void cerrar_kernel_scheduler(int socket_servidor, t_logger* logger,
                              int motivo_cierre)
 {
   static bool shutdown_activado = false;
+  pthread_mutex_lock(&mutex_shutdown);
   if (!shutdown_activado)
   {
     log_shutdown(logger, motivo_cierre);
     shutdown(socket_servidor, SHUT_RDWR);
     shutdown_activado = true;
   }
+  pthread_mutex_unlock(&mutex_shutdown);
 }

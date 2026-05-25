@@ -57,6 +57,11 @@ typedef enum
   D_TODO_BIEN
 } devolucion_syscall;
 
+void inicializar_mutex_pid_pcb(void);
+void inicializar_mutex_shutdown(void);
+void destruir_mutex_pid_pcb(void);
+void destruir_mutex_shutdown(void);
+
 void cerrar_kernel_scheduler(int socket_servidor, t_logger* logger,
                              int motivo_cierre);
 

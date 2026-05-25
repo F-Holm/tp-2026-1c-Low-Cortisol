@@ -111,6 +111,8 @@ bool iniciar_modulo(t_kernel_scheduler_recursos* recursos, char* archivo_config)
 
 void inicializar_colas_mutex(t_kernel_scheduler_recursos* recursos)
 {
+  inicializar_mutex_pid_pcb();
+  inicializar_mutex_shutdown();
   recursos->socket_km_mutex =
       inicializar_socket_kernel_memory(recursos->socket_kernel_memory);
   recursos->lista_mutex = inicializar_lista_mutex();
@@ -124,13 +126,21 @@ void inicializar_colas_mutex(t_kernel_scheduler_recursos* recursos)
 void cerrar_modulo_error(t_kernel_scheduler_recursos* recursos)
 {
   if (recursos->socket_server > 0)
+  {
     close(recursos->socket_server);
+  }
   if (recursos->socket_kernel_memory > 0)
+  {
     close(recursos->socket_kernel_memory);
+  }
   if (recursos->logger != NULL)
+  {
     logger_destroy(recursos->logger);
+  }
   if (recursos->config != NULL)
+  {
     cerrar_config(&(recursos->config_vars), recursos->config);
+  }
 }
 
 void cerrar_modulo(t_kernel_scheduler_recursos* recursos)
@@ -144,4 +154,6 @@ void cerrar_modulo(t_kernel_scheduler_recursos* recursos)
   close(recursos->socket_server);
   logger_destroy(recursos->logger);
   cerrar_config(&(recursos->config_vars), recursos->config);
+  destruir_mutex_pid_pcb();
+  destruir_mutex_shutdown();
 }
