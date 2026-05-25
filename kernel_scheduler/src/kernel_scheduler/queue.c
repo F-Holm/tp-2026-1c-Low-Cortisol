@@ -286,7 +286,7 @@ static void log_cambio_a_exit(t_logger* logger, uint32_t pid, int motivo)
 void cambio_a_exit(t_pcb* pcb, t_contador_procesos* contador, int motivo,
                    t_logger* logger, t_socket_kernel_memory* socket_km,
                    int socket_servidor)
-{  // Creo que también hay que avisarle a kernel memory
+{
   if (motivo == MFP_INSTRUCCION_EXIT)
   {
     if (!avisar_terminar_proceso(socket_km, pcb->pid))
