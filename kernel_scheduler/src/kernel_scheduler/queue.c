@@ -278,8 +278,8 @@ void cambio_a_susp_ready(t_pcb* pcb, t_lista* susp_ready)
 
 static void log_cambio_a_exit(t_logger* logger, uint32_t pid, int motivo)
 {
-  logger_info(logger, "## %u finalizó su ejecución con motivo de %s",
-              pid, MOTIVOS_FIN_PROCESO[motivo]);
+  logger_info(logger, "## %u finalizó su ejecución con motivo de %s", pid,
+              MOTIVOS_FIN_PROCESO[motivo]);
 }
 
 void cambio_a_exit(t_pcb* pcb, t_contador_procesos* contador, int motivo,
@@ -304,8 +304,7 @@ t_pcb* cambio_sacar_new(char* archivo_instrucciones, int prioridad,
                         int socket_servidor, t_contador_procesos* contador)
 {
   t_pcb* pcb = crear_pcb();
-  logger_info(logger, "## %u Se crea el proceso - Estado: NEW",
-              pcb->pid);
+  logger_info(logger, "## %u Se crea el proceso - Estado: NEW", pcb->pid);
   pcb->prioridad = prioridad;
   aumentar_contador_procesos(contador);
   if (!avisar_nuevo_proceso(socket_km, archivo_instrucciones, pcb->pid))
