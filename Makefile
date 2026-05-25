@@ -50,7 +50,7 @@ run: all
 	@sleep $(SLEEP_TIME)
 	./io/bin/io ./io/io.config SLEEP > ./output/io_sleep.log 2>&1 &
 	@sleep $(SLEEP_TIME)
-	./io/bin/io ./io/io.config STDIN > ./output/io_stdin.log 2>&1 &
+	./io/bin/io ./io/io.config STDIN < ./pseudocodigo/entradas_io_stdin.txt > ./output/io_stdin.log 2>&1 &
 	@sleep $(SLEEP_TIME)
 	./io/bin/io ./io/io.config STDOUT > ./output/io_stdout.log 2>&1 &
 	@sleep $(SLEEP_TIME)
