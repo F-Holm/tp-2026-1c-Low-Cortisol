@@ -2,9 +2,10 @@
 #define KERNEL_MEMORY_CONFIGURADOR_H_
 
 #include <commons/config.h>
-#include <commons/log.h>
 
-t_log* iniciar_logger(t_config* config);
+#include "utils/logger.h"
+
+t_logger* iniciar_logger(t_config* config);
 t_config* iniciar_config(char* path);
 void terminar_comunicacion(int socket_cliente);
 char* iniciar_basepath(t_config* config);

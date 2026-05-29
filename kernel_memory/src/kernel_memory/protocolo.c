@@ -13,20 +13,16 @@ bool recibir_id_cpu(t_datos_cpu* datos_cpu)
   if (recibir_operacion(datos_cpu->socket_cpu) == OP_ID_CPU)
   {
     char* id_cpu = recibir_string(datos_cpu->socket_cpu);
-    pthread_mutex_lock(datos_cpu->mutex_logger);
-    log_info(datos_cpu->logger, "## CPU %s Conectada", id_cpu);
-    pthread_mutex_unlock(datos_cpu->mutex_logger);
+    logger_info(datos_cpu->logger, "## CPU %s Conectada", id_cpu);
     datos_cpu->id = atoi(id_cpu);
     free(id_cpu);
     return true;
   }
   else
   {
-    pthread_mutex_lock(datos_cpu->mutex_logger);
-    log_info(datos_cpu->logger,
-             "No se pudo realizar la conexion con el CPU ya que no se "
-             "envio la operacion de ID");
-    pthread_mutex_unlock(datos_cpu->mutex_logger);
+    logger_info(datos_cpu->logger,
+                "No se pudo realizar la conexion con el CPU ya que no se "
+                "envio la operacion de ID");
     terminar_comunicacion(datos_cpu->socket_cpu);
     return false;
   }
@@ -38,22 +34,17 @@ bool recibir_tamanio_stick(t_datos_stick* datos_stick)
   if (recibir_operacion(datos_stick->socket_stick) == OP_TAMANIO_MEMORIA)
   {
     char* tamanio = recibir_string(datos_stick->socket_stick);
-    pthread_mutex_lock(datos_stick->mutex_logger);
-    log_info(datos_stick->logger, "## Memory Stick de %s bytes Conectada",
-             tamanio);
-    pthread_mutex_unlock(datos_stick->mutex_logger);
+    logger_info(datos_stick->logger, "## Memory Stick de %s bytes Conectada",
+                tamanio);
     datos_stick->tamanio_stick = atoi(tamanio);
     free(tamanio);
     return true;
   }
   else
   {
-    pthread_mutex_lock(datos_stick->mutex_logger);
-    log_info(datos_stick->logger,
-             "No se pudo realizar la conexion con la stick ya que no se "
-             "envio la operacion de tamaño");
-    pthread_mutex_unlock(datos_stick->mutex_logger);
-
+    logger_info(datos_stick->logger,
+                "No se pudo realizar la conexion con la stick ya que no se "
+                "envio la operacion de tamaño");
     terminar_comunicacion(datos_stick->socket_stick);
     return false;
   }
@@ -65,21 +56,17 @@ bool recibir_puerto_escucha_stick(t_datos_stick* datos_stick)
   if (recibir_operacion(datos_stick->socket_stick) == OP_PUERTO)
   {
     char* puerto = recibir_string(datos_stick->socket_stick);
-    pthread_mutex_lock(datos_stick->mutex_logger);
-    log_info(datos_stick->logger, "## Puerto de Memory Stick recibido %s",
-             puerto);
-    pthread_mutex_unlock(datos_stick->mutex_logger);
+    logger_info(datos_stick->logger, "## Puerto de Memory Stick recibido %s",
+                puerto);
     datos_stick->puerto_stick = atoi(puerto);
     free(puerto);
     return true;
   }
   else
   {
-    pthread_mutex_lock(datos_stick->mutex_logger);
-    log_info(datos_stick->logger,
-             "No se pudo realizar la conexion con la stick ya que no se "
-             "envio la operacion puerto");
-    pthread_mutex_unlock(datos_stick->mutex_logger);
+    logger_info(datos_stick->logger,
+                "No se pudo realizar la conexion con la stick ya que no se "
+                "envio la operacion puerto");
     terminar_comunicacion(datos_stick->socket_stick);
     return false;
   }
@@ -171,7 +158,7 @@ u_int32_t calcular_memoria_total(t_list* sticks_conectados,
 void enviar_tamanio_disponible_scheduler(int socket_scheduler,
                                          t_list* sticks_conectados,
                                          pthread_mutex_t* mutex_lista_sockets,
-                                         t_log* logger)
+                                         t_logger* logger)
 {
   t_paquete* paquete = crear_paquete(OP_TAMANIO_TOTAL_MEMORIA);
   u_int32_t tamanio_total =

@@ -17,6 +17,6 @@ void agregar_conexion_cpu(t_datos_kernel_mem* datos_kernel_memory,
 void enviar_tamanio_disponible_scheduler(int socket_scheduler,
                                          t_list* sticks_conectados,
                                          pthread_mutex_t* mutex_lista_sockets,
-                                         t_log* logger);
+                                         t_logger* logger);
 
 #endif

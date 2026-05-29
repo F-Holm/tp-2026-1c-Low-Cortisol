@@ -1,6 +1,5 @@
 #include <commons/collections/list.h>
 #include <commons/config.h>
-#include <commons/log.h>
 #include <pthread.h>
 #include <stdlib.h>
 
@@ -9,6 +8,7 @@
 #include "kernel_memory/liberador.h"
 #include "kernel_memory/servidor.h"
 #include "utils/kernel_memory_cpu.h"
+#include "utils/logger.h"
 #include "utils/msg.h"
 #include "utils/server.h"
 
@@ -19,7 +19,7 @@ int main(int argc, char* argv[])
   char* archivo_config = argv[1];
 
   t_config* config = iniciar_config(archivo_config);
-  t_log* logger = iniciar_logger(config);
+  t_logger* logger = iniciar_logger(config);
   int socket_kernel_memory =
       iniciar_servidor(config_get_string_value(config, "PUERTO_KERNEL_MEMORY"));
   char* scripts_basepath = iniciar_basepath(config);
@@ -32,9 +32,7 @@ int main(int argc, char* argv[])
       socket_kernel_memory, scripts_basepath, instruction_delay,
       compaction_delay, segment_max_size, allocation_strategy, logger);
 
-  pthread_mutex_lock(datos_kernel->mutex_logger);
-  log_info(logger, "## Kernel Memory Iniciado ");
-  pthread_mutex_unlock(datos_kernel->mutex_logger);
+  logger_info(logger, "## Kernel Memory Iniciado ");
 
   while (true)
   {
