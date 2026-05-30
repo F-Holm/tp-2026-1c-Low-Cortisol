@@ -5,6 +5,10 @@
       "path": "."
     },
     {
+      "name": "output",
+      "path": "output"
+    },
+    {
       "name": "pseudocódigo",
       "path": "pseudocodigo"
     },
@@ -46,7 +50,8 @@
         "memory_stick/": true,
         "swap/": true,
         "utils/": true,
-        "pseudocodigo/": true
+        "pseudocodigo/": true,
+        "output/": true
     },
     "debug.onTaskErrors": "abort",
     "files.associations": {
