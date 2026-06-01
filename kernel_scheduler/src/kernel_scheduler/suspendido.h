@@ -32,8 +32,8 @@ typedef struct
 
 typedef struct
 {
-  int suspension_timeout;
   t_datos_hilo_suspendido* datos;
+  int suspension_timeout;
 } t_datos_hilo_suspensor;
 
 typedef struct

@@ -38,14 +38,9 @@ extern const char* const MOTIVOS_FIN_PROCESO[4];
 
 typedef struct
 {
-  t_queue* cola;
-  pthread_mutex_t mutex_cola;
-} t_cola;
-
-typedef struct
-{
   t_list* lista;
   pthread_mutex_t mutex_lista;
+  pthread_cond_t cond_nuevo_proceso;
 } t_lista;
 
 typedef struct

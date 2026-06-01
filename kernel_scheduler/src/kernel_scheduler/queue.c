@@ -9,12 +9,6 @@ const char* const MOTIVOS_FIN_PROCESO[4] = {
     "prioridad no válida", "instrucción EXIT", "cierre del sistema",
     "fallo de io"};
 
-void inicializar_cola(t_cola* cola)
-{
-  cola->cola = queue_create();
-  pthread_mutex_init(&(cola->mutex_cola), NULL);
-}
-
 void inicializar_cola_ready(t_cola_ready* cola, int algoritmo,
                             t_list* algoritmos_cmn)
 {
@@ -61,6 +55,7 @@ void inicializar_lista(t_lista* lista)
 {
   lista->lista = list_create();
   pthread_mutex_init(&(lista->mutex_lista), NULL);
+  pthread_cond_init(&(lista->cond_nuevo_proceso), NULL);
 }
 
 t_colas* inicializar_colas(int algoritmo, t_list* algoritmos_cmn, int quantum,
@@ -82,21 +77,13 @@ t_colas* inicializar_colas(int algoritmo, t_list* algoritmos_cmn, int quantum,
   return colas;
 }
 
-void destruir_cola(t_cola* cola)
-{
-  queue_destroy(cola->cola);
-  pthread_mutex_destroy(&(cola->mutex_cola));
-}
-
 void destruir_cola_ready(t_cola_ready* cola)
 {
   for (int i = 0; i < cola->cantidad_colas; i++)
   {
     queue_destroy(cola->colas[i].cola);
   }
-  pthread_cond_broadcast(&(cola->nuevo_proceso));
   pthread_cond_destroy(&(cola->nuevo_proceso));
-  pthread_cond_broadcast(&(cola->salida_desbloqueada));
   pthread_cond_destroy(&(cola->salida_desbloqueada));
   pthread_mutex_destroy(&(cola->mutex_cola));
   pthread_mutex_destroy(&(cola->bloquear_salida));
@@ -114,6 +101,7 @@ void destruir_lista(t_lista* lista)
 {
   list_destroy(lista->lista);
   pthread_mutex_destroy(&(lista->mutex_lista));
+  pthread_cond_destroy(&(lista->cond_nuevo_proceso));
 }
 
 void destruir_colas(t_colas* colas)
@@ -265,6 +253,10 @@ static void cambio_a_block(t_pcb* pcb, t_lista* block)
 {
   set_tiempo_bloqueado(pcb, millis());
   pthread_mutex_lock(&(block->mutex_lista));
+  if (list_size(block->lista) == 0)
+  {
+    pthread_cond_signal(&(block->cond_nuevo_proceso));
+  }
   list_add(block->lista, pcb);
   pthread_mutex_unlock(&(block->mutex_lista));
 }
@@ -279,6 +271,10 @@ static void cambio_a_susp_block(t_pcb* pcb, t_lista* susp_block)
 static void cambio_a_susp_ready(t_pcb* pcb, t_lista* susp_ready)
 {
   pthread_mutex_lock(&(susp_ready->mutex_lista));
+  if (list_size(susp_ready->lista) == 0)
+  {
+    pthread_cond_signal(&(susp_ready->cond_nuevo_proceso));
+  }
   list_add(susp_ready->lista, pcb);
   pthread_mutex_unlock(&(susp_ready->mutex_lista));
 }
