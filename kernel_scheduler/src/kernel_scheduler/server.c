@@ -55,15 +55,7 @@ static void preparar_sockets_io(t_io estructuras_io[3])
 
 static void crear_proceso_inicial(t_datos_servidor_escucha* datos)
 {
-  t_pcb* pcb = cambio_sacar_new(datos->path_proceso_inicial, 0, datos->logger,
-                                datos->socket_km, datos->socket_server,
-                                datos->colas->contador_procesos);
-  if (pcb != NULL)
-  {
-    cambio_new_ready(pcb, &(datos->colas->ready), datos->logger,
-                     datos->colas->contador_procesos, datos->socket_km,
-                     datos->socket_server);
-  }
+  cambio_new_ready(datos->colas, datos->path_proceso_inicial, 0);
 }
 
 void servidor_escucha(t_datos_servidor_escucha* datos)

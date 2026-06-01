@@ -66,8 +66,7 @@ static void gestionar_cola_bloqueada(t_datos_syscall* datos)
   {
     logger_info(datos->datos->logger,
                 "## CPU %s: Ejecución de procesos bloqueada", datos->datos->id);
-    cambio_exec_ready(datos->pcb, &(datos->datos->colas->exec),
-                      &(datos->datos->colas->ready), datos->datos->logger);
+    cambio_exec_ready(datos->pcb, datos->datos->colas);
     datos->motivo_desalojo = MD_COMPACTACION;
   }
 }
@@ -101,11 +100,9 @@ static void gestionar_desalojo_prioritario(t_datos_syscall* datos)
       log_desalojo_cola_prioritaria(datos->datos->logger, datos->pcb->pid,
                                     prioridad_desalojado, nueva_pcb->pid,
                                     prioridad_nuevo);
-      cambio_exec_ready(datos->pcb, &(datos->datos->colas->exec),
-                        &(datos->datos->colas->ready), datos->datos->logger);
+      cambio_exec_ready(datos->pcb, datos->datos->colas);
       datos->pcb = nueva_pcb;
-      cambio_ready_exec(datos->pcb, &(datos->datos->colas->exec),
-                        datos->datos->logger);
+      cambio_ready_exec(datos->pcb, datos->datos->colas);
       cambio_a_exec(nueva_pcb, &(datos->datos->colas->exec));
       datos->motivo_desalojo = MD_PROCESO_PRIORITARIO;
     }
@@ -153,8 +150,7 @@ static void gestionar_pedir_proceso(t_datos_syscall* datos)
                 datos->datos->id, datos->pcb);
     if (datos->pcb != NULL)
     {
-      cambio_ready_exec(datos->pcb, &(datos->datos->colas->exec),
-                        datos->datos->logger);
+      cambio_ready_exec(datos->pcb, datos->datos->colas);
     }
   }
 }
@@ -184,8 +180,7 @@ static void manejar_syscall_mutex_lock(t_datos_syscall* datos)
   char* id_mutex = recibir_string(datos->datos->socket_fd);
   if (!lista_mutex_lock(datos->datos->lista_mutex, id_mutex, datos->pcb))
   {
-    cambio_exec_block(datos->pcb, &(datos->datos->colas->exec),
-                      &(datos->datos->colas->block), datos->datos->logger);
+    cambio_exec_block(datos->pcb, datos->datos->colas);
     datos->motivo_desalojo = MD_MUTEX_BLOQUEADO;
   }
   free(id_mutex);
@@ -230,15 +225,11 @@ static void manejar_syscall_io_sleep(t_datos_syscall* datos)
   if (!procesar_nuevo_sleep(peticion, &(datos->datos->estructuras_io[E_SLEEP]),
                             datos->datos->listas_io->lista_sleep, datos->pcb))
   {
-    cambio_cualquiera_exit(datos->datos->colas, datos->datos->logger, EST_EXEC,
-                           datos->datos->colas->contador_procesos,
-                           datos->datos->socket_km,
-                           datos->datos->socket_servidor, MFP_FALLO_IO);
+    cambio_cualquiera_exit(datos->datos->colas, EST_EXEC, MFP_FALLO_IO);
   }
   else
   {
-    cambio_exec_block(datos->pcb, &(datos->datos->colas->exec),
-                      &(datos->datos->colas->block), datos->datos->logger);
+    cambio_exec_block(datos->pcb, datos->datos->colas->exec);
   }
 }
 
@@ -251,15 +242,11 @@ static void manejar_syscall_io_stdout(t_datos_syscall* datos)
                              &(datos->datos->estructuras_io[E_STDOUT]),
                              datos->datos->listas_io->lista_stdout, datos->pcb))
   {
-    cambio_cualquiera_exit(datos->datos->colas, datos->datos->logger, EST_EXEC,
-                           datos->datos->colas->contador_procesos,
-                           datos->datos->socket_km,
-                           datos->datos->socket_servidor, MFP_FALLO_IO);
+    cambio_cualquiera_exit(datos->datos->colas, EST_EXEC, MFP_FALLO_IO);
   }
   else
   {
-    cambio_exec_block(datos->pcb, &(datos->datos->colas->exec),
-                      &(datos->datos->colas->block), datos->datos->logger);
+    cambio_exec_block(datos->pcb, datos->datos->colas);
   }
 }
 
@@ -271,40 +258,24 @@ static void manejar_syscall_io_stdin(t_datos_syscall* datos)
   if (!procesar_nuevo_stdin(peticion, &(datos->datos->estructuras_io[E_STDIN]),
                             datos->datos->listas_io->lista_stdin, datos->pcb))
   {
-    cambio_cualquiera_exit(datos->datos->colas, datos->datos->logger, EST_EXEC,
-                           datos->datos->colas->contador_procesos,
-                           datos->datos->socket_km,
-                           datos->datos->socket_servidor, MFP_FALLO_IO);
+    cambio_cualquiera_exit(datos->datos->colas, EST_EXEC, MFP_FALLO_IO);
   }
   else
   {
-    cambio_exec_block(datos->pcb, &(datos->datos->colas->exec),
-                      &(datos->datos->colas->block), datos->datos->logger);
+    cambio_exec_block(datos->pcb, datos->datos->colas->exec);
   }
 }
 
 static void manejar_syscall_iniciar_proceso(t_datos_syscall* datos)
 {
   t_list* lista = recibir_paquete(datos->datos->socket_fd);
-  t_pcb* nueva_pcb = cambio_sacar_new(
-      list_get(lista, 0), *(int*)list_get(lista, 1), datos->datos->logger,
-      datos->datos->socket_km, datos->datos->socket_servidor,
-      datos->datos->colas->contador_procesos);
+  cambio_new_ready(colas, list_get(lista, 0), *(int*)list_get(lista, 1));
   list_destroy_and_destroy_elements(lista, free);
-  if (nueva_pcb != NULL)
-  {
-    cambio_new_ready(nueva_pcb, &(datos->datos->colas->ready),
-                     datos->datos->logger,
-                     datos->datos->colas->contador_procesos,
-                     datos->datos->socket_km, datos->datos->socket_servidor);
-  }
 }
 
 static void manejar_syscall_exit(t_datos_syscall* datos)
 {
-  cambio_exec_exit(datos->pcb, &(datos->datos->colas->exec),
-                   datos->datos->logger, datos->datos->colas->contador_procesos,
-                   datos->datos->socket_km, datos->datos->socket_servidor);
+  cambio_exec_exit(datos->pcb, datos->datos->colas);
   datos->motivo_desalojo = MD_FIN_PROCESO;
 }
 
@@ -403,9 +374,7 @@ static void* manejar_cliente_cpu(void* datos_hilo_cpu_void)
     logger_info(datos_syscall.datos->logger,
                 "## CPU %s: Guardando proceso en ejecución",
                 datos_syscall.datos->id);
-    cambio_exec_ready(datos_syscall.pcb, &(datos_syscall.datos->colas->exec),
-                      &(datos_syscall.datos->colas->ready),
-                      datos_syscall.datos->logger);
+    cambio_exec_ready(datos_syscall.pcb, datos_syscall.datos->colas);
   }
   // Liberar conexión y eliminar socket de la lista
   cerrar_hilo_cpu(datos_syscall.datos);
