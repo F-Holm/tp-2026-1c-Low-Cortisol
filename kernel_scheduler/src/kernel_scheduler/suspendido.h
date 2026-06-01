@@ -23,10 +23,7 @@ typedef struct
   pthread_mutex_t* mutex_suspender_des_suspender;
   pthread_cond_t* esperar_proceso;
   pthread_cond_t desbloquear;
-  t_cola_ready* ready;
-  t_lista* block;
-  t_lista* susp_block;
-  t_lista* susp_ready;
+  t_colas* colas;
   t_logger* logger;
 } t_datos_hilo_suspendido;
 
