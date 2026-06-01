@@ -95,13 +95,13 @@ t_mutex* crear_mutex(char* id, bool prioridad_activa, t_logger* logger)
 
 static void cambio_de_prioridad(t_pcb* pcb, int prioridad, t_logger* logger)
 {
-  pthread_mutex_lock(&(pcb->mutex_pcb));
+  pthread_mutex_lock(&(pcb->mutex_prioridad));
   if (pcb->prioridad != prioridad)
   {
     log_cambio_de_prioridad(logger, pcb->pid, pcb->prioridad, prioridad);
     pcb->prioridad = prioridad;
   }
-  pthread_mutex_unlock(&(pcb->mutex_pcb));
+  pthread_mutex_unlock(&(pcb->mutex_prioridad));
 }
 
 bool mutex_lock(t_mutex* mutex, t_pcb* pcb)

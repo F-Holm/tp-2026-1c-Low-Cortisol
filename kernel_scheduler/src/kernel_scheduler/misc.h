@@ -12,6 +12,19 @@
 
 typedef enum
 {
+  EST_NEW,
+  EST_READY,
+  EST_EXEC,
+  EST_BLOCK,
+  EST_SUSP_BLOCK,
+  EST_SUSP_READY,
+  EST_EXIT
+} t_estados;
+
+extern const char* const ESTADOS_STR[7];
+
+typedef enum
+{
   AP_FIFO,
   AP_RR,
   AP_CMN
@@ -21,8 +34,10 @@ typedef struct
 {
   uint32_t pid;
   int prioridad;
-  pthread_mutex_t mutex_pcb;
+  pthread_mutex_t mutex_prioridad;
   unsigned long tiempo_bloqueado;
+  int estado;
+  pthread_mutex_t mutex_estado;
 } t_pcb;
 
 typedef struct

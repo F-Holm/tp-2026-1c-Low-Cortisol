@@ -15,19 +15,6 @@
 
 typedef enum
 {
-  EST_NEW,
-  EST_READY,
-  EST_EXEC,
-  EST_BLOCK,
-  EST_SUSP_BLOCK,
-  EST_SUSP_READY,
-  EST_EXIT
-} t_estados;
-
-extern const char* const ESTADOS_STR[7];
-
-typedef enum
-{
   MFP_PRIORIDAD_NO_VALIDA,
   MFP_INSTRUCCION_EXIT,
   MFP_CIERRE_SISTEMA,
@@ -111,7 +98,7 @@ void cambio_ready_exec(t_pcb* pcb, t_colas* colas);
 void cambio_new_ready(t_colas* colas, char* archivo_instrucciones,
                       int prioridad);
 void cambio_exec_ready(t_pcb* pcb, t_colas* colas);
-void cambio_exec_exit(t_pcb* pcb, t_colas* colas);
+void cambio_exec_exit(t_pcb* pcb, t_colas* colas, int motivo);
 void cambio_exec_block(t_pcb* pcb, t_colas* colas);
 void cambio_block_ready(t_pcb* pcb, t_colas* colas);
 void cambio_block_susp_block(t_pcb* pcb, t_colas* colas);
@@ -121,7 +108,6 @@ void cambio_susp_ready_ready(t_pcb* pcb, t_colas* colas);
 void cambio_desbloquear(t_pcb* pcb, t_colas* colas);
 
 // Para errores o rutinas de cierre
-bool cambio_cualquiera_exit(t_colas* colas, int estado, int motivo);
 void vaciar_colas(t_colas* colas);
 
 #endif /* KERNEL_SCHEDULER_QUEUE_H_ */

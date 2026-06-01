@@ -225,11 +225,11 @@ static void manejar_syscall_io_sleep(t_datos_syscall* datos)
   if (!procesar_nuevo_sleep(peticion, &(datos->datos->estructuras_io[E_SLEEP]),
                             datos->datos->listas_io->lista_sleep, datos->pcb))
   {
-    cambio_cualquiera_exit(datos->datos->colas, EST_EXEC, MFP_FALLO_IO);
+    cambio_exec_exit(datos->pcb, datos->datos->colas, MFP_FALLO_IO);
   }
   else
   {
-    cambio_exec_block(datos->pcb, datos->datos->colas->exec);
+    cambio_exec_block(datos->pcb, datos->datos->colas);
   }
 }
 
@@ -242,7 +242,7 @@ static void manejar_syscall_io_stdout(t_datos_syscall* datos)
                              &(datos->datos->estructuras_io[E_STDOUT]),
                              datos->datos->listas_io->lista_stdout, datos->pcb))
   {
-    cambio_cualquiera_exit(datos->datos->colas, EST_EXEC, MFP_FALLO_IO);
+    cambio_exec_exit(datos->pcb, datos->datos->colas, MFP_FALLO_IO);
   }
   else
   {
@@ -258,11 +258,11 @@ static void manejar_syscall_io_stdin(t_datos_syscall* datos)
   if (!procesar_nuevo_stdin(peticion, &(datos->datos->estructuras_io[E_STDIN]),
                             datos->datos->listas_io->lista_stdin, datos->pcb))
   {
-    cambio_cualquiera_exit(datos->datos->colas, EST_EXEC, MFP_FALLO_IO);
+    cambio_exec_exit(datos->pcb, datos->datos->colas, MFP_FALLO_IO);
   }
   else
   {
-    cambio_exec_block(datos->pcb, datos->datos->colas->exec);
+    cambio_exec_block(datos->pcb, datos->datos->colas);
   }
 }
 

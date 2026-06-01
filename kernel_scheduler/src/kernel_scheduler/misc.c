@@ -6,6 +6,9 @@
 
 #include "utils/msg.h"
 
+const char* const ESTADOS_STR[7] = {
+    "NEW", "READY", "EXEC", "BLOCK", "SUSP. BLOCK", "SUSP. READY", "EXIT"};
+
 const char* const MOTIVOS_CIERE[4] = {
     "Procesos finalizados con éxito", "BSOD: Corrupción de memoria detectada",
     "Error en la conexión con Kernel Memory", "Error desconocido"};
@@ -60,9 +63,9 @@ int insertar_pcb_en_orden(t_list* lista, t_pcb* pcb)
 
 int get_prioridad_pcb(t_pcb* pcb)
 {
-  pthread_mutex_lock(&(pcb->mutex_pcb));
+  pthread_mutex_lock(&(pcb->mutex_prioridad));
   int prioridad_pcb = pcb->prioridad;
-  pthread_mutex_unlock(&(pcb->mutex_pcb));
+  pthread_mutex_unlock(&(pcb->mutex_prioridad));
   return prioridad_pcb;
 }
 
@@ -71,8 +74,10 @@ t_pcb* crear_pcb(void)
   static uint32_t pid = 0;
   t_pcb* pcb = malloc(sizeof(t_pcb));
 
-  pthread_mutex_init(&(pcb->mutex_pcb), NULL);
+  pthread_mutex_init(&(pcb->mutex_prioridad), NULL);
+  pthread_mutex_init(&(pcb->mutex_estado), NULL);
   pcb->tiempo_bloqueado = 0;
+  pcb->estado = EST_NEW;
 
   pthread_mutex_lock(&mutex_pid_pcb);
   pcb->pid = pid;
@@ -83,7 +88,8 @@ t_pcb* crear_pcb(void)
 
 void destruir_pcb(t_pcb* pcb)
 {
-  pthread_mutex_destroy(&(pcb->mutex_pcb));
+  pthread_mutex_destroy(&(pcb->mutex_prioridad));
+  pthread_mutex_destroy(&(pcb->mutex_estado));
   free(pcb);
 }
 
