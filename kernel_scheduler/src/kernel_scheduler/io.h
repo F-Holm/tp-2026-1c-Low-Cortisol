@@ -21,10 +21,7 @@ typedef struct
   t_pcb* proceso_actual;
   bool prioridad_activa;
   pthread_cond_t nuevo_proceso;
-  t_cola_ready* cola_ready;
-  t_lista* cola_block;
-  t_lista* susp_block;
-  t_lista* susp_ready;
+  t_colas* colas;
   t_logger* logger;
   t_socket_kernel_memory* socket_km;
   int socket_server;
@@ -95,10 +92,7 @@ typedef struct
 
 t_listas_io* inicializar_listas_io(void);
 
-bool atender_nuevo_io(t_io io[3], int socket_fd, t_logger* logger,
-                      t_socket_kernel_memory* socket_km, t_lista* block,
-                      t_cola_ready* ready, t_lista* susp_block,
-                      t_lista* susp_ready, t_listas_io* listas_io);
+bool atender_nuevo_io(t_io io[3], int socket_fd,t_colas* colas, t_listas_io* listas_io, bool prioridad_activa);
 
 int obtener_tipo_io(int socket_fd, t_logger* logger);
 bool procesar_nuevo_stdin(t_peticion_stdin* peticion, t_io* io_stdin,
