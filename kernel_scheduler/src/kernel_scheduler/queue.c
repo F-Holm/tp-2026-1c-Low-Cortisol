@@ -1,13 +1,18 @@
 #include "kernel_scheduler/queue.h"
 
+#include <unistd.h>
+
 #include "kernel_scheduler/misc.h"
 
 const char* const MOTIVOS_FIN_PROCESO[4] = {
     "prioridad no válida", "instrucción EXIT", "cierre del sistema",
     "fallo de io"};
 
-void inicializar_cola_ready(t_cola_ready* cola, int algoritmo,
-                            t_list* algoritmos_cmn)
+static void* hilo_suspensor(void* datos_void);
+static void* hilo_des_suspensor(void* datos_void);
+
+static void inicializar_cola_ready(t_cola_ready* cola, int algoritmo,
+                                   t_list* algoritmos_cmn)
 {
   if (algoritmo == AP_CMN)
   {
@@ -39,7 +44,8 @@ void inicializar_cola_ready(t_cola_ready* cola, int algoritmo,
   cola->mayor_prioridad = 1000;
 }
 
-void inicializar_lista_exec(t_lista_execute* lista, int quantum, bool desalojo)
+static void inicializar_lista_exec(t_lista_execute* lista, int quantum,
+                                   bool desalojo)
 {
   lista->lista = list_create();
   pthread_mutex_init(&(lista->mutex_lista), NULL);
@@ -48,16 +54,86 @@ void inicializar_lista_exec(t_lista_execute* lista, int quantum, bool desalojo)
   lista->desalojo = desalojo;
 }
 
-void inicializar_lista(t_lista* lista)
+static void inicializar_lista(t_lista* lista)
 {
   lista->lista = list_create();
   pthread_mutex_init(&(lista->mutex_lista), NULL);
   pthread_cond_init(&(lista->cond_nuevo_proceso), NULL);
 }
 
+static t_datos_hilo_suspendido* inicializar_datos_hilo_suspendido(
+    t_colas* colas)
+{
+  t_datos_hilo_suspendido* datos = malloc(sizeof(t_datos_hilo_suspendido));
+  pthread_mutex_init(&(datos->mutex_estado), NULL);
+  datos->estado = EH_EJECUTANDO;
+  datos->mutex_suspender_des_suspender =
+      &(colas->mutex_suspender_des_suspender);
+  pthread_cond_init(&(datos->desbloquear), NULL);
+  return datos;
+}
+
+static void inicializar_datos_hilo_suspensor(t_colas* colas,
+                                             int suspension_timeout)
+{
+  t_datos_hilo_suspensor* datos = malloc(sizeof(t_datos_hilo_suspensor));
+  datos->datos = inicializar_datos_hilo_suspendido(colas);
+  datos->datos->esperar_proceso = &(colas->block.cond_nuevo_proceso);
+  datos->suspension_timeout = suspension_timeout;
+  colas->datos_suspendido->datos_hilo_suspensor = datos;
+}
+
+static void inicializar_datos_hilo_des_suspensor(t_colas* colas)
+{
+  t_datos_hilo_des_suspensor* datos =
+      malloc(sizeof(t_datos_hilo_des_suspensor));
+  datos->datos = inicializar_datos_hilo_suspendido(colas);
+  datos->datos->esperar_proceso = &(colas->susp_ready.cond_nuevo_proceso);
+  colas->datos_suspendido->datos_hilo_des_suspensor = datos;
+}
+
+static void iniciar_hilo_suspensor(t_colas* colas)
+{
+  if (pthread_create(
+          &(colas->datos_suspendido->datos_hilo_des_suspensor->datos->hilo),
+          NULL, hilo_suspensor, colas) != 0)
+  {
+    logger_error(colas->logger, "## Error en la creación del hilo suspensor");
+  }
+  else
+  {
+    logger_info(colas->logger, "## Hilo suspensor iniciado exitosamente");
+  }
+}
+
+static void iniciar_hilo_des_suspensor(t_colas* colas)
+{
+  if (pthread_create(
+          &(colas->datos_suspendido->datos_hilo_des_suspensor->datos->hilo),
+          NULL, hilo_des_suspensor, colas) != 0)
+  {
+    logger_error(colas->logger,
+                 "## Error en la creación del hilo des-suspensor");
+  }
+  else
+  {
+    logger_info(colas->logger, "## Hilo des-suspensor iniciado exitosamente");
+  }
+}
+
+static void iniciar_hilos_suspendido(t_colas* colas, int suspension_timeout)
+{
+  colas->datos_suspendido = malloc(sizeof(t_datos_suspendido));
+  inicializar_datos_hilo_suspensor(colas, suspension_timeout);
+  inicializar_datos_hilo_des_suspensor(colas);
+  iniciar_hilo_suspensor(colas);
+  iniciar_hilo_des_suspensor(colas);
+}
+
 t_colas* inicializar_colas(int algoritmo, t_list* algoritmos_cmn, int quantum,
                            bool desalojo, int socket_servidor, t_logger* logger,
-                           t_socket_kernel_memory* socket_km)
+                           t_socket_kernel_memory* socket_km,
+                           int suspension_timeout)
 {
   t_colas* colas = malloc(sizeof(t_colas));
   inicializar_cola_ready(&(colas->ready), algoritmo, algoritmos_cmn);
@@ -71,10 +147,11 @@ t_colas* inicializar_colas(int algoritmo, t_list* algoritmos_cmn, int quantum,
   colas->logger = logger;
   colas->socket_km = socket_km;
   colas->socket_servidor = socket_servidor;
+  iniciar_hilos_suspendido(colas, suspension_timeout);
   return colas;
 }
 
-void destruir_cola_ready(t_cola_ready* cola)
+static void destruir_cola_ready(t_cola_ready* cola)
 {
   for (int i = 0; i < cola->cantidad_colas; i++)
   {
@@ -88,21 +165,76 @@ void destruir_cola_ready(t_cola_ready* cola)
   free(cola->colas);
 }
 
-void destruir_lista_exec(t_lista_execute* lista)
+static void destruir_lista_exec(t_lista_execute* lista)
 {
   list_destroy(lista->lista);
   pthread_mutex_destroy(&(lista->mutex_lista));
 }
 
-void destruir_lista(t_lista* lista)
+static void destruir_lista(t_lista* lista)
 {
   list_destroy(lista->lista);
   pthread_mutex_destroy(&(lista->mutex_lista));
   pthread_cond_destroy(&(lista->cond_nuevo_proceso));
 }
 
+static void terminar_hilo_suspendido(t_datos_hilo_suspendido* datos)
+{
+  pthread_mutex_lock(&(datos->mutex_estado));
+  pthread_cond_signal(datos->esperar_proceso);
+  pthread_cond_signal(&(datos->desbloquear));
+  datos->estado = EH_FINALIZANDO;
+  pthread_mutex_unlock(&(datos->mutex_estado));
+}
+
+static void esperar_hilo_suspendido(t_datos_hilo_suspendido* datos)
+{
+  pthread_join(datos->hilo, NULL);
+  datos->estado = EH_FINALIZADO;
+}
+
+static void destruir_hilo_suspendido(t_datos_hilo_suspendido* datos)
+{
+  pthread_mutex_destroy(&(datos->mutex_estado));
+  pthread_cond_destroy(&(datos->desbloquear));
+  free(datos);
+}
+
+static void destruir_hilo_suspensor(t_datos_hilo_suspensor* datos)
+{
+  destruir_hilo_suspendido(datos->datos);
+  free(datos);
+}
+
+static void destruir_hilo_des_suspensor(t_datos_hilo_des_suspensor* datos)
+{
+  destruir_hilo_suspendido(datos->datos);
+  free(datos);
+}
+
+void terminar_hilos_suspendido(t_colas* colas)
+{
+  terminar_hilo_suspendido(
+      colas->datos_suspendido->datos_hilo_suspensor->datos);
+  terminar_hilo_suspendido(
+      colas->datos_suspendido->datos_hilo_des_suspensor->datos);
+  esperar_hilo_suspendido(colas->datos_suspendido->datos_hilo_suspensor->datos);
+  esperar_hilo_suspendido(
+      colas->datos_suspendido->datos_hilo_des_suspensor->datos);
+}
+
+void destruir_hilos_suspendido(t_colas* colas)
+{
+  destruir_hilo_suspensor(colas->datos_suspendido->datos_hilo_suspensor);
+  destruir_hilo_des_suspensor(
+      colas->datos_suspendido->datos_hilo_des_suspensor);
+  free(colas->datos_suspendido);
+}
+
 void destruir_colas(t_colas* colas)
 {
+  terminar_hilos_suspendido(colas);
+  destruir_hilos_suspendido(colas);
   destruir_cola_ready(&(colas->ready));
   destruir_lista_exec(&(colas->exec));
   destruir_lista(&(colas->block));
@@ -156,45 +288,30 @@ static void log_estado_no_valido(t_logger* logger, uint32_t pid, int estado,
 static bool gestionar_estado_pcb(t_logger* logger, t_pcb* pcb,
                                  int estado_esperado, int estado_futuro)
 {
-  bool ret;
-  pthread_mutex_lock(&(pcb->mutex_estado));
-  if (estado == estado_esperado)
+  if (pcb->estado == estado_esperado)
   {
     log_cambio_estado(logger, pcb->pid, estado_esperado, estado_futuro);
     pcb->estado = estado_futuro;
-    ret = true;
+    return true;
   }
-  else
-  {
-    log_estado_no_valido(logger, pcb->pid, pcb->estado, estado_esperado,
-                         estado_futuro);
-    ret = false;
-  }
-  pthread_mutex_unlock(&(pcb->mutex_estado));
-  return ret;
+  log_estado_no_valido(logger, pcb->pid, pcb->estado, estado_esperado,
+                       estado_futuro);
+  return false;
 }
 
 static bool esta_bloqueado(t_pcb* pcb)
 {
-  pthread_mutex_lock(&(pcb->mutex_estado));
-  bool ret = pcb->estado == EST_BLOCK;
-  pthread_mutex_unlock(&(pcb->mutex_estado));
-  return ret;
+  return pcb->estado == EST_BLOCK;
 }
 
 bool puedo_suspender(t_pcb* pcb, int suspension_timeout)
 {
-  pthread_mutex_lock(&(pcb->mutex_estado));
-  bool ret = time_diff(millis(), pcb->tiempo_bloqueado) >= suspension_timeout;
-  pthread_mutex_unlock(&(pcb->mutex_estado));
-  return ret;
+  return time_diff(millis(), pcb->tiempo_bloqueado) >= suspension_timeout;
 }
 
 static void set_tiempo_bloqueado(t_pcb* pcb, unsigned long tiempo)
 {
-  pthread_mutex_lock(&(pcb->mutex_estado));
   pcb->tiempo_bloqueado = tiempo;
-  pthread_mutex_unlock(&(pcb->mutex_estado));
 }
 
 static bool check_prioridad_valida(t_pcb* pcb, t_cola_ready* ready,
@@ -522,47 +639,62 @@ void cambio_new_ready(t_colas* colas, char* archivo_instrucciones,
 
 void cambio_ready_exec(t_pcb* pcb, t_colas* colas)
 {
+  pthread_mutex_lock(&(pcb->mutex_estado));
   gestionar_estado_pcb(colas->logger, pcb, EST_READY, EST_EXEC);
+  pthread_mutex_unlock(&(pcb->mutex_estado));
 }
 
 void cambio_exec_ready(t_pcb* pcb, t_colas* colas)
 {
+  pthread_mutex_lock(&(pcb->mutex_estado));
   if (gestionar_estado_pcb(colas->logger, pcb, EST_EXEC, EST_READY))
   {
     cambio_sacar_exec(pcb, &(colas->exec));
     cambio_a_ready(pcb, &(colas->ready), colas->logger);
   }
+  pthread_mutex_unlock(&(pcb->mutex_estado));
 }
 
 void cambio_exec_exit(t_pcb* pcb, t_colas* colas, int motivo)
 {
+  pthread_mutex_lock(&(pcb->mutex_estado));
   if (gestionar_estado_pcb(colas->logger, pcb, EST_EXEC, EST_EXIT))
   {
     cambio_sacar_exec(pcb, &(colas->exec));
     cambio_a_exit(pcb, colas->contador_procesos, motivo, colas->logger,
                   colas->socket_km, colas->socket_servidor);
   }
+  pthread_mutex_unlock(&(pcb->mutex_estado));
 }
 
 void cambio_exec_block(t_pcb* pcb, t_colas* colas)
 {
+  pthread_mutex_lock(&(pcb->mutex_estado));
   if (gestionar_estado_pcb(colas->logger, pcb, EST_EXEC, EST_BLOCK))
   {
     cambio_sacar_exec(pcb, &(colas->exec));
     cambio_a_block(pcb, &(colas->block));
   }
+  pthread_mutex_unlock(&(pcb->mutex_estado));
 }
 
-void cambio_block_ready(t_pcb* pcb, t_colas* colas)
+static void cambio_block_ready_sin_mutex(t_pcb* pcb, t_colas* colas)
 {
   if (gestionar_estado_pcb(colas->logger, pcb, EST_BLOCK, EST_READY))
   {
     cambio_sacar_block(pcb, &(colas->block));
-    cambio_a_ready(pcb, &(colas->ready), &(colas->logger));
+    cambio_a_ready(pcb, &(colas->ready), colas->logger);
   }
 }
 
-void cambio_block_susp_block(t_pcb* pcb, t_colas* colas)
+void cambio_block_ready(t_pcb* pcb, t_colas* colas)
+{
+  pthread_mutex_lock(&(pcb->mutex_estado));
+  cambio_block_ready_sin_mutex(pcb, colas);
+  pthread_mutex_unlock(&(pcb->mutex_estado));
+}
+
+static void cambio_block_susp_block_sin_mutex(t_pcb* pcb, t_colas* colas)
 {
   if (gestionar_estado_pcb(colas->logger, pcb, EST_BLOCK, EST_SUSP_BLOCK))
   {
@@ -571,16 +703,25 @@ void cambio_block_susp_block(t_pcb* pcb, t_colas* colas)
   }
 }
 
+void cambio_block_susp_block(t_pcb* pcb, t_colas* colas)
+{
+  pthread_mutex_lock(&(pcb->mutex_estado));
+  cambio_block_susp_block_sin_mutex(pcb, colas);
+  pthread_mutex_unlock(&(pcb->mutex_estado));
+}
+
 void cambio_susp_block_block(t_pcb* pcb, t_colas* colas)
 {
+  pthread_mutex_lock(&(pcb->mutex_estado));
   if (gestionar_estado_pcb(colas->logger, pcb, EST_SUSP_BLOCK, EST_BLOCK))
   {
     cambio_sacar_susp_block(pcb, &(colas->susp_block));
     cambio_a_block(pcb, &(colas->block));
   }
+  pthread_mutex_unlock(&(pcb->mutex_estado));
 }
 
-void cambio_susp_block_susp_ready(t_pcb* pcb, t_colas* colas)
+static void cambio_susp_block_susp_ready_sin_mutex(t_pcb* pcb, t_colas* colas)
 {
   if (gestionar_estado_pcb(colas->logger, pcb, EST_SUSP_BLOCK, EST_SUSP_READY))
   {
@@ -589,7 +730,14 @@ void cambio_susp_block_susp_ready(t_pcb* pcb, t_colas* colas)
   }
 }
 
-void cambio_susp_ready_ready(t_pcb* pcb, t_colas* colas)
+void cambio_susp_block_susp_ready(t_pcb* pcb, t_colas* colas)
+{
+  pthread_mutex_lock(&(pcb->mutex_estado));
+  cambio_susp_block_susp_ready_sin_mutex(pcb, colas);
+  pthread_mutex_unlock(&(pcb->mutex_estado));
+}
+
+static void cambio_susp_ready_ready_sin_mutex(t_pcb* pcb, t_colas* colas)
 {
   if (gestionar_estado_pcb(colas->logger, pcb, EST_SUSP_READY, EST_READY))
   {
@@ -598,16 +746,25 @@ void cambio_susp_ready_ready(t_pcb* pcb, t_colas* colas)
   }
 }
 
+void cambio_susp_ready_ready(t_pcb* pcb, t_colas* colas)
+{
+  pthread_mutex_lock(&(pcb->mutex_estado));
+  cambio_susp_ready_ready_sin_mutex(pcb, colas);
+  pthread_mutex_unlock(&(pcb->mutex_estado));
+}
+
 void cambio_desbloquear(t_pcb* pcb, t_colas* colas)
 {
+  pthread_mutex_lock(&(pcb->mutex_estado));
   if (esta_bloqueado(pcb))
   {
-    cambio_block_ready(pcb, colas);
+    cambio_block_ready_sin_mutex(pcb, colas);
   }
   else
   {
-    cambio_susp_block_susp_ready(pcb, colas);
+    cambio_susp_block_susp_ready_sin_mutex(pcb, colas);
   }
+  pthread_mutex_unlock(&(pcb->mutex_estado));
 }
 
 static bool cambio_cualquiera_exit(t_colas* colas, int estado, int motivo)
@@ -647,10 +804,237 @@ void vaciar_colas(t_colas* colas)
 {
   for (int i = EST_READY; i < EST_EXIT; i++)
   {
-    while (cambio_cualquiera_exit(colas, colas->logger, i,
-                                  colas->contador_procesos, colas->socket_km,
-                                  colas->socket_servidor, MFP_CIERRE_SISTEMA))
+    while (cambio_cualquiera_exit(colas, i, MFP_CIERRE_SISTEMA))
     {
     }
   }
+}
+
+static void bloquear_hilo_suspendido(t_datos_hilo_suspendido* datos)
+{
+  pthread_mutex_lock(&(datos->mutex_estado));
+  switch (datos->estado)
+  {
+    case EH_EJECUTANDO:
+      datos->estado = EH_BLOQUEADO;
+      break;
+    case EH_ESPERANDO_PROCESO:
+      pthread_cond_signal(datos->esperar_proceso);
+      datos->estado = EH_BLOQUEADO;
+      break;
+  }
+  pthread_mutex_unlock(&(datos->mutex_estado));
+}
+
+static void desbloquear_hilo_suspendido(t_datos_hilo_suspendido* datos)
+{
+  pthread_mutex_lock(&(datos->mutex_estado));
+  if (datos->estado == EH_BLOQUEADO)
+  {
+    pthread_cond_signal(&(datos->desbloquear));
+    datos->estado = EH_EJECUTANDO;
+  }
+  pthread_mutex_unlock(&(datos->mutex_estado));
+}
+
+void bloquear_hilos_suspendido(t_colas* colas)
+{
+  bloquear_hilo_suspendido(
+      colas->datos_suspendido->datos_hilo_suspensor->datos);
+  bloquear_hilo_suspendido(
+      colas->datos_suspendido->datos_hilo_des_suspensor->datos);
+}
+
+void desbloquear_hilos_suspendido(t_colas* colas)
+{
+  desbloquear_hilo_suspendido(
+      colas->datos_suspendido->datos_hilo_suspensor->datos);
+  desbloquear_hilo_suspendido(
+      colas->datos_suspendido->datos_hilo_des_suspensor->datos);
+}
+
+static void esperar_desbloqueo(t_datos_hilo_suspendido* datos)
+{
+  pthread_cond_wait(datos->esperar_proceso, &(datos->mutex_estado));
+  if (datos->estado == EH_BLOQUEADO)
+  {
+    datos->estado = EH_EJECUTANDO;
+  }
+}
+
+static t_pcb* obtener_proceso_bloqueado(t_colas* colas,
+                                        t_datos_hilo_suspensor* datos)
+{
+  pthread_mutex_lock(&(colas->block.mutex_lista));
+  t_pcb* proceso = NULL;
+  if (!list_is_empty(colas->block.lista))
+  {
+    proceso = list_get(colas->block.lista, 0);
+  }
+  pthread_mutex_unlock(&(colas->block.mutex_lista));
+  if (proceso == NULL)
+  {
+    datos->datos->estado = EH_ESPERANDO_PROCESO;
+  }
+  return proceso;
+}
+
+static void suspender_proceso(t_colas* colas, t_datos_hilo_suspensor* datos,
+                              t_pcb* proceso)
+{
+  pthread_mutex_unlock(&(datos->datos->mutex_estado));
+  pthread_mutex_lock(&(proceso->mutex_estado));
+  unsigned long tiempo_sleep = millis() - proceso->tiempo_bloqueado;
+
+  if (tiempo_sleep >= datos->suspension_timeout)
+  {
+    if (proceso->estado == EST_BLOCK)
+    {
+      cambio_block_susp_block_sin_mutex(proceso, colas);
+    }
+    pthread_mutex_unlock(&(proceso->mutex_estado));
+  }
+  else
+  {
+    pthread_mutex_unlock(&(proceso->mutex_estado));
+    usleep(tiempo_sleep * 1000);
+  }
+
+  pthread_mutex_lock(&(datos->datos->mutex_estado));
+}
+
+static void esperar_proceso_bloqueado(t_colas* colas,
+                                      t_datos_hilo_suspensor* datos)
+{
+  pthread_mutex_unlock(&(datos->datos->mutex_estado));
+  pthread_mutex_lock(&(colas->block.mutex_lista));
+  if (list_is_empty(colas->block.lista))
+  {
+    pthread_cond_wait(datos->datos->esperar_proceso, &(datos->datos->mutex_estado));
+  }
+  bool lista_vacia = list_is_empty(colas->block.lista);
+  pthread_mutex_unlock(&(colas->block.mutex_lista));
+  pthread_mutex_lock(&(datos->datos->mutex_estado));
+  if (!lista_vacia && datos->datos->estado == EH_ESPERANDO_PROCESO)
+  {
+    datos->datos->estado = EH_EJECUTANDO;
+  }
+}
+
+static t_pcb* obtener_proceso_susp_ready(t_colas* colas,
+                                         t_datos_hilo_des_suspensor* datos)
+{
+  pthread_mutex_lock(&(colas->susp_ready.mutex_lista));
+  t_pcb* proceso = NULL;
+  if (!list_is_empty(colas->susp_ready.lista))
+  {
+    proceso = list_get(colas->susp_ready.lista, 0);
+  }
+  pthread_mutex_unlock(&(colas->susp_ready.mutex_lista));
+  if (proceso == NULL)
+  {
+    datos->datos->estado = EH_ESPERANDO_PROCESO;
+  }
+  return proceso;
+}
+
+static void des_suspender_proceso(t_colas* colas,
+                                  t_datos_hilo_des_suspensor* datos,
+                                  t_pcb* proceso)
+{
+  pthread_mutex_unlock(&(datos->datos->mutex_estado));
+  pthread_mutex_lock(&(proceso->mutex_estado));
+
+  if (proceso->estado == EST_BLOCK)
+  {
+    cambio_susp_ready_ready_sin_mutex(proceso, colas);
+  }
+
+  pthread_mutex_unlock(&(proceso->mutex_estado));
+  pthread_mutex_lock(&(datos->datos->mutex_estado));
+}
+
+static void esperar_proceso_susp_ready(t_colas* colas,
+                                       t_datos_hilo_des_suspensor* datos)
+{
+  pthread_mutex_unlock(&(datos->datos->mutex_estado));
+  pthread_mutex_lock(&(colas->susp_block.mutex_lista));
+  if (list_is_empty(colas->susp_block.lista))
+  {
+    pthread_cond_wait(datos->datos->esperar_proceso, &(datos->datos->mutex_estado));
+  }
+  bool lista_vacia = list_is_empty(colas->susp_block.lista);
+  pthread_mutex_unlock(&(colas->susp_block.mutex_lista));
+  pthread_mutex_lock(&(datos->datos->mutex_estado));
+  if (!lista_vacia && datos->datos->estado == EH_ESPERANDO_PROCESO)
+  {
+    datos->datos->estado = EH_EJECUTANDO;
+  }
+}
+
+static void* hilo_suspensor(void* datos_void)
+{
+  t_colas* colas = (t_colas*)datos_void;
+  t_datos_hilo_suspensor* datos = colas->datos_suspendido->datos_hilo_suspensor;
+  bool seguir_operando = true;
+
+  while (seguir_operando)
+  {
+    pthread_mutex_lock(&(datos->datos->mutex_estado));
+    switch (datos->datos->estado)
+    {
+      case EH_EJECUTANDO:
+        t_pcb* proceso = obtener_proceso_bloqueado(colas, datos);
+        if (proceso != NULL)
+        {
+          suspender_proceso(colas, datos, proceso);
+        }
+        break;
+      case EH_ESPERANDO_PROCESO:
+        esperar_proceso_bloqueado(colas, datos);
+        break;
+      case EH_BLOQUEADO:
+        esperar_desbloqueo(datos->datos);
+        break;
+      case EH_FINALIZANDO:
+        seguir_operando = false;
+        break;
+    }
+    pthread_mutex_unlock(&(datos->datos->mutex_estado));
+  }
+  return NULL;
+}
+
+static void* hilo_des_suspensor(void* datos_void)
+{
+  t_colas* colas = (t_colas*)datos_void;
+  t_datos_hilo_des_suspensor* datos =
+      colas->datos_suspendido->datos_hilo_des_suspensor;
+  bool seguir_operando = true;
+
+  while (seguir_operando)
+  {
+    pthread_mutex_lock(&(datos->datos->mutex_estado));
+    switch (datos->datos->estado)
+    {
+      case EH_EJECUTANDO:
+        t_pcb* proceso = obtener_proceso_susp_ready(colas, datos);
+        if (proceso != NULL)
+        {
+          des_suspender_proceso(colas, datos, proceso);
+        }
+        break;
+      case EH_ESPERANDO_PROCESO:
+        esperar_proceso_susp_ready(colas, datos);
+        break;
+      case EH_BLOQUEADO:
+        esperar_desbloqueo(datos->datos);
+        break;
+      case EH_FINALIZANDO:
+        seguir_operando = false;
+        break;
+    }
+    pthread_mutex_unlock(&(datos->datos->mutex_estado));
+  }
+  return NULL;
 }

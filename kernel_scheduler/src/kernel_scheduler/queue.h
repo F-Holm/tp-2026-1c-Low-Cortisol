@@ -61,6 +61,42 @@ typedef struct
 } t_lista_execute;  // Como algunos valores no cambian nunca (quantum y
                     // desalojo), no necesitan mutex
 
+typedef enum
+{
+  EH_EJECUTANDO,
+  EH_ESPERANDO_PROCESO,
+  EH_BLOQUEADO,
+  EH_FINALIZANDO,
+  EH_FINALIZADO
+} t_estado_hilo;
+
+typedef struct
+{
+  pthread_t hilo;
+  pthread_mutex_t mutex_estado;
+  int estado;
+  pthread_mutex_t* mutex_suspender_des_suspender;
+  pthread_cond_t* esperar_proceso;
+  pthread_cond_t desbloquear;
+} t_datos_hilo_suspendido;
+
+typedef struct
+{
+  t_datos_hilo_suspendido* datos;
+  int suspension_timeout;
+} t_datos_hilo_suspensor;
+
+typedef struct
+{
+  t_datos_hilo_suspendido* datos;
+} t_datos_hilo_des_suspensor;
+
+typedef struct
+{
+  t_datos_hilo_suspensor* datos_hilo_suspensor;
+  t_datos_hilo_des_suspensor* datos_hilo_des_suspensor;
+} t_datos_suspendido;
+
 typedef struct
 {
   t_cola_ready ready;
@@ -73,13 +109,15 @@ typedef struct
   t_logger* logger;
   t_socket_kernel_memory* socket_km;
   int socket_servidor;
+  t_datos_suspendido* datos_suspendido;
 } t_colas;
 
 // ingresar NULL en t_list si no es CMN
 // ingresar quantum = 0 si no es RR
 t_colas* inicializar_colas(int algoritmo, t_list* algoritmos_cmn, int quantum,
                            bool desalojo, int socket_servidor, t_logger* logger,
-                           t_socket_kernel_memory* socket_km);
+                           t_socket_kernel_memory* socket_km,
+                           int suspension_timeout);
 void destruir_colas(t_colas* colas);
 
 bool esta_cola_ready_bloqueada(t_cola_ready* ready);
@@ -109,5 +147,9 @@ void cambio_desbloquear(t_pcb* pcb, t_colas* colas);
 
 // Para errores o rutinas de cierre
 void vaciar_colas(t_colas* colas);
+
+// Para bloquear y desbloquear los hilos suspensor y des-suspensor
+void bloquear_hilos_suspendido(t_colas* colas);
+void desbloquear_hilos_suspendido(t_colas* colas);
 
 #endif /* KERNEL_SCHEDULER_QUEUE_H_ */

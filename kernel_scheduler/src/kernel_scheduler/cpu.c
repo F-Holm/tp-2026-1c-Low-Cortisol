@@ -122,8 +122,7 @@ static void gestionar_fin_quantum(t_datos_syscall* datos)
     logger_info(datos->datos->logger,
                 "## CPU %s: Desalojando por fin de quantum", datos->datos->id);
     log_desalojo_fin_quantum(datos->datos->logger, datos->pcb->pid);
-    cambio_exec_ready(datos->pcb, &(datos->datos->colas->exec),
-                      &(datos->datos->colas->ready), datos->datos->logger);
+    cambio_exec_ready(datos->pcb, datos->datos->colas);
     datos->motivo_desalojo = MD_FIN_QUANTUM;
   }
 }
@@ -269,13 +268,14 @@ static void manejar_syscall_io_stdin(t_datos_syscall* datos)
 static void manejar_syscall_iniciar_proceso(t_datos_syscall* datos)
 {
   t_list* lista = recibir_paquete(datos->datos->socket_fd);
-  cambio_new_ready(colas, list_get(lista, 0), *(int*)list_get(lista, 1));
+  cambio_new_ready(datos->datos->colas, list_get(lista, 0),
+                   *(int*)list_get(lista, 1));
   list_destroy_and_destroy_elements(lista, free);
 }
 
 static void manejar_syscall_exit(t_datos_syscall* datos)
 {
-  cambio_exec_exit(datos->pcb, datos->datos->colas);
+  cambio_exec_exit(datos->pcb, datos->datos->colas, MFP_INSTRUCCION_EXIT);
   datos->motivo_desalojo = MD_FIN_PROCESO;
 }
 
