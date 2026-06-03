@@ -1,17 +1,8 @@
 #include "kernel_memory/servidor.h"
 
-#include "kernel_memory/configurador.h"
-#include "kernel_memory/escuchas.h"
-#include "kernel_memory/inicializador.h"
-#include "kernel_memory/protocolo.h"
-#include "utils/msg.h"
-#include "utils/server.h"
-
 void handshake(t_datos_kernel_mem* datos_kernel_memory, int client_socket)
 {
-  pthread_mutex_lock(datos_kernel_memory->mutex_logger);
-  log_info(datos_kernel_memory->logger, "Servidor a la espera de handshake");
-  pthread_mutex_unlock(datos_kernel_memory->mutex_logger);
+  logger_info(datos_kernel_memory->logger, "Servidor a la espera de handshake");
   int identificador = recibir_handshake(client_socket);
   switch (identificador)
   {
@@ -19,22 +10,17 @@ void handshake(t_datos_kernel_mem* datos_kernel_memory, int client_socket)
     {
       if (!enviar_handshake(MID_KERNEL_MEMORY, client_socket))
       {
-        pthread_mutex_lock(datos_kernel_memory->mutex_logger);
-        log_error(datos_kernel_memory->logger, "Error al enviar handshake");
-        pthread_mutex_unlock(datos_kernel_memory->mutex_logger);
-        close(client_socket);
+        enviar_handshake_error(datos_kernel_memory->logger, client_socket,
+                               "Kernel Scheduler");
         return;
       }
-      pthread_mutex_lock(datos_kernel_memory->mutex_logger);
-      log_info(datos_kernel_memory->logger,
-               "## Kernel Scheduler Conectado - FD del socket: %i",
-               client_socket);
-      pthread_mutex_unlock(datos_kernel_memory->mutex_logger);
+      logger_info(datos_kernel_memory->logger,
+                  "## Kernel Scheduler Conectado - FD del socket: %i",
+                  client_socket);
       t_datos_scheduler* datos_scheduler = inicializar_datos_scheduler(
           client_socket, datos_kernel_memory->procesos,
           datos_kernel_memory->scripts_basepath,
-          datos_kernel_memory->mutex_procesos,
-          datos_kernel_memory->mutex_logger, datos_kernel_memory->logger);
+          datos_kernel_memory->mutex_procesos, datos_kernel_memory->logger);
       datos_kernel_memory->socket_scheduler = client_socket;
       empezar_escucha_scheduler(datos_scheduler);
     }
@@ -44,20 +30,15 @@ void handshake(t_datos_kernel_mem* datos_kernel_memory, int client_socket)
     {
       if (!enviar_handshake(MID_KERNEL_MEMORY, client_socket))
       {
-        pthread_mutex_lock(datos_kernel_memory->mutex_logger);
-        log_error(datos_kernel_memory->logger, "Error al enviar handshake");
-        pthread_mutex_unlock(datos_kernel_memory->mutex_logger);
-        close(client_socket);
+        enviar_handshake_error(datos_kernel_memory->logger, client_socket,
+                               "CPU");
         return;
       }
       bool inicializar_correcto = true;
-      pthread_mutex_lock(datos_kernel_memory->mutex_logger);
-      log_info(datos_kernel_memory->logger, "Se ha conectado una CPU!");
-      pthread_mutex_unlock(datos_kernel_memory->mutex_logger);
+      logger_info(datos_kernel_memory->logger, "Se ha conectado una CPU!");
       t_datos_cpu* datos_cpu = inicializar_datos_cpu(
           client_socket, datos_kernel_memory->procesos,
           datos_kernel_memory->mutex_procesos,
-          datos_kernel_memory->mutex_logger,
           datos_kernel_memory->instruction_delay, datos_kernel_memory->logger);
       inicializar_correcto = recibir_id_cpu(datos_cpu);
       agregar_conexion_cpu(datos_kernel_memory, datos_cpu);
@@ -71,7 +52,8 @@ void handshake(t_datos_kernel_mem* datos_kernel_memory, int client_socket)
       }
       else
       {
-        terminar_comunicacion(client_socket);
+        error_incorrecta_inicializacion(datos_kernel_memory->logger,
+                                        client_socket, "CPU");
       }
     }
     break;
@@ -80,20 +62,15 @@ void handshake(t_datos_kernel_mem* datos_kernel_memory, int client_socket)
     {
       if (!enviar_handshake(MID_KERNEL_MEMORY, client_socket))
       {
-        pthread_mutex_lock(datos_kernel_memory->mutex_logger);
-        log_error(datos_kernel_memory->logger, "Error al enviar handshake");
-        pthread_mutex_unlock(datos_kernel_memory->mutex_logger);
-        close(client_socket);
+        enviar_handshake_error(datos_kernel_memory->logger, client_socket,
+                               "Memory Stick");
         return;
       }
-      pthread_mutex_lock(datos_kernel_memory->mutex_logger);
-      log_info(datos_kernel_memory->logger,
-               "Se ha conectado una memory Stick!");
-      pthread_mutex_unlock(datos_kernel_memory->mutex_logger);
+      logger_info(datos_kernel_memory->logger,
+                  "Se ha conectado una memory Stick!");
       bool inicializar_correcto = true;
       t_datos_stick* datos_stick =
-          inicializar_datos_stick(client_socket, datos_kernel_memory->logger,
-                                  datos_kernel_memory->mutex_logger);
+          inicializar_datos_stick(client_socket, datos_kernel_memory->logger);
       inicializar_correcto = inicializar_ip_stick(datos_stick, client_socket);
       inicializar_correcto = recibir_tamanio_stick(datos_stick);
       inicializar_correcto = recibir_puerto_escucha_stick(datos_stick);
@@ -110,12 +87,9 @@ void handshake(t_datos_kernel_mem* datos_kernel_memory, int client_socket)
       }
       else
       {
-        pthread_mutex_lock(datos_kernel_memory->mutex_logger);
-        log_info(datos_kernel_memory->logger,
-                 "Se ha terminado la conexion con una memory Stick ya que no "
-                 "se pudo inicializar correectametne");
-        pthread_mutex_unlock(datos_kernel_memory->mutex_logger);
-        terminar_comunicacion(datos_stick->socket_stick);
+        error_incorrecta_inicializacion(datos_kernel_memory->logger,
+                                        datos_stick->socket_stick,
+                                        "Memory Stick");
       }
     }
     break;
@@ -124,18 +98,13 @@ void handshake(t_datos_kernel_mem* datos_kernel_memory, int client_socket)
     {
       if (!enviar_handshake(MID_KERNEL_MEMORY, client_socket))
       {
-        pthread_mutex_lock(datos_kernel_memory->mutex_logger);
-        log_error(datos_kernel_memory->logger, "Error al enviar handshake");
-        pthread_mutex_unlock(datos_kernel_memory->mutex_logger);
-        close(client_socket);
+        enviar_handshake_error(datos_kernel_memory->logger, client_socket,
+                               "SWAP");
         return;
       }
-      pthread_mutex_lock(datos_kernel_memory->mutex_logger);
-      log_info(datos_kernel_memory->logger, "Se ha conectado el SWAP!");
-      pthread_mutex_unlock(datos_kernel_memory->mutex_logger);
+      logger_info(datos_kernel_memory->logger, "Se ha conectado el SWAP");
       t_datos_swap* datos_swap =
-          inicializar_datos_swap(client_socket, datos_kernel_memory->logger,
-                                 datos_kernel_memory->mutex_logger);
+          inicializar_datos_swap(client_socket, datos_kernel_memory->logger);
       empezar_escucha_swap(datos_swap);
       break;
     }
@@ -147,13 +116,10 @@ void handshake(t_datos_kernel_mem* datos_kernel_memory, int client_socket)
 void accept_cliente(void* ptr)
 {
   t_datos_kernel_mem* datos_kernel_memory = (t_datos_kernel_mem*)ptr;
-  pthread_mutex_lock(datos_kernel_memory->mutex_logger);
-  log_info(datos_kernel_memory->logger, "Servidor a la espera de un cliente");
-  pthread_mutex_unlock(datos_kernel_memory->mutex_logger);
+  logger_info(datos_kernel_memory->logger,
+              "Servidor a la espera de un cliente");
   int socket_cliente =
       esperar_cliente(datos_kernel_memory->socket_kernel_memory);
-  pthread_mutex_lock(datos_kernel_memory->mutex_logger);
-  log_info(datos_kernel_memory->logger, "Se ha aceptado a un cliente!");
-  pthread_mutex_unlock(datos_kernel_memory->mutex_logger);
+  logger_info(datos_kernel_memory->logger, "Se ha aceptado a un cliente!");
   handshake(datos_kernel_memory, socket_cliente);
 }
