@@ -67,8 +67,6 @@ static t_datos_hilo_suspendido* inicializar_datos_hilo_suspendido(
   t_datos_hilo_suspendido* datos = malloc(sizeof(t_datos_hilo_suspendido));
   pthread_mutex_init(&(datos->mutex_estado), NULL);
   datos->estado = EH_EJECUTANDO;
-  datos->mutex_suspender_des_suspender =
-      &(colas->mutex_suspender_des_suspender);
   pthread_cond_init(&(datos->desbloquear), NULL);
   return datos;
 }
@@ -143,7 +141,6 @@ t_colas* inicializar_colas(int algoritmo, t_list* algoritmos_cmn, int quantum,
   inicializar_lista(&(colas->susp_ready));
   colas->contador_procesos =
       inicializar_contador_procesos(socket_servidor, logger);
-  pthread_mutex_init(&(colas->mutex_suspender_des_suspender), NULL);
   colas->logger = logger;
   colas->socket_km = socket_km;
   colas->socket_servidor = socket_servidor;
@@ -241,7 +238,6 @@ void destruir_colas(t_colas* colas)
   destruir_lista(&(colas->susp_block));
   destruir_lista(&(colas->susp_ready));
   destruir_contador_procesos(colas->contador_procesos);
-  pthread_mutex_destroy(&(colas->mutex_suspender_des_suspender));
   free(colas);
 }
 
@@ -1042,24 +1038,28 @@ static void* hilo_des_suspensor(void* datos_void)
 }
 
 /*
-suspender_proceso
+suspender_proceso: solo falla si se desconecta el KM
 
 des_suspender_proceso
-- ok
+- pido el espacio libre
+- pido el tamaño del proceso
+- Puede devolver 2 cosas (todavía no cree los op_codes)
+- proceso_des-suspendido
 - compactación
 
 des_suspender_proceso_sin_compactacion
-- ok
-- no
+- pido el espacio libre
+- pido el tamaño del proceso
+- Puede devolver 2 cosas (todavía no cree los op_codes)
+- proceso_des-suspendido
+- no hay suficiente memoria contigua
 
 rutina de bloqueo total:
 - bloquear cola ready
 - bloquear hilos de cambios de estado
-- bloquear mutex de suspender y des-suspender
-- esperar cola ready vacia
+- esperar cola ready vacia (todavía no hice el una función para esperar esto)
 
 rutina de desbloqueo total:
-- desbloquear mutex de suspender y des-suspender
 - desbloquear hilos de cambios de estado
 - desbloquear cola ready
 
@@ -1069,6 +1069,7 @@ rutina de des-suspensión:
 - si responde OK: volver a obtener los 2 primeros elementos
 
 rutina de nuevo_stick o memoria liberada:
+- crear hilo para ejecutar la rutinacin bloquear el hilo actual
 - rutina de bloqueo total
 - rutina de des-suspensión
 - rutina de desbloqueo total
@@ -1076,13 +1077,20 @@ rutina de nuevo_stick o memoria liberada:
 rutina compactación:
 - suspendo proceso o pido memoria
 - recibo compactación
+- crear hilo para ejecutar la rutinacin bloquear el hilo actual
 - rutina de bloqueo total
-- aviso a KM
-- espero confirmación de KM
+- aviso a KM que se puede iniciar la compactación
+- espero confirmación de KM de que terminó la compactación
 - rutina de des-suspensión
 - rutina de desbloqueo total
 
-Las rutinas crean un hilo de ejecución aparte
+Cuando se llama a "rutina de nuevo_stick o memoria liberada"?
+- cuando un proceso pasa a exit, le pregunto a kernel memory cuanto espacio de memoria ocupa, si es distinto a 0, se ejecuta essta rutina
+- cuando se llama a la función de memory.h para liberar memoria
+- cuando se conecta un nuevo memory stick (hay que tener en cuenta este caso para cada comunicación con el KM)
 
-Cuando se termina un proceso, si recibe una respuesta si se liberó memoria o no
+Cuando se llama a "rutina compactación"?
+- cuando se des-suspende un proceso o se pide memoria
+- siempre se verifica primero si hay suficiente memoria (pidiendo al KM cuanta memoria libre hay y/o cuanto pesa el proceso)
+- se ejecuta si hay suficiente memoria, le decimos al KM lo que queremos hacer y nos dice que se necesita compactar
 */

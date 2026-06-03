@@ -75,7 +75,6 @@ typedef struct
   pthread_t hilo;
   pthread_mutex_t mutex_estado;
   int estado;
-  pthread_mutex_t* mutex_suspender_des_suspender;
   pthread_cond_t* esperar_proceso;
   pthread_cond_t desbloquear;
 } t_datos_hilo_suspendido;
@@ -105,7 +104,6 @@ typedef struct
   t_lista susp_block;
   t_lista susp_ready;
   t_contador_procesos* contador_procesos;
-  pthread_mutex_t mutex_suspender_des_suspender;
   t_logger* logger;
   t_socket_kernel_memory* socket_km;
   int socket_servidor;
