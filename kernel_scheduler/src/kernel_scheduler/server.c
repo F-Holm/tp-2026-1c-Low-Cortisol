@@ -84,8 +84,9 @@ void servidor_escucha(t_datos_servidor_escucha* datos)
             estructuras_io, datos->socket_km, datos->socket_server, listas_io);
         break;
       case MID_IO:
-        manejo_exitoso = atender_nuevo_io(
-            estructuras_io, socket_fd, datos->colas, listas_io, datos->colas->ready.cola_multi_nivel);
+        manejo_exitoso =
+            atender_nuevo_io(estructuras_io, socket_fd, datos->colas, listas_io,
+                             datos->colas->ready.cola_multi_nivel);
         break;
       default:
         logger_info(datos->logger, "## Recepción de handshake no válido");
