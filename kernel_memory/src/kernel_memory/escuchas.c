@@ -1,18 +1,5 @@
 #include "kernel_memory/escuchas.h"
 
-#include <commons/collections/list.h>
-#include <commons/config.h>
-#include <pthread.h>
-#include <stdlib.h>
-
-#include "configurador.h"
-#include "kernel_memory/estructuras.h"
-#include "kernel_memory/inicializador.h"
-#include "kernel_memory/liberador.h"
-#include "utils/kernel_scheduler_cpu.h"
-#include "utils/logger.h"
-#include "utils/msg.h"
-
 void* escucha_scheduler(void* ptr)
 {
   t_datos_scheduler* datos_scheduler = (t_datos_scheduler*)ptr;
@@ -31,9 +18,8 @@ void* escucha_scheduler(void* ptr)
             *pid, path_relativo, datos_scheduler->scripts_basepath,
             datos_scheduler->logger);
 
-        pthread_mutex_lock(datos_scheduler->mutex_procesos);
-        list_add(datos_scheduler->procesos, proceso);
-        pthread_mutex_unlock(datos_scheduler->mutex_procesos);
+        aniadirAListaMtx(datos_scheduler->procesos,
+                         datos_scheduler->mutex_procesos, proceso);
 
         logger_info(datos_scheduler->logger, "## PID: %ls - Proceso Creado",
                     pid);
@@ -89,20 +75,6 @@ void* escucha_scheduler(void* ptr)
   }
   liberar_datos_scheduler(datos_scheduler);
   return NULL;
-}
-
-t_proceso* buscar_proceso(t_datos_cpu* datos_cpu, uint32_t pid)
-{
-  t_proceso* resultado = NULL;
-  pthread_mutex_lock(datos_cpu->mutex_procesos);
-  for (int i = 0; i < list_size(datos_cpu->procesos); i++)
-  {
-    t_proceso* proceso = list_get(datos_cpu->procesos, i);
-    if (proceso->pid == pid)
-      resultado = proceso;
-  }
-  pthread_mutex_unlock(datos_cpu->mutex_procesos);
-  return resultado;
 }
 
 void* escucha_cpu(void* ptr)

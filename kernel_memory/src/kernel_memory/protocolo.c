@@ -1,13 +1,5 @@
 #include "kernel_memory/protocolo.h"
 
-#include <commons/collections/list.h>
-#include <pthread.h>
-#include <stdio.h>
-#include <stdlib.h>
-
-#include "kernel_memory/configurador.h"
-#include "utils/msg.h"
-
 bool recibir_id_cpu(t_datos_cpu* datos_cpu)
 {
   if (recibir_operacion(datos_cpu->socket_cpu) == OP_ID_CPU)
@@ -76,18 +68,16 @@ bool recibir_puerto_escucha_stick(t_datos_stick* datos_stick)
 void agregar_conexion_stick(t_datos_kernel_mem* datos_kernel_memory,
                             t_datos_stick* datos_stick)
 {
-  pthread_mutex_lock(datos_kernel_memory->mutex_lista_sockets);
-  list_add(datos_kernel_memory->sticks_conectados, datos_stick);
-  pthread_mutex_unlock(datos_kernel_memory->mutex_lista_sockets);
+  aniadirAListaMtx(datos_kernel_memory->sticks_conectados,
+                   datos_kernel_memory->mutex_lista_sockets, datos_stick);
   return;
 }
 
 void agregar_conexion_cpu(t_datos_kernel_mem* datos_kernel_memory,
                           t_datos_cpu* datos_cpu)
 {
-  pthread_mutex_lock(datos_kernel_memory->mutex_lista_sockets);
-  list_add(datos_kernel_memory->cpus_conectados, datos_cpu);
-  pthread_mutex_unlock(datos_kernel_memory->mutex_lista_sockets);
+  aniadirAListaMtx(datos_kernel_memory->cpus_conectados,
+                   datos_kernel_memory->mutex_lista_sockets, datos_cpu);
   return;
 }
 
@@ -166,4 +156,25 @@ void enviar_tamanio_disponible_scheduler(int socket_scheduler,
   agregar_a_paquete(paquete, &tamanio_total, sizeof(u_int32_t));
   enviar_paquete(paquete, socket_scheduler);
   eliminar_paquete(paquete);
+}
+
+void aniadirAListaMtx(t_list* lista, pthread_mutex_t* mutex, void* elemento)
+{
+  pthread_mutex_lock(mutex);
+  list_add(lista, elemento);
+  pthread_mutex_unlock(mutex);
+}
+
+t_proceso* buscar_proceso(t_datos_cpu* datos_cpu, uint32_t pid)
+{
+  t_proceso* resultado = NULL;
+  pthread_mutex_lock(datos_cpu->mutex_procesos);
+  for (int i = 0; i < list_size(datos_cpu->procesos); i++)
+  {
+    t_proceso* proceso = list_get(datos_cpu->procesos, i);
+    if (proceso->pid == pid)
+      resultado = proceso;
+  }
+  pthread_mutex_unlock(datos_cpu->mutex_procesos);
+  return resultado;
 }

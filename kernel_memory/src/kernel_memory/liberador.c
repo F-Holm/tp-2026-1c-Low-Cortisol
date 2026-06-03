@@ -1,9 +1,5 @@
 #include "kernel_memory/liberador.h"
 
-#include <stdlib.h>
-
-#include "kernel_memory/configurador.h"
-
 void liberar_datos_cpu(t_datos_cpu* datos_cpu)
 {
   if (datos_cpu == NULL)

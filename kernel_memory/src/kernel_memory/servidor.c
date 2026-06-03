@@ -1,12 +1,5 @@
 #include "kernel_memory/servidor.h"
 
-#include "kernel_memory/configurador.h"
-#include "kernel_memory/escuchas.h"
-#include "kernel_memory/inicializador.h"
-#include "kernel_memory/protocolo.h"
-#include "utils/msg.h"
-#include "utils/server.h"
-
 void handshake(t_datos_kernel_mem* datos_kernel_memory, int client_socket)
 {
   logger_info(datos_kernel_memory->logger, "Servidor a la espera de handshake");
@@ -17,8 +10,8 @@ void handshake(t_datos_kernel_mem* datos_kernel_memory, int client_socket)
     {
       if (!enviar_handshake(MID_KERNEL_MEMORY, client_socket))
       {
-        logger_error(datos_kernel_memory->logger, "Error al enviar handshake");
-        close(client_socket);
+        enviar_handshake_error(datos_kernel_memory->logger, client_socket,
+                               "Kernel Scheduler");
         return;
       }
       logger_info(datos_kernel_memory->logger,
@@ -37,8 +30,8 @@ void handshake(t_datos_kernel_mem* datos_kernel_memory, int client_socket)
     {
       if (!enviar_handshake(MID_KERNEL_MEMORY, client_socket))
       {
-        logger_error(datos_kernel_memory->logger, "Error al enviar handshake");
-        close(client_socket);
+        enviar_handshake_error(datos_kernel_memory->logger, client_socket,
+                               "CPU");
         return;
       }
       bool inicializar_correcto = true;
@@ -59,7 +52,8 @@ void handshake(t_datos_kernel_mem* datos_kernel_memory, int client_socket)
       }
       else
       {
-        terminar_comunicacion(client_socket);
+        error_incorrecta_inicializacion(datos_kernel_memory->logger,
+                                        client_socket, "CPU");
       }
     }
     break;
@@ -68,8 +62,8 @@ void handshake(t_datos_kernel_mem* datos_kernel_memory, int client_socket)
     {
       if (!enviar_handshake(MID_KERNEL_MEMORY, client_socket))
       {
-        logger_error(datos_kernel_memory->logger, "Error al enviar handshake");
-        close(client_socket);
+        enviar_handshake_error(datos_kernel_memory->logger, client_socket,
+                               "Memory Stick");
         return;
       }
       logger_info(datos_kernel_memory->logger,
@@ -93,11 +87,9 @@ void handshake(t_datos_kernel_mem* datos_kernel_memory, int client_socket)
       }
       else
       {
-        logger_info(
-            datos_kernel_memory->logger,
-            "Se ha terminado la conexion con una memory Stick ya que no "
-            "se pudo inicializar correectametne");
-        terminar_comunicacion(datos_stick->socket_stick);
+        error_incorrecta_inicializacion(datos_kernel_memory->logger,
+                                        datos_stick->socket_stick,
+                                        "Memory Stick");
       }
     }
     break;
@@ -106,11 +98,11 @@ void handshake(t_datos_kernel_mem* datos_kernel_memory, int client_socket)
     {
       if (!enviar_handshake(MID_KERNEL_MEMORY, client_socket))
       {
-        logger_error(datos_kernel_memory->logger, "Error al enviar handshake");
-        close(client_socket);
+        enviar_handshake_error(datos_kernel_memory->logger, client_socket,
+                               "SWAP");
         return;
       }
-      logger_info(datos_kernel_memory->logger, "Se ha conectado el SWAP!");
+      logger_info(datos_kernel_memory->logger, "Se ha conectado el SWAP");
       t_datos_swap* datos_swap =
           inicializar_datos_swap(client_socket, datos_kernel_memory->logger);
       empezar_escucha_swap(datos_swap);

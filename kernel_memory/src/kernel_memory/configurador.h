@@ -2,7 +2,9 @@
 #define KERNEL_MEMORY_CONFIGURADOR_H_
 
 #include <commons/config.h>
+#include <unistd.h>
 
+#include "pthread.h"
 #include "utils/logger.h"
 
 t_logger* iniciar_logger(t_config* config);

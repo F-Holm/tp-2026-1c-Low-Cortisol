@@ -1,7 +1,14 @@
 #ifndef KERNEL_MEMORY_PROTOCOLO_H_
 #define KERNEL_MEMORY_PROTOCOLO_H_
 
+#include <commons/collections/list.h>
+#include <pthread.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+#include "kernel_memory/configurador.h"
 #include "kernel_memory/estructuras.h"
+#include "utils/msg.h"
 
 bool recibir_id_cpu(t_datos_cpu* datos_cpu);
 bool recibir_tamanio_stick(t_datos_stick* datos_stick);
@@ -18,5 +25,7 @@ void enviar_tamanio_disponible_scheduler(int socket_scheduler,
                                          t_list* sticks_conectados,
                                          pthread_mutex_t* mutex_lista_sockets,
                                          t_logger* logger);
+void aniadirAListaMtx(t_list* lista, pthread_mutex_t* mutex, void* elemento);
+t_proceso* buscar_proceso(t_datos_cpu* datos_cpu, uint32_t pid);
 
 #endif

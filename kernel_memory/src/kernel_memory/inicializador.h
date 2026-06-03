@@ -1,4 +1,8 @@
+#include <commons/collections/list.h>
 #include <pthread.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/socket.h>
 
 #include "commons/collections/list.h"
 #include "kernel_memory/estructuras.h"

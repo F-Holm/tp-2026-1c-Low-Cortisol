@@ -1,9 +1,5 @@
 #include "kernel_memory/configurador.h"
 
-#include <unistd.h>
-
-#include "pthread.h"
-
 t_logger* iniciar_logger(t_config* config)
 {
   return logger_create(
