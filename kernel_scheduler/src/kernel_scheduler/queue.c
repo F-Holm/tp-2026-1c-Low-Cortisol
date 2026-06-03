@@ -161,7 +161,7 @@ static void destruir_cola_ready(t_cola_ready* cola)
   pthread_mutex_destroy(&(cola->mutex_cola));
   pthread_mutex_destroy(&(cola->bloquear_salida));
   pthread_mutex_destroy(&(cola->mutex_desalojo_prioritario));
-  pthread_cond_destroy(&(cola->cola_vacia), NULL);
+  pthread_cond_destroy(&(cola->cola_vacia));
   free(cola->colas);
 }
 
