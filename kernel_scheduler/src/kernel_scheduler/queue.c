@@ -910,7 +910,8 @@ static void esperar_proceso_bloqueado(t_colas* colas,
   pthread_mutex_lock(&(colas->block.mutex_lista));
   if (list_is_empty(colas->block.lista))
   {
-    pthread_cond_wait(datos->datos->esperar_proceso, &(datos->datos->mutex_estado));
+    pthread_cond_wait(datos->datos->esperar_proceso,
+                      &(datos->datos->mutex_estado));
   }
   bool lista_vacia = list_is_empty(colas->block.lista);
   pthread_mutex_unlock(&(colas->block.mutex_lista));
@@ -961,7 +962,8 @@ static void esperar_proceso_susp_ready(t_colas* colas,
   pthread_mutex_lock(&(colas->susp_block.mutex_lista));
   if (list_is_empty(colas->susp_block.lista))
   {
-    pthread_cond_wait(datos->datos->esperar_proceso, &(datos->datos->mutex_estado));
+    pthread_cond_wait(datos->datos->esperar_proceso,
+                      &(datos->datos->mutex_estado));
   }
   bool lista_vacia = list_is_empty(colas->susp_block.lista);
   pthread_mutex_unlock(&(colas->susp_block.mutex_lista));
@@ -1038,3 +1040,49 @@ static void* hilo_des_suspensor(void* datos_void)
   }
   return NULL;
 }
+
+/*
+suspender_proceso
+
+des_suspender_proceso
+- ok
+- compactación
+
+des_suspender_proceso_sin_compactacion
+- ok
+- no
+
+rutina de bloqueo total:
+- bloquear cola ready
+- bloquear hilos de cambios de estado
+- bloquear mutex de suspender y des-suspender
+- esperar cola ready vacia
+
+rutina de desbloqueo total:
+- desbloquear mutex de suspender y des-suspender
+- desbloquear hilos de cambios de estado
+- desbloquear cola ready
+
+rutina de des-suspensión:
+- obtener los 2 primeros elementos de cada lista de suspendido
+- des_suspender_proceso_sin_compactacion el más prioritario
+- si responde OK: volver a obtener los 2 primeros elementos
+
+rutina de nuevo_stick o memoria liberada:
+- rutina de bloqueo total
+- rutina de des-suspensión
+- rutina de desbloqueo total
+
+rutina compactación:
+- suspendo proceso o pido memoria
+- recibo compactación
+- rutina de bloqueo total
+- aviso a KM
+- espero confirmación de KM
+- rutina de des-suspensión
+- rutina de desbloqueo total
+
+Las rutinas crean un hilo de ejecución aparte
+
+Cuando se termina un proceso, si recibe una respuesta si se liberó memoria o no
+*/
