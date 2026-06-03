@@ -120,7 +120,7 @@ void inicializar_colas_mutex(t_kernel_scheduler_recursos* recursos)
       recursos->config_vars.algoritmo_planificacion,
       recursos->config_vars.algoritmos_cmn, recursos->config_vars.rr_quantum,
       recursos->config_vars.desalojo, recursos->socket_server, recursos->logger,
-      recursos->socket_km_mutex);
+      recursos->socket_km_mutex, recursos->config_vars.suspension_timeout);
 }
 
 void cerrar_modulo_error(t_kernel_scheduler_recursos* recursos)

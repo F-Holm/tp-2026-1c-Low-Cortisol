@@ -95,13 +95,13 @@ t_mutex* crear_mutex(char* id, bool prioridad_activa, t_logger* logger)
 
 static void cambio_de_prioridad(t_pcb* pcb, int prioridad, t_logger* logger)
 {
-  pthread_mutex_lock(&(pcb->mutex_pcb));
+  pthread_mutex_lock(&(pcb->mutex_prioridad));
   if (pcb->prioridad != prioridad)
   {
     log_cambio_de_prioridad(logger, pcb->pid, pcb->prioridad, prioridad);
     pcb->prioridad = prioridad;
   }
-  pthread_mutex_unlock(&(pcb->mutex_pcb));
+  pthread_mutex_unlock(&(pcb->mutex_prioridad));
 }
 
 bool mutex_lock(t_mutex* mutex, t_pcb* pcb)
@@ -120,14 +120,12 @@ bool mutex_lock(t_mutex* mutex, t_pcb* pcb)
   {
     cambio_de_prioridad(mutex->proceso_actual, prioridad_pcb, mutex->logger);
     insertar_pcb_en_orden(mutex->lista, pcb);
-    cambio_exec_block(pcb, &(mutex->colas->exec), &(mutex->colas->block),
-                      mutex->logger);
+    cambio_exec_block(pcb, mutex->colas);
   }
   else
   {
     list_add(mutex->lista, pcb);
-    cambio_exec_block(pcb, &(mutex->colas->exec), &(mutex->colas->block),
-                      mutex->logger);
+    cambio_exec_block(pcb, mutex->colas);
   }
   mutex->estado--;
   pthread_mutex_unlock(&(mutex->mutex));
@@ -161,9 +159,7 @@ bool mutex_unlock(t_mutex* mutex, t_pcb* pcb)
           get_prioridad_pcb(mutex->proceso_actual);
     }
     log_mutex_tomado(mutex->logger, mutex->proceso_actual->pid, mutex->id);
-    cambio_desbloquear(pcb, &(mutex->colas->block), &(mutex->colas->susp_block),
-                       &(mutex->colas->susp_ready), &(mutex->colas->ready),
-                       mutex->logger);
+    cambio_desbloquear(pcb, mutex->colas);
   }
   mutex->estado++;
   pthread_mutex_unlock(&(mutex->mutex));
@@ -178,9 +174,7 @@ void destroy_mutex(t_mutex* mutex)
   {
     t_pcb* pcb = list_iterator_next(iterador_lista);
     list_iterator_remove(iterador_lista);
-    cambio_desbloquear(pcb, &(mutex->colas->block), &(mutex->colas->susp_block),
-                       &(mutex->colas->susp_ready), &(mutex->colas->ready),
-                       mutex->logger);
+    cambio_desbloquear(pcb, mutex->colas);
   }
   list_iterator_destroy(iterador_lista);
   free(mutex->id);

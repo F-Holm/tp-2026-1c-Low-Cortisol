@@ -15,19 +15,6 @@
 
 typedef enum
 {
-  EST_NEW,
-  EST_READY,
-  EST_EXEC,
-  EST_BLOCK,
-  EST_SUSP_BLOCK,
-  EST_SUSP_READY,
-  EST_EXIT
-} t_estados;
-
-extern const char* const ESTADOS_STR[7];
-
-typedef enum
-{
   MFP_PRIORIDAD_NO_VALIDA,
   MFP_INSTRUCCION_EXIT,
   MFP_CIERRE_SISTEMA,
@@ -38,14 +25,9 @@ extern const char* const MOTIVOS_FIN_PROCESO[4];
 
 typedef struct
 {
-  t_queue* cola;
-  pthread_mutex_t mutex_cola;
-} t_cola;
-
-typedef struct
-{
   t_list* lista;
   pthread_mutex_t mutex_lista;
+  pthread_cond_t cond_nuevo_proceso;
 } t_lista;
 
 typedef struct
@@ -79,6 +61,41 @@ typedef struct
 } t_lista_execute;  // Como algunos valores no cambian nunca (quantum y
                     // desalojo), no necesitan mutex
 
+typedef enum
+{
+  EH_EJECUTANDO,
+  EH_ESPERANDO_PROCESO,
+  EH_BLOQUEADO,
+  EH_FINALIZANDO,
+  EH_FINALIZADO
+} t_estado_hilo;
+
+typedef struct
+{
+  pthread_t hilo;
+  pthread_mutex_t mutex_estado;
+  int estado;
+  pthread_cond_t* esperar_proceso;
+  pthread_cond_t desbloquear;
+} t_datos_hilo_suspendido;
+
+typedef struct
+{
+  t_datos_hilo_suspendido* datos;
+  int suspension_timeout;
+} t_datos_hilo_suspensor;
+
+typedef struct
+{
+  t_datos_hilo_suspendido* datos;
+} t_datos_hilo_des_suspensor;
+
+typedef struct
+{
+  t_datos_hilo_suspensor* datos_hilo_suspensor;
+  t_datos_hilo_des_suspensor* datos_hilo_des_suspensor;
+} t_datos_suspendido;
+
 typedef struct
 {
   t_cola_ready ready;
@@ -87,17 +104,18 @@ typedef struct
   t_lista susp_block;
   t_lista susp_ready;
   t_contador_procesos* contador_procesos;
-  pthread_mutex_t mutex_suspender_des_suspender;
   t_logger* logger;
   t_socket_kernel_memory* socket_km;
   int socket_servidor;
+  t_datos_suspendido* datos_suspendido;
 } t_colas;
 
 // ingresar NULL en t_list si no es CMN
 // ingresar quantum = 0 si no es RR
 t_colas* inicializar_colas(int algoritmo, t_list* algoritmos_cmn, int quantum,
                            bool desalojo, int socket_servidor, t_logger* logger,
-                           t_socket_kernel_memory* socket_km);
+                           t_socket_kernel_memory* socket_km,
+                           int suspension_timeout);
 void destruir_colas(t_colas* colas);
 
 bool esta_cola_ready_bloqueada(t_cola_ready* ready);
@@ -116,7 +134,7 @@ void cambio_ready_exec(t_pcb* pcb, t_colas* colas);
 void cambio_new_ready(t_colas* colas, char* archivo_instrucciones,
                       int prioridad);
 void cambio_exec_ready(t_pcb* pcb, t_colas* colas);
-void cambio_exec_exit(t_pcb* pcb, t_colas* colas);
+void cambio_exec_exit(t_pcb* pcb, t_colas* colas, int motivo);
 void cambio_exec_block(t_pcb* pcb, t_colas* colas);
 void cambio_block_ready(t_pcb* pcb, t_colas* colas);
 void cambio_block_susp_block(t_pcb* pcb, t_colas* colas);
@@ -126,7 +144,10 @@ void cambio_susp_ready_ready(t_pcb* pcb, t_colas* colas);
 void cambio_desbloquear(t_pcb* pcb, t_colas* colas);
 
 // Para errores o rutinas de cierre
-bool cambio_cualquiera_exit(t_colas* colas, int estado, int motivo);
 void vaciar_colas(t_colas* colas);
+
+// Para bloquear y desbloquear los hilos suspensor y des-suspensor
+void bloquear_hilos_suspendido(t_colas* colas);
+void desbloquear_hilos_suspendido(t_colas* colas);
 
 #endif /* KERNEL_SCHEDULER_QUEUE_H_ */

@@ -53,11 +53,6 @@ static void preparar_sockets_io(t_io estructuras_io[3])
   }
 }
 
-static void crear_proceso_inicial(t_datos_servidor_escucha* datos)
-{
-  cambio_new_ready(datos->colas, datos->path_proceso_inicial, 0);
-}
-
 void servidor_escucha(t_datos_servidor_escucha* datos)
 {
   t_io* estructuras_io = malloc(3 * sizeof(t_io));
@@ -70,7 +65,7 @@ void servidor_escucha(t_datos_servidor_escucha* datos)
   pthread_mutex_init(&mutex_lista_sockets_cpu, NULL);
   pthread_cond_init(&cond_fin_cpu, NULL);
 
-  crear_proceso_inicial(datos);
+  cambio_new_ready(datos->colas, datos->path_proceso_inicial, 0);
   while (true)
   {
     bool manejo_exitoso = true;
