@@ -84,7 +84,8 @@ bool envio_stdin(t_stdin* peticion, t_hilo_io_in* hilo_in, char* buffer)
   free(paquete);
   return true;
 }
-bool comunicacion_io_stdin(t_stdin* peticion, t_hilo_io_in* hilo_in, char* buffer)
+bool comunicacion_io_stdin(t_stdin* peticion, t_hilo_io_in* hilo_in,
+                           char* buffer)
 {
   int peticion_size = sizeof(t_peticion_stdin);
   bool envio = enviar_buffer(OP_PETICION_IO_STDIN, peticion->peticion,
@@ -114,7 +115,8 @@ bool comunicacion_io_stdin(t_stdin* peticion, t_hilo_io_in* hilo_in, char* buffe
   return true;
 }
 
-bool comunicacion_io_sleep(t_sleep* peticion, t_hilo_io_sleep* hilo_sleep){
+bool comunicacion_io_sleep(t_sleep* peticion, t_hilo_io_sleep* hilo_sleep)
+{
   int peticion_size = sizeof(t_peticion_sleep);
   bool envio = enviar_buffer(OP_PETICION_IO_SLEEP, peticion->peticion,
                              peticion_size, hilo_sleep->io->socket_io);
@@ -159,7 +161,7 @@ void finalizar_stdin(t_stdin* peticion, t_hilo_io_in* hilo_in)
               peticion->pcb->pid);
 
   // Paso a ready o susp ready dependiendo del tiempo bloqueado
-  cambio_desbloquear(peticion->pcb,hilo_in->io->colas);
+  cambio_desbloquear(peticion->pcb, hilo_in->io->colas);
   logger_info(hilo_in->io->logger,
               "##  <%d> - Finalizó IO y pasa a READY / SUSP. READY",
               peticion->pcb->pid);
@@ -184,14 +186,15 @@ void finalizar_stdout(t_stdout* peticion, t_hilo_io_out* hilo_out)
               peticion->pcb->pid);
 }
 
-void finalizar_sleep(t_hilo_io_sleep* hilo_sleep, t_sleep* peticion){
+void finalizar_sleep(t_hilo_io_sleep* hilo_sleep, t_sleep* peticion)
+{
   pthread_mutex_lock(&(hilo_sleep->lista_sleep->mutex_lista_sleep));
   if (list_remove_element(hilo_sleep->lista_sleep->lista_sleep, peticion) == 0)
   {
     pthread_mutex_unlock(&(hilo_sleep->lista_sleep->mutex_lista_sleep));
     logger_error(hilo_sleep->io->logger,
                  "## Error al retirar el proceso de la lista de IO");
-    return ;
+    return;
   }
   pthread_mutex_unlock(&(hilo_sleep->lista_sleep->mutex_lista_sleep));
   logger_info(hilo_sleep->io->logger, "## PID %d - Retirado de la lista de IO",
@@ -206,7 +209,7 @@ int io_stdin_f(t_stdin* peticion, t_hilo_io_in* hilo_in)
 {
   // Envio peticion a IO
   int cod_op;
-  char* buffer = malloc (sizeof(peticion->peticion->tamanio_a_leer));
+  char* buffer = malloc(sizeof(peticion->peticion->tamanio_a_leer));
   bool envio = comunicacion_io_stdin(peticion, hilo_in, buffer);
   if (!envio)
   {
@@ -261,7 +264,8 @@ int io_stdout_f(t_stdout* peticion, t_hilo_io_out* hilo_out)
     pthread_mutex_unlock(&(hilo_out->io->socket_km->mutex_socket));
     return D_ERROR_CONEXION_KM;
   }
-  char* buffer =malloc(sizeof(char) * (peticion->peticion->tamanio_a_escribir + 1));
+  char* buffer =
+      malloc(sizeof(char) * (peticion->peticion->tamanio_a_escribir + 1));
   buffer = recibir_string(hilo_out->io->socket_km->socket_km);
   pthread_mutex_unlock(&(hilo_out->io->socket_km->mutex_socket));
   if (buffer == NULL)
@@ -299,9 +303,10 @@ int io_stdout_f(t_stdout* peticion, t_hilo_io_out* hilo_out)
 int io_sleep_f(t_sleep* peticion, t_hilo_io_sleep* hilo_sleep)
 {
   bool comms = comunicacion_io_sleep(peticion, hilo_sleep);
-  if (!comms)  {
+  if (!comms)
+  {
     return D_ERROR_IO;
-  } 
+  }
   finalizar_sleep(hilo_sleep, peticion);
   return D_TODO_BIEN;
 }
@@ -579,7 +584,8 @@ void cargar_sleep(t_io* io, t_lista_sleep* lista_sleep,
   hilo_sleep->lista_sleep = lista_sleep;
 }
 
-bool atender_nuevo_io(t_io io[3], int socket_fd, t_colas* colas, t_listas_io* listas_io, bool prioridad_activa)
+bool atender_nuevo_io(t_io io[3], int socket_fd, t_colas* colas,
+                      t_listas_io* listas_io, bool prioridad_activa)
 {
   if (!responder_handshake(socket_fd, MID_KERNEL_SCHEDULER, colas->logger))
     return false;
@@ -615,7 +621,8 @@ bool atender_nuevo_io(t_io io[3], int socket_fd, t_colas* colas, t_listas_io* li
       if (pthread_create(&(hilo_in->io->hilo_io), NULL, hilo_io_in,
                          (void*)hilo_in))
       {
-        logger_error(colas->logger, "## Error al crear el hilo para IO de tipo stdin");
+        logger_error(colas->logger,
+                     "## Error al crear el hilo para IO de tipo stdin");
         return false;
       }
       break;
@@ -641,7 +648,8 @@ bool atender_nuevo_io(t_io io[3], int socket_fd, t_colas* colas, t_listas_io* li
       if (pthread_create(&(hilo_sleep->io->hilo_io), NULL, hilo_io_sleep,
                          (void*)hilo_sleep))
       {
-        logger_error(colas->logger, "## Error al crear el hilo para IO de tipo sleep");
+        logger_error(colas->logger,
+                     "## Error al crear el hilo para IO de tipo sleep");
         return false;
       }
       break;
@@ -650,16 +658,20 @@ bool atender_nuevo_io(t_io io[3], int socket_fd, t_colas* colas, t_listas_io* li
   return true;
 }
 
-  bool comparar_prioridad_stdin(void* syscall1, void* syscall2){
+bool comparar_prioridad_stdin(void* syscall1, void* syscall2)
+{
   t_stdin* stdin1 = (t_stdin*)syscall1;
   t_stdin* stdin2 = (t_stdin*)syscall2;
-  if(stdin1->pcb->prioridad > stdin2->pcb->prioridad){
+  if (stdin1->pcb->prioridad > stdin2->pcb->prioridad)
+  {
     return 1;
   }
-  else if(stdin1->pcb->prioridad < stdin2->pcb->prioridad){
+  else if (stdin1->pcb->prioridad < stdin2->pcb->prioridad)
+  {
     return 0;
   }
-  else{
+  else
+  {
     return 0;
   }
 }
@@ -676,17 +688,18 @@ bool procesar_nuevo_stdin(t_peticion_stdin* peticion, t_io* io_stdin,
   stdin->peticion = peticion;
   stdin->pcb = pcb;
 
-  if(io_stdin->prioridad_activa){
-     pthread_mutex_lock(&(lista_stdin->mutex_lista_stdin));
-     bool lista_vacia = list_is_empty(lista_stdin->lista_stdin);
-     list_add_sorted(lista_stdin->lista_stdin, stdin, comparar_prioridad_stdin);
-     if (lista_vacia)
-     {
-       pthread_cond_signal(&(io_stdin->nuevo_proceso));
-     }
-     pthread_mutex_unlock(&(lista_stdin->mutex_lista_stdin));
-     pthread_mutex_unlock(&(io_stdin->mutex_socket_io));
-     return true;
+  if (io_stdin->prioridad_activa)
+  {
+    pthread_mutex_lock(&(lista_stdin->mutex_lista_stdin));
+    bool lista_vacia = list_is_empty(lista_stdin->lista_stdin);
+    list_add_sorted(lista_stdin->lista_stdin, stdin, comparar_prioridad_stdin);
+    if (lista_vacia)
+    {
+      pthread_cond_signal(&(io_stdin->nuevo_proceso));
+    }
+    pthread_mutex_unlock(&(lista_stdin->mutex_lista_stdin));
+    pthread_mutex_unlock(&(io_stdin->mutex_socket_io));
+    return true;
   }
 
   pthread_mutex_lock(&(lista_stdin->mutex_lista_stdin));
@@ -701,21 +714,23 @@ bool procesar_nuevo_stdin(t_peticion_stdin* peticion, t_io* io_stdin,
   return true;
 }
 
-bool comparar_prioridad_stdout(void* syscall1, void* syscall2){
+bool comparar_prioridad_stdout(void* syscall1, void* syscall2)
+{
   t_stdout* stdout1 = (t_stdout*)syscall1;
   t_stdout* stdout2 = (t_stdout*)syscall2;
-  if(stdout1->pcb->prioridad > stdout2->pcb->prioridad){
+  if (stdout1->pcb->prioridad > stdout2->pcb->prioridad)
+  {
     return 1;
   }
-  else if(stdout1->pcb->prioridad < stdout2->pcb->prioridad){
+  else if (stdout1->pcb->prioridad < stdout2->pcb->prioridad)
+  {
     return 0;
   }
-  else{
+  else
+  {
     return 0;
   }
-
 }
-
 
 bool procesar_nuevo_stdout(t_peticion_stdout* peticion, t_io* io_stdout,
                            t_lista_stdout* lista_stdout, t_pcb* pcb)
@@ -730,17 +745,19 @@ bool procesar_nuevo_stdout(t_peticion_stdout* peticion, t_io* io_stdout,
   stdout->peticion = peticion;
   stdout->pcb = pcb;
 
-  if(io_stdout->prioridad_activa){
-     pthread_mutex_lock(&(lista_stdout->mutex_lista_stdout));
-     bool lista_vacia = list_is_empty(lista_stdout->lista_stdout);
-     list_add_sorted(lista_stdout->lista_stdout, stdout, comparar_prioridad_stdout);
-     if (lista_vacia)
-     {
-       pthread_cond_signal(&(io_stdout->nuevo_proceso));
-     }
-     pthread_mutex_unlock(&(lista_stdout->mutex_lista_stdout));
-     pthread_mutex_unlock(&(io_stdout->mutex_socket_io));
-     return true;
+  if (io_stdout->prioridad_activa)
+  {
+    pthread_mutex_lock(&(lista_stdout->mutex_lista_stdout));
+    bool lista_vacia = list_is_empty(lista_stdout->lista_stdout);
+    list_add_sorted(lista_stdout->lista_stdout, stdout,
+                    comparar_prioridad_stdout);
+    if (lista_vacia)
+    {
+      pthread_cond_signal(&(io_stdout->nuevo_proceso));
+    }
+    pthread_mutex_unlock(&(lista_stdout->mutex_lista_stdout));
+    pthread_mutex_unlock(&(io_stdout->mutex_socket_io));
+    return true;
   }
   pthread_mutex_lock(&(lista_stdout->mutex_lista_stdout));
   bool lista_vacia = list_is_empty(lista_stdout->lista_stdout);
@@ -754,19 +771,22 @@ bool procesar_nuevo_stdout(t_peticion_stdout* peticion, t_io* io_stdout,
   pthread_mutex_unlock(&(io_stdout->mutex_socket_io));
   return true;
 }
-bool comparar_prioridad_sleep(void* syscall1, void* syscall2){
+bool comparar_prioridad_sleep(void* syscall1, void* syscall2)
+{
   t_sleep* sleep1 = (t_sleep*)syscall1;
   t_sleep* sleep2 = (t_sleep*)syscall2;
-  if(sleep1->pcb->prioridad > sleep2->pcb->prioridad){
+  if (sleep1->pcb->prioridad > sleep2->pcb->prioridad)
+  {
     return 1;
   }
-  else if(sleep1->pcb->prioridad < sleep2->pcb->prioridad){
+  else if (sleep1->pcb->prioridad < sleep2->pcb->prioridad)
+  {
     return 0;
   }
-  else{
+  else
+  {
     return 0;
   }
-
 }
 
 bool procesar_nuevo_sleep(t_peticion_sleep* peticion, t_io* io_sleep,
@@ -782,17 +802,18 @@ bool procesar_nuevo_sleep(t_peticion_sleep* peticion, t_io* io_sleep,
   sleep->peticion = peticion;
   sleep->pcb = pcb;
 
-  if(io_sleep->prioridad_activa){
-     pthread_mutex_lock(&(lista_sleep->mutex_lista_sleep));
-     bool lista_vacia = list_is_empty(lista_sleep->lista_sleep);
-     list_add_sorted(lista_sleep->lista_sleep, sleep, comparar_prioridad_sleep);
-     if (lista_vacia)
-     {
-       pthread_cond_signal(&(io_sleep->nuevo_proceso));
-     }
-     pthread_mutex_unlock(&(lista_sleep->mutex_lista_sleep));
-     pthread_mutex_unlock(&(io_sleep->mutex_socket_io));
-     return true;
+  if (io_sleep->prioridad_activa)
+  {
+    pthread_mutex_lock(&(lista_sleep->mutex_lista_sleep));
+    bool lista_vacia = list_is_empty(lista_sleep->lista_sleep);
+    list_add_sorted(lista_sleep->lista_sleep, sleep, comparar_prioridad_sleep);
+    if (lista_vacia)
+    {
+      pthread_cond_signal(&(io_sleep->nuevo_proceso));
+    }
+    pthread_mutex_unlock(&(lista_sleep->mutex_lista_sleep));
+    pthread_mutex_unlock(&(io_sleep->mutex_socket_io));
+    return true;
   }
 
   pthread_mutex_lock(&(lista_sleep->mutex_lista_sleep));

@@ -49,6 +49,7 @@ typedef struct
   bool desalojar_todo;
   int mayor_prioridad;
   pthread_mutex_t mutex_desalojo_prioritario;
+  pthread_cond_t cola_vacia;
 } t_cola_ready;
 
 typedef struct
@@ -121,6 +122,7 @@ void destruir_colas(t_colas* colas);
 bool esta_cola_ready_bloqueada(t_cola_ready* ready);
 void bloquear_cola_ready(t_cola_ready* ready);
 void desbloquear_cola_ready(t_cola_ready* ready);
+void esperar_cola_ready_vacia(t_cola_ready* ready);
 bool puedo_suspender(t_pcb* pcb, int suspension_timeout);
 
 // cambio_ready_exec: No implementado, solo contiene el log por ahora. Usar

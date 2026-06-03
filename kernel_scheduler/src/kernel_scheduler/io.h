@@ -92,7 +92,8 @@ typedef struct
 
 t_listas_io* inicializar_listas_io(void);
 
-bool atender_nuevo_io(t_io io[3], int socket_fd,t_colas* colas, t_listas_io* listas_io, bool prioridad_activa);
+bool atender_nuevo_io(t_io io[3], int socket_fd, t_colas* colas,
+                      t_listas_io* listas_io, bool prioridad_activa);
 
 int obtener_tipo_io(int socket_fd, t_logger* logger);
 bool procesar_nuevo_stdin(t_peticion_stdin* peticion, t_io* io_stdin,

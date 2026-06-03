@@ -1,5 +1,6 @@
 #include "kernel_scheduler/queue.h"
 
+#include <limits.h>
 #include <unistd.h>
 
 #include "kernel_scheduler/misc.h"
@@ -40,8 +41,9 @@ static void inicializar_cola_ready(t_cola_ready* cola, int algoritmo,
   pthread_mutex_init(&(cola->bloquear_salida), NULL);
   pthread_cond_init(&(cola->salida_desbloqueada), NULL);
   pthread_mutex_init(&(cola->mutex_desalojo_prioritario), NULL);
+  pthread_cond_init(&(cola->cola_vacia), NULL);
   cola->desalojar_todo = false;
-  cola->mayor_prioridad = 1000;
+  cola->mayor_prioridad = INT_MAX;
 }
 
 static void inicializar_lista_exec(t_lista_execute* lista, int quantum,
@@ -159,6 +161,7 @@ static void destruir_cola_ready(t_cola_ready* cola)
   pthread_mutex_destroy(&(cola->mutex_cola));
   pthread_mutex_destroy(&(cola->bloquear_salida));
   pthread_mutex_destroy(&(cola->mutex_desalojo_prioritario));
+  pthread_cond_destroy(&(cola->cola_vacia), NULL);
   free(cola->colas);
 }
 
@@ -262,6 +265,16 @@ void desbloquear_cola_ready(t_cola_ready* ready)
   ready->desalojar_todo = true;
   pthread_mutex_unlock(&(ready->bloquear_salida));
   pthread_cond_broadcast(&(ready->salida_desbloqueada));
+}
+
+void esperar_cola_ready_vacia(t_cola_ready* ready)
+{
+  pthread_mutex_lock(&(ready->mutex_cola));
+  while (ready->cant_procesos_ready > 0)
+  {
+    pthread_cond_wait(&(ready->cola_vacia), &(ready->mutex_cola));
+  }
+  pthread_mutex_unlock(&(ready->mutex_cola));
 }
 
 static void log_cambio_estado(t_logger* logger, uint32_t pid,
@@ -492,6 +505,10 @@ static t_pcb* cambio_sacar_ready_sin_mutex(t_cola_ready* ready)
       if (queue_is_empty(ready->colas[i].cola))
       {
         actualizar_mayor_prioridad_ready_sin_mutex(ready, ++i);
+      }
+      if (ready->cant_procesos_ready == 0)
+      {
+        pthread_cond_signal(&(ready->cola_vacia));
       }
       return pcb;
     }
@@ -1085,12 +1102,16 @@ rutina compactación:
 - rutina de desbloqueo total
 
 Cuando se llama a "rutina de nuevo_stick o memoria liberada"?
-- cuando un proceso pasa a exit, le pregunto a kernel memory cuanto espacio de memoria ocupa, si es distinto a 0, se ejecuta essta rutina
+- cuando un proceso pasa a exit, le pregunto a kernel memory cuanto espacio de
+memoria ocupa, si es distinto a 0, se ejecuta essta rutina
 - cuando se llama a la función de memory.h para liberar memoria
-- cuando se conecta un nuevo memory stick (hay que tener en cuenta este caso para cada comunicación con el KM)
+- cuando se conecta un nuevo memory stick (hay que tener en cuenta este caso
+para cada comunicación con el KM)
 
 Cuando se llama a "rutina compactación"?
 - cuando se des-suspende un proceso o se pide memoria
-- siempre se verifica primero si hay suficiente memoria (pidiendo al KM cuanta memoria libre hay y/o cuanto pesa el proceso)
-- se ejecuta si hay suficiente memoria, le decimos al KM lo que queremos hacer y nos dice que se necesita compactar
+- siempre se verifica primero si hay suficiente memoria (pidiendo al KM cuanta
+memoria libre hay y/o cuanto pesa el proceso)
+- se ejecuta si hay suficiente memoria, le decimos al KM lo que queremos hacer y
+nos dice que se necesita compactar
 */
