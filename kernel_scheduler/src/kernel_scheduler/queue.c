@@ -4,6 +4,7 @@
 #include <unistd.h>
 
 #include "kernel_scheduler/misc.h"
+#include "utils/msg.h"
 
 const char* const MOTIVOS_FIN_PROCESO[4] = {
     "prioridad no válida", "instrucción EXIT", "cierre del sistema",
@@ -1052,6 +1053,94 @@ static void* hilo_des_suspensor(void* datos_void)
     pthread_mutex_unlock(&(datos->datos->mutex_estado));
   }
   return NULL;
+}
+
+int espacio_disponible_sin_mutex(t_socket_kernel_memory* socket_km,
+                                 int socket_servidor, t_logger* logger)
+{
+  int espacio = -1;
+  int op_code = -1;
+  if (enviar_string(OP_PEDIR_MEMORIA_DISPONIBLE,
+                    "Solicito el espacio disponible", socket_km->socket_km))
+  {
+    op_code = recibir_operacion(socket_km->socket_km);
+  }
+
+  switch (op_code)
+  {
+    case OP_MEMORIA_DISPONIBLE:
+      int* aux = recibir_buffer(&espacio, socket_km->socket_km);
+      espacio = *aux;
+      free(aux);
+      break;
+    case OP_NUEVO_MEMORY_STICK:
+      free(recibir_string(socket_km->socket_km));
+      // rutina de des-suspensión
+      break;
+    case OP_MEMORIA_CORRUPTA:
+      cerrar_kernel_scheduler(socket_servidor, logger, MC_MEMORIA_CORRUPTA);
+      break;
+    default:
+      cerrar_kernel_scheduler(socket_servidor, logger,
+                              MC_FALLO_CONEXION_KERNEL_MEMORY);
+      break;
+  }
+
+  return espacio;
+}
+
+int espacio_disponible(t_socket_kernel_memory* socket_km, int socket_servidor,
+                       t_logger* logger)
+{
+  pthread_mutex_lock(&(socket_km->mutex_socket));
+  int espacio =
+      espacio_disponible_sin_mutex(socket_km, socket_servidor, logger);
+  pthread_mutex_unlock(&(socket_km->mutex_socket));
+  return espacio;
+}
+
+int tamanio_proceso_sin_mutex(t_socket_kernel_memory* socket_km, uint32_t pid,
+                              int socket_servidor, t_logger* logger)
+{
+  int espacio = -1;
+  int op_code = -1;
+  if (enviar_buffer(OP_PEDIR_TAMANIO_PROCESO, &pid, sizeof(uint32_t),
+                    socket_km->socket_km))
+  {
+    op_code = recibir_operacion(socket_km->socket_km);
+  }
+
+  switch (op_code)
+  {
+    case OP_TAMANIO_PROCESO:
+      int* aux = recibir_buffer(&espacio, socket_km->socket_km);
+      espacio = *aux;
+      free(aux);
+      break;
+    case OP_NUEVO_MEMORY_STICK:
+      free(recibir_string(socket_km->socket_km));
+      // rutina de des-suspensión
+      break;
+    case OP_MEMORIA_CORRUPTA:
+      cerrar_kernel_scheduler(socket_servidor, logger, MC_MEMORIA_CORRUPTA);
+      break;
+    default:
+      cerrar_kernel_scheduler(socket_servidor, logger,
+                              MC_FALLO_CONEXION_KERNEL_MEMORY);
+      break;
+  }
+
+  return espacio;
+}
+
+int tamanio_proceso(t_socket_kernel_memory* socket_km, uint32_t pid,
+                    int socket_servidor, t_logger* logger)
+{
+  pthread_mutex_lock(&(socket_km->mutex_socket));
+  int espacio =
+      tamanio_proceso_sin_mutex(socket_km, pid, socket_servidor, logger);
+  pthread_mutex_unlock(&(socket_km->mutex_socket));
+  return espacio;
 }
 
 /*
