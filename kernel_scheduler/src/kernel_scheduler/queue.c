@@ -410,7 +410,7 @@ static void cambio_a_block(t_pcb* pcb, t_lista* block)
   {
     pthread_cond_signal(&(block->cond_nuevo_proceso));
   }
-  insertar_pcb_en_orden(block->lista, pcb);
+  list_add(block->lista, pcb);
   pthread_mutex_unlock(&(block->mutex_lista));
 }
 
@@ -428,7 +428,7 @@ static void cambio_a_susp_ready(t_pcb* pcb, t_lista* susp_ready)
   {
     pthread_cond_signal(&(susp_ready->cond_nuevo_proceso));
   }
-  list_add(susp_ready->lista, pcb);
+  insertar_pcb_en_orden(susp_ready->lista, pcb);
   pthread_mutex_unlock(&(susp_ready->mutex_lista));
 }
 
