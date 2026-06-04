@@ -442,8 +442,12 @@ static void cambio_a_exit(t_pcb* pcb, t_contador_procesos* contador, int motivo,
                           t_logger* logger, t_socket_kernel_memory* socket_km,
                           int socket_servidor)
 {
-  if (motivo == MFP_INSTRUCCION_EXIT)
+  if (motivo != MFP_CIERRE_SISTEMA && motivo != MFP_PRIORIDAD_NO_VALIDA)
   {
+    if (tamanio_proceso(socket_km, pcb->pid, socket_servidor, logger) > 0)
+    {
+      // rutina de des-suspension
+    }
     if (!avisar_terminar_proceso(socket_km, pcb->pid))
     {
       cerrar_kernel_scheduler(socket_servidor, logger,
@@ -788,7 +792,8 @@ static void avisar_proceso_des_suspendido(t_pcb* pcb, t_colas* colas)
       // rutina de des-suspensión
       break;
     case OP_MEMORIA_CORRUPTA:
-      cerrar_kernel_scheduler(colas->socket_servidor, colas->logger, MC_MEMORIA_CORRUPTA);
+      cerrar_kernel_scheduler(colas->socket_servidor, colas->logger,
+                              MC_MEMORIA_CORRUPTA);
       break;
     default:
       cerrar_kernel_scheduler(colas->socket_servidor, colas->logger,
