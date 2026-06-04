@@ -3,7 +3,6 @@
 #include <limits.h>
 #include <unistd.h>
 
-#include "kernel_scheduler/misc.h"
 #include "utils/msg.h"
 
 const char* const MOTIVOS_FIN_PROCESO[4] = {
@@ -708,10 +707,23 @@ void cambio_block_ready(t_pcb* pcb, t_colas* colas)
   pthread_mutex_unlock(&(pcb->mutex_estado));
 }
 
+static void avisar_proceso_suspendido(t_pcb* pcb, t_colas* colas)
+{
+  pthread_mutex_lock(&(colas->socket_km->mutex_socket));
+  if (!enviar_buffer(OP_SUSPENDER_PROCESO, &(pcb->pid), sizeof(uint32_t),
+                     colas->socket_km->socket_km))
+  {
+    cerrar_kernel_scheduler(colas->socket_servidor, colas->logger,
+                            MC_FALLO_CONEXION_KERNEL_MEMORY);
+  }
+  pthread_mutex_unlock(&(colas->socket_km->mutex_socket));
+}
+
 static void cambio_block_susp_block_sin_mutex(t_pcb* pcb, t_colas* colas)
 {
   if (gestionar_estado_pcb(colas->logger, pcb, EST_BLOCK, EST_SUSP_BLOCK))
   {
+    avisar_proceso_suspendido(pcb, colas);
     cambio_sacar_block(pcb, &(colas->block));
     cambio_a_susp_block(pcb, &(colas->susp_block));
   }
