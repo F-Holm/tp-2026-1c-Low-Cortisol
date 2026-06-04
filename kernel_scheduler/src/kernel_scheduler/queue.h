@@ -152,4 +152,14 @@ void vaciar_colas(t_colas* colas);
 void bloquear_hilos_suspendido(t_colas* colas);
 void desbloquear_hilos_suspendido(t_colas* colas);
 
+// Funciones de consultas a kernel_memory
+int espacio_disponible(t_socket_kernel_memory* socket_km, int socket_servidor,
+                       t_logger* logger);
+int espacio_disponible_sin_mutex(t_socket_kernel_memory* socket_km,
+                                 int socket_servidor, t_logger* logger);
+int tamanio_proceso(t_socket_kernel_memory* socket_km, uint32_t pid,
+                    int socket_servidor, t_logger* logger);
+int tamanio_proceso_sin_mutex(t_socket_kernel_memory* socket_km, uint32_t pid,
+                              int socket_servidor, t_logger* logger);
+
 #endif /* KERNEL_SCHEDULER_QUEUE_H_ */
