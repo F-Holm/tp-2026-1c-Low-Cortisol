@@ -143,6 +143,8 @@ t_colas* inicializar_colas(int algoritmo, t_list* algoritmos_cmn, int quantum,
   inicializar_lista(&(colas->susp_ready));
   colas->contador_procesos =
       inicializar_contador_procesos(socket_servidor, logger);
+  pthread_mutex_init(&(colas->mutex_rutina), NULL);
+  colas->terminar_rutinas = false;
   colas->logger = logger;
   colas->socket_km = socket_km;
   colas->socket_servidor = socket_servidor;
@@ -231,8 +233,16 @@ void destruir_hilos_suspendido(t_colas* colas)
   free(colas->datos_suspendido);
 }
 
+static void terminar_rutinas(t_colas* colas)
+{
+  pthread_mutex_lock(&(colas->mutex_rutina));
+  colas->terminar_rutinas = true;
+  pthread_mutex_unlock(&(colas->mutex_rutina));
+}
+
 void destruir_colas(t_colas* colas)
 {
+  terminar_rutinas(colas);
   terminar_hilos_suspendido(colas);
   destruir_hilos_suspendido(colas);
   destruir_cola_ready(&(colas->ready));
@@ -241,6 +251,7 @@ void destruir_colas(t_colas* colas)
   destruir_lista(&(colas->susp_block));
   destruir_lista(&(colas->susp_ready));
   destruir_contador_procesos(colas->contador_procesos);
+  pthread_mutex_destroy(&(colas->mutex_rutina));
   free(colas);
 }
 
@@ -438,43 +449,39 @@ static void log_cambio_a_exit(t_logger* logger, uint32_t pid, int motivo)
               MOTIVOS_FIN_PROCESO[motivo]);
 }
 
-static void cambio_a_exit(t_pcb* pcb, t_contador_procesos* contador, int motivo,
-                          t_logger* logger, t_socket_kernel_memory* socket_km,
-                          int socket_servidor)
+static void cambio_a_exit(t_pcb* pcb, t_colas* colas, int motivo)
 {
   if (motivo != MFP_CIERRE_SISTEMA && motivo != MFP_PRIORIDAD_NO_VALIDA)
   {
-    if (tamanio_proceso(socket_km, pcb->pid, socket_servidor, logger) > 0)
+    bool ejecutar_rutina_des_suspender = tamanio_proceso(colas, pcb->pid) > 0;
+    if (!avisar_terminar_proceso(colas->socket_km, pcb->pid))
     {
-      // rutina de des-suspension
-    }
-    if (!avisar_terminar_proceso(socket_km, pcb->pid))
-    {
-      cerrar_kernel_scheduler(socket_servidor, logger,
+      cerrar_kernel_scheduler(colas->socket_servidor, colas->logger,
                               MC_FALLO_CONEXION_KERNEL_MEMORY);
     }
+    else if (ejecutar_rutina_des_suspender)
+    {
+      crear_hilo_rutina_des_suspension(colas);
+    }
   }
-  log_cambio_a_exit(logger, pcb->pid, motivo);
+  log_cambio_a_exit(colas->logger, pcb->pid, motivo);
   destruir_pcb(pcb);
-  disminuir_contador_procesos(contador);
+  disminuir_contador_procesos(colas->contador_procesos);
 }
 
 static t_pcb* cambio_sacar_new(char* archivo_instrucciones, int prioridad,
-                               t_logger* logger,
-                               t_socket_kernel_memory* socket_km,
-                               int socket_servidor,
-                               t_contador_procesos* contador)
+                               t_colas* colas)
 {
   t_pcb* pcb = crear_pcb();
-  logger_info(logger, "## %u Se crea el proceso - Estado: NEW", pcb->pid);
+  logger_info(colas->logger, "## %u Se crea el proceso - Estado: NEW",
+              pcb->pid);
   pcb->prioridad = prioridad;
-  aumentar_contador_procesos(contador);
-  if (!avisar_nuevo_proceso(socket_km, archivo_instrucciones, pcb->pid))
+  aumentar_contador_procesos(colas->contador_procesos);
+  if (!avisar_nuevo_proceso(colas->socket_km, archivo_instrucciones, pcb->pid))
   {
-    log_cambio_estado(logger, pcb->pid, EST_NEW, EST_EXIT);
-    cambio_a_exit(pcb, contador, MFP_CIERRE_SISTEMA, logger, socket_km,
-                  socket_servidor);
-    cerrar_kernel_scheduler(socket_servidor, logger,
+    log_cambio_estado(colas->logger, pcb->pid, EST_NEW, EST_EXIT);
+    cambio_a_exit(pcb, colas, MFP_CIERRE_SISTEMA);
+    cerrar_kernel_scheduler(colas->socket_servidor, colas->logger,
                             MC_FALLO_CONEXION_KERNEL_MEMORY);
     return NULL;
   }
@@ -635,16 +642,13 @@ static t_pcb* cambio_sacar_susp_ready_siguiente(t_lista* susp_ready)
 void cambio_new_ready(t_colas* colas, char* archivo_instrucciones,
                       int prioridad)
 {
-  t_pcb* pcb = cambio_sacar_new(archivo_instrucciones, prioridad, colas->logger,
-                                colas->socket_km, colas->socket_servidor,
-                                colas->contador_procesos);
+  t_pcb* pcb = cambio_sacar_new(archivo_instrucciones, prioridad, colas);
   if (pcb != NULL)
   {
     if (!check_prioridad_valida(pcb, &(colas->ready), colas->logger))
     {
       log_cambio_estado(colas->logger, pcb->pid, EST_NEW, EST_EXIT);
-      cambio_a_exit(pcb, colas->contador_procesos, MFP_PRIORIDAD_NO_VALIDA,
-                    colas->logger, colas->socket_km, colas->socket_servidor);
+      cambio_a_exit(pcb, colas, MFP_PRIORIDAD_NO_VALIDA);
     }
     else
     {
@@ -678,8 +682,7 @@ void cambio_exec_exit(t_pcb* pcb, t_colas* colas, int motivo)
   if (gestionar_estado_pcb(colas->logger, pcb, EST_EXEC, EST_EXIT))
   {
     cambio_sacar_exec(pcb, &(colas->exec));
-    cambio_a_exit(pcb, colas->contador_procesos, motivo, colas->logger,
-                  colas->socket_km, colas->socket_servidor);
+    cambio_a_exit(pcb, colas, motivo);
   }
   pthread_mutex_unlock(&(pcb->mutex_estado));
 }
@@ -887,8 +890,7 @@ static bool cambio_cualquiera_exit(t_colas* colas, int estado, int motivo)
   }
 
   log_cambio_estado(colas->logger, pcb->pid, estado, EST_EXIT);
-  cambio_a_exit(pcb, colas->contador_procesos, motivo, colas->logger,
-                colas->socket_km, colas->socket_servidor);
+  cambio_a_exit(pcb, colas, motivo);
   return true;
 }
 
@@ -1379,9 +1381,12 @@ void* hilo_rutina_des_suspension(void* datos_des_suspension)
 {
   t_colas* colas = (t_colas*)datos_des_suspension;
   pthread_mutex_lock(&(colas->mutex_rutina));
-  bloqueo_total(colas);
-  rutina_des_suspension(colas);
-  desbloqueo_total(colas);
+  if (!colas->terminar_rutinas)
+  {
+    bloqueo_total(colas);
+    rutina_des_suspension(colas);
+    desbloqueo_total(colas);
+  }
   pthread_mutex_unlock(&(colas->mutex_rutina));
   return NULL;
 }
@@ -1398,10 +1403,10 @@ void crear_hilo_rutina_des_suspension(
   }
   else
   {
+    pthread_detach(hilo);
     logger_info(colas->logger,
                 "## Hilo de la rutina de des-suspension iniciado exitosamente");
   }
-  pthread_detach(hilo);
 }
 // RUTINA DE COMPACTACIÓN
 void termino_compactacion(t_colas* colas)
@@ -1445,10 +1450,13 @@ void* hilo_rutina_compactacion(void* datos_compactacion)
 {
   t_colas* colas = (t_colas*)datos_compactacion;
   pthread_mutex_lock(&(colas->mutex_rutina));
-  bloqueo_total(colas);
-  rutina_compactacion(colas);
-  rutina_des_suspension(colas);
-  desbloqueo_total(colas);
+  if (!colas->terminar_rutinas)
+  {
+    bloqueo_total(colas);
+    rutina_compactacion(colas);
+    rutina_des_suspension(colas);
+    desbloqueo_total(colas);
+  }
   pthread_mutex_unlock(&(colas->mutex_rutina));
   return NULL;
 }
@@ -1464,11 +1472,11 @@ void crear_hilo_compactacion(t_colas* colas)
   }
   else
   {
+    pthread_detach(hilo);
     logger_info(colas->logger,
                 "## Hilo de la rutina de compactación iniciado exitosamente");
     return;
   }
-  pthread_detach(hilo);
 }
 /*
 suspender_proceso: solo falla si se desconecta el KM

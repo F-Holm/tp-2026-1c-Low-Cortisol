@@ -110,6 +110,7 @@ typedef struct
   int socket_servidor;
   t_datos_suspendido* datos_suspendido;
   pthread_mutex_t mutex_rutina;
+  int terminar_rutinas;
 } t_colas;
 
 // ingresar NULL en t_list si no es CMN
@@ -158,6 +159,7 @@ int espacio_disponible(t_colas* colas, uint32_t pid);
 int espacio_disponible_sin_mutex(t_colas* colas, uint32_t pid);
 int tamanio_proceso(t_colas* colas, uint32_t pid);
 int tamanio_proceso_sin_mutex(t_colas* colas, uint32_t pid);
+
 // Funciones de rutinas
 void crear_hilo_rutina_des_suspension(t_colas* colas);
 void crear_hilo_compactacion(t_colas* colas);
