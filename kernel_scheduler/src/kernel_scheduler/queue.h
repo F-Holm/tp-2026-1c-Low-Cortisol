@@ -109,7 +109,14 @@ typedef struct
   t_socket_kernel_memory* socket_km;
   int socket_servidor;
   t_datos_suspendido* datos_suspendido;
+  pthread_mutex_t mutex_rutina;
 } t_colas;
+
+typedef struct
+{
+  t_colas* colas;
+  pthread_t hilo;
+} t_hilo_rutinas;
 
 // ingresar NULL en t_list si no es CMN
 // ingresar quantum = 0 si no es RR
@@ -161,5 +168,7 @@ int tamanio_proceso(t_socket_kernel_memory* socket_km, uint32_t pid,
                     int socket_servidor, t_logger* logger);
 int tamanio_proceso_sin_mutex(t_socket_kernel_memory* socket_km, uint32_t pid,
                               int socket_servidor, t_logger* logger);
+// Funciones de rutinas
+void rutina_des_suspension(t_colas* colas)
 
 #endif /* KERNEL_SCHEDULER_QUEUE_H_ */
