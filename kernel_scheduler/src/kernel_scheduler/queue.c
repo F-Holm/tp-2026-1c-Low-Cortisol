@@ -1306,7 +1306,8 @@ int espacio_disponible_sin_mutex(t_colas* colas, uint32_t pid)
 {
   int espacio = -1;
   if (!(enviar_string(OP_PEDIR_MEMORIA_DISPONIBLE,
-                      "Solicito el espacio disponible", colas->socket_km->socket_km)))
+                      "Solicito el espacio disponible",
+                      colas->socket_km->socket_km)))
   {
     cerrar_kernel_scheduler(colas->socket_servidor, colas->logger,
                             MC_FALLO_CONEXION_KERNEL_MEMORY);
@@ -1315,17 +1316,14 @@ int espacio_disponible_sin_mutex(t_colas* colas, uint32_t pid)
   return recibir_espacio(colas, espacio);
 }
 
- 
-
 int espacio_disponible(t_colas* colas, uint32_t pid)
 {
   pthread_mutex_lock(&(colas->socket_km->mutex_socket));
-  int espacio =
-      espacio_disponible_sin_mutex(colas, pid);
+  int espacio = espacio_disponible_sin_mutex(colas, pid);
   pthread_mutex_unlock(&(colas->socket_km->mutex_socket));
   return espacio;
 }
- int recibir_tamanio(t_colas* colas, int espacio)
+int recibir_tamanio(t_colas* colas, int espacio)
 {
   int op_code = -1;
   op_code = recibir_operacion(colas->socket_km->socket_km);
@@ -1369,11 +1367,10 @@ int tamanio_proceso_sin_mutex(t_colas* colas, uint32_t pid)
   return recibir_tamanio(colas, espacio);
 }
 
- int tamanio_proceso(t_colas* colas, uint32_t pid)
+int tamanio_proceso(t_colas* colas, uint32_t pid)
 {
   pthread_mutex_lock(&(colas->socket_km->mutex_socket));
-  int espacio =
-      tamanio_proceso_sin_mutex(colas, pid);
+  int espacio = tamanio_proceso_sin_mutex(colas, pid);
   pthread_mutex_unlock(&(colas->socket_km->mutex_socket));
   return espacio;
 }
@@ -1459,8 +1456,7 @@ void* hilo_rutina_compactacion(void* datos_compactacion)
 void crear_hilo_compactacion(t_colas* colas)
 {
   pthread_t hilo;
-  if (pthread_create(&hilo, NULL, hilo_rutina_compactacion, colas) !=
-      0)
+  if (pthread_create(&hilo, NULL, hilo_rutina_compactacion, colas) != 0)
   {
     logger_error(
         colas->logger,
