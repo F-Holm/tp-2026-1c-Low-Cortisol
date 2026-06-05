@@ -2,91 +2,124 @@
 
 #include "utils/msg.h"
 
-bool allocate_memory(t_syscall_memory* mem_alloc, t_logger* logger,
-                     t_socket_kernel_memory* socket_km, int socket_server)
+bool respuesta_km_mem_alloc(t_colas* colas)
 {
-  logger_info(logger, "## <%d> - Solicitó syscall: <MEM_ALLOC>",
-              mem_alloc->pid);
+  int cod_op = -1;
 
-  int mem_alloc_size = sizeof(t_syscall_memory);
-  pthread_mutex_lock(&(socket_km->mutex_socket));
-  bool envio = enviar_buffer(OP_SYSCALL_MEM_ALLOC, mem_alloc, mem_alloc_size,
-                             socket_km->socket_km);
-  pthread_mutex_unlock(&(socket_km->mutex_socket));
+  cod_op = recibir_operacion(colas->socket_km->socket_km);
 
-  if (!envio)
+  switch (cod_op)
   {
-    logger_error(logger, "## Error en la comunicacion con el Kernel Memory");
-    cerrar_kernel_scheduler(socket_server, logger,
-                            MC_FALLO_CONEXION_KERNEL_MEMORY);
-    return false;
-  }
-
-  // Ahora aguardo a que el km me envíe el "OK"
-  pthread_mutex_lock(&(socket_km->mutex_socket));
-  int cod_op = recibir_operacion(socket_km->socket_km);
-  if (cod_op == OP_MEMORIA_CORRUPTA)
-  {
-    pthread_mutex_unlock(&(socket_km->mutex_socket));
-    cerrar_kernel_scheduler(socket_server, logger, MC_MEMORIA_CORRUPTA);
-    return false;
-  }
-  else
-  {
-    if (cod_op == OP_CODE_ERROR)
-    {
-      pthread_mutex_unlock(&(socket_km->mutex_socket));
-      cerrar_kernel_scheduler(socket_server, logger,
+    case OP_MEMORIA_CORRUPTA:
+      free(recibir_string(colas->socket_km->socket_km));
+      cerrar_kernel_scheduler(colas->socket_server, colas->logger,
+                              MC_MEMORIA_CORRUPTA);
+      return false;
+    case OP_MEMORIA_ALOJADA:
+      free(recibir_string(colas->socket_km->socket_km));
+      return true;
+    case OP_COMPACTACION_NECESARIA:
+      free(recibir_string(colas->socket_km->socket_km));
+      crear_hilo_compactacion(colas);
+      return respuesta_km_mem_alloc(colas);
+    case OP_NUEVO_MEMORY_STICK:
+      free(recibir_string(colas->socket_km->socket_km));
+      crear_hilo_rutina_des_suspension(colas);
+      return respuesta_km_mem_alloc(colas);
+    default:
+      free(recibir_string(colas->socket_km->socket_km));
+      cerrar_kernel_scheduler(colas->socket_server, colas->logger,
                               MC_FALLO_CONEXION_KERNEL_MEMORY);
       return false;
-    }
   }
-  char* respuesta = recibir_string(socket_km->socket_km);
-  pthread_mutex_unlock(&(socket_km->mutex_socket));
-  free(respuesta);
-  return true;
 }
 
-bool free_memory(t_syscall_memory* mem_free, t_logger* logger,
-                 t_socket_kernel_memory* socket_km, int socket_server)
+bool hay_espacio(t_syscall_memory* mem_alloc, t_colas* colas)
 {
-  logger_info(logger, "## <%d> - Solicitó syscall: <MEM_FREE>", mem_free->pid);
+  int espacio = espacio_disponible(colas, mem_alloc->pid);
+  return (espacio < mem_alloc->size);
+}
 
-  int mem_free_size = sizeof(t_syscall_memory);
-  pthread_mutex_lock(&(socket_km->mutex_socket));
-  bool envio = enviar_buffer(OP_SYSCALL_MEM_FREE, mem_free, mem_free_size,
-                             socket_km->socket_km);
-  pthread_mutex_unlock(&(socket_km->mutex_socket));
-
-  if (!envio)
+bool allocate_memory(t_syscall_memory* mem_alloc, t_colas* colas)
+{
+  if (!(hay_espacio(mem_alloc, colas)))
   {
-    logger_error(logger, "## Error en la comunicacion con el Kernel Memory");
-    cerrar_kernel_scheduler(socket_server, logger,
+    // Funcion para liberar espacio para la syscall
+  }
+
+  int mem_alloc_size = sizeof(t_syscall_memory);
+  pthread_mutex_lock(&(colas->colas->socket_km->mutex_socket));
+  bool comms = enviar_buffer(OP_SYSCALL_MEM_ALLOC, mem_alloc, mem_alloc_size,
+                             colas->socket_km->socket_km);
+  pthread_mutex_unlock(&(colas->colas->socket_km->mutex_socket));
+
+  if (!comms)
+  {
+    logger_error(colas->logger,
+                 "## Error en la comunicacion con el Kernel Memory");
+    cerrar_kernel_scheduler(colas->socket_server, colas->logger,
                             MC_FALLO_CONEXION_KERNEL_MEMORY);
     return false;
   }
 
   // Ahora aguardo a que el km me envíe el "OK"
-  pthread_mutex_lock(&(socket_km->mutex_socket));
-  int cod_op = recibir_operacion(socket_km->socket_km);
-  if (cod_op == OP_MEMORIA_CORRUPTA)
+  pthread_mutex_lock(&(colas->socket_km->mutex_socket));
+  comms = respuesta_km_mem_alloc(colas);
+  pthread_mutex_unlock(&(colas->socket_km->mutex_socket));
+  free(respuesta);
+  return comms;
+}
+
+bool respuesta_km_mem_free(t_colas* colas)
+{
+  int cod_op = -1;
+
+  cod_op = recibir_operacion(colas->socket_km->socket_km);
+
+  switch (cod_op)
   {
-    pthread_mutex_unlock(&(socket_km->mutex_socket));
-    cerrar_kernel_scheduler(socket_server, logger, MC_MEMORIA_CORRUPTA);
-    return false;
-  }
-  else
-  {
-    if (cod_op == OP_CODE_ERROR)
-    {
-      pthread_mutex_unlock(&(socket_km->mutex_socket));
-      cerrar_kernel_scheduler(socket_server, logger,
+    case OP_MEMORIA_CORRUPTA:
+      free(recibir_string(colas->socket_km->socket_km));
+      cerrar_kernel_scheduler(colas->socket_server, colas->logger,
+                              MC_MEMORIA_CORRUPTA);
+      return false;
+    case OP_MEMORIA_LIBERADA:
+      free(recibir_string(colas->socket_km->socket_km));
+      return true;
+    case OP_NUEVO_MEMORY_STICK:
+      free(recibir_string(colas->socket_km->socket_km));
+      crear_hilo_rutina_des_suspension(colas);
+      return respuesta_km_mem_free(colas);
+    default:
+      free(recibir_string(colas->socket_km->socket_km));
+      cerrar_kernel_scheduler(colas->socket_server, colas->logger,
                               MC_FALLO_CONEXION_KERNEL_MEMORY);
       return false;
-    }
   }
-  char* respuesta = recibir_string(socket_km->socket_km);
-  pthread_mutex_unlock(&(socket_km->mutex_socket));
+}
+
+bool free_memory(t_syscall_memory* mem_free, t_colas* colas)
+{
+  int mem_free_size = sizeof(t_syscall_memory);
+  pthread_mutex_lock(&(colas->socket_km->mutex_socket));
+  bool comms = enviar_buffer(OP_SYSCALL_MEM_FREE, mem_free, mem_free_size,
+                             colas->socket_km->socket_km);
+  pthread_mutex_unlock(&(colas->socket_km->mutex_socket));
+
+  if (!comms)
+  {
+    logger_error(colas->logger,
+                 "## Error en la comunicacion con el Kernel Memory");
+    cerrar_kernel_scheduler(colas->socket_server, colas->logger,
+                            MC_FALLO_CONEXION_KERNEL_MEMORY);
+    return false;
+  }
+
+  // Ahora aguardo a que el km me envíe el "OK"
+  pthread_mutex_lock(&(colas->socket_km->mutex_socket));
+  comms = respuesta_km_mem_free(colas);
+  rutina_des_suspension(colas);
+  pthread_mutex_unlock(&(colas->socket_km->mutex_socket));
   free(respuesta);
-  return true;
+  return comms;
 }

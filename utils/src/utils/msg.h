@@ -69,7 +69,9 @@ typedef enum
   OP_DES_SUSPENDER_PROCESO_SIN_COMPACTACION,  // devuelve exitosa o no exitosa
   OP_DES_SUSPENSION_NO_EXITOSA,
   OP_PUEDE_COMPACTAR,  // Indica que puede iniciar la compactación
-  OP_COMPACTACION_FINALIZADA
+  OP_COMPACTACION_FINALIZADA,
+  OP_MEMORIA_ALOJADA,
+  OP_MEMORIA_LIBERADA
 } t_op_code;
 
 typedef struct
