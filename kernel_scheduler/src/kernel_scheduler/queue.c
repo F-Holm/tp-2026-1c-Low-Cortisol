@@ -1288,8 +1288,9 @@ void rutina_des_suspension(t_colas* colas)
           des_suspender_proceso_mas_prioritario(colas, proceso1, proceso2);
     }
   }
-  desbloqueo_total(colas);
   pthread_mutex_unlock(&(colas->socket_km->mutex_socket));
+  desbloqueo_total(colas);
+  
 }
 int espacio_disponible_sin_mutex(t_socket_kernel_memory* socket_km,
                                  int socket_servidor, t_logger* logger)
