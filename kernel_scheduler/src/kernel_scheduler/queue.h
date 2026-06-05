@@ -115,8 +115,8 @@ typedef struct
 typedef struct
 {
   t_colas* colas;
-  phtread_t hilo;
-} t_hilo_rutina_des_suspension;
+  pthread_t hilo;
+} t_hilo_rutinas;
 
 // ingresar NULL en t_list si no es CMN
 // ingresar quantum = 0 si no es RR

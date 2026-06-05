@@ -767,29 +767,25 @@ void cambio_susp_block_susp_ready(t_pcb* pcb, t_colas* colas)
   pthread_mutex_unlock(&(pcb->mutex_estado));
 }
 
-static void avisar_proceso_des_suspendido(t_pcb* pcb, t_colas* colas)
+void entra_proceso_con_compactacion(t_pcb* pcb, t_colas* colas)
 {
   int op_code = -1;
-  pthread_mutex_lock(&(colas->socket_km->mutex_socket));
-
-  if (enviar_buffer(OP_SUSPENDER_PROCESO, &(pcb->pid), sizeof(uint32_t),
-                    colas->socket_km->socket_km))
-  {
-    op_code = recibir_operacion(colas->socket_km->socket_km);
-  }
+  op_code = recibir_operacion(colas->socket_km->socket_km);
 
   switch (op_code)
   {
     case OP_COMPACTACION_NECESARIA:
       free(recibir_string(colas->socket_km->socket_km));
-      // rutina de compactación
+      crear_hilo_compactacion_sin_mutex(colas);
+      entra_proceso_con_compactacion(pcb, colas);
       break;
     case OP_DES_SUSPENSION_EXITOSA:
       free(recibir_string(colas->socket_km->socket_km));
       break;
     case OP_NUEVO_MEMORY_STICK:
       free(recibir_string(colas->socket_km->socket_km));
-      // rutina de des-suspensión
+      rutina_des_suspension_sin_mutex(pcb, colas);
+      entra_proceso_con_compactacion(pcb, colas);
       break;
     case OP_MEMORIA_CORRUPTA:
       cerrar_kernel_scheduler(colas->socket_servidor, colas->logger,
@@ -800,6 +796,22 @@ static void avisar_proceso_des_suspendido(t_pcb* pcb, t_colas* colas)
                               MC_FALLO_CONEXION_KERNEL_MEMORY);
       break;
   }
+}
+
+static void avisar_proceso_des_suspendido(t_pcb* pcb, t_colas* colas)
+{
+  int op_code = -1;
+  pthread_mutex_lock(&(colas->socket_km->mutex_socket));
+
+  if (!(enviar_buffer(OP_SUSPENDER_PROCESO, &(pcb->pid), sizeof(uint32_t),
+                      colas->socket_km->socket_km)))
+  {
+    cerrar_kernel_scheduler(colas->socket_servidor, colas->logger,
+                            MC_FALLO_CONEXION_KERNEL_MEMORY);
+    return;
+  }
+
+  entra_proceso_con_compactacion(pcb, colas);
 
   pthread_mutex_unlock(&(colas->socket_km->mutex_socket));
 }
@@ -1124,13 +1136,35 @@ static void* hilo_des_suspensor(void* datos_void)
   return NULL;
 }
 
-void crear_hilo_des_suspensor(t_colas* colas) // usar para memoria liberada y/o nuevo stick
+void crear_hilo_des_suspensor_con_mutex(
+    t_colas* colas)  // usar para memoria liberada y/o nuevo stick
 {
-  t_hilo_rutina_des_suspension* datos_hilo_rutina_des_suspension =
-      malloc(sizeof(t_hilo_rutina_des_suspension));
+  t_hilo_rutinas* datos_hilo_rutina_des_suspension =
+      malloc(sizeof(t_hilo_rutinas));
   datos_hilo_rutina_des_suspension->colas = colas;
   if (pthread_create(&(datos_hilo_rutina_des_suspension->hilo), NULL,
-                     hilo_rutina_des_suspension,
+                     hilo_rutina_des_suspension_con_mutex,
+                     datos_hilo_rutina_des_suspension) != 0)
+  {
+    logger_error(
+        colas->logger,
+        "## Error en la creación del hilo de la rutina de des-suspension");
+  }
+  else
+  {
+    logger_info(colas->logger,
+                "## Hilo de la rutina de des-suspension iniciado exitosamente");
+  }
+}
+
+void crear_hilo_des_suspensor_sin_mutex(
+    t_colas* colas)  // usar para memoria liberada y/o nuevo stick
+{
+  t_hilo_rutinas* datos_hilo_rutina_des_suspension =
+      malloc(sizeof(t_hilo_rutinas));
+  datos_hilo_rutina_des_suspension->colas = colas;
+  if (pthread_create(&(datos_hilo_rutina_des_suspension->hilo), NULL,
+                     hilo_rutina_des_suspension_sin_mutex,
                      datos_hilo_rutina_des_suspension) != 0)
   {
     logger_error(
@@ -1200,8 +1234,9 @@ bool puede_des_suspender_sin_compactacion_sin_mutex(t_colas* colas,
     return false;
   }
 
-  if (!(enviar_buffer(OP_DES_SUSPENDER_PROCESO_SIN_COMPACTACION, &(proceso->pid),
-                      sizeof(uint32_t), colas->socket_km->socket_km)))
+  if (!(enviar_buffer(OP_DES_SUSPENDER_PROCESO_SIN_COMPACTACION,
+                      &(proceso->pid), sizeof(uint32_t),
+                      colas->socket_km->socket_km)))
   {
     cerrar_kernel_scheduler(colas->socket_servidor, colas->logger,
                             MC_FALLO_CONEXION_KERNEL_MEMORY);
@@ -1210,8 +1245,6 @@ bool puede_des_suspender_sin_compactacion_sin_mutex(t_colas* colas,
 
   return entra_proceso(colas, proceso);
 }
-
-
 
 bool des_suspender_proceso_sin_compactacion(t_colas* colas, t_pcb* proceso)
 {
@@ -1246,9 +1279,6 @@ void rutina_des_suspension(t_colas* colas)
   bool seguir_operando = true;
   bool lista_vacia1;
   bool lista_vacia2;
-  bloqueo_total(colas);
-  pthread_mutex_lock(&(colas->socket_km->mutex_socket));
-  
 
   while (seguir_operando)
   {
@@ -1256,7 +1286,6 @@ void rutina_des_suspension(t_colas* colas)
     pthread_mutex_lock(&(colas->susp_block.mutex_lista));
     lista_vacia1 = list_is_empty(colas->susp_ready.lista);
     lista_vacia2 = list_is_empty(colas->susp_block.lista);
-    
 
     if (lista_vacia1 && lista_vacia2)
     {
@@ -1268,7 +1297,7 @@ void rutina_des_suspension(t_colas* colas)
     {
       proceso2 = list_get(colas->susp_block.lista, 0);
       pthread_mutex_unlock(&(colas->susp_ready.mutex_lista));
-      pthread_mutex_unlock(&(colas->susp_block.mutex_lista)); 
+      pthread_mutex_unlock(&(colas->susp_block.mutex_lista));
       seguir_operando = des_suspender_proceso_sin_compactacion(colas, proceso2);
     }
     if (!lista_vacia1 && lista_vacia2)
@@ -1288,9 +1317,6 @@ void rutina_des_suspension(t_colas* colas)
           des_suspender_proceso_mas_prioritario(colas, proceso1, proceso2);
     }
   }
-  pthread_mutex_unlock(&(colas->socket_km->mutex_socket));
-  desbloqueo_total(colas);
-  
 }
 int espacio_disponible_sin_mutex(t_socket_kernel_memory* socket_km,
                                  int socket_servidor, t_logger* logger)
@@ -1388,39 +1414,123 @@ bool puede_des_suspender(t_colas* colas, t_pcb* proceso)
                           colas->socket_servidor, colas->logger))
 }
 
-void* hilo_rutina_des_suspension(void* datos_des_suspension){
-
-  t_hilo_rutina_des_suspension* datos = (t_hilo_rutina_des_suspension*)datos_des_suspension;
+void* hilo_rutina_des_suspension_con_mutex(void* datos_des_suspension)
+{
+  t_colas* datos = (t_colas*)datos_des_suspension;
+  bloqueo_total(colas);
+  pthread_mutex_lock(&(colas->socket_km->mutex_socket));
   pthread_mutex_lock(&(datos->colas->mutex_rutina))
-  rutina_des_suspension(datos->colas);
+      rutina_des_suspension(datos->colas);
   pthread_mutex_unlock(&(datos->colas->mutex_rutina));
+  pthread_mutex_unlock(&(colas->socket_km->mutex_socket));
+  desbloqueo_total(colas);
   return NULL;
 }
-/*
-suspender_proceso: solo falla si se desconecta el KM
+void* hilo_rutina_des_suspension_sin_mutex(void* datos_des_suspension)
+{
+  t_colas* datos = (t_colas*)datos_des_suspension;
+  bloqueo_total(colas);
+  rutina_des_suspension(datos->colas);
+  desbloqueo_total(colas);
+  return NULL;
+}
+// RUTINA DE COMPACTACIÓN
 
+void crear_hilo_compactacion_con_mutex(t_colas* colas)
+{
+  t_hilo_rutinas* datos_hilo_rutina_compactacion =
+      malloc(sizeof(t_hilo_rutinas));
+  if (pthread_create(&(datos_hilo_rutina_compactacion->hilo), NULL,
+                     hilo_rutina_compactacion_con_mutex, colas) != 0)
+  {
+    logger_error(
+        colas->logger,
+        "## Error en la creación del hilo de la rutina de compactación");
+  }
+  else
+  {
+    logger_info(colas->logger,
+                "## Hilo de la rutina de compactación iniciado exitosamente");
+  }
+}
 
-des_suspender_proceso
-- pido el espacio libre
-- pido el tamaño del proceso
-- Puede devolver 2 cosas (todavía no cree los op_codes)
-- proceso_des-suspendido
-- compactación
+void crear_hilo_compactacion_sin_mutex(t_colas* colas)
+{
+  t_hilo_rutinas* datos_hilo_rutina_compactacion =
+      malloc(sizeof(t_hilo_rutinas));
+  if (pthread_create(&(datos_hilo_rutina_compactacion->hilo), NULL,
+                     hilo_rutina_compactacion_sin_mutex, colas) != 0)
+  {
+    logger_error(
+        colas->logger,
+        "## Error en la creación del hilo de la rutina de compactación");
+  }
+  else
+  {
+    logger_info(colas->logger,
+                "## Hilo de la rutina de compactación iniciado exitosamente");
+  }
+}
 
-rutina compactación:
-- suspendo proceso o pido memoria
-- recibo compactación
-- crear hilo para ejecutar la rutina sin bloquear el hilo actual
-- rutina de bloqueo total
-- aviso a KM que se puede iniciar la compactación
-- espero confirmación de KM de que terminó la compactación
-- rutina de des-suspensión
-- rutina de desbloqueo total
+void* hilo_rutina_compactacion_con_mutex(void* datos_compactacion)
+{
+  t_hilo_rutinas* = datos = (t_hilo_rutinas*)datos_compactacion;
+  bloqueo_total(colas);
+  pthread_mutex_lock(&(colas->socket_km->mutex_socket));
+  rutina_compactacion(datos->colas);
+  rutina_des_suspension(datos->colas);
+  pthread_mutex_unlock(&(colas->socket_km->mutex_socket));
+  desbloqueo_total(colas);
+  free(datos);
+  return NULL;
+}
+void* hilo_rutina_compactacion_sin_mutex(void* datos_compactacion)
+{
+  t_hilo_rutinas* = datos = (t_hilo_rutinas*)datos_compactacion;
+  bloqueo_total(colas);
+  rutina_compactacion(datos->colas);
+  rutina_des_suspension(datos->colas);
+  desbloqueo_total(colas);
+  free(datos);
+  return NULL;
+}
 
-Cuando se llama a "rutina compactación"?
-- cuando se des-suspende un proceso o se pide memoria
-- siempre se verifica primero si hay suficiente memoria (pidiendo al KM cuanta
-memoria libre hay y/o cuanto pesa el proceso)
-- se ejecuta si hay suficiente memoria, le decimos al KM lo que queremos hacer y
-nos dice que se necesita compactar
-*/
+void rutina_compactacion(t_colas* colas)
+{
+  int op_code = -1;
+  if (enviar_string(OP_INICIAR_COMPACTACION, "Iniciar compactación",
+                    colas->socket_km->socket_km))
+  {
+    op_code = recibir_operacion(colas->socket_km->socket_km);
+  }
+
+  switch (op_code)
+  {
+    case OP_COMPACTACION_FINALIZADA:
+      free(recibir_string(colas->socket_km->socket_km));
+      break;
+    case OP_MEMORIA_CORRUPTA:
+      free(recibir_string(colas->socket_km->socket_km));
+      cerrar_kernel_scheduler(colas->socket_servidor, colas->logger,
+                              MC_MEMORIA_CORRUPTA);
+      break;
+    default:
+      free(recibir_string(colas->socket_km->socket_km));
+      cerrar_kernel_scheduler(colas->socket_servidor, colas->logger,
+                              MC_FALLO_CONEXION_KERNEL_MEMORY);
+      break;
+  }
+}
+
+bool des_suspende_proceso(t_colas* colas, t_pcb* proceso)
+
+    /*
+    suspender_proceso: solo falla si se desconecta el KM
+
+    des_suspender_proceso
+    - pido el espacio libre
+    - pido el tamaño del proceso
+    - Puede devolver 2 cosas (todavía no cree los op_codes)
+    - proceso_des-suspendido
+    - compactación
+    */
