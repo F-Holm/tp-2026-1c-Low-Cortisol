@@ -1124,6 +1124,65 @@ static void* hilo_des_suspensor(void* datos_void)
   return NULL;
 }
 
+
+bool suspender_proceso()
+
+//funciones de Bloqueo/Desbloqueo total
+void desbloqueo_total(t_colas* colas){
+desbloquear_hilos_suspendido(colas);
+desbloquear_cola_ready(&(colas->ready));
+}
+
+void bloqueo_total(t_colas* colas){
+bloquear_cola_ready(&(colas->ready));
+bloquear_hilos_suspendido(colas);
+esperar_cola_ready_vacia(&(colas->ready));
+}
+
+bool des_suspender_proceso_mas_prioritario(t_colas* colas, t_pcb* proceso1, t_pcb* proceso2){
+if(get_prioridad_pcb(proceso1) < get_prioridad_pcb(proceso2)){
+return des_suspender_proceso_sin_compactacion(colas, proceso1);
+
+}else if (get_prioridad_pcb(proceso1) > get_prioridad_pcb(proceso2)){
+return des_suspender_proceso_sin_compactacion(colas, proceso2);
+
+}
+return des_suspender_proceso_sin_compactacion(colas, proceso1);
+}
+
+
+void rutina_des_suspension(t_colas* colas){
+
+bloqueo_total(colas);
+t_pcb* proceso1 = malloc(sizeof(t_pcb));
+t_pcb* proceso2 = malloc(sizeof(t_pcb));
+bool seguir_operando = true;
+bool lista_vacia1;
+bool lista_vacia2;
+
+while(seguir_operando){
+lista_vacia1 = list_is_empty(colas->susp_ready.lista);
+lista_vacia2 = list_is_empty(colas->susp_block.lista);
+
+if(lista_vacia1 && lista_vacia2){
+seguir_operando = false;
+}
+if(lista_vacia1 && !lista_vacia2){
+proceso2 = list_get(colas->susp_block.lista, 0);
+seguir_operando = des_suspender_proceso_sin_compactacion(colas, proceso2);
+}
+if(!lista_vacia1 && lista_vacia2){
+proceso1 = list_get(colas->susp_ready.lista, 0);
+seguir_operando = des_suspender_proceso_sin_compactacion(colas, proceso1);
+}
+if(!lista_vacia1 && !lista_vacia2){
+proceso1 = list_get(colas->susp_ready.lista, 0);
+proceso2 = list_get(colas->susp_block.lista, 0);
+seguir_operando = des_suspender_proceso_mas_prioritario(colas, proceso1, proceso2);
+}
+}
+free(proceso1);
+free(proceso2);
 int espacio_disponible_sin_mutex(t_socket_kernel_memory* socket_km,
                                  int socket_servidor, t_logger* logger)
 {
@@ -1215,6 +1274,7 @@ int tamanio_proceso(t_socket_kernel_memory* socket_km, uint32_t pid,
 /*
 suspender_proceso: solo falla si se desconecta el KM
 
+
 des_suspender_proceso
 - pido el espacio libre
 - pido el tamaño del proceso
@@ -1244,7 +1304,7 @@ rutina de des-suspensión:
 - si responde OK: volver a obtener los 2 primeros elementos
 
 rutina de nuevo_stick o memoria liberada:
-- crear hilo para ejecutar la rutinacin bloquear el hilo actual
+- crear hilo para ejecutar la rutina sin bloquear el hilo actual
 - rutina de bloqueo total
 - rutina de des-suspensión
 - rutina de desbloqueo total
@@ -1252,7 +1312,7 @@ rutina de nuevo_stick o memoria liberada:
 rutina compactación:
 - suspendo proceso o pido memoria
 - recibo compactación
-- crear hilo para ejecutar la rutinacin bloquear el hilo actual
+- crear hilo para ejecutar la rutina sin bloquear el hilo actual
 - rutina de bloqueo total
 - aviso a KM que se puede iniciar la compactación
 - espero confirmación de KM de que terminó la compactación
