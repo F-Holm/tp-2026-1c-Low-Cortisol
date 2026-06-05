@@ -112,12 +112,6 @@ typedef struct
   pthread_mutex_t mutex_rutina;
 } t_colas;
 
-typedef struct
-{
-  t_colas* colas;
-  pthread_t hilo;
-} t_hilo_rutinas;
-
 // ingresar NULL en t_list si no es CMN
 // ingresar quantum = 0 si no es RR
 t_colas* inicializar_colas(int algoritmo, t_list* algoritmos_cmn, int quantum,
@@ -160,15 +154,12 @@ void bloquear_hilos_suspendido(t_colas* colas);
 void desbloquear_hilos_suspendido(t_colas* colas);
 
 // Funciones de consultas a kernel_memory
-int espacio_disponible(t_socket_kernel_memory* socket_km, int socket_servidor,
-                       t_logger* logger);
-int espacio_disponible_sin_mutex(t_socket_kernel_memory* socket_km,
-                                 int socket_servidor, t_logger* logger);
-int tamanio_proceso(t_socket_kernel_memory* socket_km, uint32_t pid,
-                    int socket_servidor, t_logger* logger);
-int tamanio_proceso_sin_mutex(t_socket_kernel_memory* socket_km, uint32_t pid,
-                              int socket_servidor, t_logger* logger);
+int espacio_disponible(t_colas* colas, uint32_t pid);
+int espacio_disponible_sin_mutex(t_colas* colas, uint32_t pid);
+int tamanio_proceso(t_colas* colas, uint32_t pid);
+int tamanio_proceso_sin_mutex(t_colas* colas, uint32_t pid);
 // Funciones de rutinas
-void rutina_des_suspension(t_colas* colas)
+void crear_hilo_rutina_des_suspension(t_colas* colas);
+void crear_hilo_compactacion(t_colas* colas);
 
 #endif /* KERNEL_SCHEDULER_QUEUE_H_ */
