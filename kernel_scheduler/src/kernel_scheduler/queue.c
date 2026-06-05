@@ -784,7 +784,7 @@ void entra_proceso_con_compactacion(t_pcb* pcb, t_colas* colas)
       break;
     case OP_NUEVO_MEMORY_STICK:
       free(recibir_string(colas->socket_km->socket_km));
-      rutina_des_suspension_sin_mutex(pcb, colas);
+      crear_hilo_rutina_des_suspension_sin_mutex(colas);
       entra_proceso_con_compactacion(pcb, colas);
       break;
     case OP_MEMORIA_CORRUPTA:
@@ -1136,7 +1136,7 @@ static void* hilo_des_suspensor(void* datos_void)
   return NULL;
 }
 
-void crear_hilo_des_suspensor_con_mutex(
+void crear_hilo_rutina_des_suspencion_con_mutex(
     t_colas* colas)  // usar para memoria liberada y/o nuevo stick
 {
   t_hilo_rutinas* datos_hilo_rutina_des_suspension =
@@ -1157,7 +1157,7 @@ void crear_hilo_des_suspensor_con_mutex(
   }
 }
 
-void crear_hilo_des_suspensor_sin_mutex(
+void crear_hilo_rutina_des_suspencion_sin_mutex(
     t_colas* colas)  // usar para memoria liberada y/o nuevo stick
 {
   t_hilo_rutinas* datos_hilo_rutina_des_suspension =
@@ -1338,7 +1338,7 @@ int espacio_disponible_sin_mutex(t_socket_kernel_memory* socket_km,
       break;
     case OP_NUEVO_MEMORY_STICK:
       free(recibir_string(socket_km->socket_km));
-      // rutina de des-suspensión
+      crear_hilo_rutina_des_suspension_sin_mutex(colas);
       break;
     case OP_MEMORIA_CORRUPTA:
       cerrar_kernel_scheduler(socket_servidor, logger, MC_MEMORIA_CORRUPTA);
@@ -1382,7 +1382,7 @@ int tamanio_proceso_sin_mutex(t_socket_kernel_memory* socket_km, uint32_t pid,
       break;
     case OP_NUEVO_MEMORY_STICK:
       free(recibir_string(socket_km->socket_km));
-      // rutina de des-suspensión
+      crear_hilo_rutina_des_suspension_sin_mutex(colas);
       break;
     case OP_MEMORIA_CORRUPTA:
       cerrar_kernel_scheduler(socket_servidor, logger, MC_MEMORIA_CORRUPTA);
