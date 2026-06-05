@@ -49,6 +49,7 @@ typedef struct
   bool desalojar_todo;
   int mayor_prioridad;
   pthread_mutex_t mutex_desalojo_prioritario;
+  pthread_cond_t cola_vacia;
 } t_cola_ready;
 
 typedef struct
@@ -121,6 +122,7 @@ void destruir_colas(t_colas* colas);
 bool esta_cola_ready_bloqueada(t_cola_ready* ready);
 void bloquear_cola_ready(t_cola_ready* ready);
 void desbloquear_cola_ready(t_cola_ready* ready);
+void esperar_cola_ready_vacia(t_cola_ready* ready);
 bool puedo_suspender(t_pcb* pcb, int suspension_timeout);
 
 // cambio_ready_exec: No implementado, solo contiene el log por ahora. Usar
@@ -149,5 +151,15 @@ void vaciar_colas(t_colas* colas);
 // Para bloquear y desbloquear los hilos suspensor y des-suspensor
 void bloquear_hilos_suspendido(t_colas* colas);
 void desbloquear_hilos_suspendido(t_colas* colas);
+
+// Funciones de consultas a kernel_memory
+int espacio_disponible(t_socket_kernel_memory* socket_km, int socket_servidor,
+                       t_logger* logger);
+int espacio_disponible_sin_mutex(t_socket_kernel_memory* socket_km,
+                                 int socket_servidor, t_logger* logger);
+int tamanio_proceso(t_socket_kernel_memory* socket_km, uint32_t pid,
+                    int socket_servidor, t_logger* logger);
+int tamanio_proceso_sin_mutex(t_socket_kernel_memory* socket_km, uint32_t pid,
+                              int socket_servidor, t_logger* logger);
 
 #endif /* KERNEL_SCHEDULER_QUEUE_H_ */
