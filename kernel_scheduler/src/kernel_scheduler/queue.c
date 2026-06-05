@@ -1214,13 +1214,25 @@ bool puede_des_suspender_sin_compactacion_sin_mutex(t_colas* colas,
   return entra_proceso(colas, proceso);
 }
 
+bool puede_des_suspender_sin_compactacion_con_mutex(t_colas* colas,
+                                                   t_pcb* proceso)
+{
+  pthread_mutex_lock(&(colas->socket_km->mutex_socket));
+  bool resultado = puede_des_suspender_sin_compactacion_sin_mutex(colas, proceso);
+  pthread_mutex_unlock(&(colas->socket_km->mutex_socket));
+  return resultado;
+}
+
 bool des_suspender_proceso_sin_compactacion(t_colas* colas, t_pcb* proceso)
 {
   bool des_suspender_proceso =
-      puede_des_suspender_sin_compactacion_sin_mutex(colas, proceso);
+      puede_des_suspender_sin_compactacion_con_mutex(colas, proceso);
   if (des_suspender_proceso)
   {
+    cambio_desbloquear(proceso, colas);
+    return true;
   }
+  return false;
 }
 
 bool des_suspender_proceso_mas_prioritario(t_colas* colas, t_pcb* proceso1,
