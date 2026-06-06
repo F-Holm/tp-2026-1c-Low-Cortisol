@@ -842,3 +842,70 @@ void cerrar_io(t_io* io, t_listas_io* listas_io)
   free(listas_io);
   free(io);
 }
+
+/*
+
+io[i].cerrar_hilo no está protegido con mutex
+
+Los siguientes 3 structs son exactamente iguales:
+
+typedef struct
+{
+  t_list* lista_stdin;
+  pthread_mutex_t mutex_lista_stdin;
+} t_lista_stdin;
+
+typedef struct
+{
+  t_list* lista_stdout;
+  pthread_mutex_t mutex_lista_stdout;
+} t_lista_stdout;
+
+typedef struct
+{
+  t_list* lista_sleep;
+  pthread_mutex_t mutex_lista_sleep;
+} t_lista_sleep;
+
+Los siguientes 3 structs son exactamente iguales:
+
+typedef struct
+{
+  t_io* io;
+  t_lista_stdin* lista_stdin;
+} t_hilo_io_in;
+
+typedef struct
+{
+  t_io* io;
+  t_lista_stdout* lista_stdout;
+} t_hilo_io_out;
+
+typedef struct
+{
+  t_io* io;
+  t_lista_sleep* lista_sleep;
+} t_hilo_io_sleep;
+
+La estructura de abajo tiene 3 elementos iguales, reemplazar por un arreglo o que sea parte de t_io (creo que es lo mejor)
+Podes acceder a las posiciones del arreglo con la estructura de tipo de io que está en la utils
+
+typedef struct
+{
+  t_lista_stdin* lista_stdin;
+  t_lista_stdout* lista_stdout;
+  t_lista_sleep* lista_sleep;
+} t_listas_io;
+
+El pthread_mutex_lock(&(io[i].mutex_fin)); no tiene sentido
+
+Podes usar un pthread_join(io[i].hilo_io); (es mucho mejor que tener un mutex específico para eso)
+
+Cuando unifiques las estructuras de arriba, probáblemente puedas eliminar alguna funcion que tenés triplicada
+
+Las listas son un t_list* y guardan los elementos como void*, el tipo de dato es el mismo para cualquier cosa que pueda llegar a contener la lista, todos son t_list*, por eso podés unificar las structus de arriba
+
+Cuando hay que cerrar los IOs, tal vez tengas que hacer un shutdown del socket de io. Si justo se está ejecutando un delay de 25 segundo y hay una BSOD (memory stick desconectado), con el shutdown podés hacer que todos los que estén esperando respuesta por ese socket se desbloqueen y les de op_code de error
+
+Cuando cerras los io, que pasa si un hilo ya cerró antes o nunca se abrió y se ejecuta esa función
+*/
