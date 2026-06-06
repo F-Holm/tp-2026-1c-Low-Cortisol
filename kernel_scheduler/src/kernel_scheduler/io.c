@@ -24,7 +24,7 @@ t_listas_io* inicializar_listas_io(void)
 }
 
 // Funciones de comunicacion de syscalls IO
-bool envio_stdout(int cod_op, t_hilo_io_out* hilo_out, t_stdout* peticion,
+bool envio_stdout(t_hilo_io_out* hilo_out, t_stdout* peticion,
                   char* buffer)
 {
   int peticion_size = sizeof(t_peticion_stdout);
@@ -40,7 +40,7 @@ bool envio_stdout(int cod_op, t_hilo_io_out* hilo_out, t_stdout* peticion,
                  "## Error al enviar la respuesta de Kernel Memory a IO");
     return false;
   }
-  cod_op = recibir_operacion(hilo_out->io->socket_io);
+  int cod_op = recibir_operacion(hilo_out->io->socket_io);
   if (cod_op == OP_CODE_ERROR)
   {
     return false;
@@ -205,100 +205,6 @@ void finalizar_sleep(t_hilo_io_sleep* hilo_sleep, t_sleep* peticion)
               "##  <%d> - Finalizó IO y pasa a READY / SUSP. READY",
               peticion->pcb->pid);
 }
-int io_stdin_f(t_stdin* peticion, t_hilo_io_in* hilo_in)
-{
-  // Envio peticion a IO
-  int cod_op;
-  char* buffer = malloc(sizeof(peticion->peticion->tamanio_a_leer));
-  bool envio = comunicacion_io_stdin(peticion, hilo_in, buffer);
-  if (!envio)
-  {
-    free(buffer);
-    return D_ERROR_IO;
-  }
-  // Le envio el paquete al Kernel Memory para que escriba en la memoria
-  envio = envio_stdin(peticion, hilo_in, buffer);
-  if (!envio)
-  {
-    free(buffer);
-    return D_ERROR_CONEXION_KM;
-  }
-  pthread_mutex_lock(&(hilo_in->io->socket_km->mutex_socket));
-  cod_op = recibir_operacion(hilo_in->io->socket_km->socket_km);
-  if (cod_op == OP_MEMORIA_CORRUPTA)
-  {
-    pthread_mutex_unlock(&(hilo_in->io->socket_km->mutex_socket));
-    return D_ERROR_KM;
-  }
-  if (cod_op == OP_CODE_ERROR)
-  {
-    pthread_mutex_unlock(&(hilo_in->io->socket_km->mutex_socket));
-    return D_ERROR_CONEXION_KM;
-  }
-  char* respuesta = recibir_string(hilo_in->io->socket_km->socket_km);
-  pthread_mutex_unlock(&(hilo_in->io->socket_km->mutex_socket));
-  free(respuesta);
-  finalizar_stdin(peticion, hilo_in);
-  return D_TODO_BIEN;
-}
-
-int io_stdout_f(t_stdout* peticion, t_hilo_io_out* hilo_out)
-{
-  // Envio peticion a Kernel Memory para que lea de la memoria
-  bool envio = peticion_stdout_km(peticion, hilo_out);
-  if (!envio)
-  {
-    return D_ERROR_CONEXION_KM;
-  }
-  // Recibo la respuesta de Kernel Memory
-  pthread_mutex_lock(&(hilo_out->io->socket_km->mutex_socket));
-  int cod_op = recibir_operacion(hilo_out->io->socket_km->socket_km);
-
-  if (cod_op == OP_MEMORIA_CORRUPTA)
-  {
-    pthread_mutex_unlock(&(hilo_out->io->socket_km->mutex_socket));
-    return D_ERROR_KM;
-  }
-  if (cod_op == OP_CODE_ERROR)
-  {
-    pthread_mutex_unlock(&(hilo_out->io->socket_km->mutex_socket));
-    return D_ERROR_CONEXION_KM;
-  }
-  char* buffer =
-      malloc(sizeof(char) * (peticion->peticion->tamanio_a_escribir + 1));
-  buffer = recibir_string(hilo_out->io->socket_km->socket_km);
-  pthread_mutex_unlock(&(hilo_out->io->socket_km->mutex_socket));
-  if (buffer == NULL)
-  {
-    logger_error(hilo_out->io->logger,
-                 "## Error al recibir la respuesa de Kernel Memory");
-    free(buffer);
-    return D_ERROR_CONEXION_KM;
-  }
-
-  // Le envio el mensaje + la peticion a IO para que imprima por pantalla
-  envio = envio_stdout(cod_op, hilo_out, peticion, buffer);
-  if (!envio)
-  {
-    free(buffer);
-    return D_ERROR_IO;
-  }
-  free(buffer);
-  pthread_mutex_lock(&(hilo_out->io->mutex_socket_io));
-  cod_op = recibir_operacion(hilo_out->io->socket_io);
-  if (cod_op == OP_CODE_ERROR)
-  {
-    pthread_mutex_unlock(&(hilo_out->io->mutex_socket_io));
-    logger_error(hilo_out->io->logger,
-                 "## Error en la respuesta de IO a Kernel Scheduler");
-    return D_ERROR_IO;
-  }
-  char* resp_io = recibir_string(hilo_out->io->socket_io);
-  pthread_mutex_unlock(&(hilo_out->io->mutex_socket_io));
-  free(resp_io);
-  finalizar_stdout(peticion, hilo_out);
-  return D_TODO_BIEN;
-}
 
 int io_sleep_f(t_sleep* peticion, t_hilo_io_sleep* hilo_sleep)
 {
@@ -333,6 +239,62 @@ void cerrar_io_stdin(t_hilo_io_in* hilo_stdin)
   pthread_mutex_unlock(&(hilo_stdin->io->mutex_fin));
   free(hilo_stdin);
 }
+bool charla_km_stdin(t_hilo_io_in* hilo_in)
+{
+  int cod_op = -1;
+  cod_op = recibir_operacion(hilo_in->io->socket_io);
+
+  switch (cod_op)
+  {
+    case OP_MEMORIA_CORRUPTA:
+      free(recibir_string(hilo_in->io->socket_km->socket_km));
+      cerrar_kernel_scheduler(hilo_in->io->socket_server, hilo_in->io->logger,
+                              MC_MEMORIA_CORRUPTA);
+      return false;
+    case OP_NUEVO_MEMORY_STICK:
+      free(recibir_string(hilo_in->io->socket_km->socket_km));
+      crear_hilo_rutina_des_suspension(hilo_in->io->colas);
+      return charla_km_stdin(hilo_in);
+    case OP_RESPUESTA_STDOUT:
+      free(recibir_string(hilo_in->io->socket_km->socket_km));
+      return true;
+    default:
+      free(recibir_string(hilo_in->io->socket_km->socket_km));
+      cerrar_kernel_scheduler(hilo_in->io->socket_server, hilo_in->io->logger,
+                              MC_FALLO_CONEXION_KERNEL_MEMORY);
+      return false;
+  }
+}
+int io_stdin_f(t_stdin* peticion, t_hilo_io_in* hilo_in)
+{
+  // Envio peticion a IO
+  char* buffer = malloc(sizeof(peticion->peticion->tamanio_a_leer));
+  bool envio = comunicacion_io_stdin(peticion, hilo_in, buffer);
+  if (!envio)
+  {
+    free(buffer);
+    return false;
+  }
+  // Le envio el paquete al Kernel Memory para que escriba en la memoria
+  envio = envio_stdin(peticion, hilo_in, buffer);
+  if (!envio)
+  {
+    free(buffer);
+    cerrar_kernel_scheduler(hilo_in->io->socket_server,
+                            hilo_in->io->logger,
+                            MC_FALLO_CONEXION_KERNEL_MEMORY);
+    return false;
+  }
+  pthread_mutex_lock(&(hilo_in->io->socket_km->mutex_socket));
+  if (!(charla_km_stdin(hilo_in)))
+  {
+    pthread_mutex_unlock(&(hilo_in->io->socket_km->mutex_socket));
+    return false;
+  }
+  pthread_mutex_unlock(&(hilo_in->io->socket_km->mutex_socket));
+  finalizar_stdin(peticion, hilo_in);
+  return true;
+}
 void* hilo_io_in(void* hilo_in)
 {
   t_hilo_io_in* hilo_stdin = (t_hilo_io_in*)hilo_in;
@@ -355,31 +317,8 @@ void* hilo_io_in(void* hilo_in)
                    "## Error al obtener la peticion de la lista de stdin");
       seguir_atendiendo = false;
     }
-    int stdin = io_stdin_f(peticion, hilo_stdin);
-    if (D_ERROR_KM == stdin)
-    {
-      cerrar_kernel_scheduler(hilo_stdin->io->socket_server,
-                              hilo_stdin->io->logger, MC_MEMORIA_CORRUPTA);
-      continue;
-    }
-    else
-    {
-      if (D_ERROR_IO == stdin)
-      {
-        logger_error(hilo_stdin->io->logger,
-                     "## Error al atender la petición de stdin");
-        seguir_atendiendo = false;
-      }
-      else
-      {
-        if (D_ERROR_CONEXION_KM == stdin)
+    seguir_atendiendo = io_stdin_f(peticion, hilo_stdin);
 
-          cerrar_kernel_scheduler(hilo_stdin->io->socket_server,
-                                  hilo_stdin->io->logger,
-                                  MC_FALLO_CONEXION_KERNEL_MEMORY);
-        continue;
-      }
-    }
     if (hilo_stdin->io->cerrar_hilo)
     {
       seguir_atendiendo = false;
@@ -416,6 +355,92 @@ void cerrar_hilo_stdout(t_hilo_io_out* hilo_stdout)
   free(hilo_stdout);
 }
 
+bool recepcion_km_stdout(t_hilo_io_out* hilo_out)
+{
+  int op_code = -1;
+  op_code = recibir_operacion(hilo_out->io->socket_km->socket_km);
+
+      switch (op_code)
+  {
+    case OP_MEMORIA_CORRUPTA:
+      free(recibir_string(hilo_out->io->socket_km->socket_km));
+      cerrar_kernel_scheduler(hilo_out->io->socket_server, hilo_out->io->logger,
+                              MC_MEMORIA_CORRUPTA);
+      return false;
+    case OP_NUEVO_MEMORY_STICK:
+      free(recibir_string(hilo_out->io->socket_km->socket_km));
+      crear_hilo_rutina_des_suspension(hilo_out->io->colas);
+      return recepcion_km_stdout(hilo_out);
+    case OP_RESPUESTA_STDOUT:
+      return true;
+    default:
+      free(recibir_string(hilo_out->io->socket_km->socket_km));
+      cerrar_kernel_scheduler(hilo_out->io->socket_server, hilo_out->io->logger,
+                              MC_FALLO_CONEXION_KERNEL_MEMORY);
+      return false;
+  }
+}
+
+bool io_stdout_f(t_stdout* peticion, t_hilo_io_out* hilo_out)
+{
+  int cod_op = -1;
+  // Envio peticion a Kernel Memory para que lea de la memoria
+  bool envio = peticion_stdout_km(peticion, hilo_out);
+  if (!envio)
+  {
+    cerrar_kernel_scheduler(hilo_out->io->socket_server,
+                            hilo_out->io->logger,
+                            MC_FALLO_CONEXION_KERNEL_MEMORY);
+    return false;
+  }
+  // Recibo la respuesta de Kernel Memory
+  pthread_mutex_lock(&(hilo_out->io->socket_km->mutex_socket));
+
+  if (!(recepcion_km_stdout(hilo_out)))
+  {
+    pthread_mutex_unlock(&(hilo_out->io->socket_km->mutex_socket));
+    return false;
+  }
+
+  char* buffer =
+      malloc(sizeof(char) * (peticion->peticion->tamanio_a_escribir + 1));
+  buffer = recibir_string(hilo_out->io->socket_km->socket_km);
+  pthread_mutex_unlock(&(hilo_out->io->socket_km->mutex_socket));
+  if (buffer == NULL)
+  {
+    logger_error(hilo_out->io->logger,
+                 "## Error al recibir la respuesa de Kernel Memory");
+    free(buffer);
+    cerrar_kernel_scheduler(hilo_out->io->socket_server,
+                            hilo_out->io->logger,
+                            MC_FALLO_CONEXION_KERNEL_MEMORY);
+    return false;
+  }
+
+  // Le envio el mensaje + la peticion a IO para que imprima por pantalla
+  envio = envio_stdout(hilo_out, peticion, buffer);
+  if (!envio)
+  {
+    free(buffer);
+    return D_ERROR_IO;
+  }
+  free(buffer);
+  pthread_mutex_lock(&(hilo_out->io->mutex_socket_io));
+  cod_op = recibir_operacion(hilo_out->io->socket_io);
+  if (cod_op == OP_CODE_ERROR)
+  {
+    pthread_mutex_unlock(&(hilo_out->io->mutex_socket_io));
+    logger_error(hilo_out->io->logger,
+                 "## Error en la respuesta de IO a Kernel Scheduler");
+    return false;
+  }
+  char* resp_io = recibir_string(hilo_out->io->socket_io);
+  pthread_mutex_unlock(&(hilo_out->io->mutex_socket_io));
+  free(resp_io);
+  finalizar_stdout(peticion, hilo_out);
+  return D_TODO_BIEN;
+}
+
 void* hilo_io_out(void* hilo_out)
 {
   t_hilo_io_out* hilo_stdout = (t_hilo_io_out*)hilo_out;
@@ -439,32 +464,7 @@ void* hilo_io_out(void* hilo_out)
                    "## Error al obtener la peticion de la lista de stdout");
       continue;
     }
-    int op_stdout = io_stdout_f(peticion, hilo_stdout);
-    if (D_ERROR_IO == op_stdout)
-    {
-      logger_error(hilo_stdout->io->logger,
-                   "## Error al atender la petición de stdout");
-      seguir_atendiendo = false;
-    }
-    else
-    {
-      if (D_ERROR_KM == op_stdout)
-      {
-        cerrar_kernel_scheduler(hilo_stdout->io->socket_server,
-                                hilo_stdout->io->logger, MC_MEMORIA_CORRUPTA);
-        continue;
-      }
-      else
-      {
-        if (D_ERROR_CONEXION_KM == op_stdout)
-        {
-          cerrar_kernel_scheduler(hilo_stdout->io->socket_server,
-                                  hilo_stdout->io->logger,
-                                  MC_FALLO_CONEXION_KERNEL_MEMORY);
-          continue;
-        }
-      }
-    }
+    seguir_atendiendo = io_stdout_f(peticion,hilo_stdout);
 
     if (hilo_stdout->io->cerrar_hilo)
     {
@@ -484,7 +484,7 @@ void cerrar_hilo_sleep(t_hilo_io_sleep* hilo_sleep)
   pthread_mutex_unlock(&(hilo_sleep->io->mutex_socket_io));
 
   pthread_mutex_lock(&(hilo_sleep->lista_sleep->mutex_lista_sleep));
-  while (!list_is_empty(hilo_sleep->lista_sleep->lista_sleep))
+  while (!(list_is_empty(hilo_sleep->lista_sleep->lista_sleep)))
   {
     t_sleep* peticion = list_remove(hilo_sleep->lista_sleep->lista_sleep, 0);
     t_pcb* pcb = peticion->pcb;
