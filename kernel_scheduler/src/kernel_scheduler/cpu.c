@@ -12,14 +12,16 @@
 #include "utils/kernel_scheduler_cpu.h"
 #include "utils/msg.h"
 
-const char* const MOTIVOS_DESALOJO[8] = {"no hubo desalojo",
-                                         "desalojo por fin de quantum",
-                                         "desalojo por proceso prioritario",
-                                         "desalojo por compactación",
-                                         "finalización del proceso",
-                                         "primer ciclo de CPU",
-                                         "operación de IO",
-                                         "mutex bloqueado"};
+const char* const MOTIVOS_DESALOJO[9] = {
+    "no hubo desalojo",
+    "desalojo por fin de quantum",
+    "desalojo por proceso prioritario",
+    "desalojo por compactación",
+    "finalización del proceso",
+    "primer ciclo de CPU",
+    "operación de IO",
+    "mutex bloqueado",
+    "no hay memoria suficiente para esa instrucción"};
 
 const char* const SYSCALLS_STR[10] = {
     "MUTEX_CREATE", "MUTEX_LOCK", "MUTEX_UNLOCK", "MEM_ALLOC", "MEM_FREE",
@@ -200,6 +202,7 @@ static void manejar_syscall_memory_allocation(t_datos_syscall* datos)
                        datos->datos->socket_servidor))
   {
     cambio_exec_exit(datos->pcb, datos->datos->colas, MPF_MEMORIA_INSUFICIENTE);
+    datos->motivo_desalojo = MD_MEMORIA_INSUFICIENTE;
   }
   free(peticion);
 }
