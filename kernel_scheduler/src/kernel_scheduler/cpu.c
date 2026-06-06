@@ -198,8 +198,7 @@ static void manejar_syscall_memory_allocation(t_datos_syscall* datos)
 {
   int size;
   t_syscall_memory* peticion = recibir_buffer(&size, datos->datos->socket_fd);
-  if (!allocate_memory(peticion, datos->datos->logger, datos->datos->socket_km,
-                       datos->datos->socket_servidor))
+  if (!allocate_memory(peticion, datos->datos->colas))
   {
     cambio_exec_exit(datos->pcb, datos->datos->colas, MPF_MEMORIA_INSUFICIENTE);
     datos->motivo_desalojo = MD_MEMORIA_INSUFICIENTE;
@@ -211,8 +210,7 @@ static void manejar_syscall_memory_free(t_datos_syscall* datos)
 {
   int size;
   t_syscall_memory* peticion = recibir_buffer(&size, datos->datos->socket_fd);
-  if (!free_memory(peticion, datos->datos->logger, datos->datos->socket_km,
-                   datos->datos->socket_servidor))
+  if (!free_memory(peticion, datos->datos->colas))
   {
     datos->seguir_operando = false;
   }
