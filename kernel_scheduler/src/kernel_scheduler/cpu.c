@@ -199,7 +199,7 @@ static void manejar_syscall_memory_allocation(t_datos_syscall* datos)
   if (!allocate_memory(peticion, datos->datos->logger, datos->datos->socket_km,
                        datos->datos->socket_servidor))
   {
-    datos->seguir_operando = false;
+    cambio_exec_exit(datos->pcb, datos->datos->colas, MPF_MEMORIA_INSUFICIENTE);
   }
   free(peticion);
 }
