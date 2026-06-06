@@ -13,7 +13,7 @@
 #include "utils/logger.h"
 #include "utils/msg.h"
 
-bool allocate_memory(t_syscall_memory* mem_alloc,t_colas* colas);
+bool allocate_memory(t_syscall_memory* mem_alloc, t_colas* colas);
 bool free_memory(t_syscall_memory* mem_free, t_colas* colas);
 
 #endif /* KERNEL_SCHEDULER_MEMORY_H_ */

@@ -24,8 +24,7 @@ t_listas_io* inicializar_listas_io(void)
 }
 
 // Funciones de comunicacion de syscalls IO
-bool envio_stdout(t_hilo_io_out* hilo_out, t_stdout* peticion,
-                  char* buffer)
+bool envio_stdout(t_hilo_io_out* hilo_out, t_stdout* peticion, char* buffer)
 {
   int peticion_size = sizeof(t_peticion_stdout);
   t_paquete* paquete = crear_paquete(OP_PETICION_IO_STDOUT);
@@ -280,8 +279,7 @@ int io_stdin_f(t_stdin* peticion, t_hilo_io_in* hilo_in)
   if (!envio)
   {
     free(buffer);
-    cerrar_kernel_scheduler(hilo_in->io->socket_server,
-                            hilo_in->io->logger,
+    cerrar_kernel_scheduler(hilo_in->io->socket_server, hilo_in->io->logger,
                             MC_FALLO_CONEXION_KERNEL_MEMORY);
     return false;
   }
@@ -360,7 +358,7 @@ bool recepcion_km_stdout(t_hilo_io_out* hilo_out)
   int op_code = -1;
   op_code = recibir_operacion(hilo_out->io->socket_km->socket_km);
 
-      switch (op_code)
+  switch (op_code)
   {
     case OP_MEMORIA_CORRUPTA:
       free(recibir_string(hilo_out->io->socket_km->socket_km));
@@ -388,8 +386,7 @@ bool io_stdout_f(t_stdout* peticion, t_hilo_io_out* hilo_out)
   bool envio = peticion_stdout_km(peticion, hilo_out);
   if (!envio)
   {
-    cerrar_kernel_scheduler(hilo_out->io->socket_server,
-                            hilo_out->io->logger,
+    cerrar_kernel_scheduler(hilo_out->io->socket_server, hilo_out->io->logger,
                             MC_FALLO_CONEXION_KERNEL_MEMORY);
     return false;
   }
@@ -411,8 +408,7 @@ bool io_stdout_f(t_stdout* peticion, t_hilo_io_out* hilo_out)
     logger_error(hilo_out->io->logger,
                  "## Error al recibir la respuesa de Kernel Memory");
     free(buffer);
-    cerrar_kernel_scheduler(hilo_out->io->socket_server,
-                            hilo_out->io->logger,
+    cerrar_kernel_scheduler(hilo_out->io->socket_server, hilo_out->io->logger,
                             MC_FALLO_CONEXION_KERNEL_MEMORY);
     return false;
   }
@@ -464,7 +460,7 @@ void* hilo_io_out(void* hilo_out)
                    "## Error al obtener la peticion de la lista de stdout");
       continue;
     }
-    seguir_atendiendo = io_stdout_f(peticion,hilo_stdout);
+    seguir_atendiendo = io_stdout_f(peticion, hilo_stdout);
 
     if (hilo_stdout->io->cerrar_hilo)
     {
