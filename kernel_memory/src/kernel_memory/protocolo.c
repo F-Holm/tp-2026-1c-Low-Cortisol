@@ -1,5 +1,20 @@
 #include "kernel_memory/protocolo.h"
 
+void aniadir_lista_mtx(t_list* lista, pthread_mutex_t* mutex, void* elemento)
+{
+  pthread_mutex_lock(mutex);
+  list_add(lista, elemento);
+  pthread_mutex_unlock(mutex);
+}
+
+t_list* copiar_lista_mtx(pthread_mutex_t* mutex, t_list* lista)
+{
+  pthread_mutex_lock(mutex);
+  t_list* copia = list_duplicate(lista);
+  pthread_mutex_unlock(mutex);
+  return copia;
+}
+
 bool recibir_id_cpu(t_datos_cpu* datos_cpu)
 {
   if (recibir_operacion(datos_cpu->socket_cpu) == OP_ID_CPU)
@@ -68,16 +83,16 @@ bool recibir_puerto_escucha_stick(t_datos_stick* datos_stick)
 void agregar_conexion_stick(t_datos_kernel_mem* datos_kernel_memory,
                             t_datos_stick* datos_stick)
 {
-  aniadirAListaMtx(datos_kernel_memory->sticks_conectados,
-                   datos_kernel_memory->mutex_lista_sockets, datos_stick);
+  aniadir_lista_mtx(datos_kernel_memory->sticks_conectados,
+                    datos_kernel_memory->mutex_lista_sockets, datos_stick);
   return;
 }
 
 void agregar_conexion_cpu(t_datos_kernel_mem* datos_kernel_memory,
                           t_datos_cpu* datos_cpu)
 {
-  aniadirAListaMtx(datos_kernel_memory->cpus_conectados,
-                   datos_kernel_memory->mutex_lista_sockets, datos_cpu);
+  aniadir_lista_mtx(datos_kernel_memory->cpus_conectados,
+                    datos_kernel_memory->mutex_lista_sockets, datos_cpu);
   return;
 }
 
@@ -85,9 +100,8 @@ void enviar_sticks_conectadas(t_list* sticks_conectados,
                               pthread_mutex_t* mutex_lista_sockets,
                               t_datos_cpu* datos_cpu)
 {
-  pthread_mutex_lock(mutex_lista_sockets);
-  t_list* copia_sticks = list_duplicate(sticks_conectados);
-  pthread_mutex_unlock(mutex_lista_sockets);
+  t_list* copia_sticks =
+      copiar_lista_mtx(mutex_lista_sockets, sticks_conectados);
 
   int total_sticks = list_size(copia_sticks);
 
@@ -156,13 +170,6 @@ void enviar_tamanio_disponible_scheduler(int socket_scheduler,
   agregar_a_paquete(paquete, &tamanio_total, sizeof(u_int32_t));
   enviar_paquete(paquete, socket_scheduler);
   eliminar_paquete(paquete);
-}
-
-void aniadirAListaMtx(t_list* lista, pthread_mutex_t* mutex, void* elemento)
-{
-  pthread_mutex_lock(mutex);
-  list_add(lista, elemento);
-  pthread_mutex_unlock(mutex);
 }
 
 t_proceso* buscar_proceso(t_datos_cpu* datos_cpu, uint32_t pid)
