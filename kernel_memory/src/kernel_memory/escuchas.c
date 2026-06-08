@@ -18,7 +18,7 @@ void* escucha_scheduler(void* ptr)
             *pid, path_relativo, datos_scheduler->scripts_basepath,
             datos_scheduler->logger);
 
-        aniadirAListaMtx(datos_scheduler->procesos,
+        aniadir_lista_mtx(datos_scheduler->procesos,
                          datos_scheduler->mutex_procesos, proceso);
 
         logger_info(datos_scheduler->logger, "## PID: %ls - Proceso Creado",
@@ -164,6 +164,20 @@ void* escucha_stick(void* ptr)
         // t_list* paquete = recibir_paquete(datos_stick->socket_stick);
         logger_info(datos_stick->logger, "Llego un paquete de la memory stick");
         // comunicaciones
+        break;
+      case OP_MEMORY_STICK_LEIDO:
+        char* lectura = recibir_string(datos_stick->socket_stick);
+        logger_info(datos_stick->logger, "Se ha leido de la memory stick: %s",
+                    lectura);
+        enviar_string(OP_RESPUESTA_STDOUT, lectura,
+                      datos_stick->socket_scheduler);
+        free(lectura);
+        break;
+      case OP_MEMORY_STICK_ESCRITO:
+        char* buffer = recibir_string(datos_stick->socket_stick);
+        free(buffer);
+        logger_info(datos_stick->logger, "Se ha escrito en la memory stick");
+        enviar_string(OP_RESPUESTA_STDIN, "", datos_stick->socket_scheduler);
         break;
       case OP_CODE_ERROR:
         conexion_estable = false;

@@ -70,7 +70,8 @@ void handshake(t_datos_kernel_mem* datos_kernel_memory, int client_socket)
                   "Se ha conectado una memory Stick!");
       bool inicializar_correcto = true;
       t_datos_stick* datos_stick =
-          inicializar_datos_stick(client_socket, datos_kernel_memory->logger);
+          inicializar_datos_stick(client_socket, datos_kernel_memory->logger,
+                                  datos_kernel_memory->socket_scheduler);
       inicializar_correcto = inicializar_ip_stick(datos_stick, client_socket);
       inicializar_correcto = recibir_tamanio_stick(datos_stick);
       inicializar_correcto = recibir_puerto_escucha_stick(datos_stick);

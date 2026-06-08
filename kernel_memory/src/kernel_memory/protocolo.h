@@ -25,7 +25,7 @@ void enviar_tamanio_disponible_scheduler(int socket_scheduler,
                                          t_list* sticks_conectados,
                                          pthread_mutex_t* mutex_lista_sockets,
                                          t_logger* logger);
-void aniadirAListaMtx(t_list* lista, pthread_mutex_t* mutex, void* elemento);
+void aniadir_lista_mtx(t_list* lista, pthread_mutex_t* mutex, void* elemento);
 t_proceso* buscar_proceso(t_datos_cpu* datos_cpu, uint32_t pid);
 
 #endif

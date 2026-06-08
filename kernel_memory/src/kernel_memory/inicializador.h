@@ -20,7 +20,8 @@ t_datos_scheduler* inicializar_datos_scheduler(int socket_scheduler,
 t_datos_cpu* inicializar_datos_cpu(int socket_cpu, t_list* procesos,
                                    pthread_mutex_t* mutex_procesos,
                                    int instruction_delay, t_logger* logger);
-t_datos_stick* inicializar_datos_stick(int socket_stick, t_logger* logger);
+t_datos_stick* inicializar_datos_stick(int socket_stick, t_logger* logger,
+                                       int socket_scheduler);
 t_datos_swap* inicializar_datos_swap(int socket_swap, t_logger* logger);
 t_proceso* inicializar_proceso(u_int32_t pid, char* path_relativo,
                                char* scripts_basepath, t_logger* logger);

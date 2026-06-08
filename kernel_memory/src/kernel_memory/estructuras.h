@@ -49,6 +49,7 @@ typedef struct
   int socket_stick;
   char ip_memory_stick[16];
   int puerto_stick;
+  int socket_scheduler;
   t_logger* logger;
 } t_datos_stick;
 
