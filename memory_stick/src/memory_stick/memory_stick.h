@@ -41,5 +41,5 @@ bool get_args(int argc, char** argv, char** archivo_config, char** tamanio_str,
 void escribir_memoria(t_ms_recursos* ms_recursos, int posicion_inicial,
                       char* bytes_a_escribir, int cantidad_de_bytes);
 void leer_memoria(t_ms_recursos* ms_recursos, int posicion_inicial,
-                   int cantidad_de_bytes);
+                  int cantidad_de_bytes);
 #endif /* MEMORY_STICK_MEMORY_STICK_H_ */
