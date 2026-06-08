@@ -11,7 +11,8 @@ bool conseguir_y_enviar_puerto(int socket_km, int socket_server_cpu,
 {
   if (!enviar_puerto_server_ms_km(socket_km, get_puerto_cpu(socket_server_cpu)))
   {
-    logger_error(logger, "## Error en el envio del puerto del servidor para CPU");
+    logger_error(logger,
+                 "## Error en el envio del puerto del servidor para CPU");
     return false;
   }
   logger_info(logger, "## Envio del puerto del servidor para CPU exitoso");
@@ -63,7 +64,7 @@ bool iniciar_modulo(t_ms_recursos* ms_recursos, char* archivo_config,
 
   // Hilo para escuchar nuevas conexiones de CPUs
   return crear_servidor_cpu(hilo_server_cpu, ms_recursos->socket_server_cpu,
-                            ms_recursos->logger);
+                            ms_recursos->logger, ms_recursos);
 }
 
 t_config* iniciar_config(char* archivo_config, t_config_vars* config_vars)

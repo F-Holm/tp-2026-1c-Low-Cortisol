@@ -10,13 +10,14 @@ bool handshake_km(int socket_km, t_logger* logger)
 {
   if (!enviar_handshake(MID_MEMORY_STICK, socket_km))
   {
-    logger_error(logger, "## Error en el envio del Handshake con Kernel Memory");
+    logger_error(logger,
+                 "## Error en el envio del Handshake con Kernel Memory");
     return false;
   }
   if (recibir_handshake(socket_km) != MID_KERNEL_MEMORY)
   {
     logger_error(logger,
-              "## Error en la recepción del Handshake con Kernel Memory");
+                 "## Error en la recepción del Handshake con Kernel Memory");
     return false;
   }
   logger_info(logger, "## Handshake exitoso con Kernel Memory");
