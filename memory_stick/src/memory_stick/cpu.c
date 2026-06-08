@@ -205,7 +205,7 @@ void* manejar_cliente_cpu(void* datos_hilo_cpu_void)
         int cantidad_bytes = *(int*)list_get(paquete, 1);
         list_destroy_and_destroy_elements(paquete, free);
         leer_memoria(datos_hilo_cpu->ms_recursos, posicion_inicial,
-                     cantidad_bytes);
+                     cantidad_bytes, datos_hilo_cpu->socket_cpu);
         break;
       }
       case OP_MEMORY_STICK_ESCRIBIR:
@@ -222,7 +222,8 @@ void* manejar_cliente_cpu(void* datos_hilo_cpu_void)
         char* bytes_a_escribir = (char*)list_get(paquete, 1);
         int cantidad_bytes = *(int*)list_get(paquete, 2);
         escribir_memoria(datos_hilo_cpu->ms_recursos, posicion_inicial,
-                         bytes_a_escribir, cantidad_bytes);
+                         bytes_a_escribir, cantidad_bytes,
+                         datos_hilo_cpu->socket_cpu);
         break;
       }
       default:
