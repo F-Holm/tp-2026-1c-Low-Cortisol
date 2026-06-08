@@ -7,15 +7,15 @@
 #include "utils/msg.h"
 #include "utils/server.h"
 
-int create_server_cpu(t_log* logger)
+int create_server_cpu(t_logger* logger)
 {
   int ret = iniciar_servidor("0");
   if (ret <= 0)
   {
-    log_error(logger, "## Error en la creación del servidor para las CPU");
+    logger_error(logger, "## Error en la creación del servidor para las CPU");
     return -1;
   }
-  log_info(logger, "## Creación del servidor para las CPU exitosa");
+  logger_info(logger, "## Creación del servidor para las CPU exitosa");
   return ret;
 }
 
@@ -44,12 +44,12 @@ t_datos_hilo_cpu* inicializar_datos_hilo_cpu(
   return datos;
 }
 
-bool crear_hilo_cpu(t_datos_hilo_cpu* datos_hilo_cpu, t_log* logger)
+bool crear_hilo_cpu(t_datos_hilo_cpu* datos_hilo_cpu, t_logger* logger)
 {
   pthread_t hilo_cpu;
   if (pthread_create(&hilo_cpu, NULL, manejar_cliente_cpu, datos_hilo_cpu) != 0)
   {
-    log_error(logger, "## Error en la creación del hilo de la CPU");
+    logger_error(logger, "## Error en la creación del hilo de la CPU");
     return false;
   }
   pthread_detach(hilo_cpu);
@@ -72,31 +72,31 @@ void cerrar_hilo_escucha(t_list* lista_sockets,
   free(datos_hilo_escucha);
 }
 
-bool handshake_cpu(int socket_cpu, t_log* logger)
+bool handshake_cpu(int socket_cpu, t_logger* logger)
 {
   if (recibir_handshake(socket_cpu) != MID_CPU)
   {
-    log_error(logger, "## Error en la recepción del Handshake con CPU");
+    logger_error(logger, "## Error en la recepción del Handshake con CPU");
     return false;
   }
   if (!enviar_handshake(MID_MEMORY_STICK, socket_cpu))
   {
-    log_error(logger, "## Error en el envio del Handshake con CPU");
+    logger_error(logger, "## Error en el envio del Handshake con CPU");
     return false;
   }
-  log_info(logger, "## Handshake exitoso con CPU");
+  logger_info(logger, "## Handshake exitoso con CPU");
   return true;
 }
 
-char* obtener_id_cpu(int socket_cpu, t_log* logger)
+char* obtener_id_cpu(int socket_cpu, t_logger* logger)
 {
   if (recibir_operacion(socket_cpu) != OP_ID_CPU)
   {
-    log_error(logger, "## Error en la recepción del ID de la CPU");
+    logger_error(logger, "## Error en la recepción del ID de la CPU");
     return NULL;
   }
   char* id_cpu = recibir_string(socket_cpu);
-  log_info(logger, "## CPU %s Conectada", id_cpu);
+  logger_info(logger, "## CPU %s Conectada", id_cpu);
   return id_cpu;
 }
 
@@ -154,14 +154,14 @@ void* hilo_escucha_cpu(void* datos_hilo_escucha_void)
     if (socket_cpu <= 0)
       break;
 
-    log_info(datos_hilo_escucha->logger, "## Conexión exitosa con CPU");
+    logger_info(datos_hilo_escucha->logger, "## Conexión exitosa con CPU");
 
     if (!atender_nueva_cpu(datos_hilo_escucha, socket_cpu, lista_sockets,
                            &mutex_lista_sockets, &cond_fin_hilo_escucha))
       close(socket_cpu);
   }
 
-  log_info(datos_hilo_escucha->logger, "## Cerrando servidor");
+  logger_info(datos_hilo_escucha->logger, "## Cerrando servidor");
   cerrar_hilo_escucha(lista_sockets, &mutex_lista_sockets,
                       &cond_fin_hilo_escucha, datos_hilo_escucha);
   return NULL;
@@ -198,7 +198,7 @@ void* manejar_cliente_cpu(void* datos_hilo_cpu_void)
 }
 
 bool crear_servidor_cpu(pthread_t* thread_server_cpu, int socket_servidor_cpu,
-                        t_log* logger)
+                        t_logger* logger)
 {
   t_datos_hilo_escucha* datos_hilo_escucha =
       malloc(sizeof(t_datos_hilo_escucha));
@@ -207,7 +207,7 @@ bool crear_servidor_cpu(pthread_t* thread_server_cpu, int socket_servidor_cpu,
   if (pthread_create(thread_server_cpu, NULL, hilo_escucha_cpu,
                      datos_hilo_escucha) != 0)
   {
-    log_error(logger, "## Error al crear el hilo del servidor de CPU");
+    logger_error(logger, "## Error al crear el hilo del servidor de CPU");
     return false;
   }
   return true;
