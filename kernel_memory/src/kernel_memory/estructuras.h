@@ -65,7 +65,28 @@ typedef struct
   char* path_instrucciones;
   char** instrucciones;
   int cant_instrucciones;
+  t_list* segmentos;
   t_contexto contexto;
 } t_proceso;
+typedef struct
+{
+ uint32_t id;
+ uint32_t pid;
+ int base;
+ int size; 
+} t_segmento;
+
+typedef struct
+{
+ int base;
+ int size;
+} t_hueco;
+typedef struct
+{
+ int tamanio_total;
+ t_list* segmentos;
+ t_list* huecos;
+} t_memoria_principal;
+
 
 #endif

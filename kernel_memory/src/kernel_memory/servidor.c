@@ -79,11 +79,8 @@ void handshake(t_datos_kernel_mem* datos_kernel_memory, int client_socket)
       if (inicializar_correcto)
       {
         enviar_conexion_cpu(datos_stick, datos_kernel_memory->cpus_conectados);
-        enviar_tamanio_disponible_scheduler(
-            datos_kernel_memory->socket_scheduler,
-            datos_kernel_memory->sticks_conectados,
-            datos_kernel_memory->mutex_lista_sockets,
-            datos_kernel_memory->logger);
+        enviar_string(OP_NUEVO_MEMORY_STICK, "Se ha conectado una nueva Memory Stick",
+                      datos_kernel_memory->socket_scheduler);
         empezar_escucha_stick(datos_stick);
       }
       else

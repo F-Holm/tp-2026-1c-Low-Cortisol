@@ -68,7 +68,6 @@ void* escucha_scheduler(void* ptr)
       case OP_CODE_ERROR:
         conexion_estable = false;
         break;
-
       default:
         break;
     }
