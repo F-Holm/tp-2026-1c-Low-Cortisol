@@ -53,11 +53,13 @@ t_datos_cpu* inicializar_datos_cpu(int socket_cpu, t_list* procesos,
   return datos_cpu;
 }
 
-t_datos_stick* inicializar_datos_stick(int socket_stick, t_logger* logger)
+t_datos_stick* inicializar_datos_stick(int socket_stick, t_logger* logger,
+                                       int socket_scheduler)
 {
   t_datos_stick* datos_stick = malloc(sizeof(t_datos_stick));
   datos_stick->socket_stick = socket_stick;
   datos_stick->logger = logger;
+  datos_stick->socket_scheduler = socket_scheduler;
   datos_stick->tamanio_stick = -1;
   datos_stick->puerto_stick = -1;
   return datos_stick;
