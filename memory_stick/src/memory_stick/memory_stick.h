@@ -39,7 +39,8 @@ void cerrar_modulo(t_ms_recursos* ms_recursos, pthread_t* thread_server_cpu);
 bool get_args(int argc, char** argv, char** archivo_config, char** tamanio_str,
               int* tamanio);
 void escribir_memoria(t_ms_recursos* ms_recursos, int posicion_inicial,
-                      char* bytes_a_escribir, int cantidad_de_bytes);
+                      char* bytes_a_escribir, int cantidad_de_bytes,
+                      int socket_destino);
 void leer_memoria(t_ms_recursos* ms_recursos, int posicion_inicial,
-                  int cantidad_de_bytes);
+                  int cantidad_de_bytes, int socket_destino);
 #endif /* MEMORY_STICK_MEMORY_STICK_H_ */

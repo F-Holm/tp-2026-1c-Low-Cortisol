@@ -129,7 +129,7 @@ bool get_args(int argc, char** argv, char** archivo_config, char** tamanio_str,
 }
 
 void leer_memoria(t_ms_recursos* ms_recursos, int posicion_inicial,
-                  int cantidad_de_bytes)
+                  int cantidad_de_bytes, int socket_destino)
 {
   char* bytes_a_devolver = malloc(cantidad_de_bytes);
   pthread_mutex_lock(ms_recursos->mutex_memoria);
@@ -138,13 +138,13 @@ void leer_memoria(t_ms_recursos* ms_recursos, int posicion_inicial,
   pthread_mutex_unlock(ms_recursos->mutex_memoria);
   logger_info(ms_recursos->logger, "## Lectura de %d bytes", cantidad_de_bytes);
   usleep(ms_recursos->memory_delay * 1000);
-  enviar_string(OP_MEMORY_STICK_LEIDO, bytes_a_devolver,
-                ms_recursos->socket_km);
+  enviar_string(OP_MEMORY_STICK_LEIDO, bytes_a_devolver, socket_destino);
   free(bytes_a_devolver);
 }
 
 void escribir_memoria(t_ms_recursos* ms_recursos, int posicion_inicial,
-                      char* bytes_a_escribir, int cantidad_de_bytes)
+                      char* bytes_a_escribir, int cantidad_de_bytes,
+                      int socket_destino)
 {
   pthread_mutex_lock(ms_recursos->mutex_memoria);
   memcpy(ms_recursos->memoria + posicion_inicial, bytes_a_escribir,
@@ -153,5 +153,5 @@ void escribir_memoria(t_ms_recursos* ms_recursos, int posicion_inicial,
   logger_info(ms_recursos->logger, "## Escritura de %d bytes",
               cantidad_de_bytes);
   usleep(ms_recursos->memory_delay * 1000);
-  enviar_string(OP_MEMORY_STICK_ESCRITO, "", ms_recursos->socket_km);
+  enviar_string(OP_MEMORY_STICK_ESCRITO, "", socket_destino);
 }
