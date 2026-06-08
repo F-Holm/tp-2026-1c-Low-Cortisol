@@ -144,7 +144,7 @@ void enviar_conexion_cpu(t_datos_stick* datos_stick, t_list* cpus_conectados)
   eliminar_paquete(paquete);
 }
 
-u_int32_t calcular_memoria_total(t_list* sticks_conectados,
+/* u_int32_t calcular_memoria_total(t_list* sticks_conectados,
                                  pthread_mutex_t* mutex_lista_sockets)
 {
   u_int32_t total = 0;
@@ -158,19 +158,8 @@ u_int32_t calcular_memoria_total(t_list* sticks_conectados,
   }
   return total;
 }
+  */
 
-void enviar_tamanio_disponible_scheduler(int socket_scheduler,
-                                         t_list* sticks_conectados,
-                                         pthread_mutex_t* mutex_lista_sockets,
-                                         t_logger* logger)
-{
-  t_paquete* paquete = crear_paquete(OP_TAMANIO_TOTAL_MEMORIA);
-  u_int32_t tamanio_total =
-      calcular_memoria_total(sticks_conectados, mutex_lista_sockets);
-  agregar_a_paquete(paquete, &tamanio_total, sizeof(u_int32_t));
-  enviar_paquete(paquete, socket_scheduler);
-  eliminar_paquete(paquete);
-}
 
 t_proceso* buscar_proceso(t_datos_cpu* datos_cpu, uint32_t pid)
 {

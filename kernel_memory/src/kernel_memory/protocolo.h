@@ -21,11 +21,8 @@ void enviar_sticks_conectadas(t_list* sticks_conectados,
 void enviar_conexion_cpu(t_datos_stick* datos_stick, t_list* cpus_conectados);
 void agregar_conexion_cpu(t_datos_kernel_mem* datos_kernel_memory,
                           t_datos_cpu* datos_cpu);
-void enviar_tamanio_disponible_scheduler(int socket_scheduler,
-                                         t_list* sticks_conectados,
-                                         pthread_mutex_t* mutex_lista_sockets,
-                                         t_logger* logger);
 void aniadir_lista_mtx(t_list* lista, pthread_mutex_t* mutex, void* elemento);
 t_proceso* buscar_proceso(t_datos_cpu* datos_cpu, uint32_t pid);
+// u_int32_t calcular_memoria_total(t_list* sticks_conectados, pthread_mutex_t* mutex_lista_sockets);
 
 #endif
