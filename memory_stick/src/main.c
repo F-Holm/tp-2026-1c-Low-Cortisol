@@ -1,7 +1,6 @@
 #include <arpa/inet.h>
 #include <commons/collections/list.h>
 #include <commons/config.h>
-#include <commons/log.h>
 #include <pthread.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -11,6 +10,7 @@
 #include "memory_stick/cpu.h"
 #include "memory_stick/kernel_memory.h"
 #include "memory_stick/memory_stick.h"
+#include "utils/logger.h"
 #include "utils/msg.h"
 
 int main(int argc, char* argv[])
@@ -38,16 +38,41 @@ int main(int argc, char* argv[])
   while (seguir_operando)
   {
     int op_code = recibir_operacion(ms_recursos.socket_km);
-    char* buffer;
-
     switch (op_code)
     {
-      case OP_CODE_ERROR:
-        seguir_operando = false;
+      case OP_MEMORY_STICK_LEER:
+      {
+        t_list* paquete = recibir_paquete(ms_recursos.socket_km);
+        if (list_size(paquete) != 2)
+        {
+          logger_error(ms_recursos.logger,
+                       "Cantidad de parametros para leer memoria invalida.");
+          break;
+        }
+        int posicion_inicial = *(int*)list_get(paquete, 0);
+        int cantidad_bytes = *(int*)list_get(paquete, 1);
+        leer_memoria(&ms_recursos, posicion_inicial, cantidad_bytes);
         break;
+      }
+      case OP_MEMORY_STICK_ESCRIBIR:
+      {
+        t_list* paquete = recibir_paquete(ms_recursos.socket_km);
+        if (list_size(paquete) != 3)
+        {
+          logger_error(
+              ms_recursos.logger,
+              "Cantidad de parametros para escribir memoria invalida.");
+          break;
+        }
+        int posicion_inicial = *(int*)list_get(paquete, 0);
+        char* bytes_a_escribir = (char*)list_get(paquete, 1);
+        int cantidad_bytes = *(int*)list_get(paquete, 2);
+        escribir_memoria(&ms_recursos, posicion_inicial, bytes_a_escribir,
+                         cantidad_bytes);
+        break;
+      }
       default:
-        buffer = recibir_string(ms_recursos.socket_km);
-        free(buffer);
+        seguir_operando = false;
         break;
     }
   }
