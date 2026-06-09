@@ -887,8 +887,9 @@ typedef struct
   t_lista_sleep* lista_sleep;
 } t_hilo_io_sleep;
 
-La estructura de abajo tiene 3 elementos iguales, reemplazar por un arreglo o que sea parte de t_io (creo que es lo mejor)
-Podes acceder a las posiciones del arreglo con la estructura de tipo de io que está en la utils
+La estructura de abajo tiene 3 elementos iguales, reemplazar por un arreglo o
+que sea parte de t_io (creo que es lo mejor) Podes acceder a las posiciones del
+arreglo con la estructura de tipo de io que está en la utils
 
 typedef struct
 {
@@ -899,13 +900,21 @@ typedef struct
 
 El pthread_mutex_lock(&(io[i].mutex_fin)); no tiene sentido
 
-Podes usar un pthread_join(io[i].hilo_io); (es mucho mejor que tener un mutex específico para eso)
+Podes usar un pthread_join(io[i].hilo_io); (es mucho mejor que tener un mutex
+específico para eso)
 
-Cuando unifiques las estructuras de arriba, probáblemente puedas eliminar alguna funcion que tenés triplicada
+Cuando unifiques las estructuras de arriba, probáblemente puedas eliminar alguna
+funcion que tenés triplicada
 
-Las listas son un t_list* y guardan los elementos como void*, el tipo de dato es el mismo para cualquier cosa que pueda llegar a contener la lista, todos son t_list*, por eso podés unificar las structus de arriba
+Las listas son un t_list* y guardan los elementos como void*, el tipo de dato es
+el mismo para cualquier cosa que pueda llegar a contener la lista, todos son
+t_list*, por eso podés unificar las structus de arriba
 
-Cuando hay que cerrar los IOs, tal vez tengas que hacer un shutdown del socket de io. Si justo se está ejecutando un delay de 25 segundo y hay una BSOD (memory stick desconectado), con el shutdown podés hacer que todos los que estén esperando respuesta por ese socket se desbloqueen y les de op_code de error
+Cuando hay que cerrar los IOs, tal vez tengas que hacer un shutdown del socket
+de io. Si justo se está ejecutando un delay de 25 segundo y hay una BSOD (memory
+stick desconectado), con el shutdown podés hacer que todos los que estén
+esperando respuesta por ese socket se desbloqueen y les de op_code de error
 
-Cuando cerras los io, que pasa si un hilo ya cerró antes o nunca se abrió y se ejecuta esa función
+Cuando cerras los io, que pasa si un hilo ya cerró antes o nunca se abrió y se
+ejecuta esa función
 */

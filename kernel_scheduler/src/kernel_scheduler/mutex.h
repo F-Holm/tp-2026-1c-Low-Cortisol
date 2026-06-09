@@ -12,7 +12,7 @@
 typedef struct
 {
   char* id;
-  int prioridad_original_proceso;
+  int prioridad_siguiente;
   pthread_mutex_t mutex;
   bool prioridad_activa;
   t_list* lista;

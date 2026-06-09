@@ -475,7 +475,12 @@ static t_pcb* cambio_sacar_new(char* archivo_instrucciones, int prioridad,
   t_pcb* pcb = crear_pcb();
   logger_info(colas->logger, "## %u Se crea el proceso - Estado: NEW",
               pcb->pid);
+
   pcb->prioridad = prioridad;
+  int* aux = malloc(sizeof(int));
+  *aux = prioridad;
+  list_add(pcb->lista_prioridades, aux);
+
   aumentar_contador_procesos(colas->contador_procesos);
   if (!avisar_nuevo_proceso(colas->socket_km, archivo_instrucciones, pcb->pid))
   {
