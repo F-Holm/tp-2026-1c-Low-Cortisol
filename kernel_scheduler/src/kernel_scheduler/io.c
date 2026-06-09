@@ -10,14 +10,6 @@
 #include "utils/msg.h"
 #include "utils/registros.h"
 
-void inicializar_listas_io(t_io io[3])
-{
-  for (int i = 0; i < 3; i++)
-  {
-    io[i].lista_io->lista_io = list_create();
-    pthread_mutex_init(&(io[i].lista_io->mutex_lista_io), NULL);
-  }
-}
 
 // Funciones de comunicacion de syscalls IO
 bool envio_stdout(t_io* io_out, t_stdout* peticion, char* buffer)
@@ -489,6 +481,9 @@ bool atender_nuevo_io(t_io io[3], int socket_fd, t_colas* colas,
   io[tipo_io].socket_km = colas->socket_km;
   io[tipo_io].prioridad_activa = prioridad_activa;
   io[tipo_io].tipo_io = tipo_io;
+  io[tipo_io].lista_io = malloc(sizeof(t_lista_io));
+  io[tipo_io].lista_io->lista_io = list_create();
+  pthread_mutex_init(&(io[tipo_io].lista_io->mutex_lista_io), NULL);
 
   if (pthread_create(&(io[tipo_io].hilo_io), NULL, hilo_io,
                      (void*)(&(io[tipo_io]))))
@@ -604,8 +599,8 @@ void cerrar_io(t_io io[3])
   {
     if (io[i].socket_io != -1)
     {
-      pthread_mutex_lock(&(io[i].mutex_socket_io));
       shutdown(io[i].socket_io, SHUT_RDWR);
+      pthread_mutex_lock(&(io[i].mutex_socket_io));
       io[i].socket_io = -1;
       pthread_mutex_unlock(&(io[i].mutex_socket_io));
       pthread_mutex_lock(&(io[i].mutex_fin));
