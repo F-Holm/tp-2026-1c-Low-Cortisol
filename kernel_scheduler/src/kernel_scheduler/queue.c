@@ -322,11 +322,6 @@ static bool gestionar_estado_pcb(t_logger* logger, t_pcb* pcb,
   return false;
 }
 
-static bool esta_bloqueado(t_pcb* pcb)
-{
-  return pcb->estado == EST_BLOCK;
-}
-
 bool puedo_suspender(t_pcb* pcb, int suspension_timeout)
 {
   return time_diff(millis(), pcb->tiempo_bloqueado) >= suspension_timeout;
@@ -876,7 +871,7 @@ void cambio_susp_ready_ready(t_pcb* pcb, t_colas* colas)
 static void cambio_des_suspender_sin_mutex_ni_compactacion(t_pcb* pcb,
                                                            t_colas* colas)
 {
-  if (esta_bloqueado(pcb))
+  if (pcb->estado == EST_BLOCK)
   {
     cambio_susp_ready_ready_sin_mutex_sin_compactacion(pcb, colas);
   }
@@ -886,9 +881,10 @@ static void cambio_des_suspender_sin_mutex_ni_compactacion(t_pcb* pcb,
   }
 }
 
-static void cambio_desbloquear_sin_mutex(t_pcb* pcb, t_colas* colas)
+void cambio_desbloquear(t_pcb* pcb, t_colas* colas)
 {
-  if (esta_bloqueado(pcb))
+  pthread_mutex_lock(&(pcb->mutex_estado));
+  if (pcb->estado == EST_BLOCK)
   {
     cambio_block_ready_sin_mutex(pcb, colas);
   }
@@ -896,11 +892,6 @@ static void cambio_desbloquear_sin_mutex(t_pcb* pcb, t_colas* colas)
   {
     cambio_susp_block_susp_ready_sin_mutex(pcb, colas);
   }
-}
-void cambio_desbloquear(t_pcb* pcb, t_colas* colas)
-{
-  pthread_mutex_lock(&(pcb->mutex_estado));
-  cambio_desbloquear_sin_mutex(pcb, colas);
   pthread_mutex_unlock(&(pcb->mutex_estado));
 }
 
@@ -1261,43 +1252,42 @@ static bool des_suspender_proceso_sin_compactacion(t_colas* colas,
   return false;
 }
 
-bool esta_vacia(t_lista lista)
+static bool esta_vacia(t_lista lista)
 {
   pthread_mutex_lock(&(lista.mutex_lista));
   return list_is_empty(lista.lista);
 }
 
-bool retirar_de_la_lista(t_colas* colas, int estado_deseado)
+static bool retirar_de_la_lista(t_colas* colas, int estado_deseado)
 {
+  t_lista* lista;
   if (estado_deseado == EST_SUSP_READY)
   {
-    t_pcb* proceso1 = list_get(colas->susp_ready.lista, 0);
-    pthread_mutex_unlock(&(colas->susp_ready.mutex_lista));
-    pthread_mutex_lock(&(proceso1->mutex_estado));
-    if (proceso1->estado == EST_SUSP_READY)
-    {
-      bool resultado = des_suspender_proceso_sin_compactacion(colas, proceso1);
-      pthread_mutex_unlock(&(proceso1->mutex_estado));
-      return resultado;
-    }
-    else
-    {
-      t_pcb* proceso2 = list_get(colas->susp_block.lista, 0);
-      pthread_mutex_unlock(&(colas->susp_block.mutex_lista));
-      pthread_mutex_lock(&(proceso2->mutex_estado));
-      if (proceso2->estado == EST_SUSP_BLOCK)
-      {
-        bool resultado =
-            des_suspender_proceso_sin_compactacion(colas, proceso2);
-        pthread_mutex_unlock(&(proceso2->mutex_estado));
-        return resultado;
-      }
-    }
+    lista = &(colas->susp_ready);
   }
+  else if (estado_deseado == EST_SUSP_READY)
+  {
+    lista = &(colas->susp_block);
+  }
+  else
+  {
+    return false;
+  }
+
+  t_pcb* proceso = list_get(lista->lista, 0);
+  pthread_mutex_unlock(&(lista->mutex_lista));
+  pthread_mutex_lock(&(proceso->mutex_estado));
+  if (proceso->estado == estado_deseado)
+  {
+    bool resultado = des_suspender_proceso_sin_compactacion(colas, proceso);
+    pthread_mutex_unlock(&(proceso->mutex_estado));
+    return resultado;
+  }
+
   return true;
 }
 
-void rutina_des_suspension(t_colas* colas)
+static void rutina_des_suspension(t_colas* colas)
 {
   bool seguir_operando = true;
   while (seguir_operando)
@@ -1319,7 +1309,8 @@ void rutina_des_suspension(t_colas* colas)
     }
   }
 }
-int recibir_espacio(t_colas* colas, int espacio)
+
+static int recibir_espacio(t_colas* colas, int espacio)
 {
   int op_code = -1;
   op_code = recibir_operacion(colas->socket_km->socket_km);
@@ -1347,6 +1338,7 @@ int recibir_espacio(t_colas* colas, int espacio)
   }
   return espacio;
 }
+
 int espacio_disponible_sin_mutex(t_colas* colas, uint32_t pid)
 {
   int espacio = -1;
@@ -1368,7 +1360,8 @@ int espacio_disponible(t_colas* colas, uint32_t pid)
   pthread_mutex_unlock(&(colas->socket_km->mutex_socket));
   return espacio;
 }
-int recibir_tamanio(t_colas* colas, int espacio)
+
+static int recibir_tamanio(t_colas* colas, int espacio)
 {
   int op_code = -1;
   op_code = recibir_operacion(colas->socket_km->socket_km);
@@ -1420,7 +1413,7 @@ int tamanio_proceso(t_colas* colas, uint32_t pid)
   return espacio;
 }
 
-void* hilo_rutina_des_suspension(void* datos_des_suspension)
+static void* hilo_rutina_des_suspension(void* datos_des_suspension)
 {
   t_colas* colas = (t_colas*)datos_des_suspension;
   pthread_mutex_lock(&(colas->mutex_rutina));
@@ -1451,8 +1444,9 @@ void crear_hilo_rutina_des_suspension(
                 "## Hilo de la rutina de des-suspension iniciado exitosamente");
   }
 }
+
 // RUTINA DE COMPACTACIÓN
-bool termino_compactacion(t_colas* colas)
+static bool termino_compactacion(t_colas* colas)
 {
   int op_code = -1;
   op_code = recibir_operacion(colas->socket_km->socket_km);
@@ -1477,7 +1471,8 @@ bool termino_compactacion(t_colas* colas)
       return false;
   }
 }
-void rutina_compactacion(t_colas* colas)
+
+static void rutina_compactacion(t_colas* colas)
 {
   if (!(enviar_string(OP_PUEDE_COMPACTAR, "Iniciar compactación",
                       colas->socket_km->socket_km)))
@@ -1492,7 +1487,8 @@ void rutina_compactacion(t_colas* colas)
     logger_info(colas->logger, "## Fin de compactacion");
   }
 }
-void* hilo_rutina_compactacion(void* datos_compactacion)
+
+static void* hilo_rutina_compactacion(void* datos_compactacion)
 {
   t_colas* colas = (t_colas*)datos_compactacion;
   pthread_mutex_lock(&(colas->mutex_rutina));
@@ -1525,13 +1521,3 @@ void crear_hilo_compactacion(t_colas* colas)
     return;
   }
 }
-/*
-suspender_proceso: solo falla si se desconecta el KM
-
-des_suspender_proceso
-- pido el espacio libre
-- pido el tamaño del proceso
-- Puede devolver 2 cosas (todavía no cree los op_codes)
-- proceso_des-suspendido
-- compactación
-*/
