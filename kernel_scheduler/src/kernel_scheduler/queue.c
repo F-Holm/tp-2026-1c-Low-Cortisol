@@ -807,7 +807,7 @@ static void avisar_proceso_des_suspendido(t_pcb* pcb, t_colas* colas)
 {
   pthread_mutex_lock(&(colas->socket_km->mutex_socket));
 
-  if (!(enviar_buffer(OP_SUSPENDER_PROCESO, &(pcb->pid), sizeof(uint32_t),
+  if (!(enviar_buffer(OP_DES_SUSPENDER_PROCESO, &(pcb->pid), sizeof(uint32_t),
                       colas->socket_km->socket_km)))
   {
     cerrar_kernel_scheduler(colas->socket_servidor, colas->logger,
@@ -843,16 +843,33 @@ static void cambio_susp_ready_ready_sin_mutex(t_pcb* pcb, t_colas* colas)
   }
 }
 
+static void cambio_susp_ready_ready_sin_mutex_sin_compactacion(t_pcb* pcb, t_colas* colas)
+{
+  if (gestionar_estado_pcb(colas->logger, pcb, EST_SUSP_READY, EST_READY))
+  {
+    cambio_sacar_susp_ready(pcb, &(colas->susp_ready));
+  }
+}
 void cambio_susp_ready_ready(t_pcb* pcb, t_colas* colas)
 {
   pthread_mutex_lock(&(pcb->mutex_estado));
   cambio_susp_ready_ready_sin_mutex(pcb, colas);
   pthread_mutex_unlock(&(pcb->mutex_estado));
 }
-
-void cambio_desbloquear(t_pcb* pcb, t_colas* colas)
+static void cambio_desbloquear_sin_mutex_ni_compactacion(t_pcb* pcb, t_colas* colas)
 {
-  pthread_mutex_lock(&(pcb->mutex_estado));
+  if (esta_bloqueado(pcb))
+  {
+    cambio_block_ready_sin_mutex(pcb, colas);
+  }
+  else
+  {
+    cambio_susp_block_susp_ready_sin_mutex_sin_compactacion(pcb, colas);
+  }
+}
+
+static void cambio_desbloquear_sin_mutex(t_pcb* pcb, t_colas* colas)
+{
   if (esta_bloqueado(pcb))
   {
     cambio_block_ready_sin_mutex(pcb, colas);
@@ -861,6 +878,11 @@ void cambio_desbloquear(t_pcb* pcb, t_colas* colas)
   {
     cambio_susp_block_susp_ready_sin_mutex(pcb, colas);
   }
+}
+void cambio_desbloquear(t_pcb* pcb, t_colas* colas)
+{
+  pthread_mutex_lock(&(pcb->mutex_estado));
+  cambio_desbloquear_sin_mutex(pcb, colas);
   pthread_mutex_unlock(&(pcb->mutex_estado));
 }
 
@@ -1214,33 +1236,50 @@ static bool des_suspender_proceso_sin_compactacion(t_colas* colas,
       puede_des_suspender_sin_compactacion_sin_mutex(colas, proceso);
   if (des_suspender_proceso)
   {
-    cambio_desbloquear(proceso, colas);
+    cambio_desbloquear_sin_mutex_ni_compactacion(proceso, colas);
     return true;
   }
   return false;
 }
-
  bool esta_vacia(t_lista lista){
   pthread_mutex_lock(&(lista.mutex_lista));
   return list_is_empty(lista.lista);
  }
 
+bool retirar_de_la_lista(int estado_deseado, t_colas* colas){
+  if(estado_deseado == EST_SUSP_READY){
+  t_pcb* proceso1 = list_get(colas->susp_ready.lista, 0);
+  pthread_mutex_unlock(&(colas->susp_ready.mutex_lista));
+  pthread_mutex_lock(&(proceso1->mutex_estado));
+  if(proceso2->estado == EST_SUSP_READY){
+  bool resultado = des_suspender_proceso_sin_compactacion(colas, proceso1);
+  pthread_mutex_unlock(&(proceso1->mutex_estado));
+  return resultado;
+  }else{
+  t_pcb* proceso2 = list_get(colas->susp_block.lista, 0);
+  pthread_mutex_unlock(&(colas->susp_block.mutex_lista));
+  pthread_mutex_lock(&(proceso2->mutex_estado));
+  if(proceso2->estado == EST_SUSP_BLOCK){
+  bool resultado = des_suspender_proceso_sin_compactacion(colas, proceso2);
+  pthread_mutex_unlock(&(proceso2->mutex_estado));
+  return resultado;
+  }
+}
+return true;
+}
+
+
+
 void rutina_des_suspension(t_colas* colas)
 {
-  t_pcb* proceso1;
-  t_pcb* proceso2;
   bool seguir_operando = true;
   while (seguir_operando)
   {
     while(seguir_operando && !(esta_vacia(colas->susp_ready))){
-      proceso1 = list_get(colas->susp_ready.lista, 0);
-      pthread_mutex_unlock(&(colas->susp_ready.mutex_lista));
-      seguir_operando = des_suspender_proceso_sin_compactacion(colas, proceso1);
+      seguir_operando = retirar_de_la_lista(colas, EST_SUSP_READY);
     }
     while(seguir_operando && !(esta_vacia(colas->susp_block))){
-      proceso2 = list_get(colas->susp_block.lista, 0);
-      pthread_mutex_unlock(&(colas->susp_block.mutex_lista));
-      seguir_operando = des_suspender_proceso_sin_compactacion(colas, proceso2);
+      seguir_operando = seguir_operando = retirar_de_la_lista(colas, EST_SUSP_BLOCK);
     }
     if(seguir_operando && !(esta_vacia(colas->susp_ready) || esta_vacia(colas->susp_block))){
       seguir_operando = false;
