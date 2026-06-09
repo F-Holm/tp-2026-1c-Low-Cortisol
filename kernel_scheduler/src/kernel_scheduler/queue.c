@@ -478,7 +478,12 @@ static t_pcb* cambio_sacar_new(char* archivo_instrucciones, int prioridad,
   t_pcb* pcb = crear_pcb();
   logger_info(colas->logger, "## %u Se crea el proceso - Estado: NEW",
               pcb->pid);
+
   pcb->prioridad = prioridad;
+  int* aux = malloc(sizeof(int));
+  *aux = prioridad;
+  list_add(pcb->lista_prioridades, aux);
+
   aumentar_contador_procesos(colas->contador_procesos);
   if (!avisar_nuevo_proceso(colas->socket_km, archivo_instrucciones, pcb->pid))
   {
@@ -1255,6 +1260,7 @@ static bool des_suspender_proceso_sin_compactacion(t_colas* colas,
   }
   return false;
 }
+
 bool esta_vacia(t_lista lista)
 {
   pthread_mutex_lock(&(lista.mutex_lista));

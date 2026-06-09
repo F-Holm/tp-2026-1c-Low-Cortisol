@@ -34,6 +34,7 @@ typedef struct
 {
   uint32_t pid;
   int prioridad;
+  t_list* lista_prioridades;
   pthread_mutex_t mutex_prioridad;
   unsigned long tiempo_bloqueado;
   int estado;
