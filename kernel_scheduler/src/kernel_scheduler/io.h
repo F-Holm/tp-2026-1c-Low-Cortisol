@@ -33,6 +33,7 @@ typedef struct
   bool cerrar_hilo;
   pthread_t hilo_io;
   t_lista_io* lista_io;
+  int tipo_io;
 } t_io;
 
 typedef struct
