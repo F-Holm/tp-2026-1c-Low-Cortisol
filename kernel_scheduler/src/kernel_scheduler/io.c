@@ -12,11 +12,10 @@
 
 void inicializar_listas_io(t_io io[3])
 {
-   for (int i = 0; i < 3; i++)
+  for (int i = 0; i < 3; i++)
   {
     io[i].lista_io = malloc(sizeof(t_lista_io));
     io[i].lista_io->lista_io = list_create();
-
   }
 }
 
@@ -82,8 +81,7 @@ bool envio_stdin(t_stdin* peticion, t_io* io_in, char* buffer)
   free(paquete);
   return true;
 }
-bool comunicacion_io_stdin(t_stdin* peticion, t_io* io_in,
-                           char* buffer)
+bool comunicacion_io_stdin(t_stdin* peticion, t_io* io_in, char* buffer)
 {
   int peticion_size = sizeof(t_peticion_stdin);
   bool envio = enviar_buffer(OP_PETICION_IO_STDIN, peticion->peticion,
@@ -160,8 +158,7 @@ void finalizar_stdin(t_stdin* peticion, t_io* io)
 
   // Paso a ready o susp ready dependiendo del tiempo bloqueado
   cambio_desbloquear(peticion->pcb, io->colas);
-  logger_info(io->logger,
-              "##  <%d> - Finalizó IO y pasa a READY / SUSP. READY",
+  logger_info(io->logger, "##  <%d> - Finalizó IO y pasa a READY / SUSP. READY",
               peticion->pcb->pid);
 }
 
@@ -181,8 +178,7 @@ void finalizar_stdout(t_stdout* peticion, t_io* io)
 
   // Paso a ready o susp ready dependiendo del tiempo bloqueado
   cambio_desbloquear(peticion->pcb, io->colas);
-  logger_info(io->logger,
-              "##  <%d> - Finalizó IO y pasa a READY / SUSP. READY",
+  logger_info(io->logger, "##  <%d> - Finalizó IO y pasa a READY / SUSP. READY",
               peticion->pcb->pid);
 }
 
@@ -202,12 +198,9 @@ void finalizar_sleep(t_sleep* peticion, t_io* io)
 
   // Paso a ready o susp ready dependiendo del tiempo bloqueado
   cambio_desbloquear(peticion->pcb, io->colas);
-  logger_info(io->logger,
-              "##  <%d> - Finalizó IO y pasa a READY / SUSP. READY",
+  logger_info(io->logger, "##  <%d> - Finalizó IO y pasa a READY / SUSP. READY",
               peticion->pcb->pid);
 }
-
-
 
 int io_sleep_f(t_sleep* peticion, t_io* io_sleep)
 {
@@ -323,7 +316,7 @@ void* hilo_io_in(void* hilo_in)
     {
       seguir_atendiendo = false;
     }
-     pthread_mutex_unlock(&(io_stdin->mutex_fin));
+    pthread_mutex_unlock(&(io_stdin->mutex_fin));
   }
   cerrar_io_stdin(io_stdin);
   return NULL;
@@ -563,8 +556,8 @@ int obtener_tipo_io(int socket_fd, t_logger* logger)
   return tipo_io;
 }
 
-
-bool atender_nuevo_io(t_io io[3], int socket_fd, t_colas* colas, bool prioridad_activa)
+bool atender_nuevo_io(t_io io[3], int socket_fd, t_colas* colas,
+                      bool prioridad_activa)
 {
   if (!responder_handshake(socket_fd, MID_KERNEL_SCHEDULER, colas->logger))
     return false;
@@ -603,8 +596,7 @@ bool atender_nuevo_io(t_io io[3], int socket_fd, t_colas* colas, bool prioridad_
       }
       break;
     case E_STDOUT:
-      pthread_mutex_init(&(io[tipo_io].lista_io->mutex_lista_io),
-                         NULL);
+      pthread_mutex_init(&(io[tipo_io].lista_io->mutex_lista_io), NULL);
       if (pthread_create(&(io[tipo_io].hilo_io), NULL, hilo_io_out,
                          (void*)(&(io[tipo_io]))))
       {
@@ -634,7 +626,8 @@ bool comparar_prioridad_stdin(void* syscall1, void* syscall2)
   t_stdin* stdin2 = (t_stdin*)syscall2;
   return (stdin1->pcb->prioridad <= stdin2->pcb->prioridad);
 }
-bool procesar_nuevo_stdin(t_peticion_stdin* peticion, t_io* io_stdin, t_pcb* pcb)
+bool procesar_nuevo_stdin(t_peticion_stdin* peticion, t_io* io_stdin,
+                          t_pcb* pcb)
 {
   pthread_mutex_lock(&(io_stdin->mutex_socket_io));
   if (io_stdin->socket_io == -1)
@@ -650,7 +643,8 @@ bool procesar_nuevo_stdin(t_peticion_stdin* peticion, t_io* io_stdin, t_pcb* pcb
   {
     pthread_mutex_lock(&(io_stdin->lista_io->mutex_lista_io));
     bool lista_vacia = list_is_empty(io_stdin->lista_io->lista_io);
-    list_add_sorted(io_stdin->lista_io->lista_io, stdin, comparar_prioridad_stdin);
+    list_add_sorted(io_stdin->lista_io->lista_io, stdin,
+                    comparar_prioridad_stdin);
     if (lista_vacia)
     {
       pthread_cond_signal(&(io_stdin->nuevo_proceso));
@@ -679,7 +673,8 @@ bool comparar_prioridad_stdout(void* syscall1, void* syscall2)
   return (stdout1->pcb->prioridad <= stdout2->pcb->prioridad);
 }
 
-bool procesar_nuevo_stdout(t_peticion_stdout* peticion, t_io* io_stdout, t_pcb* pcb)
+bool procesar_nuevo_stdout(t_peticion_stdout* peticion, t_io* io_stdout,
+                           t_pcb* pcb)
 {
   pthread_mutex_lock(&(io_stdout->mutex_socket_io));
   if (io_stdout->socket_io == -1)
@@ -724,7 +719,8 @@ bool comparar_prioridad_sleep(void* syscall1, void* syscall2)
   return (sleep1->pcb->prioridad <= sleep2->pcb->prioridad);
 }
 
-bool procesar_nuevo_sleep(t_peticion_sleep* peticion, t_io* io_sleep, t_pcb* pcb)
+bool procesar_nuevo_sleep(t_peticion_sleep* peticion, t_io* io_sleep,
+                          t_pcb* pcb)
 {
   pthread_mutex_lock(&(io_sleep->mutex_socket_io));
   if (io_sleep->socket_io == -1)
@@ -740,7 +736,8 @@ bool procesar_nuevo_sleep(t_peticion_sleep* peticion, t_io* io_sleep, t_pcb* pcb
   {
     pthread_mutex_lock(&(io_sleep->lista_io->mutex_lista_io));
     bool lista_vacia = list_is_empty(io_sleep->lista_io->lista_io);
-    list_add_sorted(io_sleep->lista_io->lista_io, sleep, comparar_prioridad_sleep);
+    list_add_sorted(io_sleep->lista_io->lista_io, sleep,
+                    comparar_prioridad_sleep);
     if (lista_vacia)
     {
       pthread_cond_signal(&(io_sleep->nuevo_proceso));
@@ -773,13 +770,14 @@ void cerrar_io(t_io io[3])
 {
   for (int i = 0; i < 3; i++)
   {
-    if(io[i].socket_io != -1){
-    pthread_mutex_lock(&(io{i}->mutex_fin));
-    io[i].cerrar_hilo = true;
-    pthread_mutex_lock(&(io{i}->mutex_fin));
-    pthread_join(io[i].hilo_io);
-    destruir_io(&io[i]);
+    if (io[i].socket_io != -1)
+    {
+      pthread_mutex_lock(&(io { i } -> mutex_fin));
+      io[i].cerrar_hilo = true;
+      pthread_mutex_lock(&(io { i } -> mutex_fin));
+      pthread_join(io[i].hilo_io);
+      destruir_io(&io[i]);
+    }
   }
-}
   free(io);
 }
