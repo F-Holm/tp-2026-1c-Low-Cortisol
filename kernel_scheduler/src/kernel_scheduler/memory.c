@@ -40,7 +40,7 @@ bool respuesta_km_mem_alloc(t_colas* colas)
 bool hay_espacio(t_syscall_memory* mem_alloc, t_colas* colas)
 {
   int espacio = espacio_disponible(colas, mem_alloc->pid);
-  return (espacio < mem_alloc->tamaño);
+  return (espacio < mem_alloc->tamanio);
 }
 
 bool allocate_memory(t_syscall_memory* mem_alloc, t_colas* colas)

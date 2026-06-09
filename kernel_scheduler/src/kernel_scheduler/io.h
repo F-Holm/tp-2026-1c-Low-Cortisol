@@ -15,6 +15,11 @@
 
 typedef struct
 {
+  t_list* lista_io;
+  pthread_mutex_t mutex_lista_io;
+} t_lista_io;
+typedef struct
+{
   int socket_io;
   pthread_mutex_t mutex_socket_io;
   pthread_mutex_t mutex_fin;
@@ -27,6 +32,8 @@ typedef struct
   int socket_server;
   bool cerrar_hilo;
   pthread_t hilo_io;
+  t_lista_io* lista_io;
+  int tipo_io;
 } t_io;
 
 typedef struct
@@ -47,61 +54,18 @@ typedef struct
   t_peticion_sleep* peticion;
 } t_sleep;
 
-typedef struct
-{
-  t_list* lista_stdin;
-  pthread_mutex_t mutex_lista_stdin;
-} t_lista_stdin;
-
-typedef struct
-{
-  t_list* lista_stdout;
-  pthread_mutex_t mutex_lista_stdout;
-} t_lista_stdout;
-
-typedef struct
-{
-  t_list* lista_sleep;
-  pthread_mutex_t mutex_lista_sleep;
-} t_lista_sleep;
-
-typedef struct
-{
-  t_io* io;
-  t_lista_stdin* lista_stdin;
-} t_hilo_io_in;
-
-typedef struct
-{
-  t_io* io;
-  t_lista_stdout* lista_stdout;
-} t_hilo_io_out;
-
-typedef struct
-{
-  t_io* io;
-  t_lista_sleep* lista_sleep;
-} t_hilo_io_sleep;
-
-typedef struct
-{
-  t_lista_stdin* lista_stdin;
-  t_lista_stdout* lista_stdout;
-  t_lista_sleep* lista_sleep;
-} t_listas_io;
-
-t_listas_io* inicializar_listas_io(void);
+void inicializar_listas_io(t_io io[3]);
 
 bool atender_nuevo_io(t_io io[3], int socket_fd, t_colas* colas,
-                      t_listas_io* listas_io, bool prioridad_activa);
+                      bool prioridad_activa);
 
 int obtener_tipo_io(int socket_fd, t_logger* logger);
 bool procesar_nuevo_stdin(t_peticion_stdin* peticion, t_io* io_stdin,
-                          t_lista_stdin* lista_stdin, t_pcb* pcb);
+                          t_pcb* pcb);
 bool procesar_nuevo_stdout(t_peticion_stdout* peticion, t_io* io_stdout,
-                           t_lista_stdout* lista_stdout, t_pcb* pcb);
+                           t_pcb* pcb);
 bool procesar_nuevo_sleep(t_peticion_sleep* peticion, t_io* io_sleep,
-                          t_lista_sleep* lista_sleep, t_pcb* pcb);
-void cerrar_io(t_io* io, t_listas_io* listas_io);
+                          t_pcb* pcb);
+void cerrar_io(t_io io[3]);
 
 #endif /* KERNEL_SCHEDULER_IO_H_ */
