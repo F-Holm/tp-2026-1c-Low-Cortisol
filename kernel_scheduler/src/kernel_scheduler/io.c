@@ -599,9 +599,9 @@ void cerrar_io(t_io* io)
 {
   for (int i = 0; i < 3; i++)
   {
-    pthread_mutex_lock(&(io[i].mutex_fin));
-    if (!io[i].cerrar_hilo)
+    if (io[i].socket_io != -1)
     {
+      pthread_mutex_lock(&(io[i].mutex_fin));
       io[i].cerrar_hilo = true;
       pthread_mutex_unlock(&(io[i].mutex_fin));
       shutdown(io[i].socket_io, SHUT_RDWR);
