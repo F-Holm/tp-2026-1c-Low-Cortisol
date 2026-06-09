@@ -71,7 +71,8 @@ typedef enum
   OP_PUEDE_COMPACTAR,  // Indica que puede iniciar la compactación
   OP_COMPACTACION_FINALIZADA,
   OP_MEMORIA_ALOJADA,
-  OP_MEMORIA_LIBERADA
+  OP_MEMORIA_LIBERADA,
+  OP_TAMANIO_SEGMENTO_EXCEDIDO
 } t_op_code;
 
 typedef struct

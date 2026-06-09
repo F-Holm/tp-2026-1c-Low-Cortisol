@@ -10,17 +10,14 @@
 #include "utils/msg.h"
 #include "utils/registros.h"
 
-
 // Funciones de comunicacion de syscalls IO
-bool envio_stdout(t_io* io_out, t_stdout* peticion, char* buffer)
+static bool envio_stdout(t_io* io_out, t_stdout* peticion, char* buffer)
 {
   int peticion_size = sizeof(t_peticion_stdout);
   t_paquete* paquete = crear_paquete(OP_PETICION_IO_STDOUT);
   agregar_a_paquete(paquete, peticion->peticion, peticion_size);
   agregar_string_a_paquete(paquete, buffer);
-  pthread_mutex_lock(&(io_out->mutex_socket_io));
   bool envio = enviar_paquete(paquete, io_out->socket_io);
-  pthread_mutex_unlock(&(io_out->mutex_socket_io));
   eliminar_paquete(paquete);
   free(buffer);
   if (!envio)
@@ -37,7 +34,7 @@ bool envio_stdout(t_io* io_out, t_stdout* peticion, char* buffer)
   return true;
 }
 
-bool peticion_stdout_km(t_stdout* peticion, t_io* io_out)
+static bool peticion_stdout_km(t_stdout* peticion, t_io* io_out)
 {
   int peticion_size = sizeof(t_peticion_stdout);
   bool envio = enviar_buffer(OP_PETICION_IO_STDOUT, peticion->peticion,
@@ -51,7 +48,7 @@ bool peticion_stdout_km(t_stdout* peticion, t_io* io_out)
   return true;
 }
 
-bool envio_stdin(t_stdin* peticion, t_io* io_in, char* buffer)
+static bool envio_stdin(t_stdin* peticion, t_io* io_in, char* buffer)
 {
   int peticion_size = sizeof(t_peticion_stdin);
   t_paquete* paquete = crear_paquete(OP_PETICION_IO_STDIN);
@@ -67,7 +64,8 @@ bool envio_stdin(t_stdin* peticion, t_io* io_in, char* buffer)
   free(buffer);
   return true;
 }
-bool comunicacion_io_stdin(t_stdin* peticion, t_io* io_in, char* buffer)
+
+static bool comunicacion_io_stdin(t_stdin* peticion, t_io* io_in, char* buffer)
 {
   int peticion_size = sizeof(t_peticion_stdin);
   bool envio = enviar_buffer(OP_PETICION_IO_STDIN, peticion->peticion,
@@ -97,7 +95,7 @@ bool comunicacion_io_stdin(t_stdin* peticion, t_io* io_in, char* buffer)
   return true;
 }
 
-bool comunicacion_io_sleep(t_sleep* peticion, t_io* io_sleep)
+static bool comunicacion_io_sleep(t_sleep* peticion, t_io* io_sleep)
 {
   int peticion_size = sizeof(t_peticion_sleep);
   bool envio = enviar_buffer(OP_PETICION_IO_SLEEP, peticion->peticion,
@@ -127,8 +125,9 @@ bool comunicacion_io_sleep(t_sleep* peticion, t_io* io_sleep)
   free(respuesta);
   return true;
 }
+
 // funcion de finalizacion io (no se me ocurre un nombre mejor)
-void finalizar_io(void* peticion, t_io* io, t_pcb* pcb)
+static void finalizar_io(void* peticion, t_io* io, t_pcb* pcb)
 {
   pthread_mutex_lock(&(io->lista_io->mutex_lista_io));
   if (list_remove_element(io->lista_io->lista_io, peticion) == 0)
@@ -147,7 +146,7 @@ void finalizar_io(void* peticion, t_io* io, t_pcb* pcb)
               pcb->pid);
 }
 
-bool io_sleep_f(t_sleep* peticion, t_io* io_sleep)
+static bool io_sleep_f(t_sleep* peticion, t_io* io_sleep)
 {
   bool comms = comunicacion_io_sleep(peticion, io_sleep);
   if (!comms)
@@ -158,7 +157,7 @@ bool io_sleep_f(t_sleep* peticion, t_io* io_sleep)
   return true;
 }
 
-void liberar_peticion(void* peticion, t_io* io)
+static void liberar_peticion(void* peticion, t_io* io)
 {
   t_pcb* pcb;
   switch (io->tipo_io)
@@ -185,7 +184,7 @@ void liberar_peticion(void* peticion, t_io* io)
   cambio_desbloquear(pcb, io->colas);
 }
 
-void cerrar_hilo_io(t_io* io)
+static void cerrar_hilo_io(t_io* io)
 {
   pthread_mutex_lock(&(io->lista_io->mutex_lista_io));
   while (!list_is_empty(io->lista_io->lista_io))
@@ -198,7 +197,8 @@ void cerrar_hilo_io(t_io* io)
   list_destroy(io->lista_io->lista_io);
   free(io->lista_io);
 }
-bool charla_km_stdin(t_io* io_in)
+
+static bool charla_km_stdin(t_io* io_in)
 {
   int cod_op = -1;
   cod_op = recibir_operacion(io_in->socket_io);
@@ -224,7 +224,8 @@ bool charla_km_stdin(t_io* io_in)
       return false;
   }
 }
-int io_stdin_f(t_stdin* peticion, t_io* io_in)
+
+static int io_stdin_f(t_stdin* peticion, t_io* io_in)
 {
   // Envio peticion a IO
   char* buffer = malloc(sizeof(peticion->peticion->tamanio_a_leer));
@@ -255,7 +256,7 @@ int io_stdin_f(t_stdin* peticion, t_io* io_in)
   return true;
 }
 
-bool recepcion_km_stdout(t_io* io_out)
+static bool recepcion_km_stdout(t_io* io_out)
 {
   int op_code = -1;
   op_code = recibir_operacion(io_out->socket_km->socket_km);
@@ -282,7 +283,7 @@ bool recepcion_km_stdout(t_io* io_out)
   }
 }
 
-bool io_stdout_f(t_stdout* peticion, t_io* io_out)
+static bool io_stdout_f(t_stdout* peticion, t_io* io_out)
 {
   int cod_op = -1;
   // Envio peticion a Kernel Memory para que lea de la memoria
@@ -324,23 +325,20 @@ bool io_stdout_f(t_stdout* peticion, t_io* io_out)
     return D_ERROR_IO;
   }
   free(buffer);
-  pthread_mutex_lock(&(io_out->mutex_socket_io));
   cod_op = recibir_operacion(io_out->socket_io);
   if (cod_op == OP_CODE_ERROR)
   {
-    pthread_mutex_unlock(&(io_out->mutex_socket_io));
     logger_error(io_out->logger,
                  "## Error en la respuesta de IO a Kernel Scheduler");
     return false;
   }
   free(recibir_string(io_out->socket_io));
-  pthread_mutex_unlock(&(io_out->mutex_socket_io));
 
   finalizar_io(peticion, io_out, peticion->pcb);
   return true;
 }
 
-bool atender_stdin(t_io* io)
+static bool atender_stdin(t_io* io)
 {
   t_stdin* peticion = list_get(io->lista_io->lista_io, 0);
   pthread_mutex_unlock(&(io->lista_io->mutex_lista_io));
@@ -353,7 +351,7 @@ bool atender_stdin(t_io* io)
   return io_stdin_f(peticion, io);
 }
 
-bool atender_stdout(t_io* io)
+static bool atender_stdout(t_io* io)
 {
   t_stdout* peticion = list_get(io->lista_io->lista_io, 0);
   pthread_mutex_unlock(&(io->lista_io->mutex_lista_io));
@@ -366,7 +364,7 @@ bool atender_stdout(t_io* io)
   return io_stdout_f(peticion, io);
 }
 
-bool atender_sleep(t_io* io)
+static bool atender_sleep(t_io* io)
 {
   t_sleep* peticion = list_get(io->lista_io->lista_io, 0);
   pthread_mutex_unlock(&(io->lista_io->mutex_lista_io));
@@ -379,7 +377,7 @@ bool atender_sleep(t_io* io)
   return io_sleep_f(peticion, io);
 }
 
-bool atender_io(t_io* io)
+static bool atender_io(t_io* io)
 {
   switch (io->tipo_io)
   {
@@ -396,7 +394,7 @@ bool atender_io(t_io* io)
   return true;
 }
 
-void* hilo_io(void* hilo_io)
+static void* hilo_io(void* hilo_io)
 {
   t_io* io = (t_io*)hilo_io;
   bool seguir_atendiendo = true;
@@ -425,7 +423,7 @@ void* hilo_io(void* hilo_io)
   return NULL;
 }
 
-int obtener_tipo_io(int socket_fd, t_logger* logger)
+static int obtener_tipo_io(int socket_fd, t_logger* logger)
 {
   if (recibir_operacion(socket_fd) != OP_TIPO_IO)
   {
@@ -496,26 +494,28 @@ bool atender_nuevo_io(t_io io[3], int socket_fd, t_colas* colas,
   return true;
 }
 
-bool comparar_prioridad_stdin(void* syscall1, void* syscall2)
+static bool comparar_prioridad_stdin(void* syscall1, void* syscall2)
 {
   t_stdin* stdin1 = (t_stdin*)syscall1;
   t_stdin* stdin2 = (t_stdin*)syscall2;
   return (stdin1->pcb->prioridad <= stdin2->pcb->prioridad);
 }
-bool comparar_prioridad_stdout(void* syscall1, void* syscall2)
+
+static bool comparar_prioridad_stdout(void* syscall1, void* syscall2)
 {
   t_stdout* stdout1 = (t_stdout*)syscall1;
   t_stdout* stdout2 = (t_stdout*)syscall2;
   return (stdout1->pcb->prioridad <= stdout2->pcb->prioridad);
 }
-bool comparar_prioridad_sleep(void* syscall1, void* syscall2)
+
+static bool comparar_prioridad_sleep(void* syscall1, void* syscall2)
 {
   t_sleep* sleep1 = (t_sleep*)syscall1;
   t_sleep* sleep2 = (t_sleep*)syscall2;
   return (sleep1->pcb->prioridad <= sleep2->pcb->prioridad);
 }
 
-void* transformar_peticion(void* peticion, int tipo_io, t_pcb* pcb)
+static void* transformar_peticion(void* peticion, int tipo_io, t_pcb* pcb)
 {
   void* pedido;
   switch (tipo_io)
@@ -541,7 +541,8 @@ void* transformar_peticion(void* peticion, int tipo_io, t_pcb* pcb)
   }
   return pedido;
 }
-void agregar_ordenado(void* pedido, t_io* io)
+
+static void agregar_ordenado(void* pedido, t_io* io)
 {
   switch (io->tipo_io)
   {
@@ -558,12 +559,14 @@ void agregar_ordenado(void* pedido, t_io* io)
       break;
   }
 }
+
 bool procesar_nuevo_io(void* peticion, t_io* io, t_pcb* pcb)
 {
-  pthread_mutex_lock(&(io->mutex_socket_io));
-  if (io->socket_io == -1)
+  pthread_mutex_lock(&(io->mutex_fin));
+  bool cerrar_hilo = io->cerrar_hilo;
+  pthread_mutex_unlock(&(io->mutex_fin));
+  if (cerrar_hilo)
   {
-    pthread_mutex_unlock(&(io->mutex_socket_io));
     return false;
   }
   void* pedido = transformar_peticion(peticion, io->tipo_io, pcb);
@@ -582,35 +585,44 @@ bool procesar_nuevo_io(void* peticion, t_io* io, t_pcb* pcb)
     pthread_cond_signal(&(io->nuevo_proceso));
   }
   pthread_mutex_unlock(&(io->lista_io->mutex_lista_io));
-  pthread_mutex_unlock(&(io->mutex_socket_io));
   return true;
 }
-void destruir_io(t_io* io)
+
+static void destruir_io(t_io* io)
 {
-  pthread_mutex_destroy(&(io->mutex_socket_io));
   pthread_mutex_destroy(&(io->mutex_fin));
   pthread_cond_destroy(&(io->nuevo_proceso));
   close(io->socket_io);
 }
 
-void cerrar_io(t_io io[3])
+void cerrar_io(t_io* io)
 {
   for (int i = 0; i < 3; i++)
   {
-    if (io[i].socket_io != -1)
+    pthread_mutex_lock(&(io[i].mutex_fin));
+    if (!io[i].cerrar_hilo)
     {
-      shutdown(io[i].socket_io, SHUT_RDWR);
-      pthread_mutex_lock(&(io[i].mutex_socket_io));
-      io[i].socket_io = -1;
-      pthread_mutex_unlock(&(io[i].mutex_socket_io));
-      pthread_mutex_lock(&(io[i].mutex_fin));
       io[i].cerrar_hilo = true;
-      pthread_mutex_lock(&(io[i].mutex_fin));
+      pthread_mutex_unlock(&(io[i].mutex_fin));
+      shutdown(io[i].socket_io, SHUT_RDWR);
       pthread_join(io[i].hilo_io, NULL);
-      pthread_mutex_lock(&(io[i].mutex_socket_io));
       close(io[i].socket_io);
-      pthread_mutex_unlock(&(io[i].mutex_socket_io));
       destruir_io(&io[i]);
     }
+    else
+    {
+      pthread_mutex_unlock(&(io[i].mutex_fin));
+    }
   }
+  free(io);
+}
+
+t_io* crear_estructuras_io(void)
+{
+  t_io* io = malloc(sizeof(t_io) * 3);
+  for (int i = 0; i < 3; i++)
+  {
+    io[i].socket_io = -1;
+  }
+  return io;
 }
