@@ -83,7 +83,7 @@ t_mutex* crear_mutex(char* id, bool prioridad_activa, t_logger* logger)
   t_mutex* mutex = malloc(sizeof(t_mutex));
   mutex->id = malloc(strlen(id) + 1);
   strcpy(mutex->id, id);
-  mutex->prioridad_original_proceso = -1;
+  mutex->prioridad_siguiente = -1;
   pthread_mutex_init(&(mutex->mutex), NULL);
   mutex->prioridad_activa = prioridad_activa;
   mutex->lista = list_create();
@@ -93,14 +93,70 @@ t_mutex* crear_mutex(char* id, bool prioridad_activa, t_logger* logger)
   return mutex;
 }
 
-static void cambio_de_prioridad(t_pcb* pcb, int prioridad, t_logger* logger)
+static void eliminar_prioridad_lista(t_list* lista, int prioridad)
 {
+  t_list_iterator* iterador_lista = list_iterator_create(lista);
+  while (list_iterator_has_next(iterador_lista))
+  {
+    int* temp = (int*)list_iterator_next(iterador_lista);
+    if (*temp == prioridad)
+    {
+      list_iterator_remove(iterador_lista);
+      free(temp);
+      break;
+    }
+  }
+  list_iterator_destroy(iterador_lista);
+}
+
+static bool mayorPrioridadQue(void* p1, void* p2)
+{
+  return *(int*)p1 < *(int*)p2;
+}
+
+static void insertar_prioridad(t_pcb* pcb, int prioridad, t_logger* logger)
+{
+  int* aux = malloc(sizeof(int));
+  *aux = prioridad;
   pthread_mutex_lock(&(pcb->mutex_prioridad));
-  if (pcb->prioridad != prioridad)
+  list_add_sorted(pcb->lista_prioridades, aux, mayorPrioridadQue);
+  if (prioridad < pcb->prioridad)
   {
     log_cambio_de_prioridad(logger, pcb->pid, pcb->prioridad, prioridad);
     pcb->prioridad = prioridad;
   }
+  pthread_mutex_unlock(&(pcb->mutex_prioridad));
+}
+
+static void reemplazar_prioridad(t_pcb* pcb, int prioridad_vieja,
+                                 int prioridad_nueva, t_logger* logger)
+{
+  int* aux = malloc(sizeof(int));
+  *aux = prioridad_nueva;
+  pthread_mutex_lock(&(pcb->mutex_prioridad));
+  eliminar_prioridad_lista(pcb->lista_prioridades, prioridad_vieja);
+  list_add_sorted(pcb->lista_prioridades, aux, mayorPrioridadQue);
+  int prioridad = *(int*)list_get(pcb->lista_prioridades, 0);
+  if (prioridad != pcb->prioridad)
+  {
+    log_cambio_de_prioridad(logger, pcb->pid, pcb->prioridad, prioridad);
+    pcb->prioridad = prioridad;
+  }
+  pthread_mutex_unlock(&(pcb->mutex_prioridad));
+}
+
+static void eliminar_prioridad(t_pcb* pcb, int prioridad, t_logger* logger)
+{
+  pthread_mutex_lock(&(pcb->mutex_prioridad));
+  eliminar_prioridad_lista(pcb->lista_prioridades, prioridad);
+
+  int nueva_prioridad = *(int*)list_get(pcb->lista_prioridades, 0);
+  if (pcb->prioridad != nueva_prioridad)
+  {
+    log_cambio_de_prioridad(logger, pcb->pid, pcb->prioridad, nueva_prioridad);
+    pcb->prioridad = nueva_prioridad;
+  }
+
   pthread_mutex_unlock(&(pcb->mutex_prioridad));
 }
 
@@ -112,14 +168,17 @@ bool mutex_lock(t_mutex* mutex, t_pcb* pcb)
   if (mutex->estado == 1)
   {
     log_mutex_tomado(mutex->logger, pcb->pid, mutex->id);
-    mutex->prioridad_original_proceso = prioridad_pcb;
     mutex->proceso_actual = pcb;
+    insertar_prioridad(pcb, -1, mutex->logger);
     ret = true;
   }
-  else if (mutex->prioridad_activa && mutex->estado < 0)
+  else if (mutex->prioridad_activa)
   {
-    cambio_de_prioridad(mutex->proceso_actual, prioridad_pcb, mutex->logger);
-    insertar_pcb_en_orden(mutex->lista, pcb);
+    if (insertar_pcb_en_orden(mutex->lista, pcb) == 0)
+    {
+      reemplazar_prioridad(mutex->proceso_actual, mutex->prioridad_siguiente,
+                           prioridad_pcb, mutex->logger);
+    }
     cambio_exec_block(pcb, mutex->colas);
   }
   else
@@ -142,21 +201,29 @@ bool mutex_unlock(t_mutex* mutex, t_pcb* pcb)
   }
   if (mutex->prioridad_activa)
   {
-    cambio_de_prioridad(pcb, mutex->prioridad_original_proceso, mutex->logger);
+    eliminar_prioridad(pcb, mutex->prioridad_siguiente, mutex->logger);
   }
   log_mutex_liberado(mutex->logger, pcb->pid, mutex->id);
   if (mutex->estado == 0)
   {
     mutex->proceso_actual = NULL;
-    mutex->prioridad_original_proceso = 0;
+    mutex->prioridad_siguiente = -1;
   }
   else if (mutex->estado < 0)
   {
     mutex->proceso_actual = list_remove(mutex->lista, 0);
     if (mutex->prioridad_activa)
     {
-      mutex->prioridad_original_proceso =
-          get_prioridad_pcb(mutex->proceso_actual);
+      if (mutex->estado == -1)
+      {
+        mutex->prioridad_siguiente = -1;
+      }
+      else
+      {
+        mutex->prioridad_siguiente =
+            get_prioridad_pcb(list_get(mutex->lista, 0));
+      }
+      insertar_prioridad(pcb, mutex->prioridad_siguiente, mutex->logger);
     }
     log_mutex_tomado(mutex->logger, mutex->proceso_actual->pid, mutex->id);
     cambio_desbloquear(pcb, mutex->colas);
