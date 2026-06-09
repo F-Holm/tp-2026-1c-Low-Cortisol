@@ -78,6 +78,7 @@ t_pcb* crear_pcb(void)
   pthread_mutex_init(&(pcb->mutex_estado), NULL);
   pcb->tiempo_bloqueado = 0;
   pcb->estado = EST_NEW;
+  pcb->lista_prioridades = list_create();
 
   pthread_mutex_lock(&mutex_pid_pcb);
   pcb->pid = pid;
@@ -90,6 +91,7 @@ void destruir_pcb(t_pcb* pcb)
 {
   pthread_mutex_destroy(&(pcb->mutex_prioridad));
   pthread_mutex_destroy(&(pcb->mutex_estado));
+  list_destroy_and_destroy_elements(pcb->lista_prioridades, free);
   free(pcb);
 }
 
