@@ -15,6 +15,9 @@ bool respuesta_km_mem_alloc(t_colas* colas)
       cerrar_kernel_scheduler(colas->socket_servidor, colas->logger,
                               MC_MEMORIA_CORRUPTA);
       return true;
+    case OP_TAMANIO_SEGMENTO_EXCEDIDO:
+      free(recibir_string(colas->socket_km->socket_km));
+      return false;
     case OP_MEMORIA_ALOJADA:
       free(recibir_string(colas->socket_km->socket_km));
       return true;

@@ -111,7 +111,7 @@ typedef struct
   int socket_servidor;
   t_datos_suspendido* datos_suspendido;
   pthread_mutex_t mutex_rutina;
-  int terminar_rutinas;
+  bool terminar_rutinas;
 } t_colas;
 
 // ingresar NULL en t_list si no es CMN
