@@ -2,7 +2,7 @@
 
 #include "utils/msg.h"
 
-bool respuesta_km_mem_alloc(t_colas* colas)
+static bool respuesta_km_mem_alloc(t_colas* colas)
 {
   int cod_op = -1;
 
@@ -37,7 +37,7 @@ bool respuesta_km_mem_alloc(t_colas* colas)
   }
 }
 
-bool hay_espacio(t_syscall_memory* mem_alloc, t_colas* colas)
+static bool hay_espacio(t_syscall_memory* mem_alloc, t_colas* colas)
 {
   int espacio = espacio_disponible(colas, mem_alloc->pid);
   return (espacio < mem_alloc->tamanio);
@@ -72,7 +72,7 @@ bool allocate_memory(t_syscall_memory* mem_alloc, t_colas* colas)
   return comms;
 }
 
-bool respuesta_km_mem_free(t_colas* colas)
+static bool respuesta_km_mem_free(t_colas* colas)
 {
   int cod_op = -1;
 

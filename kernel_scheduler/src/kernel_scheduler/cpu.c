@@ -222,8 +222,8 @@ static void manejar_syscall_io_sleep(t_datos_syscall* datos)
   int size;
   t_peticion_sleep* peticion = recibir_buffer(&size, datos->datos->socket_fd);
   datos->motivo_desalojo = MD_IO;
-  if (!procesar_nuevo_io(
-          peticion, &(datos->datos->estructuras_io[E_SLEEP]), datos->pcb))
+  if (!procesar_nuevo_io(peticion, &(datos->datos->estructuras_io[E_SLEEP]),
+                         datos->pcb))
   {
     cambio_exec_exit(datos->pcb, datos->datos->colas, MFP_FALLO_IO);
   }
@@ -238,8 +238,8 @@ static void manejar_syscall_io_stdout(t_datos_syscall* datos)
   int size;
   t_peticion_stdout* peticion = recibir_buffer(&size, datos->datos->socket_fd);
   datos->motivo_desalojo = MD_IO;
-  if (!procesar_nuevo_io(
-          peticion, &(datos->datos->estructuras_io[E_STDOUT]), datos->pcb))
+  if (!procesar_nuevo_io(peticion, &(datos->datos->estructuras_io[E_STDOUT]),
+                         datos->pcb))
   {
     cambio_exec_exit(datos->pcb, datos->datos->colas, MFP_FALLO_IO);
   }
@@ -254,8 +254,8 @@ static void manejar_syscall_io_stdin(t_datos_syscall* datos)
   int size;
   t_peticion_stdin* peticion = recibir_buffer(&size, datos->datos->socket_fd);
   datos->motivo_desalojo = MD_IO;
-  if (!procesar_nuevo_io(
-          peticion, &(datos->datos->estructuras_io[E_STDIN]), datos->pcb))
+  if (!procesar_nuevo_io(peticion, &(datos->datos->estructuras_io[E_STDIN]),
+                         datos->pcb))
   {
     cambio_exec_exit(datos->pcb, datos->datos->colas, MFP_FALLO_IO);
   }
