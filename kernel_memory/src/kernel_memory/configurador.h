@@ -17,5 +17,4 @@ int iniciar_instruction_delay(t_config* config);
 int iniciar_compaction_delay(t_config* config);
 int iniciar_segment_max_size(t_config* config);
 
-
 #endif

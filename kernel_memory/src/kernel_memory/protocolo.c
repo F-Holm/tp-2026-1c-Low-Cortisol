@@ -145,7 +145,7 @@ void enviar_conexion_cpu(t_datos_stick* datos_stick, t_list* cpus_conectados)
 }
 
 int calcular_memoria_total(t_list* sticks_conectados,
-                                 pthread_mutex_t* mutex_lista_sockets)
+                           pthread_mutex_t* mutex_lista_sockets)
 {
   int total = 0;
   for (int i = 0; i < list_size(sticks_conectados); i++)
@@ -186,7 +186,8 @@ t_proceso* buscar_proceso(t_datos_cpu* datos_cpu, uint32_t pid)
   return resultado;
 }
 
-t_memoria_principal* aniadir_memoria_total(t_memoria_principal* memoria_principal, int memoria_total)
+t_memoria_principal* aniadir_memoria_total(
+    t_memoria_principal* memoria_principal, int memoria_total)
 {
   pthread_mutex_lock(memoria_principal->mutex_memoria_principal);
   memoria_principal->tamanio_total += memoria_total;
@@ -194,17 +195,20 @@ t_memoria_principal* aniadir_memoria_total(t_memoria_principal* memoria_principa
   return memoria_principal;
 }
 
-
-bool compactar_memoria(int socket_scheduler,t_memoria_principal* memoria_principal)
+bool compactar_memoria(int socket_scheduler,
+                       t_memoria_principal* memoria_principal)
 {
   if (notificar_compactacion(socket_scheduler))
   {
     pthread_mutex_lock(memoria_principal->mutex_memoria_principal);
-    memoria_principal->segmentos = compactar_segmentos(memoria_principal->segmentos);
-    memoria_principal->huecos = compactar_huecos(memoria_principal->tamanio_total, calcular_base_final_segmento(memoria_principal->segmentos));
+    memoria_principal->segmentos =
+        compactar_segmentos(memoria_principal->segmentos);
+    memoria_principal->huecos = compactar_huecos(
+        memoria_principal->tamanio_total,
+        calcular_base_final_segmento(memoria_principal->segmentos));
     pthread_mutex_unlock(memoria_principal->mutex_memoria_principal);
     return true;
-}
+  }
   return false;
 }
 
@@ -214,7 +218,8 @@ t_list* compactar_segmentos(t_list* segmentos)
   {
     t_segmento* segmento_actual = list_get(segmentos, i);
     t_segmento* siguiente_segmento = list_get(segmentos, i + 1);
-    if (i == 0){
+    if (i == 0)
+    {
       segmento_actual->base = 0;
     }
     siguiente_segmento->base = segmento_actual->base + segmento_actual->size;
@@ -227,8 +232,8 @@ int calcular_base_final_segmento(t_list* segmentos)
   return ultimo_segmento->base + ultimo_segmento->size;
 }
 
-t_list* compactar_huecos( int memoria_total, int base_final_segmento)
-{  
+t_list* compactar_huecos(int memoria_total, int base_final_segmento)
+{
   t_list* huecos = list_create();
   t_hueco* hueco_final = malloc(sizeof(t_hueco));
   hueco_final->base = base_final_segmento;
@@ -236,11 +241,11 @@ t_list* compactar_huecos( int memoria_total, int base_final_segmento)
   list_add(huecos, hueco_final);
 }
 
-
 bool notificar_compactacion(int socket_scheduler)
 {
-  enviar_string(OP_COMPACTACION_NECESARIA, "Es necesario compactar la memoria", socket_scheduler);
-  if(recibir_operacion(socket_scheduler) == OP_PUEDE_COMPACTAR)
+  enviar_string(OP_COMPACTACION_NECESARIA, "Es necesario compactar la memoria",
+                socket_scheduler);
+  if (recibir_operacion(socket_scheduler) == OP_PUEDE_COMPACTAR)
   {
     char* mensaje = recibir_string(socket_scheduler);
     free(mensaje);
@@ -249,9 +254,10 @@ bool notificar_compactacion(int socket_scheduler)
   return false;
 }
 
-
-t_segmento* buecar_y_eliminar_segmento(uint32_t id, uint32_t pid, t_memoria_principal* memoria_principal){
-  t_segmento* segmento = NULL; 
+t_segmento* buecar_y_eliminar_segmento(uint32_t id, uint32_t pid,
+                                       t_memoria_principal* memoria_principal)
+{
+  t_segmento* segmento = NULL;
   pthread_mutex_lock(memoria_principal->mutex_memoria_principal);
   for (int i = 0; i < list_size(memoria_principal->segmentos); i++)
   {
@@ -267,80 +273,118 @@ t_segmento* buecar_y_eliminar_segmento(uint32_t id, uint32_t pid, t_memoria_prin
   return segmento;
 }
 
-void es_hueco_anterior(t_hueco* hueco_aux,t_hueco* hueco_actual, t_segmento* segmento_aux, t_memoria_principal* memoria_principal,int indice){
-if(hueco_actual->base + hueco_actual->size == segmento_aux->base){
-              hueco_aux ->base= hueco_actual->base;
-              hueco_aux ->size = hueco_actual->size + segmento_aux->size;
-              list_remove_and_destroy_element(memoria_principal->huecos,indice,free);
-              return hueco_aux;
-}
-}
-
-void es_hueco_posterior(t_hueco* hueco_aux,t_hueco* hueco_actual, t_segmento* segmento_aux, t_memoria_principal* memoria_principal,int indice){
-  if(hueco_actual->base == segmento_aux->base + segmento_aux->size){            
-      hueco_aux->size += hueco_actual->size;
-      list_remove_and_destroy_element(memoria_principal->huecos, indice ,free);
-}
+void es_hueco_anterior(t_hueco* hueco_aux, t_hueco* hueco_actual,
+                       t_segmento* segmento_aux,
+                       t_memoria_principal* memoria_principal, int indice)
+{
+  if (hueco_actual->base + hueco_actual->size == segmento_aux->base)
+  {
+    hueco_aux->base = hueco_actual->base;
+    hueco_aux->size = hueco_actual->size + segmento_aux->size;
+    list_remove_and_destroy_element(memoria_principal->huecos, indice, free);
+    return hueco_aux;
+  }
 }
 
+void es_hueco_posterior(t_hueco* hueco_aux, t_hueco* hueco_actual,
+                        t_segmento* segmento_aux,
+                        t_memoria_principal* memoria_principal, int indice)
+{
+  if (hueco_actual->base == segmento_aux->base + segmento_aux->size)
+  {
+    hueco_aux->size += hueco_actual->size;
+    list_remove_and_destroy_element(memoria_principal->huecos, indice, free);
+  }
+}
 
-void eliminar_segmento(uint32_t id, uint32_t pid, t_memoria_principal* memoria_principal)
+void eliminar_segmento(uint32_t id, uint32_t pid,
+                       t_memoria_principal* memoria_principal)
 {
   t_hueco* nuevo_hueco = malloc(sizeof(t_hueco));
-  nuevo_hueco->base =0;
-  nuevo_hueco->size=0;
-  t_segmento* segmento_aux = buscar_y_eliminar_segmento(id,pid, memoria_principal);  
+  nuevo_hueco->base = 0;
+  nuevo_hueco->size = 0;
+  t_segmento* segmento_aux =
+      buscar_y_eliminar_segmento(id, pid, memoria_principal);
   pthread_mutex_lock(memoria_principal->mutex_memoria_principal);
-  if(segmento_aux == NULL)
-  {//logger_error()
+  if (segmento_aux == NULL)
+  {  // logger_error()
   }
-  if(hueco_antes_segmento(segmento_aux->base, segmento_aux->base + segmento_aux->size, memoria_principal->huecos) && hueco_despues_segmento(segmento_aux->base, segmento_aux->base + segmento_aux->size, memoria_principal->huecos)){
-          // SEGMENTO EN MEDIO DE HUECOS 
-          for(int i = 0 ; i < list_size(memoria_principal->huecos); i++){
-            t_hueco* hueco_actual = list_get(memoria_principal->huecos, i);
-            es_hueco_anterior(nuevo_hueco, hueco_actual, segmento_aux, memoria_principal, i);
-            es_hueco_posterior(nuevo_hueco, hueco_actual, segmento_aux, memoria_principal, i);
-          }
-          memoria_principal->huecos= list_add(memoria_principal->huecos, nuevo_hueco);
-    }else if(hueco_antes_segmento(segmento_aux->base, segmento_aux->base + segmento_aux->size, memoria_principal->huecos)){
-      //SEGMENTO DESPUES DE HUECO
-         for(int i = 0 ; i < list_size(memoria_principal->huecos); i++){
-            t_hueco* hueco_actual = list_get(memoria_principal->huecos, i);
-            es_hueco_anterior(nuevo_hueco, hueco_actual, segmento_aux, memoria_principal, i);
-            }
-
-      }else if(hueco_despues_segmento(segmento_aux->base, segmento_aux->base + segmento_aux->size, memoria_principal->huecos)){
-        // SEGMENTO ANTES DE HUECO
-        for(int i = 0 ; i < list_size(memoria_principal->huecos); i++){
-        t_hueco* hueco_actual = list_get(memoria_principal->huecos, i);
-        es_hueco_posterior(nuevo_hueco, hueco_actual, segmento_aux, memoria_principal, i);
-        }
-      }else{
-      nuevo_hueco->base = segmento_aux->base;
-      nuevo_hueco->size = segmento_aux->size;
-      memoria_principal->huecos = list_add(memoria_principal->huecos, nuevo_hueco);
-      free(segmento_aux);
+  if (hueco_antes_segmento(segmento_aux->base,
+                           segmento_aux->base + segmento_aux->size,
+                           memoria_principal->huecos) &&
+      hueco_despues_segmento(segmento_aux->base,
+                             segmento_aux->base + segmento_aux->size,
+                             memoria_principal->huecos))
+  {
+    // SEGMENTO EN MEDIO DE HUECOS
+    for (int i = 0; i < list_size(memoria_principal->huecos); i++)
+    {
+      t_hueco* hueco_actual = list_get(memoria_principal->huecos, i);
+      es_hueco_anterior(nuevo_hueco, hueco_actual, segmento_aux,
+                        memoria_principal, i);
+      es_hueco_posterior(nuevo_hueco, hueco_actual, segmento_aux,
+                         memoria_principal, i);
     }
+    memoria_principal->huecos =
+        list_add(memoria_principal->huecos, nuevo_hueco);
+  }
+  else if (hueco_antes_segmento(segmento_aux->base,
+                                segmento_aux->base + segmento_aux->size,
+                                memoria_principal->huecos))
+  {
+    // SEGMENTO DESPUES DE HUECO
+    for (int i = 0; i < list_size(memoria_principal->huecos); i++)
+    {
+      t_hueco* hueco_actual = list_get(memoria_principal->huecos, i);
+      es_hueco_anterior(nuevo_hueco, hueco_actual, segmento_aux,
+                        memoria_principal, i);
+    }
+  }
+  else if (hueco_despues_segmento(segmento_aux->base,
+                                  segmento_aux->base + segmento_aux->size,
+                                  memoria_principal->huecos))
+  {
+    // SEGMENTO ANTES DE HUECO
+    for (int i = 0; i < list_size(memoria_principal->huecos); i++)
+    {
+      t_hueco* hueco_actual = list_get(memoria_principal->huecos, i);
+      es_hueco_posterior(nuevo_hueco, hueco_actual, segmento_aux,
+                         memoria_principal, i);
+    }
+  }
+  else
+  {
+    nuevo_hueco->base = segmento_aux->base;
+    nuevo_hueco->size = segmento_aux->size;
+    memoria_principal->huecos =
+        list_add(memoria_principal->huecos, nuevo_hueco);
+    free(segmento_aux);
+  }
   pthread_mutex_unlock(memoria_principal->mutex_memoria_principal);
   free(nuevo_hueco);
 }
 
-bool hueco_antes_segmento(int base_segmento, int final_segmento, t_list* huecos){
-for (int i = 0; i < list_size(huecos); i++)
+bool hueco_antes_segmento(int base_segmento, int final_segmento, t_list* huecos)
+{
+  for (int i = 0; i < list_size(huecos); i++)
   {
     t_hueco* hueco_actual = list_get(huecos, i);
-    if ( (hueco_actual->base + hueco_actual->size) == base_segmento ){
+    if ((hueco_actual->base + hueco_actual->size) == base_segmento)
+    {
       return true;
     }
   }
   return false;
-} 
+}
 
-bool hueco_despues_segmento(int base_segmento, int final_segmento, t_list* huecos){
-  for (int i = 0; i < list_size(huecos); i++)  
+bool hueco_despues_segmento(int base_segmento, int final_segmento,
+                            t_list* huecos)
+{
+  for (int i = 0; i < list_size(huecos); i++)
   {
     t_hueco* hueco_actual = list_get(huecos, i);
-    if ( hueco_actual->base == final_segmento ){
+    if (hueco_actual->base == final_segmento)
+    {
       return true;
     }
   }

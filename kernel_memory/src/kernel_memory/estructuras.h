@@ -71,24 +71,24 @@ typedef struct
 } t_proceso;
 typedef struct
 {
- uint32_t id;
- uint32_t pid;
- int base;
- int size; 
+  uint32_t id;
+  uint32_t pid;
+  int base;
+  int size;
 } t_segmento;
 
 typedef struct
 {
- int base;
- int size;
+  int base;
+  int size;
 } t_hueco;
 
 typedef struct
 {
- int tamanio_total;
- int tamanio_maximo_segmento;
- t_list* segmentos;
- t_list* huecos;
- int allocation_strategy;
- pthread_mutex_t* mutex_memoria_principal;
+  int tamanio_total;
+  int tamanio_maximo_segmento;
+  t_list* segmentos;
+  t_list* huecos;
+  int allocation_strategy;
+  pthread_mutex_t* mutex_memoria_principal;
 } t_memoria_principal;

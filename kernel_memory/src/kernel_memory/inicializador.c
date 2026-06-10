@@ -2,8 +2,8 @@
 
 t_datos_kernel_mem* inicializar_datos_kernel_memory(
     int socket_kernel_memory, char* scripts_basepath, int instruction_delay,
-    int compaction_delay, int segment_max_size, t_allocation_strategy allocation_strategy,
-    t_logger* logger)
+    int compaction_delay, int segment_max_size,
+    t_allocation_strategy allocation_strategy, t_logger* logger)
 {
   t_datos_kernel_mem* datos_kernel = malloc(sizeof(t_datos_kernel_mem));
   datos_kernel->socket_kernel_memory = socket_kernel_memory;
@@ -17,7 +17,8 @@ t_datos_kernel_mem* inicializar_datos_kernel_memory(
   datos_kernel->sticks_conectados = list_create();
   datos_kernel->cpus_conectados = list_create();
   datos_kernel->procesos = list_create();
-  datos_kernel->memoria_principal = inicializar_memoria_principal(segment_max_size, allocation_strategy);
+  datos_kernel->memoria_principal =
+      inicializar_memoria_principal(segment_max_size, allocation_strategy);
   datos_kernel->mutex_procesos = malloc(sizeof(pthread_mutex_t));
   datos_kernel->mutex_lista_sockets = malloc(sizeof(pthread_mutex_t));
   pthread_mutex_init(datos_kernel->mutex_procesos, NULL);
@@ -25,11 +26,10 @@ t_datos_kernel_mem* inicializar_datos_kernel_memory(
   return datos_kernel;
 }
 
-t_datos_scheduler* inicializar_datos_scheduler(int socket_scheduler,
-                                               t_list* procesos,
-                                               char* scripts_basepath,
-                                               pthread_mutex_t* mutex_procesos,t_memoria_principal* memoria_principal,
-                                               t_logger* logger)
+t_datos_scheduler* inicializar_datos_scheduler(
+    int socket_scheduler, t_list* procesos, char* scripts_basepath,
+    pthread_mutex_t* mutex_procesos, t_memoria_principal* memoria_principal,
+    t_logger* logger)
 {
   t_datos_scheduler* datos_scheduler = malloc(sizeof(t_datos_scheduler));
   datos_scheduler->socket_scheduler = socket_scheduler;
@@ -96,7 +96,7 @@ t_proceso* inicializar_proceso(u_int32_t pid, char* path_relativo,
   memset(&proceso->contexto, 0,
          sizeof(t_contexto));  // pone todos los campos de contexto en 0
 
-  int largo = strlen(scripts_basepath) + strlen(path_relativo) + 2; 
+  int largo = strlen(scripts_basepath) + strlen(path_relativo) + 2;
   char* path_completo = malloc(largo);
   snprintf(path_completo, largo, "%s/%s", scripts_basepath, path_relativo);
   FILE* f = fopen(path_completo, "r");
@@ -142,7 +142,8 @@ bool inicializar_ip_stick(t_datos_stick* datos_stick, int client_socket)
   return false;
 }
 
-t_memoria_principal* inicializar_memoria_principal(int tamanio_maximo_segmento, t_allocation_strategy allocation_strategy)
+t_memoria_principal* inicializar_memoria_principal(
+    int tamanio_maximo_segmento, t_allocation_strategy allocation_strategy)
 {
   t_memoria_principal* memoria = malloc(sizeof(t_memoria_principal));
   memoria->tamanio_total = 0;

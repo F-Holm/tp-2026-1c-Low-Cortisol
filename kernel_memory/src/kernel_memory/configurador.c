@@ -32,4 +32,3 @@ int iniciar_segment_max_size(t_config* config)
 {
   return config_get_int_value(config, "SEGMENT_MAX_SIZE");
 }
-
