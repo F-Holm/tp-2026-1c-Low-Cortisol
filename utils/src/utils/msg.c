@@ -14,17 +14,6 @@ int recibir_operacion(int socket_fd)
   }
 }
 
-int recibir_operacion_no_bloqueante(int socket_fd)
-{
-  int cod_op;
-  if (recv(socket_fd, &cod_op, sizeof(int), MSG_WAITALL | MSG_DONTWAIT) > 0)
-    return cod_op;
-  else
-  {
-    return OP_CODE_ERROR;
-  }
-}
-
 void crear_buffer(t_paquete* paquete)
 {
   paquete->buffer = malloc(sizeof(t_buffer));

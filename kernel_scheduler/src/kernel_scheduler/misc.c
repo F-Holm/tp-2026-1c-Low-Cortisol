@@ -177,7 +177,7 @@ static void comprobar_motivo_cierre(int* motivo_cierre, int socket_km)
   bool seguir_operando = true;
   while (seguir_operando)
   {
-    switch (recibir_operacion_no_bloqueante(socket_km))
+    switch (recibir_operacion(socket_km))
     {
       case OP_CODE_ERROR:
         *motivo_cierre = MC_MEMORIA_CORRUPTA;
