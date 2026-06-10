@@ -32,7 +32,4 @@ int iniciar_segment_max_size(t_config* config)
 {
   return config_get_int_value(config, "SEGMENT_MAX_SIZE");
 }
-int iniciar_allocation_strategy(t_config* config)
-{
-  return config_get_int_value(config, "ALLOCATION_STRATEGY");
-}
+

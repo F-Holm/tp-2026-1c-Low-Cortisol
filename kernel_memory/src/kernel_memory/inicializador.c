@@ -2,7 +2,7 @@
 
 t_datos_kernel_mem* inicializar_datos_kernel_memory(
     int socket_kernel_memory, char* scripts_basepath, int instruction_delay,
-    int compaction_delay, int segment_max_size, int allocation_strategy,
+    int compaction_delay, int segment_max_size, t_allocation_strategy allocation_strategy,
     t_logger* logger)
 {
   t_datos_kernel_mem* datos_kernel = malloc(sizeof(t_datos_kernel_mem));
@@ -17,6 +17,7 @@ t_datos_kernel_mem* inicializar_datos_kernel_memory(
   datos_kernel->sticks_conectados = list_create();
   datos_kernel->cpus_conectados = list_create();
   datos_kernel->procesos = list_create();
+  datos_kernel->memoria_principal = inicializar_memoria_principal(segment_max_size, allocation_strategy);
   datos_kernel->mutex_procesos = malloc(sizeof(pthread_mutex_t));
   datos_kernel->mutex_lista_sockets = malloc(sizeof(pthread_mutex_t));
   pthread_mutex_init(datos_kernel->mutex_procesos, NULL);
@@ -27,7 +28,7 @@ t_datos_kernel_mem* inicializar_datos_kernel_memory(
 t_datos_scheduler* inicializar_datos_scheduler(int socket_scheduler,
                                                t_list* procesos,
                                                char* scripts_basepath,
-                                               pthread_mutex_t* mutex_procesos,
+                                               pthread_mutex_t* mutex_procesos,t_memoria_principal* memoria_principal,
                                                t_logger* logger)
 {
   t_datos_scheduler* datos_scheduler = malloc(sizeof(t_datos_scheduler));
@@ -36,6 +37,7 @@ t_datos_scheduler* inicializar_datos_scheduler(int socket_scheduler,
   datos_scheduler->logger = logger;
   datos_scheduler->procesos = procesos;
   datos_scheduler->scripts_basepath = scripts_basepath;
+  datos_scheduler->memoria_principal = memoria_principal;
   return datos_scheduler;
 }
 
@@ -89,13 +91,14 @@ t_proceso* inicializar_proceso(u_int32_t pid, char* path_relativo,
   t_proceso* proceso = malloc(sizeof(t_proceso));
   proceso->pid = pid;
   proceso->path_instrucciones = path_relativo;
+  proceso->instrucciones = malloc(sizeof(char*) * proceso->cant_instrucciones);
+  proceso->segmentos = list_create();
   memset(&proceso->contexto, 0,
          sizeof(t_contexto));  // pone todos los campos de contexto en 0
 
-  int largo = strlen(scripts_basepath) + strlen(path_relativo) + 2;
+  int largo = strlen(scripts_basepath) + strlen(path_relativo) + 2; 
   char* path_completo = malloc(largo);
   snprintf(path_completo, largo, "%s/%s", scripts_basepath, path_relativo);
-
   FILE* f = fopen(path_completo, "r");
   if (f == NULL)
   {
@@ -106,8 +109,6 @@ t_proceso* inicializar_proceso(u_int32_t pid, char* path_relativo,
     return NULL;
   }
   proceso->cant_instrucciones = cantidad_instrucciones(f);
-  proceso->instrucciones = malloc(sizeof(char*) * proceso->cant_instrucciones);
-
   char linea[256];
   int i = 0;
   while (fgets(linea, sizeof(linea), f))
@@ -139,4 +140,17 @@ bool inicializar_ip_stick(t_datos_stick* datos_stick, int client_socket)
   logger_info(datos_stick->logger,
               "## NO SE HA PODIDO CONSEGUIR LA IP DE MEMORY_STICK");
   return false;
+}
+
+t_memoria_principal* inicializar_memoria_principal(int tamanio_maximo_segmento, t_allocation_strategy allocation_strategy)
+{
+  t_memoria_principal* memoria = malloc(sizeof(t_memoria_principal));
+  memoria->tamanio_total = 0;
+  memoria->tamanio_maximo_segmento = tamanio_maximo_segmento;
+  memoria->mutex_memoria_principal = malloc(sizeof(pthread_mutex_t));
+  pthread_mutex_init(memoria->mutex_memoria_principal, NULL);
+  memoria->segmentos = list_create();
+  memoria->allocation_strategy = allocation_strategy;
+  memoria->huecos = list_create();
+  return memoria;
 }

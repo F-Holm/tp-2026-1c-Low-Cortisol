@@ -20,7 +20,7 @@ void handshake(t_datos_kernel_mem* datos_kernel_memory, int client_socket)
       t_datos_scheduler* datos_scheduler = inicializar_datos_scheduler(
           client_socket, datos_kernel_memory->procesos,
           datos_kernel_memory->scripts_basepath,
-          datos_kernel_memory->mutex_procesos, datos_kernel_memory->logger);
+          datos_kernel_memory->mutex_procesos, datos_kernel_memory->memoria_principal, datos_kernel_memory->logger);
       datos_kernel_memory->socket_scheduler = client_socket;
       empezar_escucha_scheduler(datos_scheduler);
     }
@@ -81,6 +81,7 @@ void handshake(t_datos_kernel_mem* datos_kernel_memory, int client_socket)
         enviar_conexion_cpu(datos_stick, datos_kernel_memory->cpus_conectados);
         enviar_string(OP_NUEVO_MEMORY_STICK, "Se ha conectado una nueva Memory Stick",
                       datos_kernel_memory->socket_scheduler);
+        aniadir_memoria_total(datos_kernel_memory->memoria_principal, datos_stick->tamanio_stick);
         empezar_escucha_stick(datos_stick);
       }
       else

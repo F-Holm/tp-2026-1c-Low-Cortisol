@@ -62,5 +62,6 @@ void liberar_proceso(t_proceso* proceso)
     free(proceso->instrucciones[i]);
   }
   free(proceso->instrucciones);
+  list_destroy_and_destroy_elements(proceso->segmentos, free);
   free(proceso);
 }

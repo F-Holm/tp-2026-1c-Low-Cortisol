@@ -23,6 +23,22 @@ void agregar_conexion_cpu(t_datos_kernel_mem* datos_kernel_memory,
                           t_datos_cpu* datos_cpu);
 void aniadir_lista_mtx(t_list* lista, pthread_mutex_t* mutex, void* elemento);
 t_proceso* buscar_proceso(t_datos_cpu* datos_cpu, uint32_t pid);
-// u_int32_t calcular_memoria_total(t_list* sticks_conectados, pthread_mutex_t* mutex_lista_sockets);
+int calcular_memoria_total(t_list* sticks_conectados, pthread_mutex_t* mutex_lista_sockets);
+int calcular_espacio_libre(t_list* huecos, pthread_mutex_t* mutex_huecos);
+int calcular_base_final_segmento(t_list* segmentos);
+t_memoria_principal* aniadir_memoria_total(t_memoria_principal* memoria_principal, int memoria_total);
+bool compactar_memoria(int socket_scheduler,t_memoria_principal* memoria_principal);
+t_list* compactar_huecos( int memoria_total, int base_final_segmento);
+t_list* compactar_segmentos(t_list* segmentos);
+bool notificar_compactacion(int socket_scheduler);
+int calcular_base_final_segmento(t_list* segmentos);
+t_segmento* buecar_y_eliminar_segmento(uint32_t id, uint32_t pid, t_memoria_principal* memoria_principal);
+void es_hueco_anterior(t_hueco* hueco_aux,t_hueco* hueco_actual, t_segmento* segmento_aux, t_memoria_principal* memoria_principal,int indice);
+void es_hueco_posterior(t_hueco* hueco_aux,t_hueco* hueco_actual, t_segmento* segmento_aux, t_memoria_principal* memoria_principal,int indice);
+bool hueco_despues_segmento(int base_segmento, int final_segmento, t_list* huecos);
+bool hueco_antes_segmento(int base_segmento, int final_segmento, t_list* huecos);
+void eliminar_segmento(uint32_t id, uint32_t pid, t_memoria_principal* memoria_principal);
+t_list* compactar_huecos( int memoria_total, int base_final_segmento);
+bool notificar_compactacion(int socket_scheduler);
 
 #endif

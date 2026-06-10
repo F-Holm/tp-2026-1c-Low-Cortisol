@@ -13,13 +13,13 @@ typedef struct
   int instruction_delay;
   int compaction_delay;
   int segment_max_size;
-  int allocation_strategy;
   int socket_scheduler;
   char* scripts_basepath;
   t_logger* logger;
   t_list* sticks_conectados;
   t_list* cpus_conectados;
   t_list* procesos;
+  t_memoria_principal* memoria_principal;
   pthread_mutex_t* mutex_procesos;
   pthread_mutex_t* mutex_lista_sockets;
 } t_datos_kernel_mem;
@@ -31,6 +31,7 @@ typedef struct
   t_list* procesos;
   pthread_mutex_t* mutex_procesos;
   char* scripts_basepath;
+  t_memoria_principal* memoria_principal;
 } t_datos_scheduler;
 
 typedef struct
@@ -81,12 +82,13 @@ typedef struct
  int base;
  int size;
 } t_hueco;
+
 typedef struct
 {
  int tamanio_total;
+ int tamanio_maximo_segmento;
  t_list* segmentos;
  t_list* huecos;
+ int allocation_strategy;
+ pthread_mutex_t* mutex_memoria_principal;
 } t_memoria_principal;
-
-
-#endif

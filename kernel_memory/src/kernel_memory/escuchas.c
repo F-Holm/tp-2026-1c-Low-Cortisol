@@ -22,8 +22,7 @@ void* escucha_scheduler(void* ptr)
                          datos_scheduler->mutex_procesos, proceso);
 
         logger_info(datos_scheduler->logger, "## PID: %ls - Proceso Creado",
-                    pid);
-
+                    pid);               
         free(pid);
         list_clean(paquete);
         list_destroy(paquete);
@@ -43,6 +42,8 @@ void* escucha_scheduler(void* ptr)
         int a;
         t_syscall_memory* syscall = (t_syscall_memory*)recibir_buffer(
             &a, datos_scheduler->socket_scheduler);
+        eliminar_segmento(syscall->pid, syscall->id_segmento, datos_scheduler->memoria_principal);
+        free(syscall);
         break;
       }
       case OP_PETICION_IO_STDIN:
@@ -63,6 +64,27 @@ void* escucha_scheduler(void* ptr)
         t_peticion_stdout* stdout = (t_peticion_stdout*)recibir_buffer(
             &a, datos_scheduler->socket_scheduler);
         enviar_string(OP_OK, "OK", datos_scheduler->socket_scheduler);
+        break;
+      }
+      case OP_TERMINAR_PROCESO:
+      {
+        logger_info(datos_scheduler->logger, "Llego una solicitud de TERMINAR_PROCESO");
+        int a;
+        uint32_t* pid = (uint32_t*)recibir_buffer(&a, datos_scheduler->socket_scheduler);
+        t_proceso* proceso_a_terminar = buscar_proceso(datos_scheduler->procesos, pid);
+        if(proceso_a_terminar != NULL){
+          pthread_mutex_lock(datos_scheduler->mutex_procesos);
+          list_remove_and_destroy_element(datos_scheduler->procesos, list_index_of(datos_scheduler->procesos, proceso_a_terminar), free);
+          pthread_mutex_unlock(datos_scheduler->mutex_procesos);
+          logger_info(datos_scheduler->logger, "Proceso con PID %u terminado", *pid);
+          for(int i = 0; i < list_size(proceso_a_terminar->segmentos); i++){
+            t_segmento* segmento = list_get(proceso_a_terminar->segmentos, i);
+            eliminar_segmento(segmento->id, proceso_a_terminar->pid, datos_scheduler->memoria_principal);
+          }
+        }else{
+          logger_info(datos_scheduler->logger, "No se encontró el proceso con PID %u para terminar", *pid);
+        }
+        free(pid);
         break;
       }
       case OP_CODE_ERROR:

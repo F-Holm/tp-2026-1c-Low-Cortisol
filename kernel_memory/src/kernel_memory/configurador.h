@@ -4,6 +4,7 @@
 #include <commons/config.h>
 #include <unistd.h>
 
+#include "kernel_memory/estructuras.h"
 #include "pthread.h"
 #include "utils/logger.h"
 
@@ -15,6 +16,6 @@ char* iniciar_basepath(t_config* config);
 int iniciar_instruction_delay(t_config* config);
 int iniciar_compaction_delay(t_config* config);
 int iniciar_segment_max_size(t_config* config);
-int iniciar_allocation_strategy(t_config* config);
+
 
 #endif
