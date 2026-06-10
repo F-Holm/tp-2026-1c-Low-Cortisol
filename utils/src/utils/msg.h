@@ -110,6 +110,16 @@ extern const char* const HANDSHAKE_MSG[6];
 int recibir_operacion(int socket_fd);
 
 /**
+ * @brief Recibe el código de operación
+ * @param socket_fd
+ * @return Código de operación (enum / int)
+ * @note Usar siempre antes de llamar a a una función de recibir o leer algo del
+         buffer
+ * @note Si no hay nada en el buffer devuelve OP_CODE_ERROR
+ */
+int recibir_operacion_no_bloqueante(int socket_fd);
+
+/**
  * @brief Recibe datos del buffer
  * @param size Cantidad de bytes que se quieren leer
  * @param socket_fd
