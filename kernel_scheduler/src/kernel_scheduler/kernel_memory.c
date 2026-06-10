@@ -49,7 +49,8 @@ int iniciar_conexion_kernel_memory(char* ip, char* puerto, t_logger* logger)
 }
 
 bool avisar_nuevo_proceso(t_socket_kernel_memory* socket_km,
-                          char* archivo_instrucciones, uint32_t pid)
+                          char* archivo_instrucciones, uint32_t pid,
+                          int socket_servidor, t_logger* logger)
 {
   t_paquete* paquete = crear_paquete(OP_NUEVO_PROCESO);
   agregar_string_a_paquete(paquete, archivo_instrucciones);
@@ -60,14 +61,26 @@ bool avisar_nuevo_proceso(t_socket_kernel_memory* socket_km,
   pthread_mutex_unlock(&(socket_km->mutex_socket));
 
   eliminar_paquete(paquete);
+
+  if (!ret)
+  {
+    cerrar_kernel_scheduler(socket_servidor, logger,
+                            MC_ERROR_ENVIO_KERNEL_MEMORY, socket_km->socket_km);
+  }
   return ret;
 }
 
-bool avisar_terminar_proceso(t_socket_kernel_memory* socket_km, uint32_t pid)
+bool avisar_terminar_proceso(t_socket_kernel_memory* socket_km, uint32_t pid,
+                             int socket_servidor, t_logger* logger)
 {
   pthread_mutex_lock(&(socket_km->mutex_socket));
   bool ret = enviar_buffer(OP_TERMINAR_PROCESO, &pid, sizeof(uint32_t),
                            socket_km->socket_km);
+  if (!ret)
+  {
+    cerrar_kernel_scheduler(socket_servidor, logger,
+                            MC_ERROR_ENVIO_KERNEL_MEMORY, socket_km->socket_km);
+  }
   pthread_mutex_unlock(&(socket_km->mutex_socket));
   return ret;
 }

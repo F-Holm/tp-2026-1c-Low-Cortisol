@@ -208,7 +208,7 @@ static bool charla_km_stdin(t_io* io_in)
     case OP_MEMORIA_CORRUPTA:
       free(recibir_string(io_in->socket_km->socket_km));
       cerrar_kernel_scheduler(io_in->socket_server, io_in->logger,
-                              MC_MEMORIA_CORRUPTA);
+                              MC_MEMORIA_CORRUPTA, -1);
       return false;
     case OP_NUEVO_MEMORY_STICK:
       free(recibir_string(io_in->socket_km->socket_km));
@@ -220,7 +220,7 @@ static bool charla_km_stdin(t_io* io_in)
     default:
       free(recibir_string(io_in->socket_km->socket_km));
       cerrar_kernel_scheduler(io_in->socket_server, io_in->logger,
-                              MC_FALLO_CONEXION_KERNEL_MEMORY);
+                              MC_FALLO_CONEXION_KERNEL_MEMORY, -1);
       return false;
   }
 }
@@ -240,10 +240,11 @@ static int io_stdin_f(t_stdin* peticion, t_io* io_in)
   envio = envio_stdin(peticion, io_in, buffer);
   if (!envio)
   {
+    cerrar_kernel_scheduler(io_in->socket_server, io_in->logger,
+                            MC_ERROR_ENVIO_KERNEL_MEMORY,
+                            io_in->socket_km->socket_km);
     pthread_mutex_unlock(&(io_in->socket_km->mutex_socket));
     free(buffer);
-    cerrar_kernel_scheduler(io_in->socket_server, io_in->logger,
-                            MC_FALLO_CONEXION_KERNEL_MEMORY);
     return false;
   }
   if (!(charla_km_stdin(io_in)))
@@ -266,7 +267,7 @@ static bool recepcion_km_stdout(t_io* io_out)
     case OP_MEMORIA_CORRUPTA:
       free(recibir_string(io_out->socket_km->socket_km));
       cerrar_kernel_scheduler(io_out->socket_server, io_out->logger,
-                              MC_MEMORIA_CORRUPTA);
+                              MC_MEMORIA_CORRUPTA, -1);
       return false;
     case OP_NUEVO_MEMORY_STICK:
       free(recibir_string(io_out->socket_km->socket_km));
@@ -278,7 +279,7 @@ static bool recepcion_km_stdout(t_io* io_out)
     default:
       free(recibir_string(io_out->socket_km->socket_km));
       cerrar_kernel_scheduler(io_out->socket_server, io_out->logger,
-                              MC_FALLO_CONEXION_KERNEL_MEMORY);
+                              MC_FALLO_CONEXION_KERNEL_MEMORY, -1);
       return false;
   }
 }
@@ -292,7 +293,8 @@ static bool io_stdout_f(t_stdout* peticion, t_io* io_out)
   if (!envio)
   {
     cerrar_kernel_scheduler(io_out->socket_server, io_out->logger,
-                            MC_FALLO_CONEXION_KERNEL_MEMORY);
+                            MC_ERROR_ENVIO_KERNEL_MEMORY,
+                            io_out->socket_km->socket_km);
     pthread_mutex_unlock(&(io_out->socket_km->mutex_socket));
     return false;
   }
@@ -313,7 +315,8 @@ static bool io_stdout_f(t_stdout* peticion, t_io* io_out)
                  "## Error al recibir la respuesa de Kernel Memory");
     free(buffer);
     cerrar_kernel_scheduler(io_out->socket_server, io_out->logger,
-                            MC_FALLO_CONEXION_KERNEL_MEMORY);
+                            MC_FALLO_CONEXION_KERNEL_MEMORY,
+                            io_out->socket_km->socket_km);
     return false;
   }
 

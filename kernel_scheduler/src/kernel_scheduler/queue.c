@@ -452,12 +452,9 @@ static void cambio_a_exit(t_pcb* pcb, t_colas* colas, int motivo)
   if (motivo != MFP_CIERRE_SISTEMA && motivo != MFP_PRIORIDAD_NO_VALIDA)
   {
     bool ejecutar_rutina_des_suspender = tamanio_proceso(colas, pcb->pid) > 0;
-    if (!avisar_terminar_proceso(colas->socket_km, pcb->pid))
-    {
-      cerrar_kernel_scheduler(colas->socket_servidor, colas->logger,
-                              MC_FALLO_CONEXION_KERNEL_MEMORY);
-    }
-    else if (ejecutar_rutina_des_suspender)
+    if (avisar_terminar_proceso(colas->socket_km, pcb->pid,
+                                colas->socket_servidor, colas->logger) &&
+        ejecutar_rutina_des_suspender)
     {
       crear_hilo_rutina_des_suspension(colas);
     }
@@ -480,12 +477,12 @@ static t_pcb* cambio_sacar_new(char* archivo_instrucciones, int prioridad,
   list_add(pcb->lista_prioridades, aux);
 
   aumentar_contador_procesos(colas->contador_procesos);
-  if (!avisar_nuevo_proceso(colas->socket_km, archivo_instrucciones, pcb->pid))
+  if (!avisar_nuevo_proceso(colas->socket_km, archivo_instrucciones, pcb->pid,
+                            colas->socket_servidor, colas->logger))
   {
     log_cambio_estado(colas->logger, pcb->pid, EST_NEW, EST_EXIT);
     cambio_a_exit(pcb, colas, MFP_CIERRE_SISTEMA);
-    cerrar_kernel_scheduler(colas->socket_servidor, colas->logger,
-                            MC_FALLO_CONEXION_KERNEL_MEMORY);
+
     return NULL;
   }
   return pcb;
@@ -724,7 +721,8 @@ static void avisar_proceso_suspendido(t_pcb* pcb, t_colas* colas)
                      colas->socket_km->socket_km))
   {
     cerrar_kernel_scheduler(colas->socket_servidor, colas->logger,
-                            MC_FALLO_CONEXION_KERNEL_MEMORY);
+                            MC_ERROR_ENVIO_KERNEL_MEMORY,
+                            colas->socket_km->socket_km);
   }
   pthread_mutex_unlock(&(colas->socket_km->mutex_socket));
 }
@@ -795,11 +793,11 @@ static void entra_proceso_con_compactacion(t_pcb* pcb, t_colas* colas)
       break;
     case OP_MEMORIA_CORRUPTA:
       cerrar_kernel_scheduler(colas->socket_servidor, colas->logger,
-                              MC_MEMORIA_CORRUPTA);
+                              MC_MEMORIA_CORRUPTA, -1);
       break;
     default:
       cerrar_kernel_scheduler(colas->socket_servidor, colas->logger,
-                              MC_FALLO_CONEXION_KERNEL_MEMORY);
+                              MC_FALLO_CONEXION_KERNEL_MEMORY, -1);
       break;
   }
 }
@@ -812,7 +810,8 @@ static void avisar_proceso_des_suspendido(t_pcb* pcb, t_colas* colas)
                       colas->socket_km->socket_km)))
   {
     cerrar_kernel_scheduler(colas->socket_servidor, colas->logger,
-                            MC_FALLO_CONEXION_KERNEL_MEMORY);
+                            MC_ERROR_ENVIO_KERNEL_MEMORY,
+                            colas->socket_km->socket_km);
     return;
   }
 
@@ -1201,12 +1200,7 @@ static bool entra_proceso(t_colas* colas, t_pcb* proceso)
     case OP_MEMORIA_CORRUPTA:
       free(recibir_string(colas->socket_km->socket_km));
       cerrar_kernel_scheduler(colas->socket_servidor, colas->logger,
-                              MC_MEMORIA_CORRUPTA);
-      return false;
-    case OP_CODE_ERROR:
-      free(recibir_string(colas->socket_km->socket_km));
-      cerrar_kernel_scheduler(colas->socket_servidor, colas->logger,
-                              MC_FALLO_CONEXION_KERNEL_MEMORY);
+                              MC_MEMORIA_CORRUPTA, -1);
       return false;
     case OP_DES_SUSPENSION_EXITOSA:
       free(recibir_string(colas->socket_km->socket_km));
@@ -1214,7 +1208,7 @@ static bool entra_proceso(t_colas* colas, t_pcb* proceso)
     default:
       free(recibir_string(colas->socket_km->socket_km));
       cerrar_kernel_scheduler(colas->socket_servidor, colas->logger,
-                              MC_FALLO_CONEXION_KERNEL_MEMORY);
+                              MC_FALLO_CONEXION_KERNEL_MEMORY, -1);
       return false;
   }
 }
@@ -1232,7 +1226,8 @@ static bool puede_des_suspender_sin_compactacion_sin_mutex(t_colas* colas,
                       colas->socket_km->socket_km)))
   {
     cerrar_kernel_scheduler(colas->socket_servidor, colas->logger,
-                            MC_FALLO_CONEXION_KERNEL_MEMORY);
+                            MC_ERROR_ENVIO_KERNEL_MEMORY,
+                            colas->socket_km->socket_km);
     return false;
   }
 
@@ -1329,11 +1324,11 @@ static int recibir_espacio(t_colas* colas, int espacio)
       break;
     case OP_MEMORIA_CORRUPTA:
       cerrar_kernel_scheduler(colas->socket_servidor, colas->logger,
-                              MC_MEMORIA_CORRUPTA);
+                              MC_MEMORIA_CORRUPTA, -1);
       break;
     default:
       cerrar_kernel_scheduler(colas->socket_servidor, colas->logger,
-                              MC_FALLO_CONEXION_KERNEL_MEMORY);
+                              MC_FALLO_CONEXION_KERNEL_MEMORY, -1);
       break;
   }
   return espacio;
@@ -1347,7 +1342,8 @@ int espacio_disponible_sin_mutex(t_colas* colas, uint32_t pid)
                       colas->socket_km->socket_km)))
   {
     cerrar_kernel_scheduler(colas->socket_servidor, colas->logger,
-                            MC_FALLO_CONEXION_KERNEL_MEMORY);
+                            MC_ERROR_ENVIO_KERNEL_MEMORY,
+                            colas->socket_km->socket_km);
     return espacio;
   }
   return recibir_espacio(colas, espacio);
@@ -1380,11 +1376,11 @@ static int recibir_tamanio(t_colas* colas, int espacio)
       break;
     case OP_MEMORIA_CORRUPTA:
       cerrar_kernel_scheduler(colas->socket_servidor, colas->logger,
-                              MC_MEMORIA_CORRUPTA);
+                              MC_MEMORIA_CORRUPTA, -1);
       break;
     default:
       cerrar_kernel_scheduler(colas->socket_servidor, colas->logger,
-                              MC_FALLO_CONEXION_KERNEL_MEMORY);
+                              MC_FALLO_CONEXION_KERNEL_MEMORY, -1);
       break;
   }
   return espacio;
@@ -1398,7 +1394,8 @@ int tamanio_proceso_sin_mutex(t_colas* colas, uint32_t pid)
                       colas->socket_km->socket_km)))
   {
     cerrar_kernel_scheduler(colas->socket_servidor, colas->logger,
-                            MC_FALLO_CONEXION_KERNEL_MEMORY);
+                            MC_ERROR_ENVIO_KERNEL_MEMORY,
+                            colas->socket_km->socket_km);
     return espacio;
   }
 
@@ -1462,12 +1459,12 @@ static bool termino_compactacion(t_colas* colas)
     case OP_MEMORIA_CORRUPTA:
       free(recibir_string(colas->socket_km->socket_km));
       cerrar_kernel_scheduler(colas->socket_servidor, colas->logger,
-                              MC_MEMORIA_CORRUPTA);
+                              MC_MEMORIA_CORRUPTA, -1);
       return false;
     default:
       free(recibir_string(colas->socket_km->socket_km));
       cerrar_kernel_scheduler(colas->socket_servidor, colas->logger,
-                              MC_FALLO_CONEXION_KERNEL_MEMORY);
+                              MC_FALLO_CONEXION_KERNEL_MEMORY, -1);
       return false;
   }
 }
@@ -1478,7 +1475,8 @@ static void rutina_compactacion(t_colas* colas)
                       colas->socket_km->socket_km)))
   {
     cerrar_kernel_scheduler(colas->socket_servidor, colas->logger,
-                            MC_FALLO_CONEXION_KERNEL_MEMORY);
+                            MC_ERROR_ENVIO_KERNEL_MEMORY,
+                            colas->socket_km->socket_km);
     return;
   }
   logger_info(colas->logger, "## Inicio de compactacion");

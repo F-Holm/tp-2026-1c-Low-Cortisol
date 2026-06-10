@@ -144,7 +144,7 @@ void disminuir_contador_procesos(t_contador_procesos* contador)
   if (contador->cantidad_procesos_activos == 0)
   {
     cerrar_kernel_scheduler(contador->socket_servidor, contador->logger,
-                            MC_SIN_PROCESOS);
+                            MC_SIN_PROCESOS, -1);
   }
   pthread_mutex_unlock(&(contador->mutex_contador));
 }
@@ -167,13 +167,41 @@ static void log_shutdown(t_logger* logger, int motivo_cierre)
   }
 }
 
+static void comprobar_motivo_cierre(int* motivo_cierre, int socket_km)
+{
+  if (*motivo_cierre != MC_ERROR_ENVIO_KERNEL_MEMORY)
+  {
+    return;
+  }
+
+  bool seguir_operando = true;
+  while (seguir_operando)
+  {
+    switch (recibir_operacion(socket_km))
+    {
+      case OP_CODE_ERROR:
+        *motivo_cierre = MC_MEMORIA_CORRUPTA;
+        seguir_operando = false;
+        break;
+      case OP_MEMORIA_CORRUPTA:
+        *motivo_cierre = MC_FALLO_CONEXION_KERNEL_MEMORY;
+        seguir_operando = false;
+        break;
+      default:
+        free(recibir_string(socket_km));
+        break;
+    }
+  }
+}
+
 void cerrar_kernel_scheduler(int socket_servidor, t_logger* logger,
-                             int motivo_cierre)
+                             int motivo_cierre, int socket_km)
 {
   static bool shutdown_activado = false;
   pthread_mutex_lock(&mutex_shutdown);
   if (!shutdown_activado)
   {
+    comprobar_motivo_cierre(&motivo_cierre, socket_km);
     log_shutdown(logger, motivo_cierre);
     shutdown(socket_servidor, SHUT_RDWR);
     shutdown_activado = true;
