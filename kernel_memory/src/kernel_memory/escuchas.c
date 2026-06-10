@@ -28,12 +28,35 @@ void* escucha_scheduler(void* ptr)
         list_destroy(paquete);
         break;
       }
+
       case OP_SYSCALL_MEM_ALLOC:
       {
         logger_info(datos_scheduler->logger, "Llego una syscall de MEM_ALLOC");
         int a;
         t_syscall_memory* syscall = (t_syscall_memory*)recibir_buffer(
             &a, datos_scheduler->socket_scheduler);
+
+        if (syscall->tamanio >
+            datos_scheduler->memoria_principal->tamanio_maximo_segmento)
+        {
+          logger_info(
+              datos_scheduler->logger,
+              "La syscall de MEM_ALLOC no se pudo realizar ya que el tamaño "
+              "solicitado es mayor al tamaño máximo de segmento");
+          enviar_string(
+              OP_TAMANIO_SEGMENTO_EXCEDIDO,
+              "Tamaño solicitado es mayor al tamaño máximo de segmento",
+              datos_scheduler->socket_scheduler);
+          free(syscall);
+        }
+        else
+        {
+          crear_segmento(syscall->id_segmento, syscall->pid, syscall->tamanio,
+                         datos_scheduler->memoria_principal,
+                         datos_scheduler->socket_scheduler,
+                         datos_scheduler->logger);
+        }
+
         break;
       }
       case OP_SYSCALL_MEM_FREE:

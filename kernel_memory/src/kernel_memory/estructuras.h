@@ -7,12 +7,29 @@
 #include "utils/logger.h"
 #include "utils/registros.h"
 
+typedef enum
+{
+  BEST,
+  WORST
+} t_allocation_strategy;
+
+typedef struct
+{
+  int tamanio_total;
+  int tamanio_maximo_segmento;
+  t_list* segmentos;
+  t_list* huecos;
+  int allocation_strategy;
+  pthread_mutex_t* mutex_memoria_principal;
+} t_memoria_principal;
+
 typedef struct
 {
   int socket_kernel_memory;
   int instruction_delay;
   int compaction_delay;
   int segment_max_size;
+  t_allocation_strategy allocation_strategy;
   int socket_scheduler;
   char* scripts_basepath;
   t_logger* logger;
@@ -83,12 +100,4 @@ typedef struct
   int size;
 } t_hueco;
 
-typedef struct
-{
-  int tamanio_total;
-  int tamanio_maximo_segmento;
-  t_list* segmentos;
-  t_list* huecos;
-  int allocation_strategy;
-  pthread_mutex_t* mutex_memoria_principal;
-} t_memoria_principal;
+#endif

@@ -51,5 +51,9 @@ void eliminar_segmento(uint32_t id, uint32_t pid,
                        t_memoria_principal* memoria_principal);
 t_list* compactar_huecos(int memoria_total, int base_final_segmento);
 bool notificar_compactacion(int socket_scheduler);
-
+t_hueco* selector_de_huecos(uint32_t tamanio, t_logger* logger,
+                            t_memoria_principal* memoria_principal);
+void crear_segmento(uint32_t id, uint32_t pid, int size,
+                    t_memoria_principal* memoria_principal,
+                    int socket_scheduler, t_logger* logger);
 #endif
