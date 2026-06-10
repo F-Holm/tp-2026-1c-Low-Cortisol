@@ -315,8 +315,7 @@ static bool io_stdout_f(t_stdout* peticion, t_io* io_out)
                  "## Error al recibir la respuesa de Kernel Memory");
     free(buffer);
     cerrar_kernel_scheduler(io_out->socket_server, io_out->logger,
-                            MC_FALLO_CONEXION_KERNEL_MEMORY,
-                            io_out->socket_km->socket_km);
+                            MC_FALLO_CONEXION_KERNEL_MEMORY, -1);
     return false;
   }
 
