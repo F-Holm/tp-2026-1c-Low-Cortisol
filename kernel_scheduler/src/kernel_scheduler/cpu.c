@@ -12,7 +12,7 @@
 #include "utils/kernel_scheduler_cpu.h"
 #include "utils/msg.h"
 
-const char* const MOTIVOS_DESALOJO[9] = {
+const char* const MOTIVOS_DESALOJO[10] = {
     "no hubo desalojo",
     "desalojo por fin de quantum",
     "desalojo por proceso prioritario",
@@ -21,7 +21,8 @@ const char* const MOTIVOS_DESALOJO[9] = {
     "primer ciclo de CPU",
     "operación de IO",
     "mutex bloqueado",
-    "no hay memoria suficiente para esa instrucción"};
+    "no hay memoria suficiente para esa instrucción",
+    "segmentation fault"};
 
 const char* const SYSCALLS_STR[10] = {
     "MUTEX_CREATE", "MUTEX_LOCK", "MUTEX_UNLOCK", "MEM_ALLOC", "MEM_FREE",
@@ -165,6 +166,13 @@ static bool enviar_codigo(t_datos_syscall* datos)
 static void manejar_ciclo_cpu_ok(t_datos_syscall* datos)
 {
   free(recibir_string(datos->datos->socket_fd));
+  datos->motivo_desalojo = MD_SEGMENTATION_FAULt;
+  cambio_exec_exit(datos->pcb, datos->datos->colas, MFP_FALLO_IO);
+}
+
+static void manejar_segmentation_fault(t_datos_syscall* datos)
+{
+  free(recibir_string(datos->datos->socket_fd));
 }
 
 static void manejar_syscall_mutex_create(t_datos_syscall* datos)
@@ -290,6 +298,7 @@ static void* manejar_cliente_cpu(void* datos_hilo_cpu_void)
                                    true, 0, MD_PRIMER_CICLO};
   void (*funciones_syscalls[OP_SYSCALL_EXIT - OP_CICLO_CPU_OK + 2])(
       t_datos_syscall*) = {manejar_ciclo_cpu_ok,
+                           manejar_segmentation_fault,
                            manejar_syscall_mutex_create,
                            manejar_syscall_mutex_lock,
                            manejar_syscall_mutex_unlock,

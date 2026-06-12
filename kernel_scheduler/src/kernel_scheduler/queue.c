@@ -5,9 +5,13 @@
 
 #include "utils/msg.h"
 
-const char* const MOTIVOS_FIN_PROCESO[5] = {
-    "prioridad no válida", "instrucción EXIT", "cierre del sistema",
-    "fallo de io", "no hay suficiente memoria disponible"};
+const char* const MOTIVOS_FIN_PROCESO[6] = {
+    "prioridad no válida",
+    "instrucción EXIT",
+    "cierre del sistema",
+    "fallo de io",
+    "no hay suficiente memoria disponible",
+    "segmentation fault"};
 
 static void* hilo_suspensor(void* datos_void);
 static void* hilo_des_suspensor(void* datos_void);

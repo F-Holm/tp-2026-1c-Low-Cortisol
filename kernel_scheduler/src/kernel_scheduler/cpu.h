@@ -45,10 +45,11 @@ typedef enum
   MD_PRIMER_CICLO,
   MD_IO,
   MD_MUTEX_BLOQUEADO,
-  MD_MEMORIA_INSUFICIENTE
+  MD_MEMORIA_INSUFICIENTE,
+  MD_SEGMENTATION_FAULt
 } t_motivo_desalojo;
 
-extern const char* const MOTIVOS_DESALOJO[9];
+extern const char* const MOTIVOS_DESALOJO[10];
 
 extern const char* const SYSCALLS_STR[10];
 

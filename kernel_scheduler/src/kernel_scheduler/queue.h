@@ -19,10 +19,11 @@ typedef enum
   MFP_INSTRUCCION_EXIT,
   MFP_CIERRE_SISTEMA,
   MFP_FALLO_IO,
-  MPF_MEMORIA_INSUFICIENTE
+  MPF_MEMORIA_INSUFICIENTE,
+  MPF_SEGMENTATION_FAULT
 } t_motivos_fin_proceso;
 
-extern const char* const MOTIVOS_FIN_PROCESO[5];
+extern const char* const MOTIVOS_FIN_PROCESO[6];
 
 typedef struct
 {

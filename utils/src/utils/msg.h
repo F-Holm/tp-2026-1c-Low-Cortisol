@@ -34,6 +34,7 @@ typedef enum
   OP_RESPUESTA_SLEEP,
   OP_MEMORIA_CORRUPTA,
   OP_CICLO_CPU_OK,
+  OP_SEG_FAULT,
   OP_SYSCALL_MUTEX_CREATE,  // No cambiar el orden de las syscalls
   OP_SYSCALL_MUTEX_LOCK,    // No poner elementos entre las syscalls
   OP_SYSCALL_MUTEX_UNLOCK,
