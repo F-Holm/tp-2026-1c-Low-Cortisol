@@ -49,5 +49,4 @@ void cerrar_modulo(t_cpu* cpu)
     dictionary_destroy(cpu->handlers);
     cpu->handlers = NULL;
   }
-
 }

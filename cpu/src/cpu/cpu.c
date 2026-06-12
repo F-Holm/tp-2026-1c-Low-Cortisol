@@ -10,7 +10,6 @@
 #include "cpu/registros.h"
 #include "utils/kernel_memory_cpu.h"
 
-
 void recibir_tamanio_maximo_segmento(t_cpu* cpu)
 {
   int codigo_operacion = recibir_operacion(cpu->socket_kernel_memory);
@@ -18,7 +17,7 @@ void recibir_tamanio_maximo_segmento(t_cpu* cpu)
   {
     int size;
     void* buffer = recibir_buffer(&size, cpu->socket_kernel_scheduler);
-    cpu->tamanio_max_segmento = *(uint32_t*) buffer;
+    cpu->tamanio_max_segmento = *(uint32_t*)buffer;
     free(buffer);
   }
   else
@@ -128,7 +127,7 @@ uint32_t recibir_pid_kernel_scheduler(t_cpu* cpu)
 
 bool pedir_contexto_kernel_memory(t_cpu* cpu, uint32_t pid)
 {
-  return enviar_buffer(OP_PEDIR_CONTEXTO , &pid, sizeof(uint32_t),
+  return enviar_buffer(OP_PEDIR_CONTEXTO, &pid, sizeof(uint32_t),
                        cpu->socket_kernel_memory);
 }
 

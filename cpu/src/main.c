@@ -57,7 +57,7 @@ int main(int argc, char* argv[])
   {
     log_error(cpu->logger, "## fallo el envio del mensaje al kernel memory");
   }
-  recibir_tamanio_maximo_segmento(cpu);  
+  recibir_tamanio_maximo_segmento(cpu);
 
   // diccionario de intruciones (nombre - funcion)
   cpu->handlers = dictionary_create();

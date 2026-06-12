@@ -10,7 +10,6 @@
 #include "utils/msg.h"
 #include "utils/registros.h"
 
-
 typedef struct
 {
   char* id;
