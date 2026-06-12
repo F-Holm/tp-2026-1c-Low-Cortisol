@@ -57,7 +57,8 @@ typedef enum
   OP_SIN_INTERRUPCION,
   OP_INTERRUPCION,
   OP_TAMANIO_MAX_SEG,
-  OP_TABLA_DE_SEGMENTOS
+  OP_TABLA_DE_SEGMENTOS,
+  OP_SEG_FAULT
 } t_op_code;
 
 typedef struct
