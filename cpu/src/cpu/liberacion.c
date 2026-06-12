@@ -21,6 +21,7 @@ void destruir_instruccion(t_instruccion* instrucion)
 
 void cerrar_modulo(t_cpu* cpu)
 {
+  list_destroy_and_destroy_elements(cpu->memory_sticks, free);
   if (cpu->socket_kernel_memory > 0)
   {
     close(cpu->socket_kernel_memory);
@@ -48,4 +49,5 @@ void cerrar_modulo(t_cpu* cpu)
     dictionary_destroy(cpu->handlers);
     cpu->handlers = NULL;
   }
+
 }

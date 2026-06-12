@@ -162,7 +162,7 @@ bool handler_mem_alloc(t_cpu* cpu, t_contexto* contexto,
 
   datos_syscall->pid = pid;
   datos_syscall->id_segmento = atoi(instruccion->parametros[0]);
-  datos_syscall->tamaño = atoi(instruccion->parametros[1]);
+  datos_syscall->tamanio = atoi(instruccion->parametros[1]);
 
   if (enviar_buffer(OP_SYSCALL_MEM_ALLOC, datos_syscall,
                     sizeof(t_syscall_memory), cpu->socket_kernel_scheduler))
@@ -188,7 +188,7 @@ bool handler_mem_free(t_cpu* cpu, t_contexto* contexto,
 
   datos_syscall->pid = pid;
   datos_syscall->id_segmento = atoi(instruccion->parametros[0]);
-  datos_syscall->tamaño = 0;
+  datos_syscall->tamanio = 0;
 
   if (enviar_buffer(OP_SYSCALL_MEM_FREE, datos_syscall,
                     sizeof(t_syscall_memory), cpu->socket_kernel_scheduler))
