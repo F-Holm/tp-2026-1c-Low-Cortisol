@@ -2,9 +2,9 @@
 #define KERNEL_MEMORY_CONFIGURADOR_H_
 
 #include <commons/config.h>
-#include <unistd.h>
-#include <string.h>
 #include <pthread.h>
+#include <string.h>
+#include <unistd.h>
 
 #include "kernel_memory/estructuras.h"
 #include "utils/logger.h"

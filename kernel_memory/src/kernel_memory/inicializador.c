@@ -91,7 +91,6 @@ t_proceso* inicializar_proceso(u_int32_t pid, char* path_relativo,
   t_proceso* proceso = malloc(sizeof(t_proceso));
   proceso->pid = pid;
   proceso->path_instrucciones = path_relativo;
-  proceso->instrucciones = malloc(sizeof(char*) * proceso->cant_instrucciones);
   proceso->segmentos = list_create();
   memset(&proceso->contexto, 0,
          sizeof(t_contexto));  // pone todos los campos de contexto en 0
@@ -109,6 +108,7 @@ t_proceso* inicializar_proceso(u_int32_t pid, char* path_relativo,
     return NULL;
   }
   proceso->cant_instrucciones = cantidad_instrucciones(f);
+  proceso->instrucciones = malloc(sizeof(char*) * proceso->cant_instrucciones);
   char linea[256];
   int i = 0;
   while (fgets(linea, sizeof(linea), f))
