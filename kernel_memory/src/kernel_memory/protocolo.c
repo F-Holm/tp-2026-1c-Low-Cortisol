@@ -195,54 +195,60 @@ t_memoria_principal* aniadir_memoria_total(
   return memoria_principal;
 }
 
-t_hueco* algoritmo_seleccionador(uint32_t tamanio, t_list* huecos_actuales,
-                                 t_logger* logger,
-                                 t_allocation_strategy allocation_strategy)
+static t_hueco algoritmo_seleccionador(uint32_t tamanio, t_list* huecos_actuales,
+                                t_logger* logger,
+                                t_allocation_strategy allocation_strategy)
 {
-  t_hueco* hueco_elegido = NULL;
-  for (int i = 0; i < list_size(huecos_actuales) - 1; i++)
+  t_hueco hueco_elegido = {-1, -1};
+  t_list_iterator* iterador = list_iterator_create(huecos_actuales);
+  while (list_iterator_has_next(iterador))
   {
-    t_hueco* iterador = list_get(huecos_actuales, i);
-    if (iterador->size >= tamanio)
+    t_hueco* hueco_actual = list_iterator_next(iterador);
+    if (hueco_actual->size >= tamanio)
     {
       switch (allocation_strategy)
       {
         case BEST:
-          if (hueco_elegido == NULL || hueco_elegido->size > iterador->size)
-            hueco_elegido = iterador;
+          if (hueco_elegido.size == -1 ||
+              hueco_elegido.size > hueco_actual->size)
+            hueco_elegido = *hueco_actual;
           break;
         case WORST:
-          if (hueco_elegido == NULL || hueco_elegido->size < iterador->size)
-            hueco_elegido = iterador;
+          if (hueco_elegido.size == -1 ||
+              hueco_elegido.size < hueco_actual->size)
+            hueco_elegido = *hueco_actual;
           break;
       }
     }
   }
-  if (hueco_elegido == NULL)
+  list_iterator_destroy(iterador);
+  if (hueco_elegido.size == -1)
   {
     logger_error(logger, "No hay huecos disponibles");
   }
   return hueco_elegido;
 }
 
-void actualizar_tabla_huecos(t_memoria_principal* memoria_principal,
-                             t_hueco* hueco_elegido, uint32_t tamanio)
+static void actualizar_tabla_huecos(t_memoria_principal* memoria_principal,
+                             t_hueco hueco_elegido, uint32_t tamanio)
 {
-  for (int i = 0; i < list_size(memoria_principal->huecos) - 1; i++)
+  t_list_iterator* iterador = list_iterator_create(memoria_principal->huecos);
+  while (list_iterator_has_next(iterador))
   {
-    t_hueco* iterador = list_get(memoria_principal->huecos, i);
-    if (iterador->base == hueco_elegido->base)
+    t_hueco* hueco_actual = list_iterator_next(iterador);
+    if (hueco_actual->base == hueco_elegido.base)
     {
-      iterador->size -= tamanio;
-      iterador->base += tamanio;
+      hueco_actual->size -= tamanio;
+      hueco_actual->base += tamanio;
     }
   }
+  list_iterator_destroy(iterador);
 }
 
-t_hueco* selector_de_huecos(uint32_t tamanio, t_logger* logger,
-                            t_memoria_principal* memoria)
+static t_hueco selector_de_huecos(uint32_t tamanio, t_logger* logger,
+                           t_memoria_principal* memoria)
 {
-  t_hueco* hueco_elegido = NULL;
+  t_hueco hueco_elegido = {-1, -1};
   if (memoria->allocation_strategy == BEST)
     hueco_elegido =
         algoritmo_seleccionador(tamanio, memoria->huecos, logger, BEST);
@@ -253,15 +259,26 @@ t_hueco* selector_de_huecos(uint32_t tamanio, t_logger* logger,
   {
     logger_error(logger,
                  "La opción de selección de huecos elegida no es válida.");
-    return NULL;
+    return hueco_elegido;
   }
   actualizar_tabla_huecos(memoria, hueco_elegido, tamanio);
   return hueco_elegido;
 }
 
-void actualizar_lista_segmentos(t_memoria_principal* memoria_principal)
+static void actualizar_lista_segmentos(t_memoria_principal* memoria_principal,
+                                t_hueco hueco_elegido, int tamanio)
 {
-  /*falta el codigo*/
+  t_list_iterator* iterador =
+      list_iterator_create(memoria_principal->segmentos);
+  while (list_iterator_has_next(iterador))
+  {
+    t_segmento* segmento_actual = list_iterator_next(iterador);
+    if (segmento_actual->base == hueco_elegido.base)
+    {
+      segmento_actual->size += tamanio;
+    }
+  }
+  list_iterator_destroy(iterador);
 }
 
 //  FALTA HABLAR CON MEMORY STICK
@@ -269,23 +286,40 @@ void crear_segmento(uint32_t id, uint32_t pid, int size,
                     t_memoria_principal* memoria_principal,
                     int socket_scheduler, t_logger* logger)
 {
+  // Chequeo de segmentation fault
+  if (size > memoria_principal->tamanio_maximo_segmento)
+    enviar_string(OP_TAMANIO_SEGMENTO_EXCEDIDO,
+                  "El tamaño solicitado supera el tamaño máximo de segmento.",
+                  socket_scheduler);
+  pthread_mutex_lock(memoria_principal->mutex_memoria_principal);
+
+  // Chequeo de cantidad de memoria disponible
   if (calcular_espacio_libre(memoria_principal->huecos,
                              memoria_principal->mutex_memoria_principal) < size)
   {
-    logger_info(logger,
-                "No hay espacio suficiente para crear el segmento, se "
-                "intentará compactar la memoria");
-    // avisarle a scheduler que no hay memoria disponible
+    logger_info(logger, "No hay espacio suficiente para crear el segmento");
+    enviar_string(OP_MEMORIA_INSUFICIENTE, "No hay memoria suficiente",
+                  socket_scheduler);
+    pthread_mutex_unlock(memoria_principal->mutex_memoria_principal);
   }
   else
   {
     logger_info(logger, "Creando segmento con id %u, pid %u y tamaño %d", id,
                 pid, size);
-    t_hueco* hueco_elegido =
-        selector_de_huecos(size, logger, memoria_principal);
-    if (hueco_elegido == NULL)
+    t_hueco hueco_elegido = selector_de_huecos(size, logger, memoria_principal);
+
+    // Chequeo de compactación
+    if (hueco_elegido.size == -1)
+    {
       compactar_memoria(socket_scheduler, memoria_principal);
-    actualizar_lista_segmentos(memoria_principal);
+      selector_de_huecos(size, logger, memoria_principal);
+    }
+    actualizar_lista_segmentos(memoria_principal, hueco_elegido, size);
+    pthread_mutex_unlock(memoria_principal->mutex_memoria_principal);
+    enviar_string(OP_MEMORIA_ALOJADA, "Se ha alojado la memoria",
+                  socket_scheduler);
+    logger_info(logger, "## PID: %u - Segmento Creado %u - Tamaño: %d", pid, id,
+                size);
   }
 }
 
