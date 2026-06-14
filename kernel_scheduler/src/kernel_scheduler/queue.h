@@ -160,10 +160,10 @@ void bloquear_hilos_suspendido(t_colas* colas);
 void desbloquear_hilos_suspendido(t_colas* colas);
 
 // Funciones de consultas a kernel_memory
-int espacio_disponible(t_colas* colas, uint32_t pid);
 int espacio_disponible_sin_mutex(t_colas* colas, uint32_t pid);
-int tamanio_proceso(t_colas* colas, uint32_t pid);
+int espacio_disponible(t_colas* colas, uint32_t pid);
 int tamanio_proceso_sin_mutex(t_colas* colas, uint32_t pid);
+int tamanio_proceso(t_colas* colas, uint32_t pid);
 
 // Funciones de rutinas
 void crear_hilo_rutina_des_suspension(t_colas* colas);
