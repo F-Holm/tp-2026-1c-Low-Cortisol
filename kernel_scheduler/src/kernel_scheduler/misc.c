@@ -13,6 +13,10 @@ const char* const MOTIVOS_CIERE[4] = {
     "Procesos finalizados con éxito", "BSOD: Corrupción de memoria detectada",
     "Error en la conexión con Kernel Memory", "Error desconocido"};
 
+static bool es_mas_prioritario(void* pcb1, void* pcb2);
+static void log_shutdown(t_logger* logger, int motivo_cierre);
+static void comprobar_motivo_cierre(int* motivo_cierre, int socket_km);
+
 static pthread_mutex_t mutex_pid_pcb;
 static pthread_mutex_t mutex_shutdown;
 
@@ -51,14 +55,17 @@ void destruir_kernel_memory(t_socket_kernel_memory* socket_km)
   free(socket_km);
 }
 
-static bool es_mas_prioritario(void* pcb1, void* pcb2)
-{
-  return get_prioridad_pcb((t_pcb*)pcb1) <= get_prioridad_pcb((t_pcb*)pcb2);
-}
-
 int insertar_pcb_en_orden(t_list* lista, t_pcb* pcb)
 {
   return list_add_sorted(lista, pcb, es_mas_prioritario);
+}
+
+int get_estado_pcb(t_pcb* pcb)
+{
+  pthread_mutex_lock(&(pcb->mutex_estado));
+  int estado_pcb = pcb->estado;
+  pthread_mutex_unlock(&(pcb->mutex_estado));
+  return estado_pcb;
 }
 
 int get_prioridad_pcb(t_pcb* pcb)
@@ -155,6 +162,26 @@ void destruir_contador_procesos(t_contador_procesos* contador)
   free(contador);
 }
 
+void cerrar_kernel_scheduler(int socket_servidor, t_logger* logger,
+                             int motivo_cierre, int socket_km)
+{
+  static bool shutdown_activado = false;
+  pthread_mutex_lock(&mutex_shutdown);
+  if (!shutdown_activado)
+  {
+    comprobar_motivo_cierre(&motivo_cierre, socket_km);
+    log_shutdown(logger, motivo_cierre);
+    shutdown(socket_servidor, SHUT_RDWR);
+    shutdown_activado = true;
+  }
+  pthread_mutex_unlock(&mutex_shutdown);
+}
+
+static bool es_mas_prioritario(void* pcb1, void* pcb2)
+{
+  return get_prioridad_pcb((t_pcb*)pcb1) <= get_prioridad_pcb((t_pcb*)pcb2);
+}
+
 static void log_shutdown(t_logger* logger, int motivo_cierre)
 {
   if (motivo_cierre == MC_SIN_PROCESOS)
@@ -192,19 +219,4 @@ static void comprobar_motivo_cierre(int* motivo_cierre, int socket_km)
         break;
     }
   }
-}
-
-void cerrar_kernel_scheduler(int socket_servidor, t_logger* logger,
-                             int motivo_cierre, int socket_km)
-{
-  static bool shutdown_activado = false;
-  pthread_mutex_lock(&mutex_shutdown);
-  if (!shutdown_activado)
-  {
-    comprobar_motivo_cierre(&motivo_cierre, socket_km);
-    log_shutdown(logger, motivo_cierre);
-    shutdown(socket_servidor, SHUT_RDWR);
-    shutdown_activado = true;
-  }
-  pthread_mutex_unlock(&mutex_shutdown);
 }

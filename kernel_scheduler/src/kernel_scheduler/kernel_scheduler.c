@@ -15,73 +15,10 @@
 const char* const ALGORITMOS_PLANIFICACION[] = {"FIFO", "RR", "CMN"};
 
 static t_config* iniciar_config(char* archivo_config,
-                                t_config_vars* config_vars)
-{
-  int i;
-  t_config* config = config_create(archivo_config);
-  if (config != NULL)
-  {
-    config_vars->log_level =
-        log_level_from_string(config_get_string_value(config, "LOG_LEVEL"));
+                                t_config_vars* config_vars);
+static void cerrar_config(t_config_vars* config_vars, t_config* config);
 
-    char* algoritmo_planificacion_str =
-        config_get_string_value(config, "PLANIFICATION_ALGORITHM");
-    for (i = 0; i < 3; i++)
-    {
-      if (strcmp(algoritmo_planificacion_str, ALGORITMOS_PLANIFICACION[i]) == 0)
-      {
-        config_vars->algoritmo_planificacion = i;
-        break;
-      }
-    }
-
-    char** array_str = config_get_array_value(config, "QUEUES_ALGORITHMS");
-    config_vars->algoritmos_cmn = list_create();
-    i = 0;
-    while (array_str[i] != NULL)
-    {
-      int* algoritmo = malloc(sizeof(int));
-      if (strcmp(array_str[i], ALGORITMOS_PLANIFICACION[AP_FIFO]))
-        *algoritmo = AP_FIFO;
-      else if (strcmp(array_str[i], ALGORITMOS_PLANIFICACION[AP_RR]))
-        *algoritmo = AP_RR;
-      list_add(config_vars->algoritmos_cmn, algoritmo);
-      i++;
-    }
-    string_array_destroy(array_str);
-
-    config_vars->rr_quantum = config_get_int_value(config, "RR_QUANTUM");
-
-    config_vars->desalojo =
-        strcmp(config_get_string_value(config, "QUEUE_PREEMPTION"), "TRUE") ==
-        0;
-
-    config_vars->suspension_timeout =
-        config_get_int_value(config, "SUSPENSION_TIMEOUT");
-
-    config_vars->puerto_servidor =
-        config_get_string_value(config, "KERNEL_SCHEDULER_PUERTO");
-
-    config_vars->ip_kernel_memory =
-        config_get_string_value(config, "KERNEL_MEMORY_IP");
-
-    config_vars->puerto_kernel_memory =
-        config_get_string_value(config, "KERNEL_MEMORY_PUERTO");
-  }
-  return config;
-}
-
-static void cerrar_config(t_config_vars* config_vars, t_config* config)
-{
-  list_clean_and_destroy_elements(config_vars->algoritmos_cmn, free);
-  config_destroy(config);
-}
-
-static t_logger* iniciar_logger(t_log_level log_level)
-{
-  return logger_create("kernel_scheduler.log", "kernel_scheduler", true,
-                       log_level);
-}
+static t_logger* iniciar_logger(t_log_level log_level);
 
 bool iniciar_modulo(t_kernel_scheduler_recursos* recursos, char* archivo_config)
 {
@@ -155,4 +92,73 @@ void cerrar_modulo(t_kernel_scheduler_recursos* recursos)
   cerrar_config(&(recursos->config_vars), recursos->config);
   destruir_mutex_pid_pcb();
   destruir_mutex_shutdown();
+}
+
+static t_config* iniciar_config(char* archivo_config,
+                                t_config_vars* config_vars)
+{
+  int i;
+  t_config* config = config_create(archivo_config);
+  if (config != NULL)
+  {
+    config_vars->log_level =
+        log_level_from_string(config_get_string_value(config, "LOG_LEVEL"));
+
+    char* algoritmo_planificacion_str =
+        config_get_string_value(config, "PLANIFICATION_ALGORITHM");
+    for (i = 0; i < 3; i++)
+    {
+      if (strcmp(algoritmo_planificacion_str, ALGORITMOS_PLANIFICACION[i]) == 0)
+      {
+        config_vars->algoritmo_planificacion = i;
+        break;
+      }
+    }
+
+    char** array_str = config_get_array_value(config, "QUEUES_ALGORITHMS");
+    config_vars->algoritmos_cmn = list_create();
+    i = 0;
+    while (array_str[i] != NULL)
+    {
+      int* algoritmo = malloc(sizeof(int));
+      if (strcmp(array_str[i], ALGORITMOS_PLANIFICACION[AP_FIFO]))
+        *algoritmo = AP_FIFO;
+      else if (strcmp(array_str[i], ALGORITMOS_PLANIFICACION[AP_RR]))
+        *algoritmo = AP_RR;
+      list_add(config_vars->algoritmos_cmn, algoritmo);
+      i++;
+    }
+    string_array_destroy(array_str);
+
+    config_vars->rr_quantum = config_get_int_value(config, "RR_QUANTUM");
+
+    config_vars->desalojo =
+        strcmp(config_get_string_value(config, "QUEUE_PREEMPTION"), "TRUE") ==
+        0;
+
+    config_vars->suspension_timeout =
+        config_get_int_value(config, "SUSPENSION_TIMEOUT");
+
+    config_vars->puerto_servidor =
+        config_get_string_value(config, "KERNEL_SCHEDULER_PUERTO");
+
+    config_vars->ip_kernel_memory =
+        config_get_string_value(config, "KERNEL_MEMORY_IP");
+
+    config_vars->puerto_kernel_memory =
+        config_get_string_value(config, "KERNEL_MEMORY_PUERTO");
+  }
+  return config;
+}
+
+static void cerrar_config(t_config_vars* config_vars, t_config* config)
+{
+  list_clean_and_destroy_elements(config_vars->algoritmos_cmn, free);
+  config_destroy(config);
+}
+
+static t_logger* iniciar_logger(t_log_level log_level)
+{
+  return logger_create("kernel_scheduler.log", "kernel_scheduler", true,
+                       log_level);
 }

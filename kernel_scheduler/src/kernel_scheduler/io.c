@@ -11,6 +11,135 @@
 #include "utils/registros.h"
 
 // Funciones de comunicacion de syscalls IO
+static bool envio_stdout(t_io* io_out, t_stdout* peticion, char* buffer);
+static bool peticion_stdout_km(t_stdout* peticion, t_io* io_out);
+static bool envio_stdin(t_stdin* peticion, t_io* io_in, char* buffer);
+static bool comunicacion_io_stdin(t_stdin* peticion, t_io* io_in, char* buffer);
+static bool comunicacion_io_sleep(t_sleep* peticion, t_io* io_sleep);
+// funcion de finalizacion io (no se me ocurre un nombre mejor)
+static void finalizar_io(void* peticion, t_io* io, t_pcb* pcb);
+static bool io_sleep_f(t_sleep* peticion, t_io* io_sleep);
+static void liberar_peticion(void* peticion, t_io* io);
+static void cerrar_hilo_io(t_io* io);
+static bool charla_km_stdin(t_io* io_in);
+static int io_stdin_f(t_stdin* peticion, t_io* io_in);
+static bool recepcion_km_stdout(t_io* io_out);
+static bool io_stdout_f(t_stdout* peticion, t_io* io_out);
+static bool atender_stdin(t_io* io);
+static bool atender_stdout(t_io* io);
+static bool atender_sleep(t_io* io);
+static bool atender_io(t_io* io);
+static void* hilo_io(void* hilo_io);
+static int obtener_tipo_io(int socket_fd, t_logger* logger);
+static bool comparar_prioridad_stdin(void* syscall1, void* syscall2);
+static bool comparar_prioridad_stdout(void* syscall1, void* syscall2);
+static bool comparar_prioridad_sleep(void* syscall1, void* syscall2);
+static void* transformar_peticion(void* peticion, int tipo_io, t_pcb* pcb);
+static void agregar_ordenado(void* pedido, t_io* io);
+static void destruir_io(t_io* io);
+
+t_io* crear_estructuras_io(void)
+{
+  t_io* io = malloc(sizeof(t_io) * 3);
+  for (int i = 0; i < 3; i++)
+  {
+    io[i].socket_io = -1;
+  }
+  return io;
+}
+
+bool atender_nuevo_io(t_io io[3], int socket_fd, t_colas* colas,
+                      bool prioridad_activa)
+{
+  if (!responder_handshake(socket_fd, MID_KERNEL_SCHEDULER, colas->logger))
+    return false;
+
+  int tipo_io = obtener_tipo_io(socket_fd, colas->logger);
+  if (tipo_io == -1)
+    return false;
+
+  if (io[tipo_io].socket_io != -1)
+  {
+    logger_error(colas->logger, "## IO de tipo repetido: %d. Cerrando conexión",
+                 tipo_io);
+    close(socket_fd);
+    return false;
+  }
+  // Preparo el t_io para crear el hilo
+  io[tipo_io].socket_io = socket_fd;
+  io[tipo_io].proceso_actual = NULL;
+  pthread_mutex_init(&(io[tipo_io].mutex_fin), NULL);
+  pthread_cond_init(&(io[tipo_io].nuevo_proceso), NULL);
+  io[tipo_io].colas = colas;
+  io[tipo_io].logger = colas->logger;
+  io[tipo_io].socket_km = colas->socket_km;
+  io[tipo_io].prioridad_activa = prioridad_activa;
+  io[tipo_io].tipo_io = tipo_io;
+  io[tipo_io].lista_io = malloc(sizeof(t_lista_io));
+  io[tipo_io].lista_io->lista_io = list_create();
+  pthread_mutex_init(&(io[tipo_io].lista_io->mutex_lista_io), NULL);
+
+  if (pthread_create(&(io[tipo_io].hilo_io), NULL, hilo_io,
+                     (void*)(&(io[tipo_io]))))
+  {
+    logger_error(colas->logger, "## Error al crear el hilo para IO de tipo %s",
+                 V_TIPO_IO[tipo_io]);
+    return false;
+  }
+
+  return true;
+}
+
+bool procesar_nuevo_io(void* peticion, t_io* io, t_pcb* pcb)
+{
+  pthread_mutex_lock(&(io->mutex_fin));
+  bool cerrar_hilo = io->cerrar_hilo;
+  pthread_mutex_unlock(&(io->mutex_fin));
+  if (cerrar_hilo)
+  {
+    return false;
+  }
+  void* pedido = transformar_peticion(peticion, io->tipo_io, pcb);
+  pthread_mutex_lock(&(io->lista_io->mutex_lista_io));
+  bool lista_vacia = list_is_empty(io->lista_io->lista_io);
+  if (io->prioridad_activa)
+  {
+    agregar_ordenado(pedido, io);
+  }
+  else
+  {
+    list_add(io->lista_io->lista_io, pedido);
+  }
+  if (lista_vacia)
+  {
+    pthread_cond_signal(&(io->nuevo_proceso));
+  }
+  pthread_mutex_unlock(&(io->lista_io->mutex_lista_io));
+  return true;
+}
+
+void cerrar_io(t_io* io)
+{
+  for (int i = 0; i < 3; i++)
+  {
+    if (io[i].socket_io != -1)
+    {
+      pthread_mutex_lock(&(io[i].mutex_fin));
+      io[i].cerrar_hilo = true;
+      pthread_mutex_unlock(&(io[i].mutex_fin));
+      shutdown(io[i].socket_io, SHUT_RDWR);
+      pthread_join(io[i].hilo_io, NULL);
+      close(io[i].socket_io);
+      destruir_io(&io[i]);
+    }
+    else
+    {
+      pthread_mutex_unlock(&(io[i].mutex_fin));
+    }
+  }
+  free(io);
+}
+
 static bool envio_stdout(t_io* io_out, t_stdout* peticion, char* buffer)
 {
   int peticion_size = sizeof(t_peticion_stdout);
@@ -454,48 +583,6 @@ static int obtener_tipo_io(int socket_fd, t_logger* logger)
   return tipo_io;
 }
 
-bool atender_nuevo_io(t_io io[3], int socket_fd, t_colas* colas,
-                      bool prioridad_activa)
-{
-  if (!responder_handshake(socket_fd, MID_KERNEL_SCHEDULER, colas->logger))
-    return false;
-
-  int tipo_io = obtener_tipo_io(socket_fd, colas->logger);
-  if (tipo_io == -1)
-    return false;
-
-  if (io[tipo_io].socket_io != -1)
-  {
-    logger_error(colas->logger, "## IO de tipo repetido: %d. Cerrando conexión",
-                 tipo_io);
-    close(socket_fd);
-    return false;
-  }
-  // Preparo el t_io para crear el hilo
-  io[tipo_io].socket_io = socket_fd;
-  io[tipo_io].proceso_actual = NULL;
-  pthread_mutex_init(&(io[tipo_io].mutex_fin), NULL);
-  pthread_cond_init(&(io[tipo_io].nuevo_proceso), NULL);
-  io[tipo_io].colas = colas;
-  io[tipo_io].logger = colas->logger;
-  io[tipo_io].socket_km = colas->socket_km;
-  io[tipo_io].prioridad_activa = prioridad_activa;
-  io[tipo_io].tipo_io = tipo_io;
-  io[tipo_io].lista_io = malloc(sizeof(t_lista_io));
-  io[tipo_io].lista_io->lista_io = list_create();
-  pthread_mutex_init(&(io[tipo_io].lista_io->mutex_lista_io), NULL);
-
-  if (pthread_create(&(io[tipo_io].hilo_io), NULL, hilo_io,
-                     (void*)(&(io[tipo_io]))))
-  {
-    logger_error(colas->logger, "## Error al crear el hilo para IO de tipo %s",
-                 V_TIPO_IO[tipo_io]);
-    return false;
-  }
-
-  return true;
-}
-
 static bool comparar_prioridad_stdin(void* syscall1, void* syscall2)
 {
   t_stdin* stdin1 = (t_stdin*)syscall1;
@@ -562,69 +649,9 @@ static void agregar_ordenado(void* pedido, t_io* io)
   }
 }
 
-bool procesar_nuevo_io(void* peticion, t_io* io, t_pcb* pcb)
-{
-  pthread_mutex_lock(&(io->mutex_fin));
-  bool cerrar_hilo = io->cerrar_hilo;
-  pthread_mutex_unlock(&(io->mutex_fin));
-  if (cerrar_hilo)
-  {
-    return false;
-  }
-  void* pedido = transformar_peticion(peticion, io->tipo_io, pcb);
-  pthread_mutex_lock(&(io->lista_io->mutex_lista_io));
-  bool lista_vacia = list_is_empty(io->lista_io->lista_io);
-  if (io->prioridad_activa)
-  {
-    agregar_ordenado(pedido, io);
-  }
-  else
-  {
-    list_add(io->lista_io->lista_io, pedido);
-  }
-  if (lista_vacia)
-  {
-    pthread_cond_signal(&(io->nuevo_proceso));
-  }
-  pthread_mutex_unlock(&(io->lista_io->mutex_lista_io));
-  return true;
-}
-
 static void destruir_io(t_io* io)
 {
   pthread_mutex_destroy(&(io->mutex_fin));
   pthread_cond_destroy(&(io->nuevo_proceso));
   close(io->socket_io);
-}
-
-void cerrar_io(t_io* io)
-{
-  for (int i = 0; i < 3; i++)
-  {
-    if (io[i].socket_io != -1)
-    {
-      pthread_mutex_lock(&(io[i].mutex_fin));
-      io[i].cerrar_hilo = true;
-      pthread_mutex_unlock(&(io[i].mutex_fin));
-      shutdown(io[i].socket_io, SHUT_RDWR);
-      pthread_join(io[i].hilo_io, NULL);
-      close(io[i].socket_io);
-      destruir_io(&io[i]);
-    }
-    else
-    {
-      pthread_mutex_unlock(&(io[i].mutex_fin));
-    }
-  }
-  free(io);
-}
-
-t_io* crear_estructuras_io(void)
-{
-  t_io* io = malloc(sizeof(t_io) * 3);
-  for (int i = 0; i < 3; i++)
-  {
-    io[i].socket_io = -1;
-  }
-  return io;
 }

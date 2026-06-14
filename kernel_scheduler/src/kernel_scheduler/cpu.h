@@ -46,10 +46,13 @@ typedef enum
   MD_IO,
   MD_MUTEX_BLOQUEADO,
   MD_MEMORIA_INSUFICIENTE,
-  MD_SEGMENTATION_FAULt
+  MD_SEGMENTATION_FAULT,
+  MD_NOMBRE_MUTEX_YA_EXISTE,
+  MD_NOMBRE_MUTEX_NO_EXISTE,
+  MD_PROCESO_NO_TIENE_MUTEX_BLOQUEADO
 } t_motivo_desalojo;
 
-extern const char* const MOTIVOS_DESALOJO[10];
+extern const char* const MOTIVOS_DESALOJO[13];
 
 extern const char* const SYSCALLS_STR[10];
 

@@ -5,16 +5,486 @@
 
 #include "utils/msg.h"
 
-const char* const MOTIVOS_FIN_PROCESO[6] = {
+const char* const MOTIVOS_FIN_PROCESO[9] = {
     "prioridad no válida",
     "instrucción EXIT",
     "cierre del sistema",
     "fallo de io",
     "no hay suficiente memoria disponible",
-    "segmentation fault"};
+    "segmentation fault",
+    "ya existe un mutex con ese nombre",
+    "no existe un mutex con ese nombre",
+    "este proceso no puede desbloquear este mutex"};
 
+static void inicializar_cola_ready(t_cola_ready* cola, int algoritmo,
+                                   t_list* algoritmos_cmn);
+static void inicializar_lista_exec(t_lista_execute* lista, int quantum,
+                                   bool desalojo);
+static void inicializar_lista(t_lista* lista);
+static t_datos_hilo_suspendido* inicializar_datos_hilo_suspendido(
+    t_colas* colas);
+static void inicializar_datos_hilo_suspensor(t_colas* colas,
+                                             int suspension_timeout);
+static void inicializar_datos_hilo_des_suspensor(t_colas* colas);
+static void iniciar_hilo_suspensor(t_colas* colas);
+static void iniciar_hilo_des_suspensor(t_colas* colas);
+static void iniciar_hilos_suspendido(t_colas* colas, int suspension_timeout);
+static void destruir_cola_ready(t_cola_ready* cola);
+static void destruir_lista_exec(t_lista_execute* lista);
+static void destruir_lista(t_lista* lista);
+static void terminar_hilo_suspendido(t_datos_hilo_suspendido* datos);
+static void esperar_hilo_suspendido(t_datos_hilo_suspendido* datos);
+static void destruir_hilo_suspendido(t_datos_hilo_suspendido* datos);
+static void destruir_hilo_suspensor(t_datos_hilo_suspensor* datos);
+static void destruir_hilo_des_suspensor(t_datos_hilo_des_suspensor* datos);
+static void terminar_hilos_suspendido(t_colas* colas);
+static void destruir_hilos_suspendido(t_colas* colas);
+static void terminar_rutinas(t_colas* colas);
+static void log_cambio_estado(t_logger* logger, uint32_t pid,
+                              int estado_anterior, int estado_nuevo);
+static void log_estado_no_valido(t_logger* logger, uint32_t pid, int estado,
+                                 int estado_esperado, int estado_futuro);
+static bool gestionar_estado_pcb(t_logger* logger, t_pcb* pcb,
+                                 int estado_esperado, int estado_futuro);
+static void set_tiempo_bloqueado(t_pcb* pcb, unsigned long tiempo);
+static bool check_prioridad_valida(t_pcb* pcb, t_cola_ready* ready,
+                                   t_logger* logger);
+static void update_priordad_mas_baja_exec(t_lista_execute* exec);
+static void cambio_a_ready(t_pcb* pcb, t_cola_ready* ready, t_logger* logger);
+static void cambio_a_block(t_pcb* pcb, t_lista* block);
+static void cambio_a_susp_block(t_pcb* pcb, t_lista* susp_block);
+static void cambio_a_susp_ready(t_pcb* pcb, t_lista* susp_ready);
+static void log_cambio_a_exit(t_logger* logger, uint32_t pid, int motivo);
+static void cambio_a_exit(t_pcb* pcb, t_colas* colas, int motivo);
+static t_pcb* cambio_sacar_new(char* archivo_instrucciones, int prioridad,
+                               t_colas* colas);
+static void actualizar_mayor_prioridad_ready_sin_mutex(t_cola_ready* ready,
+                                                       int index);
+static t_pcb* cambio_sacar_ready_sin_mutex(t_cola_ready* ready);
+static void cambio_sacar_exec(t_pcb* pcb, t_lista_execute* exec);
+static t_pcb* cambio_sacar_exec_siguiente(t_lista_execute* exec);
+static void cambio_sacar_block(t_pcb* pcb, t_lista* block);
+static t_pcb* cambio_sacar_block_siguiente(t_lista* block);
+static void cambio_sacar_susp_block(t_pcb* pcb, t_lista* susp_block);
+static t_pcb* cambio_sacar_susp_block_siguiente(t_lista* susp_block);
+static void cambio_sacar_susp_ready(t_pcb* pcb, t_lista* susp_ready);
+static t_pcb* cambio_sacar_susp_ready_siguiente(t_lista* susp_ready);
+static void cambio_block_ready_sin_mutex(t_pcb* pcb, t_colas* colas);
+static void avisar_proceso_suspendido(t_pcb* pcb, t_colas* colas);
+static void cambio_block_susp_block_sin_mutex(t_pcb* pcb, t_colas* colas);
+static void cambio_susp_block_susp_ready_sin_mutex(t_pcb* pcb, t_colas* colas);
+static void entra_proceso_con_compactacion(t_pcb* pcb, t_colas* colas);
+static void avisar_proceso_des_suspendido(t_pcb* pcb, t_colas* colas);
+static bool puede_des_suspender(t_pcb* pcb, t_colas* colas);
+static void cambio_susp_ready_ready_sin_mutex(t_pcb* pcb, t_colas* colas);
+static void cambio_susp_block_block_sin_mutex_sin_compactacion(t_pcb* pcb,
+                                                               t_colas* colas);
+static void cambio_susp_ready_ready_sin_mutex_sin_compactacion(t_pcb* pcb,
+                                                               t_colas* colas);
+static void cambio_des_suspender_sin_mutex_ni_compactacion(t_pcb* pcb,
+                                                           t_colas* colas);
+static bool cambio_cualquiera_exit(t_colas* colas, int estado, int motivo);
+static void bloquear_hilo_suspendido(t_datos_hilo_suspendido* datos);
+static void desbloquear_hilo_suspendido(t_datos_hilo_suspendido* datos);
+static void esperar_desbloqueo(t_datos_hilo_suspendido* datos);
+static t_pcb* obtener_proceso_bloqueado(t_colas* colas,
+                                        t_datos_hilo_suspensor* datos);
+static void suspender_proceso(t_colas* colas, t_datos_hilo_suspensor* datos,
+                              t_pcb* proceso);
+static void esperar_proceso_bloqueado(t_colas* colas,
+                                      t_datos_hilo_suspensor* datos);
+static t_pcb* obtener_proceso_susp_ready(t_colas* colas,
+                                         t_datos_hilo_des_suspensor* datos);
+static void des_suspender_proceso(t_colas* colas,
+                                  t_datos_hilo_des_suspensor* datos,
+                                  t_pcb* proceso);
+static void esperar_proceso_susp_ready(t_colas* colas,
+                                       t_datos_hilo_des_suspensor* datos);
 static void* hilo_suspensor(void* datos_void);
 static void* hilo_des_suspensor(void* datos_void);
+// funciones de Bloqueo/Desbloqueo total
+static void desbloqueo_total(t_colas* colas);
+static void bloqueo_total(t_colas* colas);
+static bool entra_proceso(t_colas* colas, t_pcb* proceso);
+static bool puede_des_suspender_sin_compactacion_sin_mutex(t_colas* colas,
+                                                           t_pcb* proceso);
+static bool des_suspender_proceso_sin_compactacion(t_colas* colas,
+                                                   t_pcb* proceso);
+static bool esta_vacia(t_lista lista);
+static bool retirar_de_la_lista(t_colas* colas, int estado_deseado);
+static void rutina_des_suspension(t_colas* colas);
+static int recibir_espacio(t_colas* colas, int espacio);
+static int recibir_tamanio(t_colas* colas, int espacio);
+static void* hilo_rutina_des_suspension(void* datos_des_suspension);
+// RUTINA DE COMPACTACIÓN
+static bool termino_compactacion(t_colas* colas);
+static void rutina_compactacion(t_colas* colas);
+static void* hilo_rutina_compactacion(void* datos_compactacion);
+
+t_colas* inicializar_colas(int algoritmo, t_list* algoritmos_cmn, int quantum,
+                           bool desalojo, int socket_servidor, t_logger* logger,
+                           t_socket_kernel_memory* socket_km,
+                           int suspension_timeout)
+{
+  t_colas* colas = malloc(sizeof(t_colas));
+  inicializar_cola_ready(&(colas->ready), algoritmo, algoritmos_cmn);
+  inicializar_lista_exec(&(colas->exec), quantum, desalojo);
+  inicializar_lista(&(colas->block));
+  inicializar_lista(&(colas->susp_block));
+  inicializar_lista(&(colas->susp_ready));
+  colas->contador_procesos =
+      inicializar_contador_procesos(socket_servidor, logger);
+  pthread_mutex_init(&(colas->mutex_rutina), NULL);
+  colas->terminar_rutinas = false;
+  colas->logger = logger;
+  colas->socket_km = socket_km;
+  colas->socket_servidor = socket_servidor;
+  pthread_mutex_init(&(colas->mutex_compactacion_activa), NULL);
+  colas->compactacion_activa = false;
+  pthread_mutex_init(&(colas->mutex_des_suspension_activa), NULL);
+  colas->des_suspension_activa = false;
+  iniciar_hilos_suspendido(colas, suspension_timeout);
+  return colas;
+}
+
+void destruir_colas(t_colas* colas)
+{
+  terminar_rutinas(colas);
+  terminar_hilos_suspendido(colas);
+  destruir_hilos_suspendido(colas);
+  destruir_cola_ready(&(colas->ready));
+  destruir_lista_exec(&(colas->exec));
+  destruir_lista(&(colas->block));
+  destruir_lista(&(colas->susp_block));
+  destruir_lista(&(colas->susp_ready));
+  destruir_contador_procesos(colas->contador_procesos);
+  pthread_mutex_destroy(&(colas->mutex_rutina));
+  pthread_mutex_destroy(&(colas->mutex_compactacion_activa));
+  pthread_mutex_destroy(&(colas->mutex_des_suspension_activa));
+  free(colas);
+}
+
+bool esta_cola_ready_bloqueada(t_cola_ready* ready)
+{
+  pthread_mutex_lock(&(ready->bloquear_salida));
+  bool ret = ready->desalojar_todo;
+  pthread_mutex_unlock(&(ready->bloquear_salida));
+  return ret;
+}
+
+void bloquear_cola_ready(t_cola_ready* ready)
+{
+  if (!(esta_cola_ready_bloqueada(ready)))
+  {
+    pthread_mutex_lock(&(ready->bloquear_salida));
+    ready->desalojar_todo = true;
+    pthread_mutex_unlock(&(ready->bloquear_salida));
+  }
+}
+
+void desbloquear_cola_ready(t_cola_ready* ready)
+{
+  pthread_mutex_lock(&(ready->bloquear_salida));
+  ready->desalojar_todo = true;
+  pthread_mutex_unlock(&(ready->bloquear_salida));
+  pthread_cond_broadcast(&(ready->salida_desbloqueada));
+}
+
+void esperar_cola_ready_vacia(t_cola_ready* ready)
+{
+  pthread_mutex_lock(&(ready->mutex_cola));
+  while (ready->cant_procesos_ready > 0)
+  {
+    pthread_cond_wait(&(ready->cola_vacia), &(ready->mutex_cola));
+  }
+  pthread_mutex_unlock(&(ready->mutex_cola));
+}
+
+bool puedo_suspender(t_pcb* pcb, int suspension_timeout)
+{
+  return time_diff(millis(), pcb->tiempo_bloqueado) >= suspension_timeout;
+}
+
+void cambio_a_exec(t_pcb* pcb, t_lista_execute* exec)
+{
+  pthread_mutex_lock(&(exec->mutex_lista));
+  if (exec->desalojo)
+  {
+    pthread_mutex_lock(&(exec->prioridad_mas_baja->mutex_prioridad));
+    pthread_mutex_lock(&(pcb->mutex_prioridad));
+    if (exec->prioridad_mas_baja->prioridad >= pcb->prioridad)
+    {
+      exec->prioridad_mas_baja = pcb;
+    }
+    pthread_mutex_unlock(&(pcb->mutex_prioridad));
+    pthread_mutex_unlock(&(exec->prioridad_mas_baja->mutex_prioridad));
+  }
+  list_add(exec->lista, pcb);
+  pthread_mutex_unlock(&(exec->mutex_lista));
+}
+
+t_pcb* cambio_sacar_ready(t_cola_ready* ready)
+{
+  pthread_mutex_lock(&(ready->mutex_cola));
+  t_pcb* pcb = cambio_sacar_ready_sin_mutex(ready);
+  pthread_mutex_unlock(&(ready->mutex_cola));
+  return pcb;
+}
+
+t_pcb* cambio_sacar_ready_bloqueante(t_cola_ready* ready)
+{
+  pthread_mutex_lock(&(ready->mutex_cola));
+  while (ready->cant_procesos_ready == 0)
+  {
+    pthread_cond_wait(&(ready->nuevo_proceso), &(ready->mutex_cola));
+  }
+  pthread_mutex_lock(&(ready->bloquear_salida));
+  while (ready->desalojar_todo)
+  {
+    pthread_cond_wait(&(ready->salida_desbloqueada), &(ready->bloquear_salida));
+  }
+  pthread_mutex_unlock(&(ready->bloquear_salida));
+  t_pcb* pcb = cambio_sacar_ready_sin_mutex(ready);
+  pthread_mutex_unlock(&(ready->mutex_cola));
+  return pcb;
+}
+
+void cambio_ready_exec(t_pcb* pcb, t_colas* colas)
+{
+  pthread_mutex_lock(&(pcb->mutex_estado));
+  gestionar_estado_pcb(colas->logger, pcb, EST_READY, EST_EXEC);
+  pthread_mutex_unlock(&(pcb->mutex_estado));
+}
+
+void cambio_new_ready(t_colas* colas, char* archivo_instrucciones,
+                      int prioridad)
+{
+  t_pcb* pcb = cambio_sacar_new(archivo_instrucciones, prioridad, colas);
+  if (pcb != NULL)
+  {
+    if (!check_prioridad_valida(pcb, &(colas->ready), colas->logger))
+    {
+      log_cambio_estado(colas->logger, pcb->pid, EST_NEW, EST_EXIT);
+      cambio_a_exit(pcb, colas, MFP_PRIORIDAD_NO_VALIDA);
+    }
+    else
+    {
+      log_cambio_estado(colas->logger, pcb->pid, EST_NEW, EST_READY);
+      cambio_a_ready(pcb, &(colas->ready), colas->logger);
+    }
+  }
+}
+
+void cambio_exec_ready(t_pcb* pcb, t_colas* colas)
+{
+  pthread_mutex_lock(&(pcb->mutex_estado));
+  if (gestionar_estado_pcb(colas->logger, pcb, EST_EXEC, EST_READY))
+  {
+    cambio_sacar_exec(pcb, &(colas->exec));
+    cambio_a_ready(pcb, &(colas->ready), colas->logger);
+  }
+  pthread_mutex_unlock(&(pcb->mutex_estado));
+}
+
+void cambio_exec_exit(t_pcb* pcb, t_colas* colas, int motivo)
+{
+  pthread_mutex_lock(&(pcb->mutex_estado));
+  if (gestionar_estado_pcb(colas->logger, pcb, EST_EXEC, EST_EXIT))
+  {
+    cambio_sacar_exec(pcb, &(colas->exec));
+    cambio_a_exit(pcb, colas, motivo);
+  }
+  pthread_mutex_unlock(&(pcb->mutex_estado));
+}
+
+void cambio_exec_block(t_pcb* pcb, t_colas* colas)
+{
+  pthread_mutex_lock(&(pcb->mutex_estado));
+  if (gestionar_estado_pcb(colas->logger, pcb, EST_EXEC, EST_BLOCK))
+  {
+    cambio_sacar_exec(pcb, &(colas->exec));
+    cambio_a_block(pcb, &(colas->block));
+  }
+  pthread_mutex_unlock(&(pcb->mutex_estado));
+}
+
+void cambio_block_ready(t_pcb* pcb, t_colas* colas)
+{
+  pthread_mutex_lock(&(pcb->mutex_estado));
+  cambio_block_ready_sin_mutex(pcb, colas);
+  pthread_mutex_unlock(&(pcb->mutex_estado));
+}
+
+void cambio_block_susp_block(t_pcb* pcb, t_colas* colas)
+{
+  pthread_mutex_lock(&(pcb->mutex_estado));
+  cambio_block_susp_block_sin_mutex(pcb, colas);
+  pthread_mutex_unlock(&(pcb->mutex_estado));
+}
+
+void cambio_susp_block_block(t_pcb* pcb, t_colas* colas)
+{
+  pthread_mutex_lock(&(pcb->mutex_estado));
+  if (gestionar_estado_pcb(colas->logger, pcb, EST_SUSP_BLOCK, EST_BLOCK))
+  {
+    cambio_sacar_susp_block(pcb, &(colas->susp_block));
+    cambio_a_block(pcb, &(colas->block));
+  }
+  pthread_mutex_unlock(&(pcb->mutex_estado));
+}
+
+void cambio_susp_block_susp_ready(t_pcb* pcb, t_colas* colas)
+{
+  pthread_mutex_lock(&(pcb->mutex_estado));
+  cambio_susp_block_susp_ready_sin_mutex(pcb, colas);
+  pthread_mutex_unlock(&(pcb->mutex_estado));
+}
+
+void cambio_susp_ready_ready(t_pcb* pcb, t_colas* colas)
+{
+  pthread_mutex_lock(&(pcb->mutex_estado));
+  cambio_susp_ready_ready_sin_mutex(pcb, colas);
+  pthread_mutex_unlock(&(pcb->mutex_estado));
+}
+
+void cambio_desbloquear(t_pcb* pcb, t_colas* colas)
+{
+  pthread_mutex_lock(&(pcb->mutex_estado));
+  if (pcb->estado == EST_BLOCK)
+  {
+    cambio_block_ready_sin_mutex(pcb, colas);
+  }
+  else
+  {
+    cambio_susp_block_susp_ready_sin_mutex(pcb, colas);
+  }
+  pthread_mutex_unlock(&(pcb->mutex_estado));
+}
+
+void vaciar_colas(t_colas* colas)
+{
+  for (int i = EST_READY; i < EST_EXIT; i++)
+  {
+    while (cambio_cualquiera_exit(colas, i, MFP_CIERRE_SISTEMA))
+    {
+    }
+  }
+}
+
+void bloquear_hilos_suspendido(t_colas* colas)
+{
+  bloquear_hilo_suspendido(
+      colas->datos_suspendido->datos_hilo_suspensor->datos);
+  bloquear_hilo_suspendido(
+      colas->datos_suspendido->datos_hilo_des_suspensor->datos);
+}
+
+void desbloquear_hilos_suspendido(t_colas* colas)
+{
+  desbloquear_hilo_suspendido(
+      colas->datos_suspendido->datos_hilo_suspensor->datos);
+  desbloquear_hilo_suspendido(
+      colas->datos_suspendido->datos_hilo_des_suspensor->datos);
+}
+
+int espacio_disponible_sin_mutex(t_colas* colas, uint32_t pid)
+{
+  int espacio = -1;
+  if (!(enviar_string(OP_PEDIR_MEMORIA_DISPONIBLE,
+                      "Solicito el espacio disponible",
+                      colas->socket_km->socket_km)))
+  {
+    cerrar_kernel_scheduler(colas->socket_servidor, colas->logger,
+                            MC_ERROR_ENVIO_KERNEL_MEMORY,
+                            colas->socket_km->socket_km);
+    return espacio;
+  }
+  return recibir_espacio(colas, espacio);
+}
+
+int espacio_disponible(t_colas* colas, uint32_t pid)
+{
+  pthread_mutex_lock(&(colas->socket_km->mutex_socket));
+  int espacio = espacio_disponible_sin_mutex(colas, pid);
+  pthread_mutex_unlock(&(colas->socket_km->mutex_socket));
+  return espacio;
+}
+
+int tamanio_proceso_sin_mutex(t_colas* colas, uint32_t pid)
+{
+  int espacio = -1;
+
+  if (!(enviar_buffer(OP_PEDIR_TAMANIO_PROCESO, &pid, sizeof(uint32_t),
+                      colas->socket_km->socket_km)))
+  {
+    cerrar_kernel_scheduler(colas->socket_servidor, colas->logger,
+                            MC_ERROR_ENVIO_KERNEL_MEMORY,
+                            colas->socket_km->socket_km);
+    return espacio;
+  }
+
+  return recibir_tamanio(colas, espacio);
+}
+
+int tamanio_proceso(t_colas* colas, uint32_t pid)
+{
+  pthread_mutex_lock(&(colas->socket_km->mutex_socket));
+  int espacio = tamanio_proceso_sin_mutex(colas, pid);
+  pthread_mutex_unlock(&(colas->socket_km->mutex_socket));
+  return espacio;
+}
+
+void crear_hilo_rutina_des_suspension(
+    t_colas* colas)  // usar para memoria liberada y/o nuevo stick
+{
+  pthread_t hilo;
+  if (pthread_create(&hilo, NULL, hilo_rutina_des_suspension, colas) != 0)
+  {
+    logger_error(
+        colas->logger,
+        "## Error en la creación del hilo de la rutina de des-suspension");
+  }
+  else
+  {
+    pthread_detach(hilo);
+    logger_info(colas->logger,
+                "## Hilo de la rutina de des-suspension iniciado exitosamente");
+  }
+}
+
+void crear_hilo_compactacion(t_colas* colas)
+{
+  pthread_t hilo;
+  if (pthread_create(&hilo, NULL, hilo_rutina_compactacion, colas) != 0)
+  {
+    logger_error(
+        colas->logger,
+        "## Error en la creación del hilo de la rutina de compactación");
+  }
+  else
+  {
+    pthread_detach(hilo);
+    logger_info(colas->logger,
+                "## Hilo de la rutina de compactación iniciado exitosamente");
+    return;
+  }
+}
+
+bool esta_compactando(t_colas* colas)
+{
+  pthread_mutex_lock(&(colas->mutex_compactacion_activa));
+  bool ret = colas->compactacion_activa;
+  pthread_mutex_unlock(&(colas->mutex_compactacion_activa));
+  return ret;
+}
+
+bool esta_des_suspendiendo(t_colas* colas)
+{
+  pthread_mutex_lock(&(colas->mutex_des_suspension_activa));
+  bool ret = colas->des_suspension_activa;
+  pthread_mutex_unlock(&(colas->mutex_des_suspension_activa));
+  return ret;
+}
 
 static void inicializar_cola_ready(t_cola_ready* cola, int algoritmo,
                                    t_list* algoritmos_cmn)
@@ -134,28 +604,6 @@ static void iniciar_hilos_suspendido(t_colas* colas, int suspension_timeout)
   iniciar_hilo_des_suspensor(colas);
 }
 
-t_colas* inicializar_colas(int algoritmo, t_list* algoritmos_cmn, int quantum,
-                           bool desalojo, int socket_servidor, t_logger* logger,
-                           t_socket_kernel_memory* socket_km,
-                           int suspension_timeout)
-{
-  t_colas* colas = malloc(sizeof(t_colas));
-  inicializar_cola_ready(&(colas->ready), algoritmo, algoritmos_cmn);
-  inicializar_lista_exec(&(colas->exec), quantum, desalojo);
-  inicializar_lista(&(colas->block));
-  inicializar_lista(&(colas->susp_block));
-  inicializar_lista(&(colas->susp_ready));
-  colas->contador_procesos =
-      inicializar_contador_procesos(socket_servidor, logger);
-  pthread_mutex_init(&(colas->mutex_rutina), NULL);
-  colas->terminar_rutinas = false;
-  colas->logger = logger;
-  colas->socket_km = socket_km;
-  colas->socket_servidor = socket_servidor;
-  iniciar_hilos_suspendido(colas, suspension_timeout);
-  return colas;
-}
-
 static void destruir_cola_ready(t_cola_ready* cola)
 {
   for (int i = 0; i < cola->cantidad_colas; i++)
@@ -218,7 +666,7 @@ static void destruir_hilo_des_suspensor(t_datos_hilo_des_suspensor* datos)
   free(datos);
 }
 
-void terminar_hilos_suspendido(t_colas* colas)
+static void terminar_hilos_suspendido(t_colas* colas)
 {
   terminar_hilo_suspendido(
       colas->datos_suspendido->datos_hilo_suspensor->datos);
@@ -229,7 +677,7 @@ void terminar_hilos_suspendido(t_colas* colas)
       colas->datos_suspendido->datos_hilo_des_suspensor->datos);
 }
 
-void destruir_hilos_suspendido(t_colas* colas)
+static void destruir_hilos_suspendido(t_colas* colas)
 {
   destruir_hilo_suspensor(colas->datos_suspendido->datos_hilo_suspensor);
   destruir_hilo_des_suspensor(
@@ -242,57 +690,6 @@ static void terminar_rutinas(t_colas* colas)
   pthread_mutex_lock(&(colas->mutex_rutina));
   colas->terminar_rutinas = true;
   pthread_mutex_unlock(&(colas->mutex_rutina));
-}
-
-void destruir_colas(t_colas* colas)
-{
-  terminar_rutinas(colas);
-  terminar_hilos_suspendido(colas);
-  destruir_hilos_suspendido(colas);
-  destruir_cola_ready(&(colas->ready));
-  destruir_lista_exec(&(colas->exec));
-  destruir_lista(&(colas->block));
-  destruir_lista(&(colas->susp_block));
-  destruir_lista(&(colas->susp_ready));
-  destruir_contador_procesos(colas->contador_procesos);
-  pthread_mutex_destroy(&(colas->mutex_rutina));
-  free(colas);
-}
-
-bool esta_cola_ready_bloqueada(t_cola_ready* ready)
-{
-  pthread_mutex_lock(&(ready->bloquear_salida));
-  bool ret = ready->desalojar_todo;
-  pthread_mutex_unlock(&(ready->bloquear_salida));
-  return ret;
-}
-
-void bloquear_cola_ready(t_cola_ready* ready)
-{
-  if (!(esta_cola_ready_bloqueada(ready)))
-  {
-    pthread_mutex_lock(&(ready->bloquear_salida));
-    ready->desalojar_todo = true;
-    pthread_mutex_unlock(&(ready->bloquear_salida));
-  }
-}
-
-void desbloquear_cola_ready(t_cola_ready* ready)
-{
-  pthread_mutex_lock(&(ready->bloquear_salida));
-  ready->desalojar_todo = true;
-  pthread_mutex_unlock(&(ready->bloquear_salida));
-  pthread_cond_broadcast(&(ready->salida_desbloqueada));
-}
-
-void esperar_cola_ready_vacia(t_cola_ready* ready)
-{
-  pthread_mutex_lock(&(ready->mutex_cola));
-  while (ready->cant_procesos_ready > 0)
-  {
-    pthread_cond_wait(&(ready->cola_vacia), &(ready->mutex_cola));
-  }
-  pthread_mutex_unlock(&(ready->mutex_cola));
 }
 
 static void log_cambio_estado(t_logger* logger, uint32_t pid,
@@ -324,11 +721,6 @@ static bool gestionar_estado_pcb(t_logger* logger, t_pcb* pcb,
   log_estado_no_valido(logger, pcb->pid, pcb->estado, estado_esperado,
                        estado_futuro);
   return false;
-}
-
-bool puedo_suspender(t_pcb* pcb, int suspension_timeout)
-{
-  return time_diff(millis(), pcb->tiempo_bloqueado) >= suspension_timeout;
 }
 
 static void set_tiempo_bloqueado(t_pcb* pcb, unsigned long tiempo)
@@ -395,24 +787,6 @@ static void cambio_a_ready(t_pcb* pcb, t_cola_ready* ready, t_logger* logger)
     queue_push(ready->colas->cola, pcb);
   }
   pthread_mutex_unlock(&(ready->mutex_cola));
-}
-
-void cambio_a_exec(t_pcb* pcb, t_lista_execute* exec)
-{
-  pthread_mutex_lock(&(exec->mutex_lista));
-  if (exec->desalojo)
-  {
-    pthread_mutex_lock(&(exec->prioridad_mas_baja->mutex_prioridad));
-    pthread_mutex_lock(&(pcb->mutex_prioridad));
-    if (exec->prioridad_mas_baja->prioridad >= pcb->prioridad)
-    {
-      exec->prioridad_mas_baja = pcb;
-    }
-    pthread_mutex_unlock(&(pcb->mutex_prioridad));
-    pthread_mutex_unlock(&(exec->prioridad_mas_baja->mutex_prioridad));
-  }
-  list_add(exec->lista, pcb);
-  pthread_mutex_unlock(&(exec->mutex_lista));
 }
 
 static void cambio_a_block(t_pcb* pcb, t_lista* block)
@@ -531,32 +905,6 @@ static t_pcb* cambio_sacar_ready_sin_mutex(t_cola_ready* ready)
   return NULL;
 }
 
-t_pcb* cambio_sacar_ready(t_cola_ready* ready)
-{
-  pthread_mutex_lock(&(ready->mutex_cola));
-  t_pcb* pcb = cambio_sacar_ready_sin_mutex(ready);
-  pthread_mutex_unlock(&(ready->mutex_cola));
-  return pcb;
-}
-
-t_pcb* cambio_sacar_ready_bloqueante(t_cola_ready* ready)
-{
-  pthread_mutex_lock(&(ready->mutex_cola));
-  while (ready->cant_procesos_ready == 0)
-  {
-    pthread_cond_wait(&(ready->nuevo_proceso), &(ready->mutex_cola));
-  }
-  pthread_mutex_lock(&(ready->bloquear_salida));
-  while (ready->desalojar_todo)
-  {
-    pthread_cond_wait(&(ready->salida_desbloqueada), &(ready->bloquear_salida));
-  }
-  pthread_mutex_unlock(&(ready->bloquear_salida));
-  t_pcb* pcb = cambio_sacar_ready_sin_mutex(ready);
-  pthread_mutex_unlock(&(ready->mutex_cola));
-  return pcb;
-}
-
 static void cambio_sacar_exec(t_pcb* pcb, t_lista_execute* exec)
 {
   pthread_mutex_lock(&(exec->mutex_lista));
@@ -643,65 +991,6 @@ static t_pcb* cambio_sacar_susp_ready_siguiente(t_lista* susp_ready)
   return pcb;
 }
 
-void cambio_new_ready(t_colas* colas, char* archivo_instrucciones,
-                      int prioridad)
-{
-  t_pcb* pcb = cambio_sacar_new(archivo_instrucciones, prioridad, colas);
-  if (pcb != NULL)
-  {
-    if (!check_prioridad_valida(pcb, &(colas->ready), colas->logger))
-    {
-      log_cambio_estado(colas->logger, pcb->pid, EST_NEW, EST_EXIT);
-      cambio_a_exit(pcb, colas, MFP_PRIORIDAD_NO_VALIDA);
-    }
-    else
-    {
-      log_cambio_estado(colas->logger, pcb->pid, EST_NEW, EST_READY);
-      cambio_a_ready(pcb, &(colas->ready), colas->logger);
-    }
-  }
-}
-
-void cambio_ready_exec(t_pcb* pcb, t_colas* colas)
-{
-  pthread_mutex_lock(&(pcb->mutex_estado));
-  gestionar_estado_pcb(colas->logger, pcb, EST_READY, EST_EXEC);
-  pthread_mutex_unlock(&(pcb->mutex_estado));
-}
-
-void cambio_exec_ready(t_pcb* pcb, t_colas* colas)
-{
-  pthread_mutex_lock(&(pcb->mutex_estado));
-  if (gestionar_estado_pcb(colas->logger, pcb, EST_EXEC, EST_READY))
-  {
-    cambio_sacar_exec(pcb, &(colas->exec));
-    cambio_a_ready(pcb, &(colas->ready), colas->logger);
-  }
-  pthread_mutex_unlock(&(pcb->mutex_estado));
-}
-
-void cambio_exec_exit(t_pcb* pcb, t_colas* colas, int motivo)
-{
-  pthread_mutex_lock(&(pcb->mutex_estado));
-  if (gestionar_estado_pcb(colas->logger, pcb, EST_EXEC, EST_EXIT))
-  {
-    cambio_sacar_exec(pcb, &(colas->exec));
-    cambio_a_exit(pcb, colas, motivo);
-  }
-  pthread_mutex_unlock(&(pcb->mutex_estado));
-}
-
-void cambio_exec_block(t_pcb* pcb, t_colas* colas)
-{
-  pthread_mutex_lock(&(pcb->mutex_estado));
-  if (gestionar_estado_pcb(colas->logger, pcb, EST_EXEC, EST_BLOCK))
-  {
-    cambio_sacar_exec(pcb, &(colas->exec));
-    cambio_a_block(pcb, &(colas->block));
-  }
-  pthread_mutex_unlock(&(pcb->mutex_estado));
-}
-
 static void cambio_block_ready_sin_mutex(t_pcb* pcb, t_colas* colas)
 {
   if (gestionar_estado_pcb(colas->logger, pcb, EST_BLOCK, EST_READY))
@@ -709,13 +998,6 @@ static void cambio_block_ready_sin_mutex(t_pcb* pcb, t_colas* colas)
     cambio_sacar_block(pcb, &(colas->block));
     cambio_a_ready(pcb, &(colas->ready), colas->logger);
   }
-}
-
-void cambio_block_ready(t_pcb* pcb, t_colas* colas)
-{
-  pthread_mutex_lock(&(pcb->mutex_estado));
-  cambio_block_ready_sin_mutex(pcb, colas);
-  pthread_mutex_unlock(&(pcb->mutex_estado));
 }
 
 static void avisar_proceso_suspendido(t_pcb* pcb, t_colas* colas)
@@ -741,24 +1023,6 @@ static void cambio_block_susp_block_sin_mutex(t_pcb* pcb, t_colas* colas)
   }
 }
 
-void cambio_block_susp_block(t_pcb* pcb, t_colas* colas)
-{
-  pthread_mutex_lock(&(pcb->mutex_estado));
-  cambio_block_susp_block_sin_mutex(pcb, colas);
-  pthread_mutex_unlock(&(pcb->mutex_estado));
-}
-
-void cambio_susp_block_block(t_pcb* pcb, t_colas* colas)
-{
-  pthread_mutex_lock(&(pcb->mutex_estado));
-  if (gestionar_estado_pcb(colas->logger, pcb, EST_SUSP_BLOCK, EST_BLOCK))
-  {
-    cambio_sacar_susp_block(pcb, &(colas->susp_block));
-    cambio_a_block(pcb, &(colas->block));
-  }
-  pthread_mutex_unlock(&(pcb->mutex_estado));
-}
-
 static void cambio_susp_block_susp_ready_sin_mutex(t_pcb* pcb, t_colas* colas)
 {
   if (gestionar_estado_pcb(colas->logger, pcb, EST_SUSP_BLOCK, EST_SUSP_READY))
@@ -766,13 +1030,6 @@ static void cambio_susp_block_susp_ready_sin_mutex(t_pcb* pcb, t_colas* colas)
     cambio_sacar_susp_block(pcb, &(colas->susp_block));
     cambio_a_susp_ready(pcb, &(colas->susp_ready));
   }
-}
-
-void cambio_susp_block_susp_ready(t_pcb* pcb, t_colas* colas)
-{
-  pthread_mutex_lock(&(pcb->mutex_estado));
-  cambio_susp_block_susp_ready_sin_mutex(pcb, colas);
-  pthread_mutex_unlock(&(pcb->mutex_estado));
 }
 
 static void entra_proceso_con_compactacion(t_pcb* pcb, t_colas* colas)
@@ -846,6 +1103,7 @@ static void cambio_susp_ready_ready_sin_mutex(t_pcb* pcb, t_colas* colas)
     }
   }
 }
+
 static void cambio_susp_block_block_sin_mutex_sin_compactacion(t_pcb* pcb,
                                                                t_colas* colas)
 {
@@ -855,6 +1113,7 @@ static void cambio_susp_block_block_sin_mutex_sin_compactacion(t_pcb* pcb,
     cambio_a_block(pcb, &(colas->block));
   }
 }
+
 static void cambio_susp_ready_ready_sin_mutex_sin_compactacion(t_pcb* pcb,
                                                                t_colas* colas)
 {
@@ -863,12 +1122,6 @@ static void cambio_susp_ready_ready_sin_mutex_sin_compactacion(t_pcb* pcb,
     cambio_sacar_susp_ready(pcb, &(colas->susp_ready));
     cambio_a_ready(pcb, &(colas->ready), colas->logger);
   }
-}
-void cambio_susp_ready_ready(t_pcb* pcb, t_colas* colas)
-{
-  pthread_mutex_lock(&(pcb->mutex_estado));
-  cambio_susp_ready_ready_sin_mutex(pcb, colas);
-  pthread_mutex_unlock(&(pcb->mutex_estado));
 }
 
 static void cambio_des_suspender_sin_mutex_ni_compactacion(t_pcb* pcb,
@@ -882,20 +1135,6 @@ static void cambio_des_suspender_sin_mutex_ni_compactacion(t_pcb* pcb,
   {
     cambio_susp_block_block_sin_mutex_sin_compactacion(pcb, colas);
   }
-}
-
-void cambio_desbloquear(t_pcb* pcb, t_colas* colas)
-{
-  pthread_mutex_lock(&(pcb->mutex_estado));
-  if (pcb->estado == EST_BLOCK)
-  {
-    cambio_block_ready_sin_mutex(pcb, colas);
-  }
-  else
-  {
-    cambio_susp_block_susp_ready_sin_mutex(pcb, colas);
-  }
-  pthread_mutex_unlock(&(pcb->mutex_estado));
 }
 
 static bool cambio_cualquiera_exit(t_colas* colas, int estado, int motivo)
@@ -930,16 +1169,6 @@ static bool cambio_cualquiera_exit(t_colas* colas, int estado, int motivo)
   return true;
 }
 
-void vaciar_colas(t_colas* colas)
-{
-  for (int i = EST_READY; i < EST_EXIT; i++)
-  {
-    while (cambio_cualquiera_exit(colas, i, MFP_CIERRE_SISTEMA))
-    {
-    }
-  }
-}
-
 static void bloquear_hilo_suspendido(t_datos_hilo_suspendido* datos)
 {
   pthread_mutex_lock(&(datos->mutex_estado));
@@ -965,22 +1194,6 @@ static void desbloquear_hilo_suspendido(t_datos_hilo_suspendido* datos)
     datos->estado = EH_EJECUTANDO;
   }
   pthread_mutex_unlock(&(datos->mutex_estado));
-}
-
-void bloquear_hilos_suspendido(t_colas* colas)
-{
-  bloquear_hilo_suspendido(
-      colas->datos_suspendido->datos_hilo_suspensor->datos);
-  bloquear_hilo_suspendido(
-      colas->datos_suspendido->datos_hilo_des_suspensor->datos);
-}
-
-void desbloquear_hilos_suspendido(t_colas* colas)
-{
-  desbloquear_hilo_suspendido(
-      colas->datos_suspendido->datos_hilo_suspensor->datos);
-  desbloquear_hilo_suspendido(
-      colas->datos_suspendido->datos_hilo_des_suspensor->datos);
 }
 
 static void esperar_desbloqueo(t_datos_hilo_suspendido* datos)
@@ -1338,29 +1551,6 @@ static int recibir_espacio(t_colas* colas, int espacio)
   return espacio;
 }
 
-int espacio_disponible_sin_mutex(t_colas* colas, uint32_t pid)
-{
-  int espacio = -1;
-  if (!(enviar_string(OP_PEDIR_MEMORIA_DISPONIBLE,
-                      "Solicito el espacio disponible",
-                      colas->socket_km->socket_km)))
-  {
-    cerrar_kernel_scheduler(colas->socket_servidor, colas->logger,
-                            MC_ERROR_ENVIO_KERNEL_MEMORY,
-                            colas->socket_km->socket_km);
-    return espacio;
-  }
-  return recibir_espacio(colas, espacio);
-}
-
-int espacio_disponible(t_colas* colas, uint32_t pid)
-{
-  pthread_mutex_lock(&(colas->socket_km->mutex_socket));
-  int espacio = espacio_disponible_sin_mutex(colas, pid);
-  pthread_mutex_unlock(&(colas->socket_km->mutex_socket));
-  return espacio;
-}
-
 static int recibir_tamanio(t_colas* colas, int espacio)
 {
   int op_code = -1;
@@ -1390,30 +1580,6 @@ static int recibir_tamanio(t_colas* colas, int espacio)
   return espacio;
 }
 
-int tamanio_proceso_sin_mutex(t_colas* colas, uint32_t pid)
-{
-  int espacio = -1;
-
-  if (!(enviar_buffer(OP_PEDIR_TAMANIO_PROCESO, &pid, sizeof(uint32_t),
-                      colas->socket_km->socket_km)))
-  {
-    cerrar_kernel_scheduler(colas->socket_servidor, colas->logger,
-                            MC_ERROR_ENVIO_KERNEL_MEMORY,
-                            colas->socket_km->socket_km);
-    return espacio;
-  }
-
-  return recibir_tamanio(colas, espacio);
-}
-
-int tamanio_proceso(t_colas* colas, uint32_t pid)
-{
-  pthread_mutex_lock(&(colas->socket_km->mutex_socket));
-  int espacio = tamanio_proceso_sin_mutex(colas, pid);
-  pthread_mutex_unlock(&(colas->socket_km->mutex_socket));
-  return espacio;
-}
-
 static void* hilo_rutina_des_suspension(void* datos_des_suspension)
 {
   t_colas* colas = (t_colas*)datos_des_suspension;
@@ -1426,24 +1592,6 @@ static void* hilo_rutina_des_suspension(void* datos_des_suspension)
   }
   pthread_mutex_unlock(&(colas->mutex_rutina));
   return NULL;
-}
-
-void crear_hilo_rutina_des_suspension(
-    t_colas* colas)  // usar para memoria liberada y/o nuevo stick
-{
-  pthread_t hilo;
-  if (pthread_create(&hilo, NULL, hilo_rutina_des_suspension, colas) != 0)
-  {
-    logger_error(
-        colas->logger,
-        "## Error en la creación del hilo de la rutina de des-suspension");
-  }
-  else
-  {
-    pthread_detach(hilo);
-    logger_info(colas->logger,
-                "## Hilo de la rutina de des-suspension iniciado exitosamente");
-  }
 }
 
 // RUTINA DE COMPACTACIÓN
@@ -1504,22 +1652,4 @@ static void* hilo_rutina_compactacion(void* datos_compactacion)
   }
   pthread_mutex_unlock(&(colas->mutex_rutina));
   return NULL;
-}
-
-void crear_hilo_compactacion(t_colas* colas)
-{
-  pthread_t hilo;
-  if (pthread_create(&hilo, NULL, hilo_rutina_compactacion, colas) != 0)
-  {
-    logger_error(
-        colas->logger,
-        "## Error en la creación del hilo de la rutina de compactación");
-  }
-  else
-  {
-    pthread_detach(hilo);
-    logger_info(colas->logger,
-                "## Hilo de la rutina de compactación iniciado exitosamente");
-    return;
-  }
 }

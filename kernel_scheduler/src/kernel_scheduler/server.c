@@ -9,6 +9,11 @@
 #include "utils/msg.h"
 #include "utils/server.h"
 
+static void cerrar_hilo_escucha(t_io* estructuras_io, t_list* lista_sockets_cpu,
+                                pthread_mutex_t* mutex_lista_sockets_cpu,
+                                pthread_cond_t* cond_fin_cpu,
+                                t_datos_servidor_escucha* datos);
+
 int crear_socket_servidor(char* puerto, t_logger* logger)
 {
   int ret = iniciar_servidor(puerto);
@@ -32,16 +37,6 @@ void inicializar_datos_server_escucha(
   datos->colas = colas;
   datos->socket_km = socket_kernel_memory;
   datos->path_proceso_inicial = path_proceso_inicial;
-}
-
-static void cerrar_hilo_escucha(t_io* estructuras_io, t_list* lista_sockets_cpu,
-                                pthread_mutex_t* mutex_lista_sockets_cpu,
-                                pthread_cond_t* cond_fin_cpu,
-                                t_datos_servidor_escucha* datos)
-{
-  cerrar_io(estructuras_io);
-  cerrar_cpu(lista_sockets_cpu, mutex_lista_sockets_cpu, cond_fin_cpu);
-  free(datos);
 }
 
 void servidor_escucha(t_datos_servidor_escucha* datos)
@@ -91,4 +86,14 @@ void servidor_escucha(t_datos_servidor_escucha* datos)
   logger_info(datos->logger, "## Cerrando servidor");
   cerrar_hilo_escucha(estructuras_io, lista_sockets_cpu,
                       &mutex_lista_sockets_cpu, &cond_fin_cpu, datos);
+}
+
+static void cerrar_hilo_escucha(t_io* estructuras_io, t_list* lista_sockets_cpu,
+                                pthread_mutex_t* mutex_lista_sockets_cpu,
+                                pthread_cond_t* cond_fin_cpu,
+                                t_datos_servidor_escucha* datos)
+{
+  cerrar_io(estructuras_io);
+  cerrar_cpu(lista_sockets_cpu, mutex_lista_sockets_cpu, cond_fin_cpu);
+  free(datos);
 }
