@@ -31,6 +31,99 @@ const char* const SYSCALLS_STR[10] = {
     "MUTEX_CREATE", "MUTEX_LOCK", "MUTEX_UNLOCK", "MEM_ALLOC", "MEM_FREE",
     "SLEEP",        "STDOUT",     "STDIN",        "INIT_PROC", "EXIT"};
 
+static void log_syscall(t_datos_syscall* datos, int op_code);
+static void cerrar_hilo_cpu(t_datos_hilo_cpu* datos);
+static void log_desalojo_cola_prioritaria(t_logger* logger,
+                                          uint32_t pid_desalojado,
+                                          int prioridad_desalojado,
+                                          uint32_t pid_nuevo,
+                                          int prioridad_nuevo);
+static void gestionar_cola_bloqueada(t_datos_syscall* datos);
+static void log_desalojo_fin_quantum(t_logger* logger, uint32_t pid);
+static void gestionar_desalojo_prioritario(t_datos_syscall* datos);
+static void gestionar_fin_quantum(t_datos_syscall* datos);
+static bool enviar_desalojo(t_datos_syscall* datos);
+static void gestionar_pedir_proceso(t_datos_syscall* datos);
+static bool enviar_codigo(t_datos_syscall* datos);
+static void manejar_ciclo_cpu_ok(t_datos_syscall* datos);
+static void manejar_segmentation_fault(t_datos_syscall* datos);
+static void manejar_syscall_mutex_create(t_datos_syscall* datos);
+static void manejar_syscall_mutex_lock(t_datos_syscall* datos);
+static void manejar_syscall_mutex_unlock(t_datos_syscall* datos);
+static void manejar_syscall_memory_allocation(t_datos_syscall* datos);
+static void manejar_syscall_memory_free(t_datos_syscall* datos);
+static void manejar_syscall_io_sleep(t_datos_syscall* datos);
+static void manejar_syscall_io_stdout(t_datos_syscall* datos);
+static void manejar_syscall_io_stdin(t_datos_syscall* datos);
+static void manejar_syscall_iniciar_proceso(t_datos_syscall* datos);
+static void manejar_syscall_exit(t_datos_syscall* datos);
+static void manejar_syscall_no_valida(t_datos_syscall* datos);
+static void* manejar_cliente_cpu(void* datos_hilo_cpu_void);
+static void iterator_shutdown(void* value);
+static t_datos_hilo_cpu* inicializar_datos_hilo_cpu(
+    int socket_cpu, t_list* lista_sockets_cpu,
+    pthread_mutex_t* mutex_lista_sockets_cpu, pthread_cond_t* cond_fin_cpu,
+    char* id_cpu, t_logger* logger, t_lista_mutex* lista_mutex, t_colas* colas,
+    t_io* estructuras_io, t_socket_kernel_memory* socket_km,
+    int socket_servidor);
+static bool crear_hilo_cpu(t_datos_hilo_cpu* datos);
+static char* obtener_id_cpu(int socket_cpu, t_logger* logger);
+
+bool atender_nueva_cpu(int socket_cpu, t_list* lista_sockets_cpu,
+                       pthread_mutex_t* mutex_lista_sockets_cpu,
+                       pthread_cond_t* cond_fin_cpu, t_logger* logger,
+                       t_lista_mutex* lista_mutex, t_colas* colas,
+                       t_io* estructuras_io, t_socket_kernel_memory* socket_km,
+                       int socket_servidor)
+{
+  // Handshake con CPU
+  if (!responder_handshake(socket_cpu, MID_KERNEL_SCHEDULER, logger))
+    return false;
+
+  // Obtener ID
+  char* id_cpu = obtener_id_cpu(socket_cpu, logger);
+  if (id_cpu == NULL)
+    return false;
+
+  // Inicializar datos hilo cpu
+  t_datos_hilo_cpu* datos_hilo_cpu = inicializar_datos_hilo_cpu(
+      socket_cpu, lista_sockets_cpu, mutex_lista_sockets_cpu, cond_fin_cpu,
+      id_cpu, logger, lista_mutex, colas, estructuras_io, socket_km,
+      socket_servidor);
+
+  // Agregar socket a la lista
+  pthread_mutex_lock(mutex_lista_sockets_cpu);
+  list_add(lista_sockets_cpu, &(datos_hilo_cpu->socket_fd));
+  pthread_mutex_unlock(mutex_lista_sockets_cpu);
+
+  // Crear hilo
+  if (!crear_hilo_cpu(datos_hilo_cpu))
+  {
+    pthread_mutex_lock(mutex_lista_sockets_cpu);
+    list_remove_element(lista_sockets_cpu, &(datos_hilo_cpu->socket_fd));
+    pthread_mutex_unlock(mutex_lista_sockets_cpu);
+    free(datos_hilo_cpu->id);
+    free(datos_hilo_cpu);
+    return false;
+  }
+
+  return true;
+}
+
+void cerrar_cpu(t_list* lista_sockets_cpu,
+                pthread_mutex_t* mutex_lista_sockets_cpu,
+                pthread_cond_t* cond_fin_cpu)
+{
+  pthread_mutex_lock(mutex_lista_sockets_cpu);
+  list_iterate(lista_sockets_cpu, (void*)iterator_shutdown);
+  while (!list_is_empty(lista_sockets_cpu))
+    pthread_cond_wait(cond_fin_cpu, mutex_lista_sockets_cpu);
+  pthread_mutex_unlock(mutex_lista_sockets_cpu);
+  list_destroy(lista_sockets_cpu);
+  pthread_cond_destroy(cond_fin_cpu);
+  pthread_mutex_destroy(mutex_lista_sockets_cpu);
+}
+
 static void log_syscall(t_datos_syscall* datos, int op_code)
 {
   if (op_code >= OP_SYSCALL_MUTEX_CREATE && op_code <= OP_SYSCALL_EXIT)
@@ -463,20 +556,6 @@ static bool crear_hilo_cpu(t_datos_hilo_cpu* datos)
   return true;
 }
 
-void cerrar_cpu(t_list* lista_sockets_cpu,
-                pthread_mutex_t* mutex_lista_sockets_cpu,
-                pthread_cond_t* cond_fin_cpu)
-{
-  pthread_mutex_lock(mutex_lista_sockets_cpu);
-  list_iterate(lista_sockets_cpu, (void*)iterator_shutdown);
-  while (!list_is_empty(lista_sockets_cpu))
-    pthread_cond_wait(cond_fin_cpu, mutex_lista_sockets_cpu);
-  pthread_mutex_unlock(mutex_lista_sockets_cpu);
-  list_destroy(lista_sockets_cpu);
-  pthread_cond_destroy(cond_fin_cpu);
-  pthread_mutex_destroy(mutex_lista_sockets_cpu);
-}
-
 static char* obtener_id_cpu(int socket_cpu, t_logger* logger)
 {
   if (recibir_operacion(socket_cpu) != OP_ID_CPU)
@@ -487,45 +566,4 @@ static char* obtener_id_cpu(int socket_cpu, t_logger* logger)
   char* id_cpu = recibir_string(socket_cpu);
   logger_info(logger, "## CPU %s Conectada", id_cpu);
   return id_cpu;
-}
-
-bool atender_nueva_cpu(int socket_cpu, t_list* lista_sockets_cpu,
-                       pthread_mutex_t* mutex_lista_sockets_cpu,
-                       pthread_cond_t* cond_fin_cpu, t_logger* logger,
-                       t_lista_mutex* lista_mutex, t_colas* colas,
-                       t_io* estructuras_io, t_socket_kernel_memory* socket_km,
-                       int socket_servidor)
-{
-  // Handshake con CPU
-  if (!responder_handshake(socket_cpu, MID_KERNEL_SCHEDULER, logger))
-    return false;
-
-  // Obtener ID
-  char* id_cpu = obtener_id_cpu(socket_cpu, logger);
-  if (id_cpu == NULL)
-    return false;
-
-  // Inicializar datos hilo cpu
-  t_datos_hilo_cpu* datos_hilo_cpu = inicializar_datos_hilo_cpu(
-      socket_cpu, lista_sockets_cpu, mutex_lista_sockets_cpu, cond_fin_cpu,
-      id_cpu, logger, lista_mutex, colas, estructuras_io, socket_km,
-      socket_servidor);
-
-  // Agregar socket a la lista
-  pthread_mutex_lock(mutex_lista_sockets_cpu);
-  list_add(lista_sockets_cpu, &(datos_hilo_cpu->socket_fd));
-  pthread_mutex_unlock(mutex_lista_sockets_cpu);
-
-  // Crear hilo
-  if (!crear_hilo_cpu(datos_hilo_cpu))
-  {
-    pthread_mutex_lock(mutex_lista_sockets_cpu);
-    list_remove_element(lista_sockets_cpu, &(datos_hilo_cpu->socket_fd));
-    pthread_mutex_unlock(mutex_lista_sockets_cpu);
-    free(datos_hilo_cpu->id);
-    free(datos_hilo_cpu);
-    return false;
-  }
-
-  return true;
 }
