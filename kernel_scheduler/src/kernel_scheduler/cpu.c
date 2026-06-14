@@ -12,7 +12,7 @@
 #include "utils/kernel_scheduler_cpu.h"
 #include "utils/msg.h"
 
-const char* const MOTIVOS_DESALOJO[10] = {
+const char* const MOTIVOS_DESALOJO[13] = {
     "no hubo desalojo",
     "desalojo por fin de quantum",
     "desalojo por proceso prioritario",
@@ -22,7 +22,10 @@ const char* const MOTIVOS_DESALOJO[10] = {
     "operación de IO",
     "mutex bloqueado",
     "no hay memoria suficiente para esa instrucción",
-    "segmentation fault"};
+    "segmentation fault",
+    "ya existe un mutex con ese nombre",
+    "no existe un mutex con ese nombre",
+    "este proceso no puede desbloquear este mutex"};
 
 const char* const SYSCALLS_STR[10] = {
     "MUTEX_CREATE", "MUTEX_LOCK", "MUTEX_UNLOCK", "MEM_ALLOC", "MEM_FREE",
@@ -166,7 +169,7 @@ static bool enviar_codigo(t_datos_syscall* datos)
 static void manejar_ciclo_cpu_ok(t_datos_syscall* datos)
 {
   free(recibir_string(datos->datos->socket_fd));
-  datos->motivo_desalojo = MD_SEGMENTATION_FAULt;
+  datos->motivo_desalojo = MD_SEGMENTATION_FAULT;
   cambio_exec_exit(datos->pcb, datos->datos->colas, MFP_FALLO_IO);
 }
 
@@ -178,19 +181,41 @@ static void manejar_segmentation_fault(t_datos_syscall* datos)
 static void manejar_syscall_mutex_create(t_datos_syscall* datos)
 {
   char* id_mutex = recibir_string(datos->datos->socket_fd);
-  crear_y_add_mutex(datos->datos->lista_mutex, id_mutex,
-                    datos->datos->colas->ready.cola_multi_nivel,
-                    datos->datos->logger);
+  switch (crear_y_add_mutex(datos->datos->lista_mutex, id_mutex,
+                            datos->datos->colas->ready.cola_multi_nivel,
+                            datos->datos->logger, datos->datos->colas))
+  {
+    case RM_MUTEX_CREADO:
+      break;
+    case RM_NOMBRE_MUTEX_YA_EXISTE:
+      cambio_exec_exit(datos->pcb, datos->datos->colas,
+                       MPF_NOMBRE_MUTEX_YA_EXISTE);
+      datos->motivo_desalojo = MD_NOMBRE_MUTEX_YA_EXISTE;
+      break;
+  }
   free(id_mutex);
 }
 
 static void manejar_syscall_mutex_lock(t_datos_syscall* datos)
 {
   char* id_mutex = recibir_string(datos->datos->socket_fd);
-  if (!lista_mutex_lock(datos->datos->lista_mutex, id_mutex, datos->pcb))
+  switch (lista_mutex_lock(datos->datos->lista_mutex, id_mutex, datos->pcb))
   {
-    cambio_exec_block(datos->pcb, datos->datos->colas);
-    datos->motivo_desalojo = MD_MUTEX_BLOQUEADO;
+    case RM_NOMBRE_MUTEX_NO_EXISTE:
+      cambio_exec_exit(datos->pcb, datos->datos->colas,
+                       MPF_NOMBRE_MUTEX_NO_EXISTE);
+      datos->motivo_desalojo = MD_NOMBRE_MUTEX_YA_EXISTE;
+      break;
+    case RM_PROCESO_NO_TIENE_MUTEX_BLOQUEADO:
+      cambio_exec_exit(datos->pcb, datos->datos->colas,
+                       MPF_PROCESO_NO_TIENE_MUTEX_BLOQUEADO);
+      datos->motivo_desalojo = MD_PROCESO_NO_TIENE_MUTEX_BLOQUEADO;
+      break;
+    case RM_MUTEX_BLOQUEADO:
+      break;
+    case RM_ESPERANDO_MUTEX:
+      datos->motivo_desalojo = MD_MUTEX_BLOQUEADO;
+      break;
   }
   free(id_mutex);
 }
@@ -198,7 +223,16 @@ static void manejar_syscall_mutex_lock(t_datos_syscall* datos)
 static void manejar_syscall_mutex_unlock(t_datos_syscall* datos)
 {
   char* id_mutex = recibir_string(datos->datos->socket_fd);
-  lista_mutex_unlock(datos->datos->lista_mutex, id_mutex, datos->pcb);
+  switch (lista_mutex_unlock(datos->datos->lista_mutex, id_mutex, datos->pcb))
+  {
+    case RM_MUTEX_DESBLOQUEADO:
+      break;
+    case RM_PROCESO_NO_TIENE_MUTEX_BLOQUEADO:
+      cambio_exec_exit(datos->pcb, datos->datos->colas,
+                       MPF_PROCESO_NO_TIENE_MUTEX_BLOQUEADO);
+      datos->motivo_desalojo = MD_PROCESO_NO_TIENE_MUTEX_BLOQUEADO;
+      break;
+  }
   free(id_mutex);
 }
 

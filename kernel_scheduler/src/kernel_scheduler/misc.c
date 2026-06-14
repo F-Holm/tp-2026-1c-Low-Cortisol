@@ -61,6 +61,14 @@ int insertar_pcb_en_orden(t_list* lista, t_pcb* pcb)
   return list_add_sorted(lista, pcb, es_mas_prioritario);
 }
 
+int get_estado_pcb(t_pcb* pcb)
+{
+  pthread_mutex_lock(&(pcb->mutex_estado));
+  int estado_pcb = pcb->estado;
+  pthread_mutex_unlock(&(pcb->mutex_estado));
+  return estado_pcb;
+}
+
 int get_prioridad_pcb(t_pcb* pcb)
 {
   pthread_mutex_lock(&(pcb->mutex_prioridad));
