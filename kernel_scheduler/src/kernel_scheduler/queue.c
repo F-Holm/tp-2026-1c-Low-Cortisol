@@ -139,6 +139,10 @@ t_colas* inicializar_colas(int algoritmo, t_list* algoritmos_cmn, int quantum,
   colas->logger = logger;
   colas->socket_km = socket_km;
   colas->socket_servidor = socket_servidor;
+  pthread_mutex_init(&(colas->mutex_compactacion_activa), NULL);
+  colas->compactacion_activa = false;
+  pthread_mutex_init(&(colas->mutex_des_suspension_activa), NULL);
+  colas->des_suspension_activa = false;
   iniciar_hilos_suspendido(colas, suspension_timeout);
   return colas;
 }
@@ -155,6 +159,8 @@ void destruir_colas(t_colas* colas)
   destruir_lista(&(colas->susp_ready));
   destruir_contador_procesos(colas->contador_procesos);
   pthread_mutex_destroy(&(colas->mutex_rutina));
+  pthread_mutex_destroy(&(colas->mutex_compactacion_activa));
+  pthread_mutex_destroy(&(colas->mutex_des_suspension_activa));
   free(colas);
 }
 
@@ -462,6 +468,22 @@ void crear_hilo_compactacion(t_colas* colas)
                 "## Hilo de la rutina de compactación iniciado exitosamente");
     return;
   }
+}
+
+bool esta_compactando(t_colas* colas)
+{
+  pthread_mutex_lock(&(colas->mutex_compactacion_activa));
+  bool ret = colas->compactacion_activa;
+  pthread_mutex_unlock(&(colas->mutex_compactacion_activa));
+  return ret;
+}
+
+bool esta_des_suspendiendo(t_colas* colas)
+{
+  pthread_mutex_lock(&(colas->mutex_des_suspension_activa));
+  bool ret = colas->des_suspension_activa;
+  pthread_mutex_unlock(&(colas->mutex_des_suspension_activa));
+  return ret;
 }
 
 static void inicializar_cola_ready(t_cola_ready* cola, int algoritmo,

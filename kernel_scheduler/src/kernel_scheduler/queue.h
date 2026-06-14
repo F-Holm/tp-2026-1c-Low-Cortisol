@@ -116,6 +116,10 @@ typedef struct
   t_datos_suspendido* datos_suspendido;
   pthread_mutex_t mutex_rutina;
   bool terminar_rutinas;
+  pthread_mutex_t mutex_compactacion_activa;
+  bool compactacion_activa;
+  pthread_mutex_t mutex_des_suspension_activa;
+  bool des_suspension_activa;
 } t_colas;
 
 // ingresar NULL en t_list si no es CMN
@@ -168,5 +172,7 @@ int tamanio_proceso(t_colas* colas, uint32_t pid);
 // Funciones de rutinas
 void crear_hilo_rutina_des_suspension(t_colas* colas);
 void crear_hilo_compactacion(t_colas* colas);
+bool esta_compactando(t_colas* colas);
+bool esta_des_suspendiendo(t_colas* colas);
 
 #endif /* KERNEL_SCHEDULER_QUEUE_H_ */
