@@ -24,7 +24,7 @@ static bool respuesta_km_mem_alloc(t_colas* colas)
     case OP_COMPACTACION_NECESARIA:
       free(recibir_string(colas->socket_km->socket_km));
       crear_hilo_compactacion(colas);
-      return respuesta_km_mem_alloc(colas);
+      return true;
     case OP_NUEVO_MEMORY_STICK:
       free(recibir_string(colas->socket_km->socket_km));
       crear_hilo_rutina_des_suspension(colas);
