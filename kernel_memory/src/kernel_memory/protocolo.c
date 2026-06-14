@@ -281,7 +281,6 @@ static void actualizar_lista_segmentos(t_memoria_principal* memoria_principal,
   list_iterator_destroy(iterador);
 }
 
-//  FALTA HABLAR CON MEMORY STICK
 void crear_segmento(uint32_t id, uint32_t pid, int size,
                     t_memoria_principal* memoria_principal,
                     int socket_scheduler, t_logger* logger)
@@ -291,9 +290,9 @@ void crear_segmento(uint32_t id, uint32_t pid, int size,
     enviar_string(OP_TAMANIO_SEGMENTO_EXCEDIDO,
                   "El tamaño solicitado supera el tamaño máximo de segmento.",
                   socket_scheduler);
-  pthread_mutex_lock(memoria_principal->mutex_memoria_principal);
 
   // Chequeo de cantidad de memoria disponible
+  pthread_mutex_lock(memoria_principal->mutex_memoria_principal);
   if (calcular_espacio_libre(memoria_principal->huecos,
                              memoria_principal->mutex_memoria_principal) < size)
   {
@@ -315,6 +314,9 @@ void crear_segmento(uint32_t id, uint32_t pid, int size,
       selector_de_huecos(size, logger, memoria_principal);
     }
     actualizar_lista_segmentos(memoria_principal, hueco_elegido, size);
+    // ---
+    //  FALTA HABLAR CON MEMORY STICK
+    // ---
     pthread_mutex_unlock(memoria_principal->mutex_memoria_principal);
     enviar_string(OP_MEMORIA_ALOJADA, "Se ha alojado la memoria",
                   socket_scheduler);
