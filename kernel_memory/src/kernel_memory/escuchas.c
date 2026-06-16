@@ -97,15 +97,12 @@ void* escucha_scheduler(void* ptr)
         int a;
         uint32_t* pid =
             (uint32_t*)recibir_buffer(&a, datos_scheduler->socket_scheduler);
-        t_proceso* proceso_a_terminar =
-            buscar_proceso(datos_scheduler->procesos, pid);
+        t_proceso* proceso_a_terminar = buscar_proceso(
+            datos_scheduler->procesos, datos_scheduler->mutex_procesos, *pid);
         if (proceso_a_terminar != NULL)
         {
           pthread_mutex_lock(datos_scheduler->mutex_procesos);
-          list_remove_and_destroy_element(
-              datos_scheduler->procesos,
-              list_index_of(datos_scheduler->procesos, proceso_a_terminar),
-              free);
+          list_remove_element(datos_scheduler->procesos, proceso_a_terminar);
           pthread_mutex_unlock(datos_scheduler->mutex_procesos);
           logger_info(datos_scheduler->logger, "Proceso con PID %u terminado",
                       *pid);
@@ -115,6 +112,7 @@ void* escucha_scheduler(void* ptr)
             eliminar_segmento(segmento->id, proceso_a_terminar->pid,
                               datos_scheduler->memoria_principal);
           }
+          liberar_proceso(proceso_a_terminar);
         }
         else
         {
@@ -151,7 +149,8 @@ void* escucha_cpu(void* ptr)
         uint32_t pc = *(uint32_t*)list_get(paquete, 1);
         list_destroy_and_destroy_elements(paquete, free);
 
-        t_proceso* proceso = buscar_proceso(datos_cpu, pid);
+        t_proceso* proceso =
+            buscar_proceso(datos_cpu->procesos, datos_cpu->mutex_procesos, pid);
         char* instruccion = proceso->instrucciones[pc];
 
         logger_info(datos_cpu->logger,
@@ -166,12 +165,19 @@ void* escucha_cpu(void* ptr)
       {
         int a;
         uint32_t* pid = (uint32_t*)recibir_buffer(&a, datos_cpu->socket_cpu);
-        t_proceso* proceso = buscar_proceso(datos_cpu, *pid);
-        logger_info(datos_cpu->logger, "## PID: %u - Obtener contexto", *pid);
-        free(pid);
+        t_proceso* proceso = buscar_proceso(datos_cpu->procesos,
+                                            datos_cpu->mutex_procesos, *pid);
+        logger_info(datos_cpu->logger, "## PID: %u - Obtener registro", *pid);
         usleep(datos_cpu->instruction_delay * 1000);
-        enviar_buffer(OP_ENVIAR_CONTEXTO, &proceso->contexto,
-                      sizeof(t_contexto), datos_cpu->socket_cpu);
+        enviar_buffer(OP_ENVIAR_CONTEXTO, &proceso->registro,
+                      sizeof(t_registros), datos_cpu->socket_cpu);
+        t_paquete* tabla_segmentos_proceso =
+            crear_paquete(OP_TABLA_DE_SEGMENTOS);
+        agregar_segmentos_a_paquete(
+            filtrar_segmentos_proceso(*pid, proceso->segmentos),
+            tabla_segmentos_proceso);
+        enviar_paquete(tabla_segmentos_proceso, datos_cpu->socket_cpu);
+        free(pid);
         break;
       }
       case OP_CODE_ERROR:

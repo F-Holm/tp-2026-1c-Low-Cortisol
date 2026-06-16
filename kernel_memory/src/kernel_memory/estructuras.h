@@ -84,15 +84,8 @@ typedef struct
   char** instrucciones;
   int cant_instrucciones;
   t_list* segmentos;
-  t_contexto contexto;
+  t_registros registro;
 } t_proceso;
-typedef struct
-{
-  uint32_t id;
-  uint32_t pid;
-  int base;
-  int size;
-} t_segmento;
 
 typedef struct
 {
