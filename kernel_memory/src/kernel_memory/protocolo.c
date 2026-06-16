@@ -172,17 +172,18 @@ int calcular_espacio_libre(t_list* huecos, pthread_mutex_t* mutex_huecos)
   return total;
 }
 
-t_proceso* buscar_proceso(t_datos_cpu* datos_cpu, uint32_t pid)
+t_proceso* buscar_proceso(t_list* lista_procesos,
+                          pthread_mutex_t* mutex_procesos, uint32_t pid)
 {
   t_proceso* resultado = NULL;
-  pthread_mutex_lock(datos_cpu->mutex_procesos);
-  for (int i = 0; i < list_size(datos_cpu->procesos); i++)
+  pthread_mutex_lock(mutex_procesos);
+  for (int i = 0; i < list_size(lista_procesos); i++)
   {
-    t_proceso* proceso = list_get(datos_cpu->procesos, i);
+    t_proceso* proceso = list_get(lista_procesos, i);
     if (proceso->pid == pid)
       resultado = proceso;
   }
-  pthread_mutex_unlock(datos_cpu->mutex_procesos);
+  pthread_mutex_unlock(mutex_procesos);
   return resultado;
 }
 
@@ -295,8 +296,7 @@ bool compactar_memoria(int socket_scheduler,
   if (notificar_compactacion(socket_scheduler))
   {
     pthread_mutex_lock(memoria_principal->mutex_memoria_principal);
-    memoria_principal->segmentos =
-        compactar_segmentos(memoria_principal->segmentos);
+    compactar_segmentos(memoria_principal->segmentos);
     memoria_principal->huecos = compactar_huecos(
         memoria_principal->tamanio_total,
         calcular_base_final_segmento(memoria_principal->segmentos));
@@ -306,7 +306,7 @@ bool compactar_memoria(int socket_scheduler,
   return false;
 }
 
-t_list* compactar_segmentos(t_list* segmentos)
+void compactar_segmentos(t_list* segmentos)
 {
   for (int i = 0; i < list_size(segmentos) - 1; i++)
   {
@@ -333,6 +333,7 @@ t_list* compactar_huecos(int memoria_total, int base_final_segmento)
   hueco_final->base = base_final_segmento;
   hueco_final->size = memoria_total - base_final_segmento;
   list_add(huecos, hueco_final);
+  return huecos;
 }
 
 bool notificar_compactacion(int socket_scheduler)
@@ -376,7 +377,6 @@ void es_hueco_anterior(t_hueco* hueco_aux, t_hueco* hueco_actual,
     hueco_aux->base = hueco_actual->base;
     hueco_aux->size = hueco_actual->size + segmento_aux->size;
     list_remove_and_destroy_element(memoria_principal->huecos, indice, free);
-    return hueco_aux;
   }
 }
 
@@ -398,7 +398,7 @@ void eliminar_segmento(uint32_t id, uint32_t pid,
   nuevo_hueco->base = 0;
   nuevo_hueco->size = 0;
   t_segmento* segmento_aux =
-      buscar_y_eliminar_segmento(id, pid, memoria_principal);
+      buecar_y_eliminar_segmento(id, pid, memoria_principal);
   pthread_mutex_lock(memoria_principal->mutex_memoria_principal);
   if (segmento_aux == NULL)
   {  // logger_error()
@@ -419,8 +419,7 @@ void eliminar_segmento(uint32_t id, uint32_t pid,
       es_hueco_posterior(nuevo_hueco, hueco_actual, segmento_aux,
                          memoria_principal, i);
     }
-    memoria_principal->huecos =
-        list_add(memoria_principal->huecos, nuevo_hueco);
+    list_add(memoria_principal->huecos, nuevo_hueco);
   }
   else if (hueco_antes_segmento(segmento_aux->base,
                                 segmento_aux->base + segmento_aux->size,
@@ -450,8 +449,7 @@ void eliminar_segmento(uint32_t id, uint32_t pid,
   {
     nuevo_hueco->base = segmento_aux->base;
     nuevo_hueco->size = segmento_aux->size;
-    memoria_principal->huecos =
-        list_add(memoria_principal->huecos, nuevo_hueco);
+    list_add(memoria_principal->huecos, nuevo_hueco);
     free(segmento_aux);
   }
   pthread_mutex_unlock(memoria_principal->mutex_memoria_principal);
@@ -483,4 +481,35 @@ bool hueco_despues_segmento(int base_segmento, int final_segmento,
     }
   }
   return false;
+}
+
+t_list* filtrar_segmentos_proceso(int pid, t_list* segmentos)
+{
+  t_list* lista_filtrada = list_create();
+  if (segmentos == NULL)
+  {
+    return lista_filtrada;
+  }
+
+  for (int i = 0; i < list_size(segmentos); i++)
+  {
+    t_segmento* segmento_actual = list_get(segmentos, i);
+    if (segmento_actual->pid == pid)
+    {
+      list_add(lista_filtrada, segmento_actual);
+    }
+  }
+
+  return lista_filtrada;
+}
+
+void agregar_segmentos_a_paquete(t_list* segmentos,
+                                 t_paquete* tabla_segmentos_proceso)
+{
+  for (int i = 0; i < list_size(segmentos); i++)
+  {
+    t_segmento* segmento_actual = list_get(segmentos, i);
+    agregar_a_paquete(tabla_segmentos_proceso, segmento_actual,
+                      sizeof(t_segmento));
+  }
 }
