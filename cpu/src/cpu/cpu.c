@@ -153,6 +153,7 @@ t_list* recibir_tabla_segmentos(t_cpu* cpu)
 void ejecutar_ciclo_instruccion(t_cpu* cpu, uint32_t pid, t_contexto* contexto)
 {
   bool seguir = true;
+  bool syscall = true;
   while (seguir)
   {
     char* instruccion_KM = etapa_fetch(cpu, pid, contexto->registros->PC);
@@ -165,18 +166,20 @@ void ejecutar_ciclo_instruccion(t_cpu* cpu, uint32_t pid, t_contexto* contexto)
     log_info(cpu->logger, "## PID: %u - Ejecutando: %s ", pid, instruccion_KM);
     free(instruccion_KM);
 
-    seguir = etapa_execute(cpu, contexto, instruccion, pid);
+    syscall = etapa_execute(cpu, contexto, instruccion, pid);
 
     if (pc_inicial == contexto->registros->PC)
       contexto->registros->PC++;
 
-    if (seguir)
+    if (!syscall)
+    {
       if (!enviar_string(OP_CICLO_CPU_OK, "OK", cpu->socket_kernel_scheduler))
       {
         log_error(cpu->logger, "## Error en la confirmación del fin de ciclo");
         cerrar_modulo(cpu);
         return;
       }
+    }
     log_info(cpu->logger, "Scheduler notificado del fin de ciclo");
     seguir = check_interrupt(cpu, pid);
 
