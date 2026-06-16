@@ -164,9 +164,7 @@ int calcular_espacio_libre(t_list* huecos, pthread_mutex_t* mutex_huecos)
   int total = 0;
   for (int i = 0; i < list_size(huecos); i++)
   {
-    pthread_mutex_lock(mutex_huecos);
     t_hueco* hueco_actual = (t_hueco*)list_get(huecos, i);
-    pthread_mutex_unlock(mutex_huecos);
     total += hueco_actual->size;
   }
   return total;
@@ -311,13 +309,11 @@ void crear_segmento(uint32_t id, uint32_t pid, int size,
     // Chequeo de compactación
     if (hueco_elegido.size == -1)
     {
+      notificar_compactacion(socket_scheduler);
       compactar_memoria(socket_scheduler, memoria_principal);
       selector_de_huecos(size, logger, memoria_principal);
     }
     actualizar_lista_segmentos(memoria_principal, hueco_elegido, size);
-    // ---
-    //  FALTA HABLAR CON MEMORY STICK
-    // ---
     pthread_mutex_unlock(memoria_principal->mutex_memoria_principal);
     enviar_string(OP_MEMORIA_ALOJADA, "Se ha alojado la memoria",
                   socket_scheduler);
@@ -329,17 +325,13 @@ void crear_segmento(uint32_t id, uint32_t pid, int size,
 bool compactar_memoria(int socket_scheduler,
                        t_memoria_principal* memoria_principal)
 {
-  if (notificar_compactacion(socket_scheduler))
-  {
-    pthread_mutex_lock(memoria_principal->mutex_memoria_principal);
-    compactar_segmentos(memoria_principal->segmentos);
-    memoria_principal->huecos = compactar_huecos(
-        memoria_principal->tamanio_total,
-        calcular_base_final_segmento(memoria_principal->segmentos));
-    pthread_mutex_unlock(memoria_principal->mutex_memoria_principal);
-    return true;
-  }
-  return false;
+  pthread_mutex_lock(memoria_principal->mutex_memoria_principal);
+  compactar_segmentos(memoria_principal->segmentos);
+  memoria_principal->huecos = compactar_huecos(
+  memoria_principal->tamanio_total,
+  calcular_base_final_segmento(memoria_principal->segmentos));
+  pthread_mutex_unlock(memoria_principal->mutex_memoria_principal);
+  return true;
 }
 
 void compactar_segmentos(t_list* segmentos)
@@ -372,17 +364,22 @@ t_list* compactar_huecos(int memoria_total, int base_final_segmento)
   return huecos;
 }
 
-bool notificar_compactacion(int socket_scheduler)
+void notificar_compactacion(int socket_scheduler)
 {
   enviar_string(OP_COMPACTACION_NECESARIA, "Es necesario compactar la memoria",
                 socket_scheduler);
-  if (recibir_operacion(socket_scheduler) == OP_PUEDE_COMPACTAR)
-  {
-    char* mensaje = recibir_string(socket_scheduler);
-    free(mensaje);
-    return true;
+  while(true){
+  int operacion = recibir_operacion(socket_scheduler);
+  if(operacion == OP_PUEDE_COMPACTAR)
+    {
+      char* mensaje = recibir_string(socket_scheduler);
+      free(mensaje);
+      break;
+    }else{
+      char* mensaje = recibir_string(socket_scheduler);
+      free(mensaje);
+    }
   }
-  return false;
 }
 
 t_segmento* buecar_y_eliminar_segmento(uint32_t id, uint32_t pid,
