@@ -228,7 +228,8 @@ void cambio_a_exec(t_pcb* pcb, t_lista_execute* exec)
   {
     pthread_mutex_lock(&(exec->prioridad_mas_baja->mutex_prioridad));
     pthread_mutex_lock(&(pcb->mutex_prioridad));
-    if (exec->prioridad_mas_baja->prioridad >= pcb->prioridad)
+    if (exec->prioridad_mas_baja == NULL ||
+        exec->prioridad_mas_baja->prioridad >= pcb->prioridad)
     {
       exec->prioridad_mas_baja = pcb;
     }
@@ -589,8 +590,8 @@ static void inicializar_datos_hilo_des_suspensor(t_colas* colas)
 static void iniciar_hilo_suspensor(t_colas* colas)
 {
   if (pthread_create(
-          &(colas->datos_suspendido->datos_hilo_des_suspensor->datos->hilo),
-          NULL, hilo_suspensor, colas) != 0)
+          &(colas->datos_suspendido->datos_hilo_suspensor->datos->hilo), NULL,
+          hilo_suspensor, colas) != 0)
   {
     logger_error(colas->logger, "## Error en la creación del hilo suspensor");
   }
@@ -1524,17 +1525,16 @@ static bool esta_vacia(t_lista lista)
 static bool retirar_de_la_lista(t_colas* colas, int estado_deseado)
 {
   t_lista* lista;
-  if (estado_deseado == EST_SUSP_READY)
+  switch (estado_deseado)
   {
-    lista = &(colas->susp_ready);
-  }
-  else if (estado_deseado == EST_SUSP_READY)
-  {
-    lista = &(colas->susp_block);
-  }
-  else
-  {
-    return false;
+    case EST_SUSP_READY:
+      lista = &(colas->susp_ready);
+      break;
+    case EST_SUSP_BLOCK:
+      lista = &(colas->susp_block);
+      break;
+    default:
+      return false;
   }
 
   t_pcb* proceso = list_get(lista->lista, 0);

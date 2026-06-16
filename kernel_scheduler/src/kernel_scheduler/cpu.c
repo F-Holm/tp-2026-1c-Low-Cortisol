@@ -160,7 +160,7 @@ static void log_desalojo_cola_prioritaria(t_logger* logger,
 
 static void gestionar_cola_bloqueada(t_datos_syscall* datos)
 {
-  if (datos == MD_SIN_DESALOJO &&
+  if (datos->motivo_desalojo == MD_SIN_DESALOJO &&
       esta_cola_ready_bloqueada(&(datos->datos->colas->ready)))
   {
     logger_info(datos->datos->logger,
@@ -262,8 +262,6 @@ static bool enviar_codigo(t_datos_syscall* datos)
 static void manejar_ciclo_cpu_ok(t_datos_syscall* datos)
 {
   free(recibir_string(datos->datos->socket_fd));
-  datos->motivo_desalojo = MD_SEGMENTATION_FAULT;
-  cambio_exec_exit(datos->pcb, datos->datos->colas, MFP_FALLO_IO);
 }
 
 static void manejar_segmentation_fault(t_datos_syscall* datos)

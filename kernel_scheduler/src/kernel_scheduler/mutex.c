@@ -71,7 +71,7 @@ static void log_mutex_tomado(t_logger* logger, uint32_t pid, char* id_mutex)
 
 static void log_mutex_liberado(t_logger* logger, uint32_t pid, char* id_mutex)
 {
-  logger_info(logger, "## %u Toma el Mutex %s", pid, id_mutex);
+  logger_info(logger, "## %u Libera el Mutex %s", pid, id_mutex);
 }
 
 static void log_cambio_de_prioridad(t_logger* logger, uint32_t pid,

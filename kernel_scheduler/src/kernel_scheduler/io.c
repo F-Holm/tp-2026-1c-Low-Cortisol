@@ -357,7 +357,7 @@ static bool charla_km_stdin(t_io* io_in)
 static int io_stdin_f(t_stdin* peticion, t_io* io_in)
 {
   // Envio peticion a IO
-  char* buffer = malloc(sizeof(peticion->peticion->tamanio_a_leer));
+  char* buffer = malloc(peticion->peticion->tamanio_a_leer);
   bool envio = comunicacion_io_stdin(peticion, io_in, buffer);
   if (!envio)
   {
@@ -434,9 +434,7 @@ static bool io_stdout_f(t_stdout* peticion, t_io* io_out)
     return false;
   }
 
-  char* buffer =
-      malloc(sizeof(char) * (peticion->peticion->tamanio_a_escribir));
-  buffer = recibir_string(io_out->socket_km->socket_km);
+  char* buffer = recibir_string(io_out->socket_km->socket_km);
   pthread_mutex_unlock(&(io_out->socket_km->mutex_socket));
   if (buffer == NULL)
   {
