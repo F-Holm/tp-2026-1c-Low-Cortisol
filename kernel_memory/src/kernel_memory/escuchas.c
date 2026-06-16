@@ -180,6 +180,21 @@ void* escucha_cpu(void* ptr)
         free(pid);
         break;
       }
+      case OP_CONTEXTO_ACTUALIZADO:
+      {
+        t_list* paquete = recibir_paquete(datos_cpu->socket_cpu);
+        uint32_t pid = *(uint32_t*)list_get(paquete, 0);
+        t_registros registros = *(t_registros*)list_get(paquete, 1);
+        t_proceso* proceso =
+            buscar_proceso(datos_cpu->procesos, datos_cpu->mutex_procesos, pid);
+        pthread_mutex_lock(datos_cpu->mutex_procesos);
+        proceso->registro = registros;
+        pthread_mutex_unlock(datos_cpu->mutex_procesos);
+        // enviar_string(OP_CONTEXTO_ACTUALIZADO,"",datos_cpu->socket_cpu);
+        // Chequear si está bien enviarle ese opcode a cpu.
+        free(paquete);
+        break;
+      }
       case OP_CODE_ERROR:
         conexion_estable = false;
         break;
