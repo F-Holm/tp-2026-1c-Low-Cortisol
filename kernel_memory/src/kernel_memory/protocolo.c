@@ -194,9 +194,9 @@ t_memoria_principal* aniadir_memoria_total(
   return memoria_principal;
 }
 
-static t_hueco algoritmo_seleccionador(uint32_t tamanio, t_list* huecos_actuales,
-                                t_logger* logger,
-                                t_allocation_strategy allocation_strategy)
+static t_hueco algoritmo_seleccionador(
+    uint32_t tamanio, t_list* huecos_actuales, t_logger* logger,
+    t_allocation_strategy allocation_strategy)
 {
   t_hueco hueco_elegido = {-1, -1};
   t_list_iterator* iterador = list_iterator_create(huecos_actuales);
@@ -229,7 +229,7 @@ static t_hueco algoritmo_seleccionador(uint32_t tamanio, t_list* huecos_actuales
 }
 
 static void actualizar_tabla_huecos(t_memoria_principal* memoria_principal,
-                             t_hueco hueco_elegido, uint32_t tamanio)
+                                    t_hueco hueco_elegido, uint32_t tamanio)
 {
   t_list_iterator* iterador = list_iterator_create(memoria_principal->huecos);
   while (list_iterator_has_next(iterador))
@@ -245,7 +245,7 @@ static void actualizar_tabla_huecos(t_memoria_principal* memoria_principal,
 }
 
 static t_hueco selector_de_huecos(uint32_t tamanio, t_logger* logger,
-                           t_memoria_principal* memoria)
+                                  t_memoria_principal* memoria)
 {
   t_hueco hueco_elegido = {-1, -1};
   if (memoria->allocation_strategy == BEST)
@@ -265,7 +265,7 @@ static t_hueco selector_de_huecos(uint32_t tamanio, t_logger* logger,
 }
 
 static void actualizar_lista_segmentos(t_memoria_principal* memoria_principal,
-                                t_hueco hueco_elegido, int tamanio)
+                                       t_hueco hueco_elegido, int tamanio)
 {
   t_list_iterator* iterador =
       list_iterator_create(memoria_principal->segmentos);
@@ -328,8 +328,8 @@ bool compactar_memoria(int socket_scheduler,
   pthread_mutex_lock(memoria_principal->mutex_memoria_principal);
   compactar_segmentos(memoria_principal->segmentos);
   memoria_principal->huecos = compactar_huecos(
-  memoria_principal->tamanio_total,
-  calcular_base_final_segmento(memoria_principal->segmentos));
+      memoria_principal->tamanio_total,
+      calcular_base_final_segmento(memoria_principal->segmentos));
   pthread_mutex_unlock(memoria_principal->mutex_memoria_principal);
   return true;
 }
@@ -368,16 +368,14 @@ void notificar_compactacion(int socket_scheduler)
 {
   enviar_string(OP_COMPACTACION_NECESARIA, "Es necesario compactar la memoria",
                 socket_scheduler);
-  while(true){
-  int operacion = recibir_operacion(socket_scheduler);
-  if(operacion == OP_PUEDE_COMPACTAR)
+  while (true)
+  {
+    int operacion = recibir_operacion(socket_scheduler);
+    if (operacion == OP_PUEDE_COMPACTAR)
     {
       char* mensaje = recibir_string(socket_scheduler);
       free(mensaje);
       break;
-    }else{
-      char* mensaje = recibir_string(socket_scheduler);
-      free(mensaje);
     }
   }
 }
