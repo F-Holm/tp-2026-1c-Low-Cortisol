@@ -442,7 +442,6 @@ void crear_hilo_rutina_des_suspension(
 {
   if (!esta_compactando(colas))
   {
-    pthread_mutex_unlock(&(colas->mutex_compactacion_activa));
     pthread_mutex_lock(&(colas->mutex_des_suspension_activa));
     if (!esta_des_suspendiendo_sin_mutex(colas))
     {
@@ -462,10 +461,6 @@ void crear_hilo_rutina_des_suspension(
             colas->logger,
             "## Hilo de la rutina de des-suspension iniciado exitosamente");
       }
-    }
-    else
-    {
-      pthread_mutex_unlock(&(colas->mutex_des_suspension_activa));
     }
   }
   
