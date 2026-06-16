@@ -119,8 +119,8 @@ static void rutina_des_suspension(t_colas* colas);
 static int recibir_espacio(t_colas* colas, int espacio);
 static int recibir_tamanio(t_colas* colas, int espacio);
 static void* hilo_rutina_des_suspension(void* datos_des_suspension);
-static bool esta_des_suspendiendo_sin_mutex(t_colas* colas);
-static bool esta_compactando_sin_mutex(t_colas* colas);
+static bool esta_des_suspendiendo_set_true(t_colas* colas);
+static bool esta_compactando_set_true(t_colas* colas);
 // RUTINA DE COMPACTACIÓN
 static bool termino_compactacion(t_colas* colas);
 static void rutina_compactacion(t_colas* colas);
@@ -445,63 +445,53 @@ int tamanio_proceso(t_colas* colas, uint32_t pid)
 void crear_hilo_rutina_des_suspension(
     t_colas* colas)  // usar para memoria liberada y/o nuevo stick
 {
-  if (!esta_compactando(colas))
+  if (esta_compactando(colas) || esta_des_suspendiendo_set_true(colas))
   {
-    pthread_mutex_lock(&(colas->mutex_des_suspension_activa));
-    if (!esta_des_suspendiendo_sin_mutex(colas))
-    {
-      colas->des_suspension_activa = true;
-      pthread_mutex_unlock(&(colas->mutex_des_suspension_activa));
-      pthread_t hilo;
-      if (pthread_create(&hilo, NULL, hilo_rutina_des_suspension, colas) != 0)
-      {
-        logger_error(
-            colas->logger,
-            "## Error en la creación del hilo de la rutina de des-suspension");
-      }
-      else
-      {
-        pthread_detach(hilo);
-        logger_info(
-            colas->logger,
-            "## Hilo de la rutina de des-suspension iniciado exitosamente");
-      }
-    }
+    return;
+  }
+
+  pthread_t hilo;
+  if (pthread_create(&hilo, NULL, hilo_rutina_des_suspension, colas) != 0)
+  {
+    logger_error(
+        colas->logger,
+        "## Error en la creación del hilo de la rutina de des-suspension");
+  }
+  else
+  {
+    pthread_detach(hilo);
+    logger_info(colas->logger,
+                "## Hilo de la rutina de des-suspension iniciado exitosamente");
   }
 }
 
 void crear_hilo_compactacion(t_colas* colas)
 {
-  pthread_mutex_lock(&(colas->mutex_compactacion_activa));
-  if (!esta_compactando_sin_mutex(colas))
+  if (esta_compactando_set_true(colas))
   {
-    colas->compactacion_activa = true;
-    pthread_mutex_unlock(&(colas->mutex_compactacion_activa));
-    pthread_t hilo;
-    if (pthread_create(&hilo, NULL, hilo_rutina_compactacion, colas) != 0)
-    {
-      logger_error(
-          colas->logger,
-          "## Error en la creación del hilo de la rutina de compactación");
-    }
-    else
-    {
-      pthread_detach(hilo);
-      logger_info(colas->logger,
-                  "## Hilo de la rutina de compactación iniciado exitosamente");
-      return;
-    }
+    return;
+  }
+
+  pthread_t hilo;
+  if (pthread_create(&hilo, NULL, hilo_rutina_compactacion, colas) != 0)
+  {
+    logger_error(
+        colas->logger,
+        "## Error en la creación del hilo de la rutina de compactación");
   }
   else
   {
-    pthread_mutex_unlock(&(colas->mutex_compactacion_activa));
+    pthread_detach(hilo);
+    logger_info(colas->logger,
+                "## Hilo de la rutina de compactación iniciado exitosamente");
+    return;
   }
 }
 
 bool esta_compactando(t_colas* colas)
 {
   pthread_mutex_lock(&(colas->mutex_compactacion_activa));
-  bool ret = esta_compactando_sin_mutex(colas);
+  bool ret = colas->compactacion_activa;
   pthread_mutex_unlock(&(colas->mutex_compactacion_activa));
 
   return ret;
@@ -510,7 +500,7 @@ bool esta_compactando(t_colas* colas)
 bool esta_des_suspendiendo(t_colas* colas)
 {
   pthread_mutex_lock(&(colas->mutex_des_suspension_activa));
-  bool ret = esta_des_suspendiendo_sin_mutex(colas);
+  bool ret = colas->des_suspension_activa;
   pthread_mutex_unlock(&(colas->mutex_des_suspension_activa));
 
   return ret;
@@ -1672,15 +1662,29 @@ static void* hilo_rutina_des_suspension(void* datos_des_suspension)
   return NULL;
 }
 
-static bool esta_des_suspendiendo_sin_mutex(t_colas* colas)
+static bool esta_des_suspendiendo_set_true(t_colas* colas)
 {
+  pthread_mutex_lock(&(colas->mutex_des_suspension_activa));
   bool ret = colas->des_suspension_activa;
+  if (!ret)
+  {
+    colas->des_suspension_activa = true;
+  }
+  pthread_mutex_unlock(&(colas->mutex_des_suspension_activa));
+
   return ret;
 }
 
-static bool esta_compactando_sin_mutex(t_colas* colas)
+static bool esta_compactando_set_true(t_colas* colas)
 {
+  pthread_mutex_lock(&(colas->mutex_compactacion_activa));
   bool ret = colas->compactacion_activa;
+  if (!ret)
+  {
+    colas->compactacion_activa = true;
+  }
+  pthread_mutex_unlock(&(colas->mutex_compactacion_activa));
+
   return ret;
 }
 
