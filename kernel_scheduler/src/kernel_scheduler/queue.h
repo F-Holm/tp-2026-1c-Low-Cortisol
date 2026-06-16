@@ -37,7 +37,7 @@ typedef struct
 
 typedef struct
 {
-  t_queue* cola;
+  t_list* cola;
   int algoritmo;
 } t_cola_individual_ready;
 
@@ -135,11 +135,11 @@ void bloquear_cola_ready(t_cola_ready* ready);
 void desbloquear_cola_ready(t_cola_ready* ready);
 void esperar_cola_ready_vacia(t_cola_ready* ready);
 bool puedo_suspender(t_pcb* pcb, int suspension_timeout);
+void actualizar_prioridad(t_pcb* pcb, t_colas* colas);
 
 // cambio_ready_exec: No implementado, solo contiene el log por ahora. Usar
 // funciones individuales
 void cambio_a_exec(t_pcb* pcb, t_lista_execute* exec);
-t_pcb* cambio_sacar_ready(t_cola_ready* ready);
 t_pcb* cambio_sacar_ready_bloqueante(t_cola_ready* ready);
 void cambio_ready_exec(t_pcb* pcb, t_colas* colas);
 

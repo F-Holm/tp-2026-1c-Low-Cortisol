@@ -19,7 +19,6 @@ typedef struct
   t_list* lista;
   t_pcb* proceso_actual;
   int estado;
-  t_logger* logger;
   t_colas* colas;
 } t_mutex;
 
@@ -44,7 +43,7 @@ t_lista_mutex* inicializar_lista_mutex(void);
 void destruir_lista_mutex(t_lista_mutex* lista_mutex);
 
 int crear_y_add_mutex(t_lista_mutex* lista_mutex, char* id,
-                      bool prioridad_activa, t_logger* logger, t_colas* colas);
+                      bool prioridad_activa, t_colas* colas);
 int lista_mutex_lock(t_lista_mutex* lista_mutex, char* id, t_pcb* pcb);
 int lista_mutex_unlock(t_lista_mutex* lista_mutex, char* id, t_pcb* pcb);
 

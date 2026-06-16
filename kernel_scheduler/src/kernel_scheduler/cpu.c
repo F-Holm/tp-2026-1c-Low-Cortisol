@@ -276,7 +276,7 @@ static void manejar_syscall_mutex_create(t_datos_syscall* datos)
   char* id_mutex = recibir_string(datos->datos->socket_fd);
   switch (crear_y_add_mutex(datos->datos->lista_mutex, id_mutex,
                             datos->datos->colas->ready.cola_multi_nivel,
-                            datos->datos->logger, datos->datos->colas))
+                            datos->datos->colas))
   {
     case RM_MUTEX_CREADO:
       break;
