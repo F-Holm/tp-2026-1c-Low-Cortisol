@@ -69,8 +69,7 @@ t_memory_stick_info* encontrar_stick(t_cpu* cpu, uint32_t dir_fisica)
   return NULL;
 }
 
-void* leer_memoria(t_cpu* cpu, uint32_t dir_fisica, uint32_t tamanio,
-                   uint32_t pid)
+void* leer_memoria(t_cpu* cpu, uint32_t dir_fisica, uint32_t tamanio)
 {
   void* resultado = malloc(tamanio);
   uint32_t bytes_leidos = 0;
@@ -147,7 +146,7 @@ char* confirmacion_letura_MS(t_cpu* cpu, t_memory_stick_info* stick)
 }
 
 void escribir_memoria(t_cpu* cpu, uint32_t dir_fisica, void* datos_a_escribir,
-                      uint32_t tamanio, uint32_t pid)
+                      uint32_t tamanio)
 {
   uint32_t bytes_escritos = 0;
 

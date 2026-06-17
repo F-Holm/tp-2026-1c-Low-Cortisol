@@ -69,36 +69,70 @@ bool handler_mov_in(t_cpu* cpu, t_contexto* contexto,
   uint32_t dir_fisica =
       mmu(cpu, contexto, contexto->registros->SI, sizeof(uint32_t), pid);
 
-  set_registro(contexto->registros, instruccion->parametros[0], dir_fisica);
+  if (dir_fisica == DIR_INVALIDA)
+    return true;
 
+  void* dato_leido = leer_memoria(cpu, dir_fisica, sizeof(uint32_t));
+  uint32_t valor = *(uint32_t*)dato_leido;
+  free(dato_leido);
+
+  set_registro(contexto->registros, instruccion->parametros[0], valor);
+
+  log_info(cpu->logger,
+           "PID: %u - Acción: LEER - Dirección Física: %u - Valor: %u", pid,
+           dir_fisica, valor);
   return true;
 }
 
 bool handler_mov_out(t_cpu* cpu, t_contexto* contexto,
                      t_instruccion* instruccion, uint32_t pid)
 {
-  /*
-      uint32_t valor = get_registro(contexto->registros,
-     instruccion->parametros[0]);
+  uint32_t valor =
+      get_registro(contexto->registros, instruccion->parametros[0]);
+  uint32_t dir_fisica =
+      mmu(cpu, contexto, contexto->registros->DI, sizeof(uint32_t), pid);
 
-      uint32_t dir_fisica = mmu(cpu, contexto, contexto->DI, sizeof(uint32_t));
+  if (dir_fisica == DIR_INVALIDA)
+    return true;
 
-      //escribir el valor en la memoria fisica
-  */
+  escribir_memoria(cpu, dir_fisica, &valor, sizeof(uint32_t));
+
+  log_info(cpu->logger,
+           "PID: %u - Acción: ESCRIBIR - Dirección Física: %u - Valor: %u", pid,
+           dir_fisica, valor);
+
   return true;
 }
 
 bool handler_copy_mem(t_cpu* cpu, t_contexto* contexto,
                       t_instruccion* instruccion, uint32_t pid)
 {
-  /*
-      uint32_t cant_bits = get_registro(contexto->registros,
-     instruccion->parametros[0]);
+  uint32_t cant_bytes =
+      get_registro(contexto->registros, instruccion->parametros[0]);
 
-      //manejar mmu
+  uint32_t direccion_SI =
+      mmu(cpu, contexto, contexto->registros->SI, sizeof(uint32_t), pid);
+  if (direccion_SI == DIR_INVALIDA)
+    return true;
 
-      //leer y escribir
-  */
+  uint32_t direccion_DI =
+      mmu(cpu, contexto, contexto->registros->DI, sizeof(uint32_t), pid);
+  if (direccion_DI == DIR_INVALIDA)
+    return true;
+
+  void* bytes_leidos = leer_memoria(cpu, direccion_SI, cant_bytes);
+
+  log_info(cpu->logger,
+           "PID: %u - Acción: LEER - Dirección Física: %u - Valor: %s", pid,
+           direccion_SI, (char*)bytes_leidos);
+
+  escribir_memoria(cpu, direccion_DI, bytes_leidos, cant_bytes);
+
+  log_info(cpu->logger,
+           "PID: %u - Acción: ESCRIBIR - Dirección Física: %u - Valor: %s", pid,
+           direccion_DI, (char*)bytes_leidos);
+
+  free(bytes_leidos);
   return true;
 }
 
