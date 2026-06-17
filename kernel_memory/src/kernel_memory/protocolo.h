@@ -37,7 +37,7 @@ bool compactar_memoria(int socket_scheduler,
                        t_memoria_principal* memoria_principal);
 t_list* compactar_huecos(int memoria_total, int base_final_segmento);
 void compactar_segmentos(t_list* segmentos);
-bool notificar_compactacion(int socket_scheduler);
+void notificar_compactacion(int socket_scheduler);
 int calcular_base_final_segmento(t_list* segmentos);
 t_segmento* buecar_y_eliminar_segmento(uint32_t id, uint32_t pid,
                                        t_memoria_principal* memoria_principal);
@@ -53,7 +53,6 @@ bool hueco_antes_segmento(int base_segmento, int final_segmento,
                           t_list* huecos);
 void eliminar_segmento(uint32_t id, uint32_t pid,
                        t_memoria_principal* memoria_principal);
-bool notificar_compactacion(int socket_scheduler);
 void crear_segmento(uint32_t id, uint32_t pid, int size,
                     t_memoria_principal* memoria_principal,
                     int socket_scheduler, t_logger* logger);

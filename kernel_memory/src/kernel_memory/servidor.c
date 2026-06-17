@@ -21,7 +21,10 @@ void handshake(t_datos_kernel_mem* datos_kernel_memory, int client_socket)
           client_socket, datos_kernel_memory->procesos,
           datos_kernel_memory->scripts_basepath,
           datos_kernel_memory->mutex_procesos,
-          datos_kernel_memory->memoria_principal, datos_kernel_memory->logger);
+          datos_kernel_memory->memoria_principal,
+          datos_kernel_memory->sticks_conectados,
+          datos_kernel_memory->mutex_lista_sockets,
+          datos_kernel_memory->logger);
       datos_kernel_memory->socket_scheduler = client_socket;
       empezar_escucha_scheduler(datos_scheduler);
     }

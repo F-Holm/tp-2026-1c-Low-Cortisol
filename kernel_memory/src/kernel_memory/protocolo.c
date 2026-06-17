@@ -115,7 +115,7 @@ void enviar_sticks_conectadas(t_list* sticks_conectados,
 
     agregar_a_paquete(paquete, stick_actual->ip_memory_stick, sizeof(char[16]));
     agregar_a_paquete(paquete, puerto, sizeof(puerto));
-    agregar_a_paquete(paquete, stick_actual->tamanio_stick, sizeof(int));    
+    agregar_a_paquete(paquete, stick_actual->tamanio_stick, sizeof(int));
 
     enviar_paquete(paquete, datos_cpu->socket_cpu);
     eliminar_paquete(paquete);
