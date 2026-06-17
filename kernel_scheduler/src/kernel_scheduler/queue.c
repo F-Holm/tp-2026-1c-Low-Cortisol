@@ -63,8 +63,7 @@ static void log_cambio_a_exit(t_logger* logger, uint32_t pid, int motivo);
 static void cambio_a_exit(t_pcb* pcb, t_colas* colas, int motivo);
 static t_pcb* cambio_sacar_new(char* archivo_instrucciones, int prioridad,
                                t_colas* colas);
-static void actualizar_mayor_prioridad_ready_sin_mutex(t_cola_ready* ready,
-                                                       int index);
+static void actualizar_mayor_prioridad_ready_sin_mutex(t_cola_ready* ready);
 static t_pcb* cambio_sacar_ready_siguiente_sin_mutex(t_cola_ready* ready);
 static t_pcb* cambio_sacar_ready_siguiente(t_cola_ready* ready);
 static void cambio_sacar_ready(t_pcb* pcb, t_cola_ready* ready);
@@ -948,16 +947,15 @@ static t_pcb* cambio_sacar_new(char* archivo_instrucciones, int prioridad,
   return pcb;
 }
 
-static void actualizar_mayor_prioridad_ready_sin_mutex(t_cola_ready* ready,
-                                                       int index)
+static void actualizar_mayor_prioridad_ready_sin_mutex(t_cola_ready* ready)
 {
   if (ready->cant_procesos_ready > 0 && ready->cola_multi_nivel)
   {
-    while (index < ready->cantidad_colas)
+    for (int i = 0; i < ready->cantidad_colas; i++)
     {
-      if (!list_is_empty(ready->colas[index].cola))
+      if (!list_is_empty(ready->colas[i].cola))
       {
-        ready->mayor_prioridad = index;
+        ready->mayor_prioridad = i;
         return;
       }
     }
@@ -970,7 +968,7 @@ static void cambio_sacar_ready(t_pcb* pcb, t_cola_ready* ready)
   pthread_mutex_lock(&(ready->mutex_cola));
   int pos = ready->cola_multi_nivel ? get_prioridad_pcb(pcb) : 0;
   list_remove_element(ready->colas[pos].cola, pcb);
-  actualizar_mayor_prioridad_ready_sin_mutex(ready, pos);
+  actualizar_mayor_prioridad_ready_sin_mutex(ready);
   ready->cant_procesos_ready--;
   if (ready->cant_procesos_ready == 0)
   {
@@ -989,7 +987,7 @@ static t_pcb* cambio_sacar_ready_siguiente_sin_mutex(t_cola_ready* ready)
       t_pcb* pcb = list_get(ready->colas[i].cola, 0);
       if (list_is_empty(ready->colas[i].cola))
       {
-        actualizar_mayor_prioridad_ready_sin_mutex(ready, ++i);
+        actualizar_mayor_prioridad_ready_sin_mutex(ready);
       }
       if (ready->cant_procesos_ready == 0)
       {
