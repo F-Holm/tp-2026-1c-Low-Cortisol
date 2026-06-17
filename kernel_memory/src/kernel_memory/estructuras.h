@@ -48,6 +48,8 @@ typedef struct
   t_list* procesos;
   pthread_mutex_t* mutex_procesos;
   char* scripts_basepath;
+  t_list* sticks_conectados;
+  pthread_mutex_t* mutex_lista_sockets;
   t_memoria_principal* memoria_principal;
 } t_datos_scheduler;
 
