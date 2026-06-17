@@ -403,7 +403,6 @@ static bool recepcion_km_stdout(t_io* io_out)
       crear_hilo_rutina_des_suspension(io_out->colas);
       return recepcion_km_stdout(io_out);
     case OP_RESPUESTA_STDOUT:
-      free(recibir_string(io_out->socket_km->socket_km));
       return true;
     default:
       free(recibir_string(io_out->socket_km->socket_km));
