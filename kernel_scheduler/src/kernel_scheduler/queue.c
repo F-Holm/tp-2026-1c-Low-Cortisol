@@ -116,7 +116,7 @@ static bool puede_des_suspender_sin_compactacion_sin_mutex(t_colas* colas,
                                                            t_pcb* proceso);
 static bool des_suspender_proceso_sin_compactacion(t_colas* colas,
                                                    t_pcb* proceso);
-static bool esta_vacia(t_lista lista);
+static bool esta_vacia(t_lista* lista);
 static bool retirar_de_la_lista(t_colas* colas, int estado_deseado);
 static void rutina_des_suspension(t_colas* colas);
 static int recibir_espacio(t_colas* colas, int espacio);
@@ -1566,10 +1566,10 @@ static bool des_suspender_proceso_sin_compactacion(t_colas* colas,
   return false;
 }
 
-static bool esta_vacia(t_lista lista)
+static bool esta_vacia(t_lista* lista)
 {
-  pthread_mutex_lock(&(lista.mutex_lista));
-  return list_is_empty(lista.lista);
+  pthread_mutex_lock(&(lista->mutex_lista));
+  return list_is_empty(lista->lista);
 }
 
 static bool retirar_de_la_lista(t_colas* colas, int estado_deseado)
@@ -1605,10 +1605,11 @@ static void rutina_des_suspension(t_colas* colas)
   bool seguir_operando = true;
   while (seguir_operando)
   {
-    while (seguir_operando && !(esta_vacia(colas->susp_ready)))
+    while (seguir_operando && !(esta_vacia(&(colas->susp_ready))))
     {
       if (esta_compactando(colas))
       {
+        pthread_mutex_unlock(&(colas->susp_ready.mutex_lista));
         seguir_operando = false;
       }
       else
@@ -1616,10 +1617,11 @@ static void rutina_des_suspension(t_colas* colas)
         seguir_operando = retirar_de_la_lista(colas, EST_SUSP_READY);
       }
     }
-    while (seguir_operando && !(esta_vacia(colas->susp_block)))
+    while (seguir_operando && !(esta_vacia(&(colas->susp_block))))
     {
       if (esta_compactando(colas))
       {
+        pthread_mutex_unlock(&(colas->susp_block.mutex_lista));
         seguir_operando = false;
       }
       else
@@ -1628,7 +1630,7 @@ static void rutina_des_suspension(t_colas* colas)
       }
     }
     if (seguir_operando &&
-        !(esta_vacia(colas->susp_ready) || esta_vacia(colas->susp_block)))
+        !(esta_vacia(&(colas->susp_ready)) || esta_vacia(&(colas->susp_block))))
     {
       seguir_operando = false;
       pthread_mutex_unlock(&(colas->susp_ready.mutex_lista));
