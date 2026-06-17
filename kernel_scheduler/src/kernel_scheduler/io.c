@@ -343,7 +343,7 @@ static bool charla_km_stdin(t_io* io_in)
       free(recibir_string(io_in->socket_km->socket_km));
       crear_hilo_rutina_des_suspension(io_in->colas);
       return charla_km_stdin(io_in);
-    case OP_RESPUESTA_STDOUT:
+    case OP_RESPUESTA_STDIN:
       free(recibir_string(io_in->socket_km->socket_km));
       return true;
     default:
