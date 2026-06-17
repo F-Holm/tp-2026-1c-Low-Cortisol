@@ -16,6 +16,11 @@ const char* const MOTIVOS_FIN_PROCESO[9] = {
     "no existe un mutex con ese nombre",
     "este proceso no puede desbloquear este mutex"};
 
+static t_contador_hilos* crear_contador_hilos(void);
+static void sumar_contador_hilos(t_colas* colas);
+static void restar_contador_hilos(t_colas* colas);
+static void esperar_contador_hilos(t_colas* colas);
+static void destruir_contador_hilos(t_colas* colas);
 static void inicializar_cola_ready(t_cola_ready* cola, int algoritmo,
                                    t_list* algoritmos_cmn);
 static void inicializar_lista_exec(t_lista_execute* lista, int quantum,
@@ -139,6 +144,7 @@ t_colas* inicializar_colas(int algoritmo, t_list* algoritmos_cmn, int quantum,
   inicializar_lista(&(colas->susp_ready));
   colas->contador_procesos =
       inicializar_contador_procesos(socket_servidor, logger);
+  colas->contador_hilos = crear_contador_hilos();
   pthread_mutex_init(&(colas->mutex_rutina), NULL);
   colas->terminar_rutinas = false;
   colas->logger = logger;
@@ -155,6 +161,8 @@ t_colas* inicializar_colas(int algoritmo, t_list* algoritmos_cmn, int quantum,
 void destruir_colas(t_colas* colas)
 {
   terminar_rutinas(colas);
+  esperar_contador_hilos(colas);
+  destruir_contador_hilos(colas);
   terminar_hilos_suspendido(colas);
   destruir_hilos_suspendido(colas);
   destruir_cola_ready(&(colas->ready));
@@ -511,6 +519,53 @@ bool esta_des_suspendiendo(t_colas* colas)
   pthread_mutex_unlock(&(colas->mutex_des_suspension_activa));
 
   return ret;
+}
+
+static t_contador_hilos* crear_contador_hilos(void)
+{
+  t_contador_hilos* contador_hilos = malloc(sizeof(t_contador_hilos));
+  contador_hilos->cantidad_hilos_activos = 0;
+  pthread_mutex_init(&(contador_hilos->mutex_contador), NULL);
+  pthread_cond_init(&(contador_hilos->cond_sin_hilos), NULL);
+  return contador_hilos;
+}
+
+static void sumar_contador_hilos(t_colas* colas)
+{
+  pthread_mutex_lock(&(colas->contador_hilos->mutex_contador));
+  colas->contador_hilos->cantidad_hilos_activos++;
+  pthread_mutex_unlock(&(colas->contador_hilos->mutex_contador));
+}
+
+static void restar_contador_hilos(t_colas* colas)
+{
+  pthread_mutex_lock(&(colas->contador_hilos->mutex_contador));
+  colas->contador_hilos->cantidad_hilos_activos--;
+  if (colas->contador_hilos->cantidad_hilos_activos <= 0)
+  {
+    pthread_cond_signal(&(colas->contador_hilos->cond_sin_hilos));
+  }
+  pthread_mutex_unlock(&(colas->contador_hilos->mutex_contador));
+}
+
+static void esperar_contador_hilos(t_colas* colas)
+{
+  logger_info(colas->logger, "## Esperando a que finalicen todos los hilos");
+  pthread_mutex_lock(&(colas->contador_hilos->mutex_contador));
+  while (colas->contador_hilos->cantidad_hilos_activos > 0)
+  {
+    pthread_cond_wait(&(colas->contador_hilos->cond_sin_hilos),
+                      &(colas->contador_hilos->mutex_contador));
+  }
+  pthread_mutex_unlock(&(colas->contador_hilos->mutex_contador));
+  logger_info(colas->logger, "## Hilos finalizados");
+}
+
+static void destruir_contador_hilos(t_colas* colas)
+{
+  pthread_mutex_destroy(&(colas->contador_hilos->mutex_contador));
+  pthread_cond_destroy(&(colas->contador_hilos->cond_sin_hilos));
+  free(colas->contador_hilos);
 }
 
 static void inicializar_cola_ready(t_cola_ready* cola, int algoritmo,
@@ -1645,6 +1700,7 @@ static int recibir_tamanio(t_colas* colas, int espacio)
 static void* hilo_rutina_des_suspension(void* datos_des_suspension)
 {
   t_colas* colas = (t_colas*)datos_des_suspension;
+  sumar_contador_hilos(colas);
   pthread_mutex_lock(&(colas->mutex_rutina));
   if (!colas->terminar_rutinas)
   {
@@ -1656,6 +1712,7 @@ static void* hilo_rutina_des_suspension(void* datos_des_suspension)
     desbloquear_hilos_suspendido(colas);
   }
   pthread_mutex_unlock(&(colas->mutex_rutina));
+  restar_contador_hilos(colas);
   return NULL;
 }
 
@@ -1683,6 +1740,7 @@ static bool esta_compactando_set(t_colas* colas, bool nuevo_estado)
 static void* hilo_desbloquear_cola_ready(void* args)
 {
   t_colas* colas = (t_colas*)args;
+  sumar_contador_hilos(colas);
 
   esperar_cola_ready_vacia(&(colas->ready));
 
@@ -1692,6 +1750,7 @@ static void* hilo_desbloquear_cola_ready(void* args)
     desbloquear_cola_ready(&(colas->ready));
   }
   pthread_mutex_unlock(&(colas->mutex_compactacion_activa));
+  restar_contador_hilos(colas);
   return NULL;
 }
 

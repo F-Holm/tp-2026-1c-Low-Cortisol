@@ -30,6 +30,13 @@ extern const char* const MOTIVOS_FIN_PROCESO[9];
 
 typedef struct
 {
+  int cantidad_hilos_activos;
+  pthread_mutex_t mutex_contador;
+  pthread_cond_t cond_sin_hilos;
+} t_contador_hilos;
+
+typedef struct
+{
   t_list* lista;
   pthread_mutex_t mutex_lista;
   pthread_cond_t cond_nuevo_proceso;
@@ -110,6 +117,7 @@ typedef struct
   t_lista susp_block;
   t_lista susp_ready;
   t_contador_procesos* contador_procesos;
+  t_contador_hilos* contador_hilos;
   t_logger* logger;
   t_socket_kernel_memory* socket_km;
   int socket_servidor;
