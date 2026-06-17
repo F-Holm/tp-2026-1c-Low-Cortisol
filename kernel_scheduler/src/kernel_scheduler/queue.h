@@ -134,6 +134,7 @@ bool esta_cola_ready_bloqueada(t_cola_ready* ready);
 void bloquear_cola_ready(t_cola_ready* ready);
 void desbloquear_cola_ready(t_cola_ready* ready);
 void esperar_cola_ready_vacia(t_cola_ready* ready);
+void esperar_cola_ready_vacia_con_syscalls(t_cola_ready* ready);
 bool puedo_suspender(t_pcb* pcb, int suspension_timeout);
 void actualizar_prioridad(t_pcb* pcb, t_colas* colas);
 
@@ -171,7 +172,7 @@ int tamanio_proceso(t_colas* colas, uint32_t pid);
 
 // Funciones de rutinas
 void crear_hilo_rutina_des_suspension(t_colas* colas);
-void crear_hilo_compactacion(t_colas* colas);
+void rutina_compactacion(t_colas* colas);
 bool esta_compactando(t_colas* colas);
 bool esta_des_suspendiendo(t_colas* colas);
 
