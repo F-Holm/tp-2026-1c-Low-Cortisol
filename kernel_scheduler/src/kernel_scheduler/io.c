@@ -181,8 +181,8 @@ static bool envio_stdin(t_stdin* peticion, t_io* io_in, char* buffer)
 {
   int peticion_size = sizeof(t_peticion_stdin);
   t_paquete* paquete = crear_paquete(OP_PETICION_IO_STDIN);
-  agregar_string_a_paquete(paquete, buffer);
   agregar_a_paquete(paquete, peticion->peticion, peticion_size);
+  agregar_string_a_paquete(paquete, buffer);
   bool envio = enviar_paquete(paquete, io_in->socket_km->socket_km);
   eliminar_paquete(paquete);
   if (!envio)
