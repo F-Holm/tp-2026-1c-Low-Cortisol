@@ -27,19 +27,20 @@ void recibir_tamanio_maximo_segmento(t_cpu* cpu)
 }
 
 bool manejar_paquete(t_cpu* cpu, t_list* lista_paquete, char ip_stick[16],
-                     char puerto_stick[6])
+                     char puerto_stick[6], uint32_t* tamanio)
 {
-  if (list_size(lista_paquete) != 2)
+  if (list_size(lista_paquete) != 3)
   {
     log_error(cpu->logger,
-              "## Error en la recepción de la IP y puerto del Memory stick");
-    log_error(cpu->logger, "## size: %d | expected size 2",
+              "## Error en la recepción de la IP ,puerto y tamaño del Memory stick");
+    log_error(cpu->logger, "## size: %d | expected size 3",
               list_size(lista_paquete));
     list_destroy_and_destroy_elements(lista_paquete, free);
     return false;
   }
   strcpy(ip_stick, list_get(lista_paquete, 0));
   strcpy(puerto_stick, list_get(lista_paquete, 1));
+  *tamanio = *(uint32_t*)list_get(lista_paquete, 2);
   list_destroy_and_destroy_elements(lista_paquete, free);
   log_info(cpu->logger, "IP: %s | Puerto: %s", ip_stick, puerto_stick);
   return true;

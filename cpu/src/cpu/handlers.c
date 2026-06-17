@@ -60,18 +60,13 @@ bool handler_jnz(t_cpu* cpu, t_contexto* contexto, t_instruccion* instruccion,
 
 /*             INSTRUCCIONES CON MODIFICACION DE MEMORIA           */
 
-// INSTRUCCIONES PARA LA TERCERA ENTREGA
-
 bool handler_mov_in(t_cpu* cpu, t_contexto* contexto,
                     t_instruccion* instruccion, uint32_t pid)
 {
-  /*
-      uint32_t dir_fisica = mmu(cpu, contexto, contexto->SI, sizeof(uint32_t));
+  uint32_t dir_fisica = mmu(cpu, contexto, contexto->registros->SI, sizeof(uint32_t), pid);
 
-      uint32_t valor = 0;// consegir el valor de la memoria fisica;
-
-      set_registro(contexto, instruccion->parametros[0], valor);
-  */
+  set_registro(contexto, instruccion->parametros[0], dir_fisica);
+  
   return true;
 }
 

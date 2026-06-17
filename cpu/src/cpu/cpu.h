@@ -30,10 +30,17 @@ typedef struct
   int cantidad_parametros;
 } t_instruccion;
 
+typedef struct
+{
+  int socket_MS;
+  uint32_t tamanio;
+  uint32_t offset
+} t_memory_stick_info;
+
 void recibir_tamanio_maximo_segmento(t_cpu* cpu);
 void escuchar_kernel_memory(t_cpu* arg);
 bool manejar_paquete(t_cpu* cpu, t_list* lista_paquete, char ip_stick[16],
-                     char puerto_stick[6]);
+                     char puerto_stick[6], uint32_t* tamanio);
 void manejo_instrucciones(t_cpu* cpu);
 uint32_t recibir_pid_kernel_scheduler(t_cpu* cpu);
 bool pedir_contexto_kernel_memory(t_cpu* cpu, uint32_t pid);
