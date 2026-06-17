@@ -31,8 +31,9 @@ bool manejar_paquete(t_cpu* cpu, t_list* lista_paquete, char ip_stick[16],
 {
   if (list_size(lista_paquete) != 3)
   {
-    log_error(cpu->logger,
-              "## Error en la recepción de la IP ,puerto y tamaño del Memory stick");
+    log_error(
+        cpu->logger,
+        "## Error en la recepción de la IP ,puerto y tamaño del Memory stick");
     log_error(cpu->logger, "## size: %d | expected size 3",
               list_size(lista_paquete));
     list_destroy_and_destroy_elements(lista_paquete, free);
@@ -80,7 +81,7 @@ void escuchar_kernel_memory(t_cpu* cpu)
 
 void manejo_instrucciones(t_cpu* cpu)
 {
-  t_contexto* contexto;
+  t_contexto* contexto = malloc(sizeof(t_contexto));
   uint32_t pid;
   contexto->tablaDeSegmentos = list_create();
 
@@ -100,8 +101,9 @@ void manejo_instrucciones(t_cpu* cpu)
     contexto->tablaDeSegmentos = recibir_tabla_segmentos(cpu);
 
     ejecutar_ciclo_instruccion(cpu, pid, contexto);
+    list_destroy_and_destroy_elements(contexto->tablaDeSegmentos, free);
   }
-  list_destroy_and_destroy_elements(contexto->tablaDeSegmentos, free);
+  free(contexto);
   cerrar_modulo(cpu);
 }
 
@@ -186,7 +188,7 @@ void ejecutar_ciclo_instruccion(t_cpu* cpu, uint32_t pid, t_contexto* contexto)
 
     destruir_instruccion(instruccion);
   }
-  enviar_contexto_actualizado(cpu, pid, contexto);
+  enviar_contexto_actualizado(cpu, pid, contexto->registros);
 }
 
 char* etapa_fetch(t_cpu* cpu, uint32_t pid, uint32_t pc)

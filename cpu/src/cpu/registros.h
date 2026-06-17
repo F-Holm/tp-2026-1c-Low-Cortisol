@@ -1,6 +1,7 @@
 #ifndef CPU_REGISTROS_H_
 #define CPU_REGISTROS_H_
 
+#include <commons/collections/list.h>
 #include <stdio.h>
 
 #include "utils/registros.h"

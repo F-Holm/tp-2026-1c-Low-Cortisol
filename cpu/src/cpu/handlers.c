@@ -22,7 +22,7 @@ bool handler_set(t_cpu* cpu, t_contexto* contexto, t_instruccion* instruccion,
 {
   char* registro = instruccion->parametros[0];
   uint32_t valor = atoi(instruccion->parametros[1]);
-  set_registro(contexto, registro, valor);
+  set_registro(contexto->registros, registro, valor);
   return true;
 }
 
@@ -30,10 +30,11 @@ bool handler_sum(t_cpu* cpu, t_contexto* contexto, t_instruccion* instruccion,
                  uint32_t pid)
 {
   char* registro_destino = instruccion->parametros[0];
-  uint32_t resultado = get_registro(contexto, registro_destino) +
-                       get_registro(contexto, instruccion->parametros[1]);
+  uint32_t resultado =
+      get_registro(contexto->registros, registro_destino) +
+      get_registro(contexto->registros, instruccion->parametros[1]);
 
-  set_registro(contexto, registro_destino, resultado);
+  set_registro(contexto->registros, registro_destino, resultado);
   return true;
 }
 
@@ -41,19 +42,21 @@ bool handler_sub(t_cpu* cpu, t_contexto* contexto, t_instruccion* instruccion,
                  uint32_t pid)
 {
   char* registro_destino = instruccion->parametros[0];
-  uint32_t resultado = get_registro(contexto, registro_destino) -
-                       get_registro(contexto, instruccion->parametros[1]);
+  uint32_t resultado =
+      get_registro(contexto->registros, registro_destino) -
+      get_registro(contexto->registros, instruccion->parametros[1]);
 
-  set_registro(contexto, registro_destino, resultado);
+  set_registro(contexto->registros, registro_destino, resultado);
   return true;
 }
 
 bool handler_jnz(t_cpu* cpu, t_contexto* contexto, t_instruccion* instruccion,
                  uint32_t pid)
 {
-  uint32_t valor_registro = get_registro(contexto, instruccion->parametros[0]);
+  uint32_t valor_registro =
+      get_registro(contexto->registros, instruccion->parametros[0]);
   if (valor_registro != 0)
-    set_registro(contexto, "PC", atoi(instruccion->parametros[1]));
+    set_registro(contexto->registros, "PC", atoi(instruccion->parametros[1]));
 
   return true;
 }
@@ -63,10 +66,11 @@ bool handler_jnz(t_cpu* cpu, t_contexto* contexto, t_instruccion* instruccion,
 bool handler_mov_in(t_cpu* cpu, t_contexto* contexto,
                     t_instruccion* instruccion, uint32_t pid)
 {
-  uint32_t dir_fisica = mmu(cpu, contexto, contexto->registros->SI, sizeof(uint32_t), pid);
+  uint32_t dir_fisica =
+      mmu(cpu, contexto, contexto->registros->SI, sizeof(uint32_t), pid);
 
-  set_registro(contexto, instruccion->parametros[0], dir_fisica);
-  
+  set_registro(contexto->registros, instruccion->parametros[0], dir_fisica);
+
   return true;
 }
 
@@ -74,7 +78,8 @@ bool handler_mov_out(t_cpu* cpu, t_contexto* contexto,
                      t_instruccion* instruccion, uint32_t pid)
 {
   /*
-      uint32_t valor = get_registro(contexto, instruccion->parametros[0]);
+      uint32_t valor = get_registro(contexto->registros,
+     instruccion->parametros[0]);
 
       uint32_t dir_fisica = mmu(cpu, contexto, contexto->DI, sizeof(uint32_t));
 
@@ -87,7 +92,8 @@ bool handler_copy_mem(t_cpu* cpu, t_contexto* contexto,
                       t_instruccion* instruccion, uint32_t pid)
 {
   /*
-      uint32_t cant_bits = get_registro(contexto, instruccion->parametros[0]);
+      uint32_t cant_bits = get_registro(contexto->registros,
+     instruccion->parametros[0]);
 
       //manejar mmu
 
@@ -234,9 +240,9 @@ bool handler_stdout(t_cpu* cpu, t_contexto* contexto,
 
   datos_syscall->pid = pid;
   datos_syscall->direccion_logica =
-      get_registro(contexto, instruccion->parametros[0]);
+      get_registro(contexto->registros, instruccion->parametros[0]);
   datos_syscall->tamanio_a_escribir =
-      get_registro(contexto, instruccion->parametros[1]);
+      get_registro(contexto->registros, instruccion->parametros[1]);
 
   if (enviar_buffer(OP_SYSCALL_STDOUT, datos_syscall, sizeof(t_peticion_stdout),
                     cpu->socket_kernel_scheduler))
@@ -262,9 +268,9 @@ bool handler_stdin(t_cpu* cpu, t_contexto* contexto, t_instruccion* instruccion,
 
   datos_syscall->pid = pid;
   datos_syscall->direccion_logica =
-      get_registro(contexto, instruccion->parametros[0]);
+      get_registro(contexto->registros, instruccion->parametros[0]);
   datos_syscall->tamanio_a_leer =
-      get_registro(contexto, instruccion->parametros[1]);
+      get_registro(contexto->registros, instruccion->parametros[1]);
 
   if (enviar_buffer(OP_SYSCALL_STDIN, datos_syscall, sizeof(t_peticion_stdin),
                     cpu->socket_kernel_scheduler))

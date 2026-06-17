@@ -69,11 +69,11 @@ void iniciar_diccionario(t_dictionary* handlers)
 
 uint32_t calcular_offset(t_list* sticks)
 {
-    uint32_t offset = 0;
-    for (int i = 0; i < list_size(sticks); i++)
-    {
-        t_memory_stick_info* stick = list_get(sticks, i);
-        offset += stick->tamanio;
-    }
-    return offset;
+  uint32_t offset = 0;
+  for (int i = 0; i < list_size(sticks); i++)
+  {
+    t_memory_stick_info* stick = list_get(sticks, i);
+    offset += stick->tamanio;
+  }
+  return offset;
 }

@@ -21,10 +21,10 @@ void destruir_instruccion(t_instruccion* instrucion)
 
 void destruir_memory_stick(void* value)
 {
-    t_memory_stick_info* stick = (t_memory_stick_info*)value;
-    if (stick->socket_MS > 0)
-        close(stick->socket_MS);
-    free(stick);
+  t_memory_stick_info* stick = (t_memory_stick_info*)value;
+  if (stick->socket_MS > 0)
+    close(stick->socket_MS);
+  free(stick);
 }
 
 void cerrar_modulo(t_cpu* cpu)

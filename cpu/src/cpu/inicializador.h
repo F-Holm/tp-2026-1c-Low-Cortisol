@@ -10,5 +10,6 @@
 bool iniciar_modulo(t_cpu* cpu, char* path_config);
 bool verificar_argumentos(int argc, char** argv);
 void iniciar_diccionario(t_dictionary* handlers);
+uint32_t calcular_offset(t_list* sticks);
 
 #endif /* CPU_INICIALIZADOR_H_ */

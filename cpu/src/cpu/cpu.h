@@ -6,6 +6,7 @@
 #include <pthread.h>
 #include <stdio.h>
 
+#include "cpu/registros.h"
 #include "utils/client.h"
 #include "utils/msg.h"
 #include "utils/registros.h"
@@ -34,7 +35,7 @@ typedef struct
 {
   int socket_MS;
   uint32_t tamanio;
-  uint32_t offset
+  uint32_t offset;
 } t_memory_stick_info;
 
 void recibir_tamanio_maximo_segmento(t_cpu* cpu);
@@ -45,6 +46,7 @@ void manejo_instrucciones(t_cpu* cpu);
 uint32_t recibir_pid_kernel_scheduler(t_cpu* cpu);
 bool pedir_contexto_kernel_memory(t_cpu* cpu, uint32_t pid);
 t_registros* recibir_contexto_kernel_memory(t_cpu* cpu);
+t_list* recibir_tabla_segmentos(t_cpu* cpu);
 void ejecutar_ciclo_instruccion(t_cpu* cpu, uint32_t pid, t_contexto* contexto);
 char* etapa_fetch(t_cpu* cpu, uint32_t pid, uint32_t pc);
 void pedir_instruccion_kernel_memory(t_cpu* cpu, uint32_t pid, uint32_t pc);
@@ -52,7 +54,7 @@ char* recibir_instruccion_kernel_memory(t_cpu* cpu);
 t_instruccion* etapa_decode(char* instruccion_KM);
 bool etapa_execute(t_cpu* cpu, t_contexto* contexto, t_instruccion* instruccion,
                    uint32_t pid);
-bool check_interrupt(t_cpu* cpu, uint32_t pid, t_contexto* contexto);
+bool check_interrupt(t_cpu* cpu, uint32_t pid);
 void enviar_contexto_actualizado(t_cpu* cpu, uint32_t pid,
                                  t_registros* contexto_actualizado);
 
