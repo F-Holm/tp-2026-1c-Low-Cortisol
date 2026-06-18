@@ -643,6 +643,7 @@ static void inicializar_lista_exec(t_lista_execute* lista, int quantum,
 {
   lista->lista = list_create();
   pthread_mutex_init(&(lista->mutex_lista), NULL);
+  pthread_cond_init(&(lista->cola_vacia), NULL);
   lista->prioridad_mas_baja = NULL;
   lista->quantum = quantum;
   lista->desalojo = desalojo;
@@ -741,6 +742,7 @@ static void destruir_lista_exec(t_lista_execute* lista)
 {
   list_destroy(lista->lista);
   pthread_mutex_destroy(&(lista->mutex_lista));
+  pthread_cond_destroy(&(lista->cola_vacia));
 }
 
 static void destruir_lista(t_lista* lista)
