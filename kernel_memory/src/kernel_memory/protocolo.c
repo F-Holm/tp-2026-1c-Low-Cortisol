@@ -595,7 +595,7 @@ int traducir_direccion_logica(uint32_t pid, uint32_t direccion_logica,
   return dir_fisica;
 }
 
-static int encontrar_stick(int direccion_fisica, t_list* sticks_conectados,
+int encontrar_stick(int direccion_fisica, t_list* sticks_conectados,
                     pthread_mutex_t* mutex_sticks, int* offset_en_stick)
 {
   int base_acumulada = 0;
@@ -685,4 +685,14 @@ char* leer_de_sticks(int direccion_fisica, int tamanio,
   logger_info(logger, "Lectura de %d bytes desde dir_fisica %d", tamanio,
               direccion_fisica);
   return resultado;
+}
+
+char*  cortar_cadena(int longitud_corte, char* cadena) {
+  if(strlen(cadena)>longitud_corte){
+  char* nueva_cadena = malloc(longitud_corte);
+  strncpy(nueva_cadena, cadena, longitud_corte);
+  nueva_cadena[longitud_corte] = '\0';
+  return nueva_cadena;
+  }
+  return cadena;
 }
