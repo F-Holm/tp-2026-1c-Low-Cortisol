@@ -136,6 +136,7 @@ void enviar_conexion_cpu(t_datos_stick* datos_stick, t_list* cpus_conectados)
   char puerto[6];
   snprintf(puerto, sizeof(puerto), "%u", datos_stick->puerto_stick);
   agregar_a_paquete(paquete, puerto, sizeof(puerto));
+  agregar_a_paquete(paquete, &datos_stick->tamanio_stick, sizeof(int));
 
   for (int i = 0; i < list_size(cpus_conectados); i++)
   {
