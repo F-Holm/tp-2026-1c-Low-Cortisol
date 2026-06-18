@@ -249,6 +249,7 @@ static void gestionar_pedir_proceso(t_datos_syscall* datos)
     if (datos->pcb != NULL)
     {
       cambio_ready_exec(datos->pcb, datos->datos->colas);
+      cambio_a_exec(datos->pcb, &(datos->datos->colas->exec));
     }
   }
 }
