@@ -69,7 +69,6 @@ typedef enum
   OP_TABLA_DE_SEGMENTOS,
   OP_MEMORIA_INSUFICIENTE,
   OP_MEMORIA_ALOJADA
-  OP_TABLA_DE_SEGMENTOS,
 } t_op_code;
 
 typedef struct
