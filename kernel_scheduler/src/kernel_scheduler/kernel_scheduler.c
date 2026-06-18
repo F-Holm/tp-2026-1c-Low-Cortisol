@@ -15,6 +15,86 @@
 const char* const ALGORITMOS_PLANIFICACION[] = {"FIFO", "RR", "CMN"};
 
 static t_config* iniciar_config(char* archivo_config,
+                                t_config_vars* config_vars);
+static void cerrar_config(t_config_vars* config_vars, t_config* config);
+
+static t_logger* iniciar_logger(t_log_level log_level);
+
+bool iniciar_modulo(t_kernel_scheduler_recursos* recursos, char* archivo_config)
+{
+  // Config
+  recursos->config = iniciar_config(archivo_config, &(recursos->config_vars));
+  if (recursos->config == NULL)
+    return false;
+
+  // Logger
+  recursos->logger = iniciar_logger(recursos->config_vars.log_level);
+  if (recursos->logger == NULL)
+    return false;
+
+  // Socket Kernel Memory
+  recursos->socket_kernel_memory = iniciar_conexion_kernel_memory(
+      recursos->config_vars.ip_kernel_memory,
+      recursos->config_vars.puerto_kernel_memory, recursos->logger);
+  if (recursos->socket_kernel_memory <= 0)
+    return false;
+
+  // Crear socket servidor
+  recursos->socket_server = crear_socket_servidor(
+      recursos->config_vars.puerto_servidor, recursos->logger);
+
+  return recursos->socket_server > 0;
+}
+
+void inicializar_colas_mutex(t_kernel_scheduler_recursos* recursos)
+{
+  inicializar_mutex_pid_pcb();
+  inicializar_mutex_shutdown();
+  recursos->socket_km_mutex =
+      inicializar_socket_kernel_memory(recursos->socket_kernel_memory);
+  recursos->lista_mutex = inicializar_lista_mutex();
+  recursos->colas = inicializar_colas(
+      recursos->config_vars.algoritmo_planificacion,
+      recursos->config_vars.algoritmos_cmn, recursos->config_vars.rr_quantum,
+      recursos->config_vars.desalojo, recursos->socket_server, recursos->logger,
+      recursos->socket_km_mutex, recursos->config_vars.suspension_timeout);
+}
+
+void cerrar_modulo_error(t_kernel_scheduler_recursos* recursos)
+{
+  if (recursos->socket_server > 0)
+  {
+    close(recursos->socket_server);
+  }
+  if (recursos->socket_kernel_memory > 0)
+  {
+    close(recursos->socket_kernel_memory);
+  }
+  if (recursos->logger != NULL)
+  {
+    logger_destroy(recursos->logger);
+  }
+  if (recursos->config != NULL)
+  {
+    cerrar_config(&(recursos->config_vars), recursos->config);
+  }
+}
+
+void cerrar_modulo(t_kernel_scheduler_recursos* recursos)
+{
+  destruir_lista_mutex(recursos->lista_mutex);
+  vaciar_colas(recursos->colas);
+  destruir_colas(recursos->colas);
+  destruir_kernel_memory(recursos->socket_km_mutex);
+  close(recursos->socket_kernel_memory);
+  close(recursos->socket_server);
+  logger_destroy(recursos->logger);
+  cerrar_config(&(recursos->config_vars), recursos->config);
+  destruir_mutex_pid_pcb();
+  destruir_mutex_shutdown();
+}
+
+static t_config* iniciar_config(char* archivo_config,
                                 t_config_vars* config_vars)
 {
   int i;
@@ -81,79 +161,4 @@ static t_logger* iniciar_logger(t_log_level log_level)
 {
   return logger_create("kernel_scheduler.log", "kernel_scheduler", true,
                        log_level);
-}
-
-bool iniciar_modulo(t_kernel_scheduler_recursos* recursos, char* archivo_config)
-{
-  // Config
-  recursos->config = iniciar_config(archivo_config, &(recursos->config_vars));
-  if (recursos->config == NULL)
-    return false;
-
-  // Logger
-  recursos->logger = iniciar_logger(recursos->config_vars.log_level);
-  if (recursos->logger == NULL)
-    return false;
-
-  // Socket Kernel Memory
-  recursos->socket_kernel_memory = iniciar_conexion_kernel_memory(
-      recursos->config_vars.ip_kernel_memory,
-      recursos->config_vars.puerto_kernel_memory, recursos->logger);
-  if (recursos->socket_kernel_memory <= 0)
-    return false;
-
-  // Crear socket servidor
-  recursos->socket_server = crear_socket_servidor(
-      recursos->config_vars.puerto_servidor, recursos->logger);
-
-  return recursos->socket_server > 0;
-}
-
-void inicializar_colas_mutex(t_kernel_scheduler_recursos* recursos)
-{
-  inicializar_mutex_pid_pcb();
-  inicializar_mutex_shutdown();
-  recursos->socket_km_mutex =
-      inicializar_socket_kernel_memory(recursos->socket_kernel_memory);
-  recursos->lista_mutex = inicializar_lista_mutex();
-  recursos->colas = inicializar_colas(
-      recursos->config_vars.algoritmo_planificacion,
-      recursos->config_vars.algoritmos_cmn, recursos->config_vars.rr_quantum,
-      recursos->config_vars.desalojo, recursos->socket_server,
-      recursos->logger);
-}
-
-void cerrar_modulo_error(t_kernel_scheduler_recursos* recursos)
-{
-  if (recursos->socket_server > 0)
-  {
-    close(recursos->socket_server);
-  }
-  if (recursos->socket_kernel_memory > 0)
-  {
-    close(recursos->socket_kernel_memory);
-  }
-  if (recursos->logger != NULL)
-  {
-    logger_destroy(recursos->logger);
-  }
-  if (recursos->config != NULL)
-  {
-    cerrar_config(&(recursos->config_vars), recursos->config);
-  }
-}
-
-void cerrar_modulo(t_kernel_scheduler_recursos* recursos)
-{
-  destruir_lista_mutex(recursos->lista_mutex);
-  vaciar_colas(recursos->colas, recursos->logger, recursos->socket_km_mutex,
-               recursos->socket_server);
-  destruir_colas(recursos->colas);
-  destruir_kernel_memory(recursos->socket_km_mutex);
-  close(recursos->socket_kernel_memory);
-  close(recursos->socket_server);
-  logger_destroy(recursos->logger);
-  cerrar_config(&(recursos->config_vars), recursos->config);
-  destruir_mutex_pid_pcb();
-  destruir_mutex_shutdown();
 }

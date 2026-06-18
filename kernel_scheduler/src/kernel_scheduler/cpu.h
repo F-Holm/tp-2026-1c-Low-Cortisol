@@ -24,7 +24,6 @@ typedef struct
   t_io* estructuras_io;
   t_socket_kernel_memory* socket_km;
   int socket_servidor;
-  t_listas_io* listas_io;
 } t_datos_hilo_cpu;
 
 typedef struct
@@ -45,10 +44,15 @@ typedef enum
   MD_FIN_PROCESO,
   MD_PRIMER_CICLO,
   MD_IO,
-  MD_MUTEX_BLOQUEADO
+  MD_MUTEX_BLOQUEADO,
+  MD_MEMORIA_INSUFICIENTE,
+  MD_SEGMENTATION_FAULT,
+  MD_NOMBRE_MUTEX_YA_EXISTE,
+  MD_NOMBRE_MUTEX_NO_EXISTE,
+  MD_PROCESO_NO_TIENE_MUTEX_BLOQUEADO
 } t_motivo_desalojo;
 
-extern const char* const MOTIVOS_DESALOJO[8];
+extern const char* const MOTIVOS_DESALOJO[13];
 
 extern const char* const SYSCALLS_STR[10];
 
@@ -57,7 +61,7 @@ bool atender_nueva_cpu(int socket_cpu, t_list* lista_sockets_cpu,
                        pthread_cond_t* cond_fin_cpu, t_logger* logger,
                        t_lista_mutex* lista_mutex, t_colas* colas,
                        t_io* estructuras_io, t_socket_kernel_memory* socket_km,
-                       int socket_servidor, t_listas_io* listas_io);
+                       int socket_servidor);
 void cerrar_cpu(t_list* lista_sockets_cpu,
                 pthread_mutex_t* mutex_lista_sockets_cpu,
                 pthread_cond_t* cond_fin_cpu);

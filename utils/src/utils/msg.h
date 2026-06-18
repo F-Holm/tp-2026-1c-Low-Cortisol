@@ -57,18 +57,32 @@ typedef enum
   OP_CONTEXTO_ACTUALIZADO,
   OP_SIN_INTERRUPCION,
   OP_INTERRUPCION,
-  OP_NUEVO_MEMORY_STICK,
+  OP_PEDIR_MEMORIA_DISPONIBLE,  // pedir cantidad de memoria disponible
+  OP_MEMORIA_DISPONIBLE,        // cantidad de memoria disponible
+  OP_PEDIR_TAMANIO_PROCESO,     // pedir tamaño del proceso (puedo estar suspendido)
+  OP_TAMANIO_PROCESO,           // tamaño del proceso en memoria
+  OP_NUEVO_MEMORY_STICK,        // avisar que se conectó un memory stick
+  OP_SUSPENDER_PROCESO,         // no devuelve nada porque no puede fallar
+  OP_DES_SUSPENDER_PROCESO,     // devuelve uno de los siguientes 2 mensajes
+  OP_COMPACTACION_NECESARIA,
+  OP_DES_SUSPENSION_EXITOSA,
+  OP_DES_SUSPENDER_PROCESO_SIN_COMPACTACION,  // devuelve exitosa o no exitosa
+  OP_DES_SUSPENSION_NO_EXITOSA,
+  OP_PUEDE_COMPACTAR,  // Indica que puede iniciar la compactación
+  OP_COMPACTACION_FINALIZADA,
+  OP_MEMORIA_ALOJADA,
+  OP_MEMORIA_LIBERADA,
+  OP_TAMANIO_SEGMENTO_EXCEDIDO,
   OP_TAMANIO_MAX_SEG,
   OP_MEMORY_STICK_LEER,
   OP_MEMORY_STICK_ESCRIBIR,
   OP_MEMORY_STICK_LEIDO,
   OP_MEMORY_STICK_ESCRITO,
-  OP_TAMANIO_SEGMENTO_EXCEDIDO,
-  OP_COMPACTACION_NECESARIA,
-  OP_PUEDE_COMPACTAR,
   OP_TABLA_DE_SEGMENTOS,
-  OP_MEMORIA_INSUFICIENTE,
-  OP_MEMORIA_ALOJADA
+  OP_COMPACTACION_NECESARIA,
+  OP_TABLA_DE_SEGMENTOS,
+  OP_MEMORIA_INSUFICIENTE
+  
 } t_op_code;
 
 typedef struct

@@ -12,6 +12,19 @@
 
 typedef enum
 {
+  EST_NEW,
+  EST_READY,
+  EST_EXEC,
+  EST_BLOCK,
+  EST_SUSP_BLOCK,
+  EST_SUSP_READY,
+  EST_EXIT
+} t_estados;
+
+extern const char* const ESTADOS_STR[7];
+
+typedef enum
+{
   AP_FIFO,
   AP_RR,
   AP_CMN
@@ -21,8 +34,11 @@ typedef struct
 {
   uint32_t pid;
   int prioridad;
-  pthread_mutex_t mutex_pcb;
+  t_list* lista_prioridades;
+  pthread_mutex_t mutex_prioridad;
   unsigned long tiempo_bloqueado;
+  int estado;
+  pthread_mutex_t mutex_estado;
 } t_pcb;
 
 typedef struct
@@ -44,7 +60,8 @@ typedef enum
   MC_SIN_PROCESOS,
   MC_MEMORIA_CORRUPTA,
   MC_FALLO_CONEXION_KERNEL_MEMORY,
-  MC_CAUSA_DESCONOCIDA
+  MC_CAUSA_DESCONOCIDA,
+  MC_ERROR_ENVIO_KERNEL_MEMORY
 } t_motivo_cierre;
 
 extern const char* const MOTIVOS_CIERE[4];
@@ -63,12 +80,13 @@ void destruir_mutex_pid_pcb(void);
 void destruir_mutex_shutdown(void);
 
 void cerrar_kernel_scheduler(int socket_servidor, t_logger* logger,
-                             int motivo_cierre);
+                             int motivo_cierre, int socket_km);
 
 t_socket_kernel_memory* inicializar_socket_kernel_memory(int socket_km);
 void destruir_kernel_memory(t_socket_kernel_memory* socket_km);
 // retorna el indice del elemento ingresado
 int insertar_pcb_en_orden(t_list* lista, t_pcb* pcb);
+int get_estado_pcb(t_pcb* pcb);
 int get_prioridad_pcb(t_pcb* pcb);
 t_pcb* crear_pcb(void);
 void destruir_pcb(t_pcb* pcb);

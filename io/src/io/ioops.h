@@ -18,7 +18,6 @@
 
 #include "utils.h"
 #include "utils/client.h"
-#include "utils/hello.h"
 #include "utils/io.h"
 #include "utils/kernel_scheduler_cpu.h"
 #include "utils/msg.h"

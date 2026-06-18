@@ -6,9 +6,16 @@
 
 #include "utils/msg.h"
 
+const char* const ESTADOS_STR[7] = {
+    "NEW", "READY", "EXEC", "BLOCK", "SUSP. BLOCK", "SUSP. READY", "EXIT"};
+
 const char* const MOTIVOS_CIERE[4] = {
     "Procesos finalizados con éxito", "BSOD: Corrupción de memoria detectada",
     "Error en la conexión con Kernel Memory", "Error desconocido"};
+
+static bool es_mas_prioritario(void* pcb1, void* pcb2);
+static void log_shutdown(t_logger* logger, int motivo_cierre);
+static void comprobar_motivo_cierre(int* motivo_cierre, int socket_km);
 
 static pthread_mutex_t mutex_pid_pcb;
 static pthread_mutex_t mutex_shutdown;
@@ -48,21 +55,24 @@ void destruir_kernel_memory(t_socket_kernel_memory* socket_km)
   free(socket_km);
 }
 
-static bool es_mas_prioritario(void* pcb1, void* pcb2)
-{
-  return get_prioridad_pcb((t_pcb*)pcb1) <= get_prioridad_pcb((t_pcb*)pcb2);
-}
-
 int insertar_pcb_en_orden(t_list* lista, t_pcb* pcb)
 {
   return list_add_sorted(lista, pcb, es_mas_prioritario);
 }
 
+int get_estado_pcb(t_pcb* pcb)
+{
+  pthread_mutex_lock(&(pcb->mutex_estado));
+  int estado_pcb = pcb->estado;
+  pthread_mutex_unlock(&(pcb->mutex_estado));
+  return estado_pcb;
+}
+
 int get_prioridad_pcb(t_pcb* pcb)
 {
-  pthread_mutex_lock(&(pcb->mutex_pcb));
+  pthread_mutex_lock(&(pcb->mutex_prioridad));
   int prioridad_pcb = pcb->prioridad;
-  pthread_mutex_unlock(&(pcb->mutex_pcb));
+  pthread_mutex_unlock(&(pcb->mutex_prioridad));
   return prioridad_pcb;
 }
 
@@ -71,8 +81,11 @@ t_pcb* crear_pcb(void)
   static uint32_t pid = 0;
   t_pcb* pcb = malloc(sizeof(t_pcb));
 
-  pthread_mutex_init(&(pcb->mutex_pcb), NULL);
+  pthread_mutex_init(&(pcb->mutex_prioridad), NULL);
+  pthread_mutex_init(&(pcb->mutex_estado), NULL);
   pcb->tiempo_bloqueado = 0;
+  pcb->estado = EST_NEW;
+  pcb->lista_prioridades = list_create();
 
   pthread_mutex_lock(&mutex_pid_pcb);
   pcb->pid = pid;
@@ -83,7 +96,9 @@ t_pcb* crear_pcb(void)
 
 void destruir_pcb(t_pcb* pcb)
 {
-  pthread_mutex_destroy(&(pcb->mutex_pcb));
+  pthread_mutex_destroy(&(pcb->mutex_prioridad));
+  pthread_mutex_destroy(&(pcb->mutex_estado));
+  list_destroy_and_destroy_elements(pcb->lista_prioridades, free);
   free(pcb);
 }
 
@@ -136,7 +151,7 @@ void disminuir_contador_procesos(t_contador_procesos* contador)
   if (contador->cantidad_procesos_activos == 0)
   {
     cerrar_kernel_scheduler(contador->socket_servidor, contador->logger,
-                            MC_SIN_PROCESOS);
+                            MC_SIN_PROCESOS, -1);
   }
   pthread_mutex_unlock(&(contador->mutex_contador));
 }
@@ -145,6 +160,26 @@ void destruir_contador_procesos(t_contador_procesos* contador)
 {
   pthread_mutex_destroy(&(contador->mutex_contador));
   free(contador);
+}
+
+void cerrar_kernel_scheduler(int socket_servidor, t_logger* logger,
+                             int motivo_cierre, int socket_km)
+{
+  static bool shutdown_activado = false;
+  pthread_mutex_lock(&mutex_shutdown);
+  if (!shutdown_activado)
+  {
+    comprobar_motivo_cierre(&motivo_cierre, socket_km);
+    log_shutdown(logger, motivo_cierre);
+    shutdown(socket_servidor, SHUT_RDWR);
+    shutdown_activado = true;
+  }
+  pthread_mutex_unlock(&mutex_shutdown);
+}
+
+static bool es_mas_prioritario(void* pcb1, void* pcb2)
+{
+  return get_prioridad_pcb((t_pcb*)pcb1) <= get_prioridad_pcb((t_pcb*)pcb2);
 }
 
 static void log_shutdown(t_logger* logger, int motivo_cierre)
@@ -159,16 +194,29 @@ static void log_shutdown(t_logger* logger, int motivo_cierre)
   }
 }
 
-void cerrar_kernel_scheduler(int socket_servidor, t_logger* logger,
-                             int motivo_cierre)
+static void comprobar_motivo_cierre(int* motivo_cierre, int socket_km)
 {
-  static bool shutdown_activado = false;
-  pthread_mutex_lock(&mutex_shutdown);
-  if (!shutdown_activado)
+  if (*motivo_cierre != MC_ERROR_ENVIO_KERNEL_MEMORY)
   {
-    log_shutdown(logger, motivo_cierre);
-    shutdown(socket_servidor, SHUT_RDWR);
-    shutdown_activado = true;
+    return;
   }
-  pthread_mutex_unlock(&mutex_shutdown);
+
+  bool seguir_operando = true;
+  while (seguir_operando)
+  {
+    switch (recibir_operacion(socket_km))
+    {
+      case OP_CODE_ERROR:
+        *motivo_cierre = MC_MEMORIA_CORRUPTA;
+        seguir_operando = false;
+        break;
+      case OP_MEMORIA_CORRUPTA:
+        *motivo_cierre = MC_FALLO_CONEXION_KERNEL_MEMORY;
+        seguir_operando = false;
+        break;
+      default:
+        free(recibir_string(socket_km));
+        break;
+    }
+  }
 }

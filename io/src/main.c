@@ -9,9 +9,9 @@
 #include "io/ioops.h"
 #include "io/utils.h"
 #include "utils/client.h"
-#include "utils/hello.h"
 #include "utils/io.h"
 #include "utils/msg.h"
+
 int main(int argc, char* argv[])
 {
   t_modulo_io sio;
