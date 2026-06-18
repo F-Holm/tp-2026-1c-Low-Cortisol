@@ -3,7 +3,9 @@
 
 #include <commons/collections/list.h>
 #include <pthread.h>
+#include <stdlib.h>
 
+#include "kernel_memory/configurador.h"
 #include "kernel_memory/estructuras.h"
 
 void liberar_datos_kernel_mem(t_datos_kernel_mem* datos_kernel);

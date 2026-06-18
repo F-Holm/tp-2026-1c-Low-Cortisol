@@ -4,6 +4,7 @@
 #include <stdio.h>
 
 #include "cpu/cpu.h"
+#include "cpu/liberacion.h"
 #include "utils/kernel_memory_cpu.h"
 
 bool iniciar_conexion_scheduler(t_cpu* cpu)
@@ -87,8 +88,10 @@ bool conectar_memory_stick(t_cpu* cpu)
   char ip_stick[16];
   char puerto_stick[6];
   int nuevo_socket;
+  uint32_t tamanio_recibido;
 
-  if (!manejar_paquete(cpu, lista_paquete, ip_stick, puerto_stick))
+  if (!manejar_paquete(cpu, lista_paquete, ip_stick, puerto_stick,
+                       &tamanio_recibido))
     return false;
 
   nuevo_socket = crear_conexion(ip_stick, puerto_stick);
@@ -115,11 +118,25 @@ bool conectar_memory_stick(t_cpu* cpu)
     return false;
   }
 
-  int* p_socket = malloc(sizeof(int));
-  *p_socket = nuevo_socket;
+  t_memory_stick_info* nuevo_stick = malloc(sizeof(t_memory_stick_info));
+  nuevo_stick->socket_MS = nuevo_socket;
+  nuevo_stick->tamanio = tamanio_recibido;
+  nuevo_stick->offset = calcular_offset(cpu->memory_sticks);
 
-  list_add(cpu->memory_sticks, p_socket);
+  list_add(cpu->memory_sticks, nuevo_stick);
+
   return true;
+}
+
+uint32_t calcular_offset(t_list* sticks)
+{
+  uint32_t offset = 0;
+  for (int i = 0; i < list_size(sticks); i++)
+  {
+    t_memory_stick_info* stick = list_get(sticks, i);
+    offset += stick->tamanio;
+  }
+  return offset;
 }
 
 bool handshake_memory_stick(t_cpu* cpu, int nuevo_socket)
