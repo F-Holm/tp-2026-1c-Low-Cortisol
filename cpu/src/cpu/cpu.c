@@ -16,7 +16,7 @@ void recibir_tamanio_maximo_segmento(t_cpu* cpu)
   if (codigo_operacion == OP_TAMANIO_MAX_SEG)
   {
     int size;
-    void* buffer = recibir_buffer(&size, cpu->socket_kernel_scheduler);
+    void* buffer = recibir_buffer(&size, cpu->socket_kernel_memory);
     cpu->tamanio_max_segmento = *(int*)buffer;
     free(buffer);
     log_info(cpu->logger, "Tamaño máximo de segmento recibido: %u", cpu->tamanio_max_segmento);
@@ -25,7 +25,7 @@ void recibir_tamanio_maximo_segmento(t_cpu* cpu)
   {
     log_error(cpu->logger, "## Código de operación erroneo: %d", codigo_operacion);
     int size;
-    free(recibir_buffer(&size, cpu->socket_kernel_scheduler));
+    free(recibir_buffer(&size, cpu->socket_kernel_memory));
     cerrar_modulo(cpu);
   }
 }
