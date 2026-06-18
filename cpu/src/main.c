@@ -7,7 +7,6 @@
 #include "cpu/cpu.h"
 #include "cpu/inicializador.h"
 #include "cpu/liberacion.h"
-#include "utils/hello.h"
 #include "utils/msg.h"
 
 int main(int argc, char* argv[])
