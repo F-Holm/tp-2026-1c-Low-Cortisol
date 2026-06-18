@@ -138,7 +138,7 @@ void leer_memoria(t_ms_recursos* ms_recursos, int posicion_inicial,
   pthread_mutex_unlock(ms_recursos->mutex_memoria);
   logger_info(ms_recursos->logger, "## Lectura de %d bytes", cantidad_de_bytes);
   usleep(ms_recursos->memory_delay * 1000);
-  enviar_string(OP_MEMORY_STICK_LEIDO, bytes_a_devolver, socket_destino);
+  enviar_buffer(OP_MEMORY_STICK_LEIDO, bytes_a_devolver, cantidad_de_bytes, socket_destino);
   free(bytes_a_devolver);
 }
 
