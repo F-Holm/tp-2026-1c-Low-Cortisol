@@ -9,8 +9,8 @@ typedef struct
 {
   uint8_t AX, BX, CX, DX;
   uint32_t PC, EAX, EBX, ECX, EDX, SI, DI;
-
 } t_registros;
+
 typedef struct
 {
   uint32_t id;
@@ -18,4 +18,5 @@ typedef struct
   int base;
   int size;
 } t_segmento;
+
 #endif /* UTILS_REGISTROS_H_ */
