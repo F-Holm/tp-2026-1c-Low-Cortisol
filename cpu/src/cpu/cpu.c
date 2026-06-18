@@ -17,7 +17,7 @@ void recibir_tamanio_maximo_segmento(t_cpu* cpu)
   {
     int size;
     void* buffer = recibir_buffer(&size, cpu->socket_kernel_scheduler);
-    cpu->tamanio_max_segmento = *(uint32_t*)buffer;
+    cpu->tamanio_max_segmento = *(int*)buffer;
     free(buffer);
     log_info(cpu->logger, "Tamaño máximo de segmento recibido: %u", cpu->tamanio_max_segmento);
   }
