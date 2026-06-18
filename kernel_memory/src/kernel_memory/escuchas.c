@@ -74,9 +74,88 @@ void* escucha_scheduler(void* ptr)
       {
         logger_info(datos_scheduler->logger,
                     "Llego una syscall de PETICION_IO_STDIN");
-        t_list* paquete_stdin = recibir_paquete(
-            datos_scheduler
-                ->socket_scheduler);  // RECIBE STRUCT DE PETICION STDOUT
+        t_list* paquete_stdin =
+            recibir_paquete(datos_scheduler->socket_scheduler);
+        t_peticion_stdin* peticion_stdin =
+            (t_peticion_stdin*)list_get(paquete_stdin, 0);
+        char* string_escribir = (char*)list_get(paquete_stdin, 1);
+        int dir_fisica = traducir_direccion_logica(
+            peticion_stdin->pid, peticion_stdin->direccion_logica,
+            peticion_stdin->tamanio_a_leer, datos_scheduler->memoria_principal,
+            datos_scheduler->logger);
+        if (dir_fisica == -1)
+        {
+          enviar_string(OP_RESPUESTA_STDIN, "Segmentation Fault",
+                        datos_scheduler->socket_scheduler);
+          break;
+        }
+        int offset_en_stick = 0;
+        int indice = encontrar_stick(
+            dir_fisica, datos_scheduler->sticks_conectados,
+            datos_scheduler->mutex_lista_sockets, &offset_en_stick);
+        pthread_mutex_lock(datos_scheduler->mutex_lista_sockets);
+        t_datos_stick* stick_a_escribir_inicial =
+            list_get(datos_scheduler->sticks_conectados, indice);
+        int tamanio = stick_a_escribir_inicial->tamanio_stick - dir_fisica -
+                      peticion_stdin->tamanio_a_leer;
+        t_paquete* paquete = crear_paquete(OP_MEMORY_STICK_ESCRIBIR);
+        if (tamanio < 0)
+        {
+          int tamanio_sumado =
+              stick_a_escribir_inicial->tamanio_stick - dir_fisica;
+          char* cadena_cortada = cortar_cadena(tamanio_sumado, string_escribir);
+          int tamanio_cortado = strlen(cadena_cortada);
+          agregar_a_paquete(paquete, &dir_fisica, sizeof(int));
+          agregar_string_a_paquete(paquete, cadena_cortada);
+          agregar_a_paquete(paquete, &tamanio_cortado, sizeof(int));
+          enviar_paquete(paquete, stick_a_escribir_inicial->socket_stick);
+          eliminar_paquete(paquete);
+          char* mensaje = recibir_string(OP_MEMORY_STICK_ESCRITO);
+          free(mensaje);
+          logger_info(datos_scheduler->logger,
+                      "##PID: %d - Escritura - Dir. Fisica: %d - Tamaño: %d",
+                      peticion_stdin->pid, dir_fisica, tamanio_cortado);
+
+          for (int i = indice + 1;
+               tamanio_sumado < peticion_stdin->tamanio_a_leer; i++)
+          {
+            t_datos_stick* stick_a_escribir =
+                list_get(datos_scheduler->sticks_conectados, i);
+            tamanio_sumado = +stick_a_escribir->tamanio_stick;
+            t_paquete* paquete2 = crear_paquete(OP_MEMORY_STICK_ESCRIBIR);
+            agregar_a_paquete(paquete2, 0, sizeof(int));
+            char* cadena_cortada =
+                cortar_cadena(stick_a_escribir->tamanio_stick,
+                              string_escribir + tamanio_sumado);
+            int tamanio_cortado2 = strlen(cadena_cortada);
+            agregar_string_a_paquete(paquete2, cadena_cortada);
+            agregar_a_paquete(paquete2, &tamanio_cortado2, sizeof(int));
+            enviar_paquete(paquete2, stick_a_escribir->socket_stick);
+            free(cadena_cortada);
+            eliminar_paquete(paquete2);
+            char* mensaje = recibir_string(OP_MEMORY_STICK_ESCRITO);
+            free(mensaje);
+            logger_info(datos_scheduler->logger,
+                        "##PID: %d - Escritura - Dir. Fisica: %d - Tamaño: %d",
+                        peticion_stdin->pid, 0, tamanio_cortado2);
+          }
+          free(cadena_cortada);
+        }
+        else
+        {
+          int tamanio_string = strlen(string_escribir);
+          agregar_a_paquete(paquete, &dir_fisica, sizeof(int));
+          agregar_string_a_paquete(paquete, string_escribir);
+          agregar_a_paquete(paquete, &tamanio_string, sizeof(int));
+          enviar_paquete(paquete, stick_a_escribir_inicial->socket_stick);
+          eliminar_paquete(paquete);
+          char* mensaje = recibir_string(OP_MEMORY_STICK_ESCRITO);
+          free(mensaje);
+          logger_info(datos_scheduler->logger,
+                      "##PID: %d - Escritura - Dir. Fisica: %d - Tamaño: %d",
+                      peticion_stdin->pid, dir_fisica, tamanio_string);
+        }
+        pthread_mutex_unlock(datos_scheduler->mutex_lista_sockets);
         enviar_string(OP_OK, "OK", datos_scheduler->socket_scheduler);
         break;
       }
@@ -87,28 +166,29 @@ void* escucha_scheduler(void* ptr)
         int size;
         t_peticion_stdout* peticion_stdout = (t_peticion_stdout*)recibir_buffer(
             &size, datos_scheduler->socket_scheduler);
-        /*enviar_string(OP_OK, "OK", datos_scheduler->socket_scheduler);*/
         int dir_fisica = traducir_direccion_logica(
-        peticion_stdout->pid, peticion_stdout->direccion_logica, peticion_stdout->tamanio_a_escribir,
-        datos_scheduler->memoria_principal, datos_scheduler->logger);
+            peticion_stdout->pid, peticion_stdout->direccion_logica,
+            peticion_stdout->tamanio_a_escribir,
+            datos_scheduler->memoria_principal, datos_scheduler->logger);
 
         if (dir_fisica == -1)
         {
           enviar_string(OP_RESPUESTA_STDOUT, "Segmentation Fault",
-                  datos_scheduler->socket_scheduler);
+                        datos_scheduler->socket_scheduler);
           break;
         }
-        char* buffer = leer_de_sticks(dir_fisica, peticion_stdout->tamanio_a_escribir,
-                                datos_scheduler->sticks_conectados,
-                                datos_scheduler->mutex_lista_sockets,
-                                datos_scheduler->logger);
+        char* buffer = leer_de_sticks(
+            dir_fisica, peticion_stdout->tamanio_a_escribir,
+            datos_scheduler->sticks_conectados,
+            datos_scheduler->mutex_lista_sockets, datos_scheduler->logger);
         if (buffer == NULL)
         {
           enviar_string(OP_RESPUESTA_STDOUT, "Error lectura stick",
-                  datos_scheduler->socket_scheduler);
+                        datos_scheduler->socket_scheduler);
           break;
         }
-        enviar_string(OP_RESPUESTA_STDOUT, buffer, datos_scheduler->socket_scheduler);
+        enviar_string(OP_RESPUESTA_STDOUT, buffer,
+                      datos_scheduler->socket_scheduler);
         free(buffer);
         free(peticion_stdout);
         break;
