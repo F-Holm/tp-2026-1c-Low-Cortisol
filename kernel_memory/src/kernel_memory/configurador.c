@@ -32,7 +32,19 @@ int iniciar_segment_max_size(t_config* config)
 {
   return config_get_int_value(config, "SEGMENT_MAX_SIZE");
 }
-int iniciar_allocation_strategy(t_config* config)
+
+t_allocation_strategy iniciar_allocation_strategy(t_config* config)
 {
-  return config_get_int_value(config, "ALLOCATION_STRATEGY");
+  return allocation_from_string(
+      config_get_string_value(config, "ALLOCATION_STRATEGY"));
+}
+
+t_allocation_strategy allocation_from_string(char* strategy)
+{
+  if (strcmp(strategy, "BEST") == 0)
+    return BEST;
+  else if (strcmp(strategy, "WORST") == 0)
+    return WORST;
+  else
+    return -1;
 }

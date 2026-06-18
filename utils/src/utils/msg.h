@@ -59,8 +59,7 @@ typedef enum
   OP_INTERRUPCION,
   OP_PEDIR_MEMORIA_DISPONIBLE,  // pedir cantidad de memoria disponible
   OP_MEMORIA_DISPONIBLE,        // cantidad de memoria disponible
-  OP_PEDIR_TAMANIO_PROCESO,     // pedir tamaño del proceso (puedo estar
-                                // suspendido)
+  OP_PEDIR_TAMANIO_PROCESO,     // pedir tamaño del proceso (puedo estar suspendido)
   OP_TAMANIO_PROCESO,           // tamaño del proceso en memoria
   OP_NUEVO_MEMORY_STICK,        // avisar que se conectó un memory stick
   OP_SUSPENDER_PROCESO,         // no devuelve nada porque no puede fallar
@@ -79,7 +78,11 @@ typedef enum
   OP_MEMORY_STICK_ESCRIBIR,
   OP_MEMORY_STICK_LEIDO,
   OP_MEMORY_STICK_ESCRITO,
-  OP_TABLA_DE_SEGMENTOS
+  OP_TABLA_DE_SEGMENTOS,
+  OP_COMPACTACION_NECESARIA,
+  OP_TABLA_DE_SEGMENTOS,
+  OP_MEMORIA_INSUFICIENTE
+  
 } t_op_code;
 
 typedef struct

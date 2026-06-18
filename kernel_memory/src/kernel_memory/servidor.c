@@ -20,7 +20,11 @@ void handshake(t_datos_kernel_mem* datos_kernel_memory, int client_socket)
       t_datos_scheduler* datos_scheduler = inicializar_datos_scheduler(
           client_socket, datos_kernel_memory->procesos,
           datos_kernel_memory->scripts_basepath,
-          datos_kernel_memory->mutex_procesos, datos_kernel_memory->logger);
+          datos_kernel_memory->mutex_procesos,
+          datos_kernel_memory->memoria_principal,
+          datos_kernel_memory->sticks_conectados,
+          datos_kernel_memory->mutex_lista_sockets,
+          datos_kernel_memory->logger);
       datos_kernel_memory->socket_scheduler = client_socket;
       empezar_escucha_scheduler(datos_scheduler);
     }
@@ -70,7 +74,8 @@ void handshake(t_datos_kernel_mem* datos_kernel_memory, int client_socket)
                   "Se ha conectado una memory Stick!");
       bool inicializar_correcto = true;
       t_datos_stick* datos_stick =
-          inicializar_datos_stick(client_socket, datos_kernel_memory->logger);
+          inicializar_datos_stick(client_socket, datos_kernel_memory->logger,
+                                  datos_kernel_memory->socket_scheduler);
       inicializar_correcto = inicializar_ip_stick(datos_stick, client_socket);
       inicializar_correcto = recibir_tamanio_stick(datos_stick);
       inicializar_correcto = recibir_puerto_escucha_stick(datos_stick);
@@ -78,11 +83,11 @@ void handshake(t_datos_kernel_mem* datos_kernel_memory, int client_socket)
       if (inicializar_correcto)
       {
         enviar_conexion_cpu(datos_stick, datos_kernel_memory->cpus_conectados);
-        enviar_tamanio_disponible_scheduler(
-            datos_kernel_memory->socket_scheduler,
-            datos_kernel_memory->sticks_conectados,
-            datos_kernel_memory->mutex_lista_sockets,
-            datos_kernel_memory->logger);
+        enviar_string(OP_NUEVO_MEMORY_STICK,
+                      "Se ha conectado una nueva Memory Stick",
+                      datos_kernel_memory->socket_scheduler);
+        aniadir_memoria_total(datos_kernel_memory->memoria_principal,
+                              datos_stick->tamanio_stick);
         empezar_escucha_stick(datos_stick);
       }
       else

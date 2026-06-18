@@ -2,9 +2,11 @@
 #define KERNEL_MEMORY_CONFIGURADOR_H_
 
 #include <commons/config.h>
+#include <pthread.h>
+#include <string.h>
 #include <unistd.h>
 
-#include "pthread.h"
+#include "kernel_memory/estructuras.h"
 #include "utils/logger.h"
 
 t_logger* iniciar_logger(t_config* config);
@@ -15,6 +17,7 @@ char* iniciar_basepath(t_config* config);
 int iniciar_instruction_delay(t_config* config);
 int iniciar_compaction_delay(t_config* config);
 int iniciar_segment_max_size(t_config* config);
-int iniciar_allocation_strategy(t_config* config);
+t_allocation_strategy iniciar_allocation_strategy(t_config* config);
+t_allocation_strategy allocation_from_string(char* strategy);
 
 #endif
