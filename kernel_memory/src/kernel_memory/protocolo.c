@@ -115,7 +115,7 @@ void enviar_sticks_conectadas(t_list* sticks_conectados,
 
     agregar_a_paquete(paquete, stick_actual->ip_memory_stick, sizeof(char[16]));
     agregar_a_paquete(paquete, puerto, sizeof(puerto));
-    agregar_a_paquete(paquete, stick_actual->tamanio_stick, sizeof(int));
+    agregar_a_paquete(paquete, &stick_actual->tamanio_stick, sizeof(int));
 
     enviar_paquete(paquete, datos_cpu->socket_cpu);
     eliminar_paquete(paquete);
@@ -544,4 +544,145 @@ void agregar_segmentos_a_paquete(t_list* segmentos,
     agregar_a_paquete(tabla_segmentos_proceso, segmento_actual,
                       sizeof(t_segmento));
   }
+}
+
+static t_segmento* buscar_segmento(t_memoria_principal* memoria_principal,
+                                   uint32_t pid, uint32_t num_segmento)
+{
+  t_segmento* seg_encontrado = NULL;
+  uint32_t contador_segmentos_pid = 0;
+
+  pthread_mutex_lock(memoria_principal->mutex_memoria_principal);
+  //recorro los segmentos hasta encontrar el correspondiente al pid y numero de segmento
+  t_list_iterator* iterador = list_iterator_create(memoria_principal->segmentos);
+  while (list_iterator_has_next(iterador))
+  {
+    t_segmento* item_actual = list_iterator_next(iterador); 
+    if (item_actual->pid == pid)
+    {
+      if (contador_segmentos_pid == num_segmento)
+      {
+        seg_encontrado = item_actual;
+        break;
+      }
+      contador_segmentos_pid++;
+    }
+  }
+  list_iterator_destroy(iterador);
+  pthread_mutex_unlock(memoria_principal->mutex_memoria_principal);
+  return seg_encontrado;
+}
+
+int traducir_direccion_logica(uint32_t pid, uint32_t direccion_logica,
+                              uint32_t tamanio,
+                              t_memoria_principal* memoria_principal,
+                              t_logger* logger)
+{
+  // Calculo de direccion fisica
+  int seg_max = memoria_principal->tamanio_maximo_segmento;
+  uint32_t num_segmento = direccion_logica / seg_max;
+  uint32_t desplazamiento = direccion_logica % seg_max;
+
+  t_segmento* seg_encontrado =
+      buscar_segmento(memoria_principal, pid, num_segmento);
+  if (seg_encontrado == NULL)
+  {
+    logger_error(logger,
+                 "No se encontro el numero de segmento %u para el proceso %u", num_segmento, pid);
+    return -1;
+  }
+  int dir_fisica = seg_encontrado->base + desplazamiento;
+  return dir_fisica;
+}
+
+static int encontrar_stick(int direccion_fisica, t_list* sticks_conectados,
+                    pthread_mutex_t* mutex_sticks, int* offset_en_stick)
+{
+  int base_acumulada = 0;
+  int indice = -1;
+  int indice_actual = 0;
+
+  pthread_mutex_lock(mutex_sticks);
+  t_list_iterator* iterador = list_iterator_create(sticks_conectados);
+  while (list_iterator_has_next(iterador))
+  {
+    t_datos_stick* item_actual = list_iterator_next(iterador); 
+    if (direccion_fisica >= base_acumulada &&
+        direccion_fisica < base_acumulada + item_actual->tamanio_stick)
+    {
+      //encontre el stick de la dir fisica
+      *offset_en_stick = direccion_fisica - base_acumulada;
+      indice = indice_actual;
+      break;
+    }
+    indice_actual++;
+    base_acumulada += item_actual->tamanio_stick;
+  }
+  list_iterator_destroy(iterador);
+  pthread_mutex_unlock(mutex_sticks);
+  return indice;
+}
+
+char* leer_de_sticks(int direccion_fisica, int tamanio,
+                     t_list* sticks_conectados, pthread_mutex_t* mutex_sticks,
+                     t_logger* logger)
+{
+  char* resultado = malloc(tamanio + 1);
+  resultado[tamanio] = '\0';
+  int bytes_leidos = 0;
+  int dir_actual = direccion_fisica;
+
+  while (bytes_leidos < tamanio)
+  {
+    int offset_en_stick = 0;
+    int indice = encontrar_stick(dir_actual, sticks_conectados, mutex_sticks,
+                                 &offset_en_stick);
+    if (indice == -1)
+    {
+      logger_error(logger,
+                   "La direccion fisica calculada no corresponde a ningún stick conectado");
+      free(resultado);
+      return NULL;
+    }
+    pthread_mutex_lock(mutex_sticks);
+    t_datos_stick* stick = list_get(sticks_conectados, indice);
+    int bytes_hasta_fin_stick = stick->tamanio_stick - offset_en_stick;
+    int cant_bytes_a_leer = tamanio - bytes_leidos;
+    //reviso si el tamaño pedido entra en el stick o si esta cortado al medio
+    if (cant_bytes_a_leer > bytes_hasta_fin_stick)
+      cant_bytes_a_leer = bytes_hasta_fin_stick;
+    // Envio pedido de lectura al stick
+    t_paquete* paquete = crear_paquete(OP_MEMORY_STICK_LEER);
+    agregar_a_paquete(paquete, &offset_en_stick, sizeof(int));
+    agregar_a_paquete(paquete, &cant_bytes_a_leer, sizeof(int));
+    enviar_paquete(paquete, stick->socket_stick);
+    eliminar_paquete(paquete);
+    pthread_mutex_unlock(mutex_sticks);
+
+    // Recibo respuesta
+    int stick_socket = ((t_datos_stick*)list_get(sticks_conectados, indice))->socket_stick;
+    int op = recibir_operacion(stick_socket);
+    if (op != OP_MEMORY_STICK_LEIDO)
+    {
+      logger_error(logger, "Opcode de respuesta erroneo del stick %d",
+                   indice);
+      free(resultado);
+      return NULL;
+    }
+    // Recibo los bytes como string
+    int size_recibido = 0;
+    char* fragmento = recibir_buffer(
+        &size_recibido,
+        stick_socket);
+
+    memcpy(resultado + bytes_leidos, fragmento, cant_bytes_a_leer);
+    free(fragmento);
+
+    bytes_leidos += cant_bytes_a_leer;
+    dir_actual += cant_bytes_a_leer;
+  }
+
+  logger_info(logger, "Lectura de %d bytes desde dir_fisica %d", tamanio,
+              direccion_fisica);
+  return resultado;
 }

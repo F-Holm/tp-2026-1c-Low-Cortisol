@@ -56,4 +56,11 @@ void eliminar_segmento(uint32_t id, uint32_t pid,
 void crear_segmento(uint32_t id, uint32_t pid, int size,
                     t_memoria_principal* memoria_principal,
                     int socket_scheduler, t_logger* logger);
+int traducir_direccion_logica(uint32_t pid, uint32_t direccion_logica,
+                              uint32_t tamanio,
+                              t_memoria_principal* memoria_principal,
+                              t_logger* logger);
+char* leer_de_sticks(int direccion_fisica, int tamanio,
+                     t_list* sticks_conectados, pthread_mutex_t* mutex_sticks,
+                     t_logger* logger);
 #endif
