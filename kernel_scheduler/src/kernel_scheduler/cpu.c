@@ -473,9 +473,17 @@ static void* manejar_cliente_cpu(void* datos_hilo_cpu_void)
       op_code = OP_SYSCALL_EXIT + 1;
     }
 
+    if (op_code >= OP_SYSCALL_MUTEX_CREATE && op_code <= OP_SYSCALL_EXIT)
+    {
+      sumar_contador_syscalls(datos_syscall.datos->colas);
+    }
     log_syscall(&datos_syscall, op_code);
     funciones_syscalls[op_code - OP_CICLO_CPU_OK](&datos_syscall);
     datos_syscall.contador++;
+    if (op_code >= OP_SYSCALL_MUTEX_CREATE && op_code <= OP_SYSCALL_EXIT)
+    {
+      restar_contador_syscalls(datos_syscall.datos->colas);
+    }
 
     gestionar_cola_bloqueada(&datos_syscall);
     gestionar_desalojo_prioritario(&datos_syscall);

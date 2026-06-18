@@ -30,10 +30,10 @@ extern const char* const MOTIVOS_FIN_PROCESO[9];
 
 typedef struct
 {
-  int cantidad_hilos_activos;
+  int cantidad;
   pthread_mutex_t mutex_contador;
-  pthread_cond_t cond_sin_hilos;
-} t_contador_hilos;
+  pthread_cond_t condicion;
+} t_contador;
 
 typedef struct
 {
@@ -68,6 +68,7 @@ typedef struct
 {
   t_list* lista;
   pthread_mutex_t mutex_lista;
+  pthread_cond_t cola_vacia;
   t_pcb* prioridad_mas_baja;
   int quantum;      // = 0 si no es RR
   bool desalojo;    // Si el desalojo está habilitado
@@ -117,7 +118,8 @@ typedef struct
   t_lista susp_block;
   t_lista susp_ready;
   t_contador_procesos* contador_procesos;
-  t_contador_hilos* contador_hilos;
+  t_contador* contador_hilos;
+  t_contador* contador_syscalls;
   t_logger* logger;
   t_socket_kernel_memory* socket_km;
   int socket_servidor;
@@ -141,8 +143,8 @@ void destruir_colas(t_colas* colas);
 bool esta_cola_ready_bloqueada(t_cola_ready* ready);
 void bloquear_cola_ready(t_cola_ready* ready);
 void desbloquear_cola_ready(t_cola_ready* ready);
-void esperar_cola_ready_vacia(t_cola_ready* ready);
-void esperar_cola_ready_vacia_con_syscalls(t_cola_ready* ready);
+void esperar_cola_exec_vacia(t_colas* colas);
+void esperar_cola_exec_vacia_con_syscalls(t_colas* colas);
 bool puedo_suspender(t_pcb* pcb, int suspension_timeout);
 void actualizar_prioridad(t_pcb* pcb, t_colas* colas);
 
@@ -183,5 +185,9 @@ void crear_hilo_rutina_des_suspension(t_colas* colas);
 void rutina_compactacion(t_colas* colas);
 bool esta_compactando(t_colas* colas);
 bool esta_des_suspendiendo(t_colas* colas);
+
+// Contadores
+void sumar_contador_syscalls(t_colas* colas);
+void restar_contador_syscalls(t_colas* colas);
 
 #endif /* KERNEL_SCHEDULER_QUEUE_H_ */

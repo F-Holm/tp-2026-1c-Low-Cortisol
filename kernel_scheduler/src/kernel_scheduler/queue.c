@@ -16,11 +16,14 @@ const char* const MOTIVOS_FIN_PROCESO[9] = {
     "no existe un mutex con ese nombre",
     "este proceso no puede desbloquear este mutex"};
 
-static t_contador_hilos* crear_contador_hilos(void);
+static t_contador* crear_contador(void);
+static void sumar_contador(t_contador* contador);
 static void sumar_contador_hilos(t_colas* colas);
 static void restar_contador_hilos(t_colas* colas);
 static void esperar_contador_hilos(t_colas* colas);
+static void destruir_contador(t_contador* contador);
 static void destruir_contador_hilos(t_colas* colas);
+static void destruir_contador_syscalls(t_colas* colas);
 static void inicializar_cola_ready(t_cola_ready* cola, int algoritmo,
                                    t_list* algoritmos_cmn);
 static void inicializar_lista_exec(t_lista_execute* lista, int quantum,
@@ -67,7 +70,8 @@ static void actualizar_mayor_prioridad_ready_sin_mutex(t_cola_ready* ready);
 static t_pcb* cambio_sacar_ready_siguiente_sin_mutex(t_cola_ready* ready);
 static t_pcb* cambio_sacar_ready_siguiente(t_cola_ready* ready);
 static void cambio_sacar_ready(t_pcb* pcb, t_cola_ready* ready);
-static void cambio_sacar_exec(t_pcb* pcb, t_lista_execute* exec);
+static void cambio_sacar_exec(t_pcb* pcb, t_lista_execute* exec,
+                              t_contador* contador_syscalls);
 static t_pcb* cambio_sacar_exec_siguiente(t_lista_execute* exec);
 static void cambio_sacar_block(t_pcb* pcb, t_lista* block);
 static t_pcb* cambio_sacar_block_siguiente(t_lista* block);
@@ -143,7 +147,8 @@ t_colas* inicializar_colas(int algoritmo, t_list* algoritmos_cmn, int quantum,
   inicializar_lista(&(colas->susp_ready));
   colas->contador_procesos =
       inicializar_contador_procesos(socket_servidor, logger);
-  colas->contador_hilos = crear_contador_hilos();
+  colas->contador_hilos = crear_contador();
+  colas->contador_syscalls = crear_contador();
   pthread_mutex_init(&(colas->mutex_rutina), NULL);
   colas->terminar_rutinas = false;
   colas->logger = logger;
@@ -162,6 +167,7 @@ void destruir_colas(t_colas* colas)
   terminar_rutinas(colas);
   esperar_contador_hilos(colas);
   destruir_contador_hilos(colas);
+  destruir_contador_syscalls(colas);
   terminar_hilos_suspendido(colas);
   destruir_hilos_suspendido(colas);
   destruir_cola_ready(&(colas->ready));
@@ -202,24 +208,27 @@ void desbloquear_cola_ready(t_cola_ready* ready)
   pthread_cond_broadcast(&(ready->salida_desbloqueada));
 }
 
-void esperar_cola_ready_vacia(t_cola_ready* ready)
+void esperar_cola_exec_vacia(t_colas* colas)
 {
-  pthread_mutex_lock(&(ready->mutex_cola));
-  while (ready->cant_procesos_ready > 0)
+  pthread_mutex_lock(&(colas->exec.mutex_lista));
+  while (list_size(colas->exec.lista) > 0)
   {
-    pthread_cond_wait(&(ready->cola_vacia), &(ready->mutex_cola));
+    pthread_cond_wait(&(colas->exec.cola_vacia), &(colas->exec.mutex_lista));
   }
-  pthread_mutex_unlock(&(ready->mutex_cola));
+  pthread_mutex_unlock(&(colas->exec.mutex_lista));
 }
 
-void esperar_cola_ready_vacia_con_syscalls(t_cola_ready* ready)
+void esperar_cola_exec_vacia_con_syscalls(t_colas* colas)
 {
-  pthread_mutex_lock(&(ready->mutex_cola));
-  while (ready->cant_procesos_ready > 0)
+  pthread_mutex_lock(&(colas->exec.mutex_lista));
+  pthread_mutex_lock(&(colas->contador_syscalls->mutex_contador));
+  while (list_size(colas->exec.lista) - colas->contador_syscalls->cantidad > 0)
   {
-    pthread_cond_wait(&(ready->cola_vacia), &(ready->mutex_cola));
+    pthread_cond_wait(&(colas->contador_syscalls->condicion),
+                      &(colas->exec.mutex_lista));
   }
-  pthread_mutex_unlock(&(ready->mutex_cola));
+  pthread_mutex_unlock(&(colas->contador_syscalls->mutex_contador));
+  pthread_mutex_unlock(&(colas->exec.mutex_lista));
 }
 
 bool puedo_suspender(t_pcb* pcb, int suspension_timeout)
@@ -295,6 +304,7 @@ void cambio_new_ready(t_colas* colas, char* archivo_instrucciones,
     }
     else
     {
+      pcb->estado = EST_READY;
       log_cambio_estado(colas->logger, pcb->pid, EST_NEW, EST_READY);
       cambio_a_ready(pcb, &(colas->ready));
     }
@@ -306,7 +316,7 @@ void cambio_exec_ready(t_pcb* pcb, t_colas* colas)
   pthread_mutex_lock(&(pcb->mutex_estado));
   if (gestionar_estado_pcb(colas->logger, pcb, EST_EXEC, EST_READY))
   {
-    cambio_sacar_exec(pcb, &(colas->exec));
+    cambio_sacar_exec(pcb, &(colas->exec), colas->contador_syscalls);
     cambio_a_ready(pcb, &(colas->ready));
   }
   pthread_mutex_unlock(&(pcb->mutex_estado));
@@ -317,7 +327,7 @@ void cambio_exec_exit(t_pcb* pcb, t_colas* colas, int motivo)
   pthread_mutex_lock(&(pcb->mutex_estado));
   if (gestionar_estado_pcb(colas->logger, pcb, EST_EXEC, EST_EXIT))
   {
-    cambio_sacar_exec(pcb, &(colas->exec));
+    cambio_sacar_exec(pcb, &(colas->exec), colas->contador_syscalls);
     cambio_a_exit(pcb, colas, motivo);
   }
   pthread_mutex_unlock(&(pcb->mutex_estado));
@@ -328,7 +338,7 @@ void cambio_exec_block(t_pcb* pcb, t_colas* colas)
   pthread_mutex_lock(&(pcb->mutex_estado));
   if (gestionar_estado_pcb(colas->logger, pcb, EST_EXEC, EST_BLOCK))
   {
-    cambio_sacar_exec(pcb, &(colas->exec));
+    cambio_sacar_exec(pcb, &(colas->exec), colas->contador_syscalls);
     cambio_a_block(pcb, &(colas->block));
   }
   pthread_mutex_unlock(&(pcb->mutex_estado));
@@ -520,29 +530,46 @@ bool esta_des_suspendiendo(t_colas* colas)
   return ret;
 }
 
-static t_contador_hilos* crear_contador_hilos(void)
+void sumar_contador_syscalls(t_colas* colas)
 {
-  t_contador_hilos* contador_hilos = malloc(sizeof(t_contador_hilos));
-  contador_hilos->cantidad_hilos_activos = 0;
-  pthread_mutex_init(&(contador_hilos->mutex_contador), NULL);
-  pthread_cond_init(&(contador_hilos->cond_sin_hilos), NULL);
-  return contador_hilos;
+  sumar_contador(colas->contador_syscalls);
+}
+
+void restar_contador_syscalls(t_colas* colas)
+{
+  pthread_mutex_lock(&(colas->contador_syscalls->mutex_contador));
+  colas->contador_syscalls->cantidad--;
+  pthread_mutex_unlock(&(colas->contador_syscalls->mutex_contador));
+}
+
+static t_contador* crear_contador(void)
+{
+  t_contador* contador = malloc(sizeof(t_contador));
+  contador->cantidad = 0;
+  pthread_mutex_init(&(contador->mutex_contador), NULL);
+  pthread_cond_init(&(contador->condicion), NULL);
+  return contador;
+}
+
+static void sumar_contador(t_contador* contador)
+{
+  pthread_mutex_lock(&(contador->mutex_contador));
+  contador->cantidad++;
+  pthread_mutex_unlock(&(contador->mutex_contador));
 }
 
 static void sumar_contador_hilos(t_colas* colas)
 {
-  pthread_mutex_lock(&(colas->contador_hilos->mutex_contador));
-  colas->contador_hilos->cantidad_hilos_activos++;
-  pthread_mutex_unlock(&(colas->contador_hilos->mutex_contador));
+  sumar_contador(colas->contador_hilos);
 }
 
 static void restar_contador_hilos(t_colas* colas)
 {
   pthread_mutex_lock(&(colas->contador_hilos->mutex_contador));
-  colas->contador_hilos->cantidad_hilos_activos--;
-  if (colas->contador_hilos->cantidad_hilos_activos <= 0)
+  colas->contador_hilos->cantidad--;
+  if (colas->contador_hilos->cantidad <= 0)
   {
-    pthread_cond_signal(&(colas->contador_hilos->cond_sin_hilos));
+    pthread_cond_signal(&(colas->contador_hilos->condicion));
   }
   pthread_mutex_unlock(&(colas->contador_hilos->mutex_contador));
 }
@@ -551,20 +578,30 @@ static void esperar_contador_hilos(t_colas* colas)
 {
   logger_info(colas->logger, "## Esperando a que finalicen todos los hilos");
   pthread_mutex_lock(&(colas->contador_hilos->mutex_contador));
-  while (colas->contador_hilos->cantidad_hilos_activos > 0)
+  while (colas->contador_hilos->cantidad > 0)
   {
-    pthread_cond_wait(&(colas->contador_hilos->cond_sin_hilos),
+    pthread_cond_wait(&(colas->contador_hilos->condicion),
                       &(colas->contador_hilos->mutex_contador));
   }
   pthread_mutex_unlock(&(colas->contador_hilos->mutex_contador));
   logger_info(colas->logger, "## Hilos finalizados");
 }
 
+static void destruir_contador(t_contador* contador)
+{
+  pthread_mutex_destroy(&(contador->mutex_contador));
+  pthread_cond_destroy(&(contador->condicion));
+  free(contador);
+}
+
 static void destruir_contador_hilos(t_colas* colas)
 {
-  pthread_mutex_destroy(&(colas->contador_hilos->mutex_contador));
-  pthread_cond_destroy(&(colas->contador_hilos->cond_sin_hilos));
-  free(colas->contador_hilos);
+  destruir_contador(colas->contador_hilos);
+}
+
+static void destruir_contador_syscalls(t_colas* colas)
+{
+  destruir_contador(colas->contador_hilos);
 }
 
 static void inicializar_cola_ready(t_cola_ready* cola, int algoritmo,
@@ -1007,11 +1044,22 @@ static t_pcb* cambio_sacar_ready_siguiente(t_cola_ready* ready)
   return pcb;
 }
 
-static void cambio_sacar_exec(t_pcb* pcb, t_lista_execute* exec)
+static void cambio_sacar_exec(t_pcb* pcb, t_lista_execute* exec,
+                              t_contador* contador_syscalls)
 {
   pthread_mutex_lock(&(exec->mutex_lista));
   list_remove_element(exec->lista, pcb);
   bool actualizar_elemento = pcb == exec->prioridad_mas_baja;
+  if (list_size(exec->lista) == 0)
+  {
+    pthread_cond_signal(&(exec->cola_vacia));
+  }
+  pthread_mutex_lock(&(contador_syscalls->mutex_contador));
+  if (list_size(exec->lista) - contador_syscalls->cantidad == 0)
+  {
+    pthread_cond_signal(&(contador_syscalls->condicion));
+  }
+  pthread_mutex_unlock(&(contador_syscalls->mutex_contador));
   pthread_mutex_unlock(&(exec->mutex_lista));
   if (exec->desalojo && actualizar_elemento)
   {
@@ -1348,7 +1396,7 @@ static void suspender_proceso(t_colas* colas, t_datos_hilo_suspensor* datos,
   else
   {
     pthread_mutex_unlock(&(proceso->mutex_estado));
-    usleep(tiempo_sleep * 1000);
+    usleep(tiempo_sleep > 500 ? 500 : tiempo_sleep * 1000);
   }
 
   pthread_mutex_lock(&(datos->datos->mutex_estado));
@@ -1497,7 +1545,7 @@ static void bloqueo_total(t_colas* colas)
 {
   bloquear_cola_ready(&(colas->ready));
   bloquear_hilos_suspendido(colas);
-  esperar_cola_ready_vacia_con_syscalls(&(colas->ready));
+  esperar_cola_exec_vacia_con_syscalls(colas);
 }
 
 static bool entra_proceso(t_colas* colas, t_pcb* proceso)
@@ -1742,7 +1790,7 @@ static void* hilo_desbloquear_cola_ready(void* args)
   t_colas* colas = (t_colas*)args;
   sumar_contador_hilos(colas);
 
-  esperar_cola_ready_vacia(&(colas->ready));
+  esperar_cola_exec_vacia(colas);
 
   pthread_mutex_lock(&(colas->mutex_compactacion_activa));
   if (!colas->compactacion_activa)
