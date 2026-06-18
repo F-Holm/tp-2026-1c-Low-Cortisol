@@ -19,9 +19,13 @@ void recibir_tamanio_maximo_segmento(t_cpu* cpu)
     void* buffer = recibir_buffer(&size, cpu->socket_kernel_scheduler);
     cpu->tamanio_max_segmento = *(uint32_t*)buffer;
     free(buffer);
+    log_info(cpu->logger, "Tamaño máximo de segmento recibido: %u", cpu->tamanio_max_segmento);
   }
   else
   {
+    log_error(cpu->logger, "## Código de operación erroneo: %d", codigo_operacion);
+    int size;
+    free(recibir_buffer(&size, cpu->socket_kernel_scheduler));
     cerrar_modulo(cpu);
   }
 }
@@ -73,6 +77,7 @@ void escuchar_kernel_memory(t_cpu* cpu)
         break;
 
       default:
+        log_error(cpu->logger, "## Codigo de operacion no reconocido: %d", codigo_operacion);
         cerrar_modulo(cpu);
         break;
     }
@@ -104,6 +109,7 @@ void manejo_instrucciones(t_cpu* cpu)
     list_destroy_and_destroy_elements(contexto->tablaDeSegmentos, free);
   }
   free(contexto);
+  log_info(cpu->logger, "PROGRAMA FINALIZADO CORRECTAMENTE");
   cerrar_modulo(cpu);
 }
 
@@ -123,6 +129,7 @@ uint32_t recibir_pid_kernel_scheduler(t_cpu* cpu)
   }
   else
   {
+    log_error(cpu->logger, "## Error al recibir el PID - Codigo recibido: %d", codigo_operacion);
     cerrar_modulo(cpu);
   }
   return pid;
