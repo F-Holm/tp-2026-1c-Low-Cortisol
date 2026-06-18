@@ -66,3 +66,14 @@ void iniciar_diccionario(t_dictionary* handlers)
   dictionary_put(handlers, "INIT_PROC", (void*)handler_init_proc);
   dictionary_put(handlers, "EXIT", (void*)handler_exit);
 }
+
+uint32_t calcular_offset(t_list* sticks)
+{
+  uint32_t offset = 0;
+  for (int i = 0; i < list_size(sticks); i++)
+  {
+    t_memory_stick_info* stick = list_get(sticks, i);
+    offset += stick->tamanio;
+  }
+  return offset;
+}

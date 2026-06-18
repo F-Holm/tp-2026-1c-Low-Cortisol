@@ -31,7 +31,7 @@ typedef struct
 {
   uint32_t pid;
   uint32_t id_segmento;
-  uint32_t tamaño;
+  uint32_t tamanio;
 } t_syscall_memory;
 
 #endif /* UTILS_KERNEL_SCHEDULER_CPU_H_ */

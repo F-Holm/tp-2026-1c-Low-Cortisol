@@ -15,7 +15,7 @@ int main(int argc, char* argv[])
   t_cpu* cpu;
   cpu = malloc(sizeof(t_cpu));
 
-  // verifica recibir correctamente los argumentos.(ruta a cpu->confige id)
+  // verifica recibir correctamente los argumentos
   if (!verificar_argumentos(argc, argv))
     return EXIT_FAILURE;
 
@@ -57,7 +57,9 @@ int main(int argc, char* argv[])
   {
     log_error(cpu->logger, "## fallo el envio del mensaje al kernel memory");
   }
+  recibir_tamanio_maximo_segmento(cpu);
 
+  // diccionario de intruciones (nombre - funcion)
   cpu->handlers = dictionary_create();
   iniciar_diccionario(cpu->handlers);
 
