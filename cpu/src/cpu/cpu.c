@@ -181,7 +181,7 @@ void ejecutar_ciclo_instruccion(t_cpu* cpu, uint32_t pid, t_contexto* contexto)
     if (pc_inicial == contexto->registros->PC)
       contexto->registros->PC++;
 
-    if (!syscall)
+    if (syscall)
     {
       if (!enviar_string(OP_CICLO_CPU_OK, "OK", cpu->socket_kernel_scheduler))
       {
