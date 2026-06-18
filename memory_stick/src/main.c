@@ -53,7 +53,8 @@ int main(int argc, char* argv[])
         int cantidad_bytes = *(int*)list_get(paquete, 1);
         leer_memoria(&ms_recursos, posicion_inicial, cantidad_bytes,
                      ms_recursos.socket_km);
-        (ms_recursos.logger, "## Lectura  de %d bytes", cantidad_bytes);
+        logger_info(ms_recursos.logger, "## Lectura  de %d bytes",
+                    cantidad_bytes);
 
         break;
       }
