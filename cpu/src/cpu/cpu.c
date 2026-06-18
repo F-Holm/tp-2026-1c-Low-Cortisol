@@ -45,7 +45,7 @@ bool manejar_paquete(t_cpu* cpu, t_list* lista_paquete, char ip_stick[16],
   }
   strcpy(ip_stick, list_get(lista_paquete, 0));
   strcpy(puerto_stick, list_get(lista_paquete, 1));
-  *tamanio = *(uint32_t*)list_get(lista_paquete, 2);
+  *tamanio = *(int*)list_get(lista_paquete, 2);
   list_destroy_and_destroy_elements(lista_paquete, free);
   log_info(cpu->logger, "IP: %s | Puerto: %s", ip_stick, puerto_stick);
   return true;
