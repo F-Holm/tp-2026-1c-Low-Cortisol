@@ -84,10 +84,33 @@ void* escucha_scheduler(void* ptr)
       {
         logger_info(datos_scheduler->logger,
                     "Llego una syscall de PETICION_IO_STDOUT");
-        int a;
-        t_peticion_stdout* stdout = (t_peticion_stdout*)recibir_buffer(
-            &a, datos_scheduler->socket_scheduler);
-        enviar_string(OP_OK, "OK", datos_scheduler->socket_scheduler);
+        int size;
+        t_peticion_stdout* peticion_stdout = (t_peticion_stdout*)recibir_buffer(
+            &size, datos_scheduler->socket_scheduler);
+        /*enviar_string(OP_OK, "OK", datos_scheduler->socket_scheduler);*/
+        int dir_fisica = traducir_direccion_logica(
+        peticion_stdout->pid, peticion_stdout->direccion_logica, peticion_stdout->tamanio_a_escribir,
+        datos_scheduler->memoria_principal, datos_scheduler->logger);
+
+        if (dir_fisica == -1)
+        {
+          enviar_string(OP_RESPUESTA_STDOUT, "Segmentation Fault",
+                  datos_scheduler->socket_scheduler);
+          break;
+        }
+        char* buffer = leer_de_sticks(dir_fisica, peticion_stdout->tamanio_a_escribir,
+                                datos_scheduler->sticks_conectados,
+                                datos_scheduler->mutex_lista_sockets,
+                                datos_scheduler->logger);
+        if (buffer == NULL)
+        {
+          enviar_string(OP_RESPUESTA_STDOUT, "Error lectura stick",
+                  datos_scheduler->socket_scheduler);
+          break;
+        }
+        enviar_string(OP_RESPUESTA_STDOUT, buffer, datos_scheduler->socket_scheduler);
+        free(buffer);
+        free(peticion_stdout);
         break;
       }
       case OP_TERMINAR_PROCESO:
