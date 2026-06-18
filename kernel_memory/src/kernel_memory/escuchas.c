@@ -18,23 +18,45 @@ void* escucha_scheduler(void* ptr)
             *pid, path_relativo, datos_scheduler->scripts_basepath,
             datos_scheduler->logger);
 
-        aniadirAListaMtx(datos_scheduler->procesos,
-                         datos_scheduler->mutex_procesos, proceso);
+        aniadir_lista_mtx(datos_scheduler->procesos,
+                          datos_scheduler->mutex_procesos, proceso);
 
         logger_info(datos_scheduler->logger, "## PID: %ls - Proceso Creado",
                     pid);
-
         free(pid);
         list_clean(paquete);
         list_destroy(paquete);
         break;
       }
+
       case OP_SYSCALL_MEM_ALLOC:
       {
         logger_info(datos_scheduler->logger, "Llego una syscall de MEM_ALLOC");
         int a;
         t_syscall_memory* syscall = (t_syscall_memory*)recibir_buffer(
             &a, datos_scheduler->socket_scheduler);
+
+        if (syscall->tamanio >
+            datos_scheduler->memoria_principal->tamanio_maximo_segmento)
+        {
+          logger_info(
+              datos_scheduler->logger,
+              "La syscall de MEM_ALLOC no se pudo realizar ya que el tamaño "
+              "solicitado es mayor al tamaño máximo de segmento");
+          enviar_string(
+              OP_TAMANIO_SEGMENTO_EXCEDIDO,
+              "Tamaño solicitado es mayor al tamaño máximo de segmento",
+              datos_scheduler->socket_scheduler);
+          free(syscall);
+        }
+        else
+        {
+          crear_segmento(syscall->id_segmento, syscall->pid, syscall->tamanio,
+                         datos_scheduler->memoria_principal,
+                         datos_scheduler->socket_scheduler,
+                         datos_scheduler->logger);
+        }
+
         break;
       }
       case OP_SYSCALL_MEM_FREE:
@@ -43,15 +65,97 @@ void* escucha_scheduler(void* ptr)
         int a;
         t_syscall_memory* syscall = (t_syscall_memory*)recibir_buffer(
             &a, datos_scheduler->socket_scheduler);
+        eliminar_segmento(syscall->pid, syscall->id_segmento,
+                          datos_scheduler->memoria_principal);
+        free(syscall);
         break;
       }
       case OP_PETICION_IO_STDIN:
       {
         logger_info(datos_scheduler->logger,
                     "Llego una syscall de PETICION_IO_STDIN");
-        t_list* paquete_stdin = recibir_paquete(
-            datos_scheduler
-                ->socket_scheduler);  // RECIBE STRUCT DE PETICION STDOUT
+        t_list* paquete_stdin =
+            recibir_paquete(datos_scheduler->socket_scheduler);
+        t_peticion_stdin* peticion_stdin =
+            (t_peticion_stdin*)list_get(paquete_stdin, 0);
+        char* string_escribir = (char*)list_get(paquete_stdin, 1);
+        int dir_fisica = traducir_direccion_logica(
+            peticion_stdin->pid, peticion_stdin->direccion_logica,
+            peticion_stdin->tamanio_a_leer, datos_scheduler->memoria_principal,
+            datos_scheduler->logger);
+        if (dir_fisica == -1)
+        {
+          enviar_string(OP_RESPUESTA_STDIN, "Segmentation Fault",
+                        datos_scheduler->socket_scheduler);
+          break;
+        }
+        int offset_en_stick = 0;
+        int indice = encontrar_stick(
+            dir_fisica, datos_scheduler->sticks_conectados,
+            datos_scheduler->mutex_lista_sockets, &offset_en_stick);
+        pthread_mutex_lock(datos_scheduler->mutex_lista_sockets);
+        t_datos_stick* stick_a_escribir_inicial =
+            list_get(datos_scheduler->sticks_conectados, indice);
+        int tamanio = stick_a_escribir_inicial->tamanio_stick - dir_fisica -
+                      peticion_stdin->tamanio_a_leer;
+        t_paquete* paquete = crear_paquete(OP_MEMORY_STICK_ESCRIBIR);
+        if (tamanio < 0)
+        {
+          int tamanio_sumado =
+              stick_a_escribir_inicial->tamanio_stick - dir_fisica;
+          char* cadena_cortada = cortar_cadena(tamanio_sumado, string_escribir);
+          int tamanio_cortado = strlen(cadena_cortada);
+          agregar_a_paquete(paquete, &dir_fisica, sizeof(int));
+          agregar_string_a_paquete(paquete, cadena_cortada);
+          agregar_a_paquete(paquete, &tamanio_cortado, sizeof(int));
+          enviar_paquete(paquete, stick_a_escribir_inicial->socket_stick);
+          eliminar_paquete(paquete);
+          char* mensaje = recibir_string(OP_MEMORY_STICK_ESCRITO);
+          free(mensaje);
+          logger_info(datos_scheduler->logger,
+                      "##PID: %d - Escritura - Dir. Fisica: %d - Tamaño: %d",
+                      peticion_stdin->pid, dir_fisica, tamanio_cortado);
+
+          for (int i = indice + 1;
+               tamanio_sumado < peticion_stdin->tamanio_a_leer; i++)
+          {
+            t_datos_stick* stick_a_escribir =
+                list_get(datos_scheduler->sticks_conectados, i);
+            tamanio_sumado = +stick_a_escribir->tamanio_stick;
+            t_paquete* paquete2 = crear_paquete(OP_MEMORY_STICK_ESCRIBIR);
+            agregar_a_paquete(paquete2, 0, sizeof(int));
+            char* cadena_cortada =
+                cortar_cadena(stick_a_escribir->tamanio_stick,
+                              string_escribir + tamanio_sumado);
+            int tamanio_cortado2 = strlen(cadena_cortada);
+            agregar_string_a_paquete(paquete2, cadena_cortada);
+            agregar_a_paquete(paquete2, &tamanio_cortado2, sizeof(int));
+            enviar_paquete(paquete2, stick_a_escribir->socket_stick);
+            free(cadena_cortada);
+            eliminar_paquete(paquete2);
+            char* mensaje = recibir_string(OP_MEMORY_STICK_ESCRITO);
+            free(mensaje);
+            logger_info(datos_scheduler->logger,
+                        "##PID: %d - Escritura - Dir. Fisica: %d - Tamaño: %d",
+                        peticion_stdin->pid, 0, tamanio_cortado2);
+          }
+          free(cadena_cortada);
+        }
+        else
+        {
+          int tamanio_string = strlen(string_escribir);
+          agregar_a_paquete(paquete, &dir_fisica, sizeof(int));
+          agregar_string_a_paquete(paquete, string_escribir);
+          agregar_a_paquete(paquete, &tamanio_string, sizeof(int));
+          enviar_paquete(paquete, stick_a_escribir_inicial->socket_stick);
+          eliminar_paquete(paquete);
+          char* mensaje = recibir_string(OP_MEMORY_STICK_ESCRITO);
+          free(mensaje);
+          logger_info(datos_scheduler->logger,
+                      "##PID: %d - Escritura - Dir. Fisica: %d - Tamaño: %d",
+                      peticion_stdin->pid, dir_fisica, tamanio_string);
+        }
+        pthread_mutex_unlock(datos_scheduler->mutex_lista_sockets);
         enviar_string(OP_OK, "OK", datos_scheduler->socket_scheduler);
         break;
       }
@@ -59,16 +163,72 @@ void* escucha_scheduler(void* ptr)
       {
         logger_info(datos_scheduler->logger,
                     "Llego una syscall de PETICION_IO_STDOUT");
+        int size;
+        t_peticion_stdout* peticion_stdout = (t_peticion_stdout*)recibir_buffer(
+            &size, datos_scheduler->socket_scheduler);
+        int dir_fisica = traducir_direccion_logica(
+            peticion_stdout->pid, peticion_stdout->direccion_logica,
+            peticion_stdout->tamanio_a_escribir,
+            datos_scheduler->memoria_principal, datos_scheduler->logger);
+
+        if (dir_fisica == -1)
+        {
+          enviar_string(OP_RESPUESTA_STDOUT, "Segmentation Fault",
+                        datos_scheduler->socket_scheduler);
+          break;
+        }
+        char* buffer = leer_de_sticks(
+            dir_fisica, peticion_stdout->tamanio_a_escribir,
+            datos_scheduler->sticks_conectados,
+            datos_scheduler->mutex_lista_sockets, datos_scheduler->logger);
+        if (buffer == NULL)
+        {
+          enviar_string(OP_RESPUESTA_STDOUT, "Error lectura stick",
+                        datos_scheduler->socket_scheduler);
+          break;
+        }
+        enviar_string(OP_RESPUESTA_STDOUT, buffer,
+                      datos_scheduler->socket_scheduler);
+        free(buffer);
+        free(peticion_stdout);
+        break;
+      }
+      case OP_TERMINAR_PROCESO:
+      {
+        logger_info(datos_scheduler->logger,
+                    "Llego una solicitud de TERMINAR_PROCESO");
         int a;
-        t_peticion_stdout* stdout = (t_peticion_stdout*)recibir_buffer(
-            &a, datos_scheduler->socket_scheduler);
-        enviar_string(OP_OK, "OK", datos_scheduler->socket_scheduler);
+        uint32_t* pid =
+            (uint32_t*)recibir_buffer(&a, datos_scheduler->socket_scheduler);
+        t_proceso* proceso_a_terminar = buscar_proceso(
+            datos_scheduler->procesos, datos_scheduler->mutex_procesos, *pid);
+        if (proceso_a_terminar != NULL)
+        {
+          pthread_mutex_lock(datos_scheduler->mutex_procesos);
+          list_remove_element(datos_scheduler->procesos, proceso_a_terminar);
+          pthread_mutex_unlock(datos_scheduler->mutex_procesos);
+          logger_info(datos_scheduler->logger, "Proceso con PID %u terminado",
+                      *pid);
+          for (int i = 0; i < list_size(proceso_a_terminar->segmentos); i++)
+          {
+            t_segmento* segmento = list_get(proceso_a_terminar->segmentos, i);
+            eliminar_segmento(segmento->id, proceso_a_terminar->pid,
+                              datos_scheduler->memoria_principal);
+          }
+          liberar_proceso(proceso_a_terminar);
+        }
+        else
+        {
+          logger_info(datos_scheduler->logger,
+                      "No se encontró el proceso con PID %u para terminar",
+                      *pid);
+        }
+        free(pid);
         break;
       }
       case OP_CODE_ERROR:
         conexion_estable = false;
         break;
-
       default:
         break;
     }
@@ -92,7 +252,8 @@ void* escucha_cpu(void* ptr)
         uint32_t pc = *(uint32_t*)list_get(paquete, 1);
         list_destroy_and_destroy_elements(paquete, free);
 
-        t_proceso* proceso = buscar_proceso(datos_cpu, pid);
+        t_proceso* proceso =
+            buscar_proceso(datos_cpu->procesos, datos_cpu->mutex_procesos, pid);
         char* instruccion = proceso->instrucciones[pc];
 
         logger_info(datos_cpu->logger,
@@ -107,12 +268,34 @@ void* escucha_cpu(void* ptr)
       {
         int a;
         uint32_t* pid = (uint32_t*)recibir_buffer(&a, datos_cpu->socket_cpu);
-        t_proceso* proceso = buscar_proceso(datos_cpu, *pid);
-        logger_info(datos_cpu->logger, "## PID: %u - Obtener contexto", *pid);
-        free(pid);
+        t_proceso* proceso = buscar_proceso(datos_cpu->procesos,
+                                            datos_cpu->mutex_procesos, *pid);
+        logger_info(datos_cpu->logger, "## PID: %u - Obtener registro", *pid);
         usleep(datos_cpu->instruction_delay * 1000);
-        enviar_buffer(OP_ENVIAR_CONTEXTO, &proceso->contexto,
-                      sizeof(t_contexto), datos_cpu->socket_cpu);
+        enviar_buffer(OP_ENVIAR_CONTEXTO, &proceso->registro,
+                      sizeof(t_registros), datos_cpu->socket_cpu);
+        t_paquete* tabla_segmentos_proceso =
+            crear_paquete(OP_TABLA_DE_SEGMENTOS);
+        agregar_segmentos_a_paquete(
+            filtrar_segmentos_proceso(*pid, proceso->segmentos),
+            tabla_segmentos_proceso);
+        enviar_paquete(tabla_segmentos_proceso, datos_cpu->socket_cpu);
+        free(pid);
+        break;
+      }
+      case OP_CONTEXTO_ACTUALIZADO:
+      {
+        t_list* paquete = recibir_paquete(datos_cpu->socket_cpu);
+        uint32_t pid = *(uint32_t*)list_get(paquete, 0);
+        t_registros registros = *(t_registros*)list_get(paquete, 1);
+        t_proceso* proceso =
+            buscar_proceso(datos_cpu->procesos, datos_cpu->mutex_procesos, pid);
+        pthread_mutex_lock(datos_cpu->mutex_procesos);
+        proceso->registro = registros;
+        pthread_mutex_unlock(datos_cpu->mutex_procesos);
+        // enviar_string(OP_CONTEXTO_ACTUALIZADO,"",datos_cpu->socket_cpu);
+        // Chequear si está bien enviarle ese opcode a cpu.
+        free(paquete);
         break;
       }
       case OP_CODE_ERROR:
@@ -164,6 +347,20 @@ void* escucha_stick(void* ptr)
         // t_list* paquete = recibir_paquete(datos_stick->socket_stick);
         logger_info(datos_stick->logger, "Llego un paquete de la memory stick");
         // comunicaciones
+        break;
+      case OP_MEMORY_STICK_LEIDO:
+        char* lectura = recibir_string(datos_stick->socket_stick);
+        logger_info(datos_stick->logger, "Se ha leido de la memory stick: %s",
+                    lectura);
+        enviar_string(OP_RESPUESTA_STDOUT, lectura,
+                      datos_stick->socket_scheduler);
+        free(lectura);
+        break;
+      case OP_MEMORY_STICK_ESCRITO:
+        char* buffer = recibir_string(datos_stick->socket_stick);
+        free(buffer);
+        logger_info(datos_stick->logger, "Se ha escrito en la memory stick");
+        enviar_string(OP_RESPUESTA_STDIN, "", datos_stick->socket_scheduler);
         break;
       case OP_CODE_ERROR:
         conexion_estable = false;
