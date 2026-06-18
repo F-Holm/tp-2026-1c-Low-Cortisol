@@ -244,8 +244,8 @@ static void gestionar_pedir_proceso(t_datos_syscall* datos)
                 datos->datos->id);
     datos->contador = 0;
     datos->pcb = cambio_sacar_ready_bloqueante(&(datos->datos->colas->ready));
-    logger_info(datos->datos->logger, "## CPU %s: obtuvo proceso: %p",
-                datos->datos->id, datos->pcb);
+    logger_info(datos->datos->logger, "## CPU %s: obtuvo proceso: %u",
+                datos->datos->id, datos->pcb->pid);
     if (datos->pcb != NULL)
     {
       cambio_ready_exec(datos->pcb, datos->datos->colas);
