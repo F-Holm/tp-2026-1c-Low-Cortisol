@@ -53,6 +53,8 @@ int main(int argc, char* argv[])
         int cantidad_bytes = *(int*)list_get(paquete, 1);
         leer_memoria(&ms_recursos, posicion_inicial, cantidad_bytes,
                      ms_recursos.socket_km);
+        (ms_recursos.logger, "## Lectura  de %d bytes", cantidad_bytes);
+
         break;
       }
       case OP_MEMORY_STICK_ESCRIBIR:
@@ -70,6 +72,8 @@ int main(int argc, char* argv[])
         int cantidad_bytes = *(int*)list_get(paquete, 2);
         escribir_memoria(&ms_recursos, posicion_inicial, bytes_a_escribir,
                          cantidad_bytes, ms_recursos.socket_km);
+        logger_info(ms_recursos.logger, "## Escritura de %d bytes",
+                    cantidad_bytes);
         break;
       }
       default:

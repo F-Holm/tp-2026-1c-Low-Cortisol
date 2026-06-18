@@ -553,11 +553,13 @@ static t_segmento* buscar_segmento(t_memoria_principal* memoria_principal,
   uint32_t contador_segmentos_pid = 0;
 
   pthread_mutex_lock(memoria_principal->mutex_memoria_principal);
-  //recorro los segmentos hasta encontrar el correspondiente al pid y numero de segmento
-  t_list_iterator* iterador = list_iterator_create(memoria_principal->segmentos);
+  // recorro los segmentos hasta encontrar el correspondiente al pid y numero de
+  // segmento
+  t_list_iterator* iterador =
+      list_iterator_create(memoria_principal->segmentos);
   while (list_iterator_has_next(iterador))
   {
-    t_segmento* item_actual = list_iterator_next(iterador); 
+    t_segmento* item_actual = list_iterator_next(iterador);
     if (item_actual->pid == pid)
     {
       if (contador_segmentos_pid == num_segmento)
@@ -588,7 +590,8 @@ int traducir_direccion_logica(uint32_t pid, uint32_t direccion_logica,
   if (seg_encontrado == NULL)
   {
     logger_error(logger,
-                 "No se encontro el numero de segmento %u para el proceso %u", num_segmento, pid);
+                 "No se encontro el numero de segmento %u para el proceso %u",
+                 num_segmento, pid);
     return -1;
   }
   int dir_fisica = seg_encontrado->base + desplazamiento;
@@ -606,11 +609,11 @@ int encontrar_stick(int direccion_fisica, t_list* sticks_conectados,
   t_list_iterator* iterador = list_iterator_create(sticks_conectados);
   while (list_iterator_has_next(iterador))
   {
-    t_datos_stick* item_actual = list_iterator_next(iterador); 
+    t_datos_stick* item_actual = list_iterator_next(iterador);
     if (direccion_fisica >= base_acumulada &&
         direccion_fisica < base_acumulada + item_actual->tamanio_stick)
     {
-      //encontre el stick de la dir fisica
+      // encontre el stick de la dir fisica
       *offset_en_stick = direccion_fisica - base_acumulada;
       indice = indice_actual;
       break;
@@ -640,7 +643,8 @@ char* leer_de_sticks(int direccion_fisica, int tamanio,
     if (indice == -1)
     {
       logger_error(logger,
-                   "La direccion fisica calculada no corresponde a ningún stick conectado");
+                   "La direccion fisica calculada no corresponde a ningún "
+                   "stick conectado");
       free(resultado);
       return NULL;
     }
@@ -648,7 +652,7 @@ char* leer_de_sticks(int direccion_fisica, int tamanio,
     t_datos_stick* stick = list_get(sticks_conectados, indice);
     int bytes_hasta_fin_stick = stick->tamanio_stick - offset_en_stick;
     int cant_bytes_a_leer = tamanio - bytes_leidos;
-    //reviso si el tamaño pedido entra en el stick o si esta cortado al medio
+    // reviso si el tamaño pedido entra en el stick o si esta cortado al medio
     if (cant_bytes_a_leer > bytes_hasta_fin_stick)
       cant_bytes_a_leer = bytes_hasta_fin_stick;
     // Envio pedido de lectura al stick
@@ -660,20 +664,18 @@ char* leer_de_sticks(int direccion_fisica, int tamanio,
     pthread_mutex_unlock(mutex_sticks);
 
     // Recibo respuesta
-    int stick_socket = ((t_datos_stick*)list_get(sticks_conectados, indice))->socket_stick;
+    int stick_socket =
+        ((t_datos_stick*)list_get(sticks_conectados, indice))->socket_stick;
     int op = recibir_operacion(stick_socket);
     if (op != OP_MEMORY_STICK_LEIDO)
     {
-      logger_error(logger, "Opcode de respuesta erroneo del stick %d",
-                   indice);
+      logger_error(logger, "Opcode de respuesta erroneo del stick %d", indice);
       free(resultado);
       return NULL;
     }
     // Recibo los bytes como string
     int size_recibido = 0;
-    char* fragmento = recibir_buffer(
-        &size_recibido,
-        stick_socket);
+    char* fragmento = recibir_buffer(&size_recibido, stick_socket);
 
     memcpy(resultado + bytes_leidos, fragmento, cant_bytes_a_leer);
     free(fragmento);
@@ -687,12 +689,14 @@ char* leer_de_sticks(int direccion_fisica, int tamanio,
   return resultado;
 }
 
-char*  cortar_cadena(int longitud_corte, char* cadena) {
-  if(strlen(cadena)>longitud_corte){
-  char* nueva_cadena = malloc(longitud_corte);
-  strncpy(nueva_cadena, cadena, longitud_corte);
-  nueva_cadena[longitud_corte] = '\0';
-  return nueva_cadena;
+char* cortar_cadena(int longitud_corte, char* cadena)
+{
+  if (strlen(cadena) > longitud_corte)
+  {
+    char* nueva_cadena = malloc(longitud_corte);
+    strncpy(nueva_cadena, cadena, longitud_corte);
+    nueva_cadena[longitud_corte] = '\0';
+    return nueva_cadena;
   }
   return cadena;
 }
