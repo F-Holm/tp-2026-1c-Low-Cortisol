@@ -1655,11 +1655,10 @@ static void rutina_des_suspension(t_colas* colas)
   bool seguir_operando = true;
   while (seguir_operando)
   {
-    while (seguir_operando && !(esta_vacia(&(colas->susp_ready))))
+    while (!(esta_vacia(&(colas->susp_ready))) && seguir_operando)
     {
       if (esta_compactando(colas))
       {
-        pthread_mutex_unlock(&(colas->susp_ready.mutex_lista));
         seguir_operando = false;
       }
       else
@@ -1667,11 +1666,11 @@ static void rutina_des_suspension(t_colas* colas)
         seguir_operando = retirar_de_la_lista(colas, EST_SUSP_READY);
       }
     }
-    while (seguir_operando && !(esta_vacia(&(colas->susp_block))))
+    pthread_mutex_unlock(&(colas->susp_ready.mutex_lista));
+    while (!(esta_vacia(&(colas->susp_block))) && seguir_operando)
     {
       if (esta_compactando(colas))
       {
-        pthread_mutex_unlock(&(colas->susp_block.mutex_lista));
         seguir_operando = false;
       }
       else
@@ -1679,6 +1678,7 @@ static void rutina_des_suspension(t_colas* colas)
         seguir_operando = retirar_de_la_lista(colas, EST_SUSP_BLOCK);
       }
     }
+    pthread_mutex_unlock(&(colas->susp_block.mutex_lista));
     if (seguir_operando &&
         !(esta_vacia(&(colas->susp_ready)) || esta_vacia(&(colas->susp_block))))
     {
