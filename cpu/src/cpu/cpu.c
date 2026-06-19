@@ -148,7 +148,7 @@ bool pedir_contexto_kernel_memory(t_cpu* cpu, uint32_t pid)
 t_registros* recibir_contexto_kernel_memory(t_cpu* cpu)
 {
   escuchar_kernel_memory(cpu);
-
+  logger_info(cpu->logger, "llego un registro");
   int size;
   void* buffer = recibir_buffer(&size, cpu->socket_kernel_memory);
   t_registros* contexto = malloc(sizeof(t_registros));

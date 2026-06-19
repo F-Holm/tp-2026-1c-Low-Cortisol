@@ -21,7 +21,7 @@ void* escucha_scheduler(void* ptr)
         aniadir_lista_mtx(datos_scheduler->procesos,
                           datos_scheduler->mutex_procesos, proceso);
 
-        logger_info(datos_scheduler->logger, "## PID: %ls - Proceso Creado",
+        logger_info(datos_scheduler->logger, "## PID: %d  - Proceso Creado",
                     pid);
         free(pid);
         list_clean(paquete);
@@ -294,7 +294,12 @@ void* escucha_cpu(void* ptr)
         uint32_t* pid = (uint32_t*)recibir_buffer(&a, datos_cpu->socket_cpu);
         t_proceso* proceso = buscar_proceso(datos_cpu->procesos,
                                             datos_cpu->mutex_procesos, *pid);
+        if (proceso == NULL){
+          logger_error(datos_cpu->logger,"PROCESO NO ENCONTRADO");
+          break;
+        }
         logger_info(datos_cpu->logger, "## PID: %u - Obtener registro", *pid);
+        logger_info(datos_cpu->logger, "delay de la instruccion %d",datos_cpu->instruction_delay);
         usleep(datos_cpu->instruction_delay * 1000);
         enviar_buffer(OP_ENVIAR_CONTEXTO, &proceso->registro,
                       sizeof(t_registros), datos_cpu->socket_cpu);
