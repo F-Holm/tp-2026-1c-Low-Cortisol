@@ -164,11 +164,17 @@ int calcular_memoria_total(t_list* sticks_conectados,
 int calcular_espacio_libre(t_list* huecos, pthread_mutex_t* mutex_huecos)
 {
   int total = 0;
-  for (int i = 0; i < list_size(huecos); i++)
+  printf("HOLAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
+  pthread_mutex_lock(mutex_huecos);
+  printf("HOLAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
+  t_list_iterator* iterador = list_iterator_create(huecos);
+  while (list_iterator_has_next(iterador))
   {
-    t_hueco* hueco_actual = (t_hueco*)list_get(huecos, i);
+    t_hueco* hueco_actual = list_iterator_next(iterador);
     total += hueco_actual->size;
   }
+  list_iterator_destroy(iterador);
+  pthread_mutex_unlock(mutex_huecos);
   return total;
 }
 
@@ -180,8 +186,8 @@ t_proceso* buscar_proceso(t_list* lista_procesos,
   {
     t_proceso* proceso = list_get(lista_procesos, i);
     if (proceso->pid == pid)
-    pthread_mutex_unlock(mutex_procesos);
-      return proceso;
+      pthread_mutex_unlock(mutex_procesos);
+    return proceso;
   }
   pthread_mutex_unlock(mutex_procesos);
   return NULL;

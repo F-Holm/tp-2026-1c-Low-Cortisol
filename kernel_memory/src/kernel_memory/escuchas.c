@@ -22,7 +22,7 @@ void* escucha_scheduler(void* ptr)
                           datos_scheduler->mutex_procesos, proceso);
 
         logger_info(datos_scheduler->logger, "## PID: %d  - Proceso Creado",
-                    pid);
+                    *pid);
         free(pid);
         list_clean(paquete);
         list_destroy(paquete);
@@ -234,8 +234,14 @@ void* escucha_scheduler(void* ptr)
         int tamanio = calcular_espacio_libre(
             datos_scheduler->memoria_principal->huecos,
             datos_scheduler->memoria_principal->mutex_memoria_principal);
+               logger_info(
+            datos_scheduler->logger,
+            "espacio libre calculado");
         enviar_buffer(OP_MEMORIA_DISPONIBLE, &tamanio, sizeof(int),
                       datos_scheduler->socket_scheduler);
+                      logger_info(
+            datos_scheduler->logger,
+            "espacio libre enviado");
       }
       case OP_PEDIR_TAMANIO_PROCESO:
       {
@@ -294,12 +300,14 @@ void* escucha_cpu(void* ptr)
         uint32_t* pid = (uint32_t*)recibir_buffer(&a, datos_cpu->socket_cpu);
         t_proceso* proceso = buscar_proceso(datos_cpu->procesos,
                                             datos_cpu->mutex_procesos, *pid);
-        if (proceso == NULL){
-          logger_error(datos_cpu->logger,"PROCESO NO ENCONTRADO");
+        if (proceso == NULL)
+        {
+          logger_error(datos_cpu->logger, "PROCESO NO ENCONTRADO");
           break;
         }
-        logger_info(datos_cpu->logger, "## PID: %u - Obtener registro", *pid);
-        logger_info(datos_cpu->logger, "delay de la instruccion %d",datos_cpu->instruction_delay);
+        logger_info(datos_cpu->logger, "## PID: %d - Obtener registro", *pid);
+        logger_info(datos_cpu->logger, "delay de la instruccion %d",
+                    datos_cpu->instruction_delay);
         usleep(datos_cpu->instruction_delay * 1000);
         enviar_buffer(OP_ENVIAR_CONTEXTO, &proceso->registro,
                       sizeof(t_registros), datos_cpu->socket_cpu);
