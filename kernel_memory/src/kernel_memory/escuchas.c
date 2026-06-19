@@ -226,6 +226,28 @@ void* escucha_scheduler(void* ptr)
         free(pid);
         break;
       }
+      case OP_PEDIR_MEMORIA_DISPONIBLE:
+      {
+        logger_info(
+            datos_scheduler->logger,
+            "Se requiere la memoria disponible por parte del scheduler");
+        enviar_buffer(
+            OP_MEMORIA_DISPONIBLE,
+            calcular_espacio_libre(
+                datos_scheduler->memoria_principal->huecos,
+                datos_scheduler->memoria_principal->mutex_memoria_principal),
+            sizeof(int), datos_scheduler->socket_scheduler);
+      }
+      case OP_PEDIR_TAMANIO_PROCESO:
+      {
+        int pid =
+            recibir_buffer(sizeof(int), datos_scheduler->socket_scheduler);
+        t_proceso* proceso = buscar_proceso(
+            datos_scheduler->procesos, datos_scheduler->mutex_procesos, pid);
+        int tamanio = calcular_tamanio_proceso(proceso);
+        enviar_buffer(OP_TAMANIO_PROCESO, tamanio, sizeof(int),
+                      datos_scheduler->socket_scheduler);
+      }
       case OP_CODE_ERROR:
         conexion_estable = false;
         break;
