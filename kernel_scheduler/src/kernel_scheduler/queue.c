@@ -194,18 +194,15 @@ bool esta_cola_ready_bloqueada(t_cola_ready* ready)
 
 void bloquear_cola_ready(t_cola_ready* ready)
 {
-  if (!(esta_cola_ready_bloqueada(ready)))
-  {
-    pthread_mutex_lock(&(ready->bloquear_salida));
-    ready->desalojar_todo = true;
-    pthread_mutex_unlock(&(ready->bloquear_salida));
-  }
+  pthread_mutex_lock(&(ready->bloquear_salida));
+  ready->desalojar_todo = true;
+  pthread_mutex_unlock(&(ready->bloquear_salida));
 }
 
 void desbloquear_cola_ready(t_cola_ready* ready)
 {
   pthread_mutex_lock(&(ready->bloquear_salida));
-  ready->desalojar_todo = true;
+  ready->desalojar_todo = false;
   pthread_mutex_unlock(&(ready->bloquear_salida));
   pthread_cond_broadcast(&(ready->salida_desbloqueada));
 }
