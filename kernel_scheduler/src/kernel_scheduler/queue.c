@@ -1659,6 +1659,7 @@ static void rutina_des_suspension(t_colas* colas)
     {
       if (esta_compactando(colas))
       {
+        pthread_mutex_unlock(&(colas->susp_ready.mutex_lista));
         seguir_operando = false;
       }
       else
@@ -1671,6 +1672,7 @@ static void rutina_des_suspension(t_colas* colas)
     {
       if (esta_compactando(colas))
       {
+        pthread_mutex_unlock(&(colas->susp_block.mutex_lista));
         seguir_operando = false;
       }
       else
