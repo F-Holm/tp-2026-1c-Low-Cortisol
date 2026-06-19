@@ -180,35 +180,38 @@ static void gestionar_desalojo_prioritario(t_datos_syscall* datos)
   if (datos->motivo_desalojo == MD_SIN_DESALOJO &&
       datos->datos->colas->exec.desalojo)
   {
-    logger_info(datos->datos->logger,
-                "## CPU %s: Desalojando proceso por cola prioritaria",
-                datos->datos->id);
     int prioridad_desalojado = get_prioridad_pcb(datos->pcb);
-    pthread_mutex_lock(
-        &(datos->datos->colas->ready.mutex_desalojo_prioritario));
     pthread_mutex_lock(&(datos->datos->colas->ready.mutex_cola));
     int prioridad_nuevo = datos->datos->colas->ready.mayor_prioridad;
-    pthread_mutex_unlock(&(datos->datos->colas->ready.mutex_cola));
     if (prioridad_desalojado > prioridad_nuevo)
     {
+      logger_info(datos->datos->logger,
+                  "## CPU %s: Desalojando proceso por cola prioritaria",
+                  datos->datos->id);
       t_pcb* nueva_pcb =
-          cambio_sacar_ready_bloqueante(&(datos->datos->colas->ready));
-      pthread_mutex_unlock(
-          &(datos->datos->colas->ready.mutex_desalojo_prioritario));
+          cambio_sacar_ready_siguiente_sin_mutex(&(datos->datos->colas->ready));
+      pthread_mutex_unlock(&(datos->datos->colas->ready.mutex_cola));
 
-      log_desalojo_cola_prioritaria(datos->datos->logger, datos->pcb->pid,
-                                    prioridad_desalojado, nueva_pcb->pid,
-                                    prioridad_nuevo);
-      cambio_exec_ready(datos->pcb, datos->datos->colas);
-      datos->pcb = nueva_pcb;
-      cambio_ready_exec(datos->pcb, datos->datos->colas);
-      cambio_a_exec(nueva_pcb, &(datos->datos->colas->exec));
-      datos->motivo_desalojo = MD_PROCESO_PRIORITARIO;
+      if (nueva_pcb != NULL)
+      {
+        log_desalojo_cola_prioritaria(datos->datos->logger, datos->pcb->pid,
+                                      prioridad_desalojado, nueva_pcb->pid,
+                                      prioridad_nuevo);
+        cambio_exec_ready(datos->pcb, datos->datos->colas);
+        cambio_ready_exec(nueva_pcb, datos->datos->colas);
+        cambio_a_exec(nueva_pcb, &(datos->datos->colas->exec));
+        datos->motivo_desalojo = MD_PROCESO_PRIORITARIO;
+        datos->pcb = nueva_pcb;
+      }
+      else
+      {
+        logger_error(datos->datos->logger,
+                     "## Error en el desalojo por prioridad");
+      }
     }
     else
     {
-      pthread_mutex_unlock(
-          &(datos->datos->colas->ready.mutex_desalojo_prioritario));
+      pthread_mutex_unlock(&(datos->datos->colas->ready.mutex_cola));
     }
   }
 }
@@ -244,10 +247,10 @@ static void gestionar_pedir_proceso(t_datos_syscall* datos)
                 datos->datos->id);
     datos->contador = 0;
     datos->pcb = cambio_sacar_ready_bloqueante(&(datos->datos->colas->ready));
-    logger_info(datos->datos->logger, "## CPU %s: obtuvo proceso: %u",
-                datos->datos->id, datos->pcb->pid);
     if (datos->pcb != NULL)
     {
+      logger_info(datos->datos->logger, "## CPU %s: obtuvo proceso: %u",
+                  datos->datos->id, datos->pcb->pid);
       cambio_ready_exec(datos->pcb, datos->datos->colas);
       cambio_a_exec(datos->pcb, &(datos->datos->colas->exec));
     }
@@ -263,6 +266,7 @@ static bool enviar_codigo(t_datos_syscall* datos)
 static void manejar_ciclo_cpu_ok(t_datos_syscall* datos)
 {
   free(recibir_string(datos->datos->socket_fd));
+  logger_info(datos->datos->logger, "## Ciclo CPU OK");
 }
 
 static void manejar_segmentation_fault(t_datos_syscall* datos)
