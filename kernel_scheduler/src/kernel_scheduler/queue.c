@@ -290,7 +290,7 @@ t_pcb* cambio_sacar_ready_siguiente_sin_mutex(t_cola_ready* ready)
     if (!list_is_empty(ready->colas[i].cola))
     {
       ready->cant_procesos_ready--;
-      t_pcb* pcb = list_get(ready->colas[i].cola, 0);
+      t_pcb* pcb = list_remove(ready->colas[i].cola, 0);
       if (list_is_empty(ready->colas[i].cola))
       {
         actualizar_mayor_prioridad_ready_sin_mutex(ready);
@@ -315,6 +315,8 @@ void cambio_ready_exec(t_pcb* pcb, t_colas* colas)
 void cambio_new_ready(t_colas* colas, char* archivo_instrucciones,
                       int prioridad)
 {
+  logger_info(colas->logger, "## Creando proceso de prioridad %d ubicado en %s",
+              prioridad, archivo_instrucciones);
   t_pcb* pcb = cambio_sacar_new(archivo_instrucciones, prioridad, colas);
   if (pcb != NULL)
   {
@@ -842,7 +844,7 @@ static void log_estado_no_valido(t_logger* logger, uint32_t pid, int estado,
                                  int estado_esperado, int estado_futuro)
 {
   logger_error(logger,
-               "## %d No puede pasar del estado %s al estado %s porque se "
+               "## %u No puede pasar del estado %s al estado %s porque se "
                "encuentra en el estado %s",
                pid, ESTADOS_STR[estado_esperado], ESTADOS_STR[estado_futuro],
                ESTADOS_STR[estado]);

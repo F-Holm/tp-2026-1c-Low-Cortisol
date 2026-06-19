@@ -231,8 +231,9 @@ static void gestionar_fin_quantum(t_datos_syscall* datos)
 
 static bool enviar_desalojo(t_datos_syscall* datos)
 {
-  logger_info(datos->datos->logger, "## CPU %s: Enviando mensaje de desalojo",
-              datos->datos->id);
+  logger_info(datos->datos->logger,
+              "## CPU %s: Enviando mensaje de desalojo: %s", datos->datos->id,
+              MOTIVOS_DESALOJO[datos->motivo_desalojo]);
   return enviar_string(
       (datos->motivo_desalojo != MD_SIN_DESALOJO ? OP_INTERRUPCION
                                                  : OP_SIN_INTERRUPCION),
