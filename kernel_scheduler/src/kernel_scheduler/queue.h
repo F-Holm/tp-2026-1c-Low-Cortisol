@@ -60,7 +60,6 @@ typedef struct
   pthread_mutex_t bloquear_salida;
   bool desalojar_todo;
   int mayor_prioridad;
-  pthread_mutex_t mutex_desalojo_prioritario;
   pthread_cond_t cola_vacia;
 } t_cola_ready;
 
@@ -152,6 +151,7 @@ void actualizar_prioridad(t_pcb* pcb, t_colas* colas);
 // funciones individuales
 void cambio_a_exec(t_pcb* pcb, t_lista_execute* exec);
 t_pcb* cambio_sacar_ready_bloqueante(t_cola_ready* ready);
+t_pcb* cambio_sacar_ready_siguiente_sin_mutex(t_cola_ready* ready);
 void cambio_ready_exec(t_pcb* pcb, t_colas* colas);
 
 // Funciones de cambios de estados

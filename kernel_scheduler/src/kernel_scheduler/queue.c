@@ -67,7 +67,6 @@ static void cambio_a_exit(t_pcb* pcb, t_colas* colas, int motivo);
 static t_pcb* cambio_sacar_new(char* archivo_instrucciones, int prioridad,
                                t_colas* colas);
 static void actualizar_mayor_prioridad_ready_sin_mutex(t_cola_ready* ready);
-static t_pcb* cambio_sacar_ready_siguiente_sin_mutex(t_cola_ready* ready);
 static t_pcb* cambio_sacar_ready_siguiente(t_cola_ready* ready);
 static void cambio_sacar_ready(t_pcb* pcb, t_cola_ready* ready);
 static void cambio_sacar_exec(t_pcb* pcb, t_lista_execute* exec,
@@ -195,18 +194,15 @@ bool esta_cola_ready_bloqueada(t_cola_ready* ready)
 
 void bloquear_cola_ready(t_cola_ready* ready)
 {
-  if (!(esta_cola_ready_bloqueada(ready)))
-  {
-    pthread_mutex_lock(&(ready->bloquear_salida));
-    ready->desalojar_todo = true;
-    pthread_mutex_unlock(&(ready->bloquear_salida));
-  }
+  pthread_mutex_lock(&(ready->bloquear_salida));
+  ready->desalojar_todo = true;
+  pthread_mutex_unlock(&(ready->bloquear_salida));
 }
 
 void desbloquear_cola_ready(t_cola_ready* ready)
 {
   pthread_mutex_lock(&(ready->bloquear_salida));
-  ready->desalojar_todo = true;
+  ready->desalojar_todo = false;
   pthread_mutex_unlock(&(ready->bloquear_salida));
   pthread_cond_broadcast(&(ready->salida_desbloqueada));
 }
@@ -287,6 +283,28 @@ t_pcb* cambio_sacar_ready_bloqueante(t_cola_ready* ready)
   return pcb;
 }
 
+t_pcb* cambio_sacar_ready_siguiente_sin_mutex(t_cola_ready* ready)
+{
+  for (int i = 0; i < ready->cantidad_colas; i++)
+  {
+    if (!list_is_empty(ready->colas[i].cola))
+    {
+      ready->cant_procesos_ready--;
+      t_pcb* pcb = list_remove(ready->colas[i].cola, 0);
+      if (list_is_empty(ready->colas[i].cola))
+      {
+        actualizar_mayor_prioridad_ready_sin_mutex(ready);
+      }
+      if (ready->cant_procesos_ready == 0)
+      {
+        pthread_cond_signal(&(ready->cola_vacia));
+      }
+      return pcb;
+    }
+  }
+  return NULL;
+}
+
 void cambio_ready_exec(t_pcb* pcb, t_colas* colas)
 {
   pthread_mutex_lock(&(pcb->mutex_estado));
@@ -297,6 +315,8 @@ void cambio_ready_exec(t_pcb* pcb, t_colas* colas)
 void cambio_new_ready(t_colas* colas, char* archivo_instrucciones,
                       int prioridad)
 {
+  logger_info(colas->logger, "## Creando proceso de prioridad %d ubicado en %s",
+              prioridad, archivo_instrucciones);
   t_pcb* pcb = cambio_sacar_new(archivo_instrucciones, prioridad, colas);
   if (pcb != NULL)
   {
@@ -635,7 +655,6 @@ static void inicializar_cola_ready(t_cola_ready* cola, int algoritmo,
   pthread_cond_init(&(cola->nuevo_proceso), NULL);
   pthread_mutex_init(&(cola->bloquear_salida), NULL);
   pthread_cond_init(&(cola->salida_desbloqueada), NULL);
-  pthread_mutex_init(&(cola->mutex_desalojo_prioritario), NULL);
   pthread_cond_init(&(cola->cola_vacia), NULL);
   cola->desalojar_todo = false;
   cola->mayor_prioridad = INT_MAX;
@@ -736,7 +755,6 @@ static void destruir_cola_ready(t_cola_ready* cola)
   pthread_cond_destroy(&(cola->salida_desbloqueada));
   pthread_mutex_destroy(&(cola->mutex_cola));
   pthread_mutex_destroy(&(cola->bloquear_salida));
-  pthread_mutex_destroy(&(cola->mutex_desalojo_prioritario));
   pthread_cond_destroy(&(cola->cola_vacia));
   free(cola->colas);
 }
@@ -826,7 +844,7 @@ static void log_estado_no_valido(t_logger* logger, uint32_t pid, int estado,
                                  int estado_esperado, int estado_futuro)
 {
   logger_error(logger,
-               "## %d No puede pasar del estado %s al estado %s porque se "
+               "## %u No puede pasar del estado %s al estado %s porque se "
                "encuentra en el estado %s",
                pid, ESTADOS_STR[estado_esperado], ESTADOS_STR[estado_futuro],
                ESTADOS_STR[estado]);
@@ -973,6 +991,7 @@ static t_pcb* cambio_sacar_new(char* archivo_instrucciones, int prioridad,
               pcb->pid);
 
   pcb->prioridad = prioridad;
+  pcb->estado = EST_NEW;
   int* aux = malloc(sizeof(int));
   *aux = prioridad;
   list_add(pcb->lista_prioridades, aux);
@@ -1017,28 +1036,6 @@ static void cambio_sacar_ready(t_pcb* pcb, t_cola_ready* ready)
     pthread_cond_signal(&(ready->cola_vacia));
   }
   pthread_mutex_unlock(&(ready->mutex_cola));
-}
-
-static t_pcb* cambio_sacar_ready_siguiente_sin_mutex(t_cola_ready* ready)
-{
-  for (int i = 0; i < ready->cantidad_colas; i++)
-  {
-    if (!list_is_empty(ready->colas[i].cola))
-    {
-      ready->cant_procesos_ready--;
-      t_pcb* pcb = list_get(ready->colas[i].cola, 0);
-      if (list_is_empty(ready->colas[i].cola))
-      {
-        actualizar_mayor_prioridad_ready_sin_mutex(ready);
-      }
-      if (ready->cant_procesos_ready == 0)
-      {
-        pthread_cond_signal(&(ready->cola_vacia));
-      }
-      return pcb;
-    }
-  }
-  return NULL;
 }
 
 static t_pcb* cambio_sacar_ready_siguiente(t_cola_ready* ready)
