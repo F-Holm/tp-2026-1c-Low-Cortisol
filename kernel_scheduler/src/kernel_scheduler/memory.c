@@ -8,13 +8,14 @@ static bool respuesta_km_mem_free(t_colas* colas);
 
 bool allocate_memory(t_syscall_memory* mem_alloc, t_colas* colas)
 {
-  if (!(hay_espacio(mem_alloc, colas)))
+  pthread_mutex_lock(&(colas->socket_km->mutex_socket));
+  if (!hay_espacio(mem_alloc, colas))
   {
+    pthread_mutex_unlock(&(colas->socket_km->mutex_socket));
     return false;
   }
 
   int mem_alloc_size = sizeof(t_syscall_memory);
-  pthread_mutex_lock(&(colas->socket_km->mutex_socket));
   bool comms = enviar_buffer(OP_SYSCALL_MEM_ALLOC, mem_alloc, mem_alloc_size,
                              colas->socket_km->socket_km);
 
@@ -96,8 +97,8 @@ static bool respuesta_km_mem_alloc(t_colas* colas)
 
 static bool hay_espacio(t_syscall_memory* mem_alloc, t_colas* colas)
 {
-  int espacio = espacio_disponible(colas, mem_alloc->pid);
-  return (espacio < mem_alloc->tamanio);
+  int espacio = espacio_disponible_sin_mutex(colas, mem_alloc->pid);
+  return espacio >= mem_alloc->tamanio;
 }
 
 static bool respuesta_km_mem_free(t_colas* colas)
