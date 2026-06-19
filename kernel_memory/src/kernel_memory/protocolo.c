@@ -175,16 +175,16 @@ int calcular_espacio_libre(t_list* huecos, pthread_mutex_t* mutex_huecos)
 t_proceso* buscar_proceso(t_list* lista_procesos,
                           pthread_mutex_t* mutex_procesos, uint32_t pid)
 {
-  t_proceso* resultado = NULL;
   pthread_mutex_lock(mutex_procesos);
   for (int i = 0; i < list_size(lista_procesos); i++)
   {
     t_proceso* proceso = list_get(lista_procesos, i);
     if (proceso->pid == pid)
-      resultado = proceso;
+    pthread_mutex_unlock(mutex_procesos);
+      return proceso;
   }
   pthread_mutex_unlock(mutex_procesos);
-  return resultado;
+  return NULL;
 }
 
 t_memoria_principal* aniadir_memoria_total(
