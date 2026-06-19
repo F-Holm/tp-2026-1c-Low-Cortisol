@@ -267,7 +267,8 @@ static bool enviar_codigo(t_datos_syscall* datos)
 static void manejar_ciclo_cpu_ok(t_datos_syscall* datos)
 {
   free(recibir_string(datos->datos->socket_fd));
-  logger_info(datos->datos->logger, "## Ciclo CPU OK");
+  logger_info(datos->datos->logger, "## CPU %s: Ciclo CPU OK",
+              datos->datos->id);
 }
 
 static void manejar_segmentation_fault(t_datos_syscall* datos)
