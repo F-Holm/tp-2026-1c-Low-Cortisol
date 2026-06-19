@@ -58,6 +58,8 @@ typedef struct
   pthread_cond_t nuevo_proceso;
   pthread_cond_t salida_desbloqueada;
   pthread_mutex_t bloquear_salida;
+  bool terminar_cola;
+  pthread_mutex_t mutex_terminar_cola;
   bool desalojar_todo;
   int mayor_prioridad;
   pthread_cond_t cola_vacia;
@@ -142,8 +144,12 @@ void destruir_colas(t_colas* colas);
 bool esta_cola_ready_bloqueada(t_cola_ready* ready);
 void bloquear_cola_ready(t_cola_ready* ready);
 void desbloquear_cola_ready(t_cola_ready* ready);
+bool cola_ready_terminada(t_cola_ready* ready);
+void terminar_cola_ready(t_cola_ready* ready);
+
 void esperar_cola_exec_vacia(t_colas* colas);
 void esperar_cola_exec_vacia_con_syscalls(t_colas* colas);
+
 bool puedo_suspender(t_pcb* pcb, int suspension_timeout);
 void actualizar_prioridad(t_pcb* pcb, t_colas* colas);
 

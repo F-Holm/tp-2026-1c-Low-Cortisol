@@ -94,6 +94,7 @@ static void cerrar_hilo_escucha(t_io* estructuras_io, t_list* lista_sockets_cpu,
                                 t_datos_servidor_escucha* datos)
 {
   cerrar_io(estructuras_io);
-  cerrar_cpu(lista_sockets_cpu, mutex_lista_sockets_cpu, cond_fin_cpu);
+  cerrar_cpu(lista_sockets_cpu, mutex_lista_sockets_cpu, cond_fin_cpu,
+             datos->colas);
   free(datos);
 }

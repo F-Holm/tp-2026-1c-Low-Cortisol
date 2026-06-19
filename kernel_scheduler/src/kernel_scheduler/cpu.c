@@ -112,8 +112,9 @@ bool atender_nueva_cpu(int socket_cpu, t_list* lista_sockets_cpu,
 
 void cerrar_cpu(t_list* lista_sockets_cpu,
                 pthread_mutex_t* mutex_lista_sockets_cpu,
-                pthread_cond_t* cond_fin_cpu)
+                pthread_cond_t* cond_fin_cpu, t_colas* colas)
 {
+  terminar_cola_ready(&(colas->ready));
   pthread_mutex_lock(mutex_lista_sockets_cpu);
   list_iterate(lista_sockets_cpu, (void*)iterator_shutdown);
   while (!list_is_empty(lista_sockets_cpu))
