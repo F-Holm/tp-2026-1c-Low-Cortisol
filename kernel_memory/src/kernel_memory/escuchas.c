@@ -231,27 +231,29 @@ void* escucha_scheduler(void* ptr)
         logger_info(
             datos_scheduler->logger,
             "Se requiere la memoria disponible por parte del scheduler");
-        enviar_buffer(
-            OP_MEMORIA_DISPONIBLE,
-            calcular_espacio_libre(
-                datos_scheduler->memoria_principal->huecos,
-                datos_scheduler->memoria_principal->mutex_memoria_principal),
-            sizeof(int), datos_scheduler->socket_scheduler);
+        int tamanio = calcular_espacio_libre(
+            datos_scheduler->memoria_principal->huecos,
+            datos_scheduler->memoria_principal->mutex_memoria_principal);
+        enviar_buffer(OP_MEMORIA_DISPONIBLE, &tamanio, sizeof(int),
+                      datos_scheduler->socket_scheduler);
       }
       case OP_PEDIR_TAMANIO_PROCESO:
       {
-        int pid =
-            recibir_buffer(sizeof(int), datos_scheduler->socket_scheduler);
+        int a;
+        int* pid = (int*)recibir_buffer(&a, datos_scheduler->socket_scheduler);
         t_proceso* proceso = buscar_proceso(
-            datos_scheduler->procesos, datos_scheduler->mutex_procesos, pid);
+            datos_scheduler->procesos, datos_scheduler->mutex_procesos, *pid);
         int tamanio = calcular_tamanio_proceso(proceso);
-        enviar_buffer(OP_TAMANIO_PROCESO, tamanio, sizeof(int),
+        enviar_buffer(OP_TAMANIO_PROCESO, &tamanio, sizeof(int),
                       datos_scheduler->socket_scheduler);
       }
       case OP_CODE_ERROR:
         conexion_estable = false;
         break;
       default:
+        logger_error(datos_scheduler->logger,
+                     "Error codigo de operacion no reconocido");
+        conexion_estable = false;
         break;
     }
   }
