@@ -701,3 +701,14 @@ char* cortar_cadena(int longitud_corte, char* cadena)
   }
   return cadena;
 }
+
+int calcular_tamanio_proceso(t_proceso* proceso)
+{
+  int tamanio = 0;
+  for (int i = 0; i < list_size(proceso->segmentos); i++)
+  {
+    t_segmento* segmento_aux = list_get(proceso->segmentos, i);
+    tamanio += segmento_aux->size;
+  }
+  return tamanio;
+}
