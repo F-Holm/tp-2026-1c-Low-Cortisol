@@ -45,7 +45,8 @@ void handshake(t_datos_kernel_mem* datos_kernel_memory, int client_socket)
           datos_kernel_memory->mutex_procesos,
           datos_kernel_memory->instruction_delay, datos_kernel_memory->logger);
       inicializar_correcto = recibir_id_cpu(datos_cpu);
-      enviar_buffer(OP_TAMANIO_MAX_SEG,&datos_kernel_memory->segment_max_size,sizeof(int),datos_cpu->socket_cpu);
+      enviar_buffer(OP_TAMANIO_MAX_SEG, &datos_kernel_memory->segment_max_size,
+                    sizeof(int), datos_cpu->socket_cpu);
       agregar_conexion_cpu(datos_kernel_memory, datos_cpu);
       if (inicializar_correcto)
       {
