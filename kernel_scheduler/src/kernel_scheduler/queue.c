@@ -1357,10 +1357,9 @@ static void desbloquear_hilo_suspendido(t_datos_hilo_suspendido* datos)
 
 static void esperar_desbloqueo(t_datos_hilo_suspendido* datos)
 {
-  pthread_cond_wait(&(datos->desbloquear), &(datos->mutex_estado));
-  if (datos->estado == EH_BLOQUEADO)
+  while (datos->estado == EH_BLOQUEADO)
   {
-    datos->estado = EH_EJECUTANDO;
+    pthread_cond_wait(&(datos->desbloquear), &(datos->mutex_estado));
   }
 }
 
@@ -1413,7 +1412,7 @@ static void esperar_proceso_bloqueado(t_colas* colas,
   if (list_is_empty(colas->block.lista))
   {
     pthread_cond_wait(datos->datos->esperar_proceso,
-                      &(datos->datos->mutex_estado));
+                      &(colas->block.mutex_lista));
   }
   bool lista_vacia = list_is_empty(colas->block.lista);
   pthread_mutex_unlock(&(colas->block.mutex_lista));
@@ -1461,14 +1460,14 @@ static void esperar_proceso_susp_ready(t_colas* colas,
                                        t_datos_hilo_des_suspensor* datos)
 {
   pthread_mutex_unlock(&(datos->datos->mutex_estado));
-  pthread_mutex_lock(&(colas->susp_block.mutex_lista));
-  if (list_is_empty(colas->susp_block.lista))
+  pthread_mutex_lock(&(colas->susp_ready.mutex_lista));
+  if (list_is_empty(colas->susp_ready.lista))
   {
     pthread_cond_wait(datos->datos->esperar_proceso,
-                      &(datos->datos->mutex_estado));
+                      &(colas->susp_ready.mutex_lista));
   }
-  bool lista_vacia = list_is_empty(colas->susp_block.lista);
-  pthread_mutex_unlock(&(colas->susp_block.mutex_lista));
+  bool lista_vacia = list_is_empty(colas->susp_ready.lista);
+  pthread_mutex_unlock(&(colas->susp_ready.mutex_lista));
   pthread_mutex_lock(&(datos->datos->mutex_estado));
   if (!lista_vacia && datos->datos->estado == EH_ESPERANDO_PROCESO)
   {
@@ -1750,6 +1749,7 @@ static void* hilo_rutina_des_suspension(void* datos_des_suspension)
     rutina_des_suspension(colas);
     esta_des_suspendiendo_set(colas, false);
     desbloquear_hilos_suspendido(colas);
+    logger_info(colas->logger, "## Rutina de des-suspensión terminada");
   }
   pthread_mutex_unlock(&(colas->mutex_rutina));
   restar_contador_hilos(colas);
