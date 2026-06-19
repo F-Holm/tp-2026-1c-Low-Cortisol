@@ -124,8 +124,8 @@ static bool retirar_de_la_lista(t_colas* colas, int estado_deseado);
 static void retirar_elementos_des_suspension(t_colas* colas, t_lista* lista,
                                              int estado, bool* seguir_operando);
 static void rutina_des_suspension(t_colas* colas);
-static int recibir_espacio(t_colas* colas, int espacio);
-static int recibir_tamanio(t_colas* colas, int espacio);
+static int recibir_espacio(t_colas* colas);
+static int recibir_tamanio(t_colas* colas);
 static void* hilo_rutina_des_suspension(void* datos_des_suspension);
 static bool esta_des_suspendiendo_set(t_colas* colas, bool nuevo_estado);
 static bool esta_compactando_set(t_colas* colas, bool nuevo_estado);
@@ -483,7 +483,6 @@ void desbloquear_hilos_suspendido(t_colas* colas)
 
 int espacio_disponible_sin_mutex(t_colas* colas, uint32_t pid)
 {
-  int espacio = -1;
   if (!(enviar_string(OP_PEDIR_MEMORIA_DISPONIBLE,
                       "Solicito el espacio disponible",
                       colas->socket_km->socket_km)))
@@ -491,9 +490,9 @@ int espacio_disponible_sin_mutex(t_colas* colas, uint32_t pid)
     cerrar_kernel_scheduler(colas->socket_servidor, colas->logger,
                             MC_ERROR_ENVIO_KERNEL_MEMORY,
                             colas->socket_km->socket_km);
-    return espacio;
+    return -1;
   }
-  return recibir_espacio(colas, espacio);
+  return recibir_espacio(colas);
 }
 
 int espacio_disponible(t_colas* colas, uint32_t pid)
@@ -506,18 +505,16 @@ int espacio_disponible(t_colas* colas, uint32_t pid)
 
 int tamanio_proceso_sin_mutex(t_colas* colas, uint32_t pid)
 {
-  int espacio = -1;
-
   if (!(enviar_buffer(OP_PEDIR_TAMANIO_PROCESO, &pid, sizeof(uint32_t),
                       colas->socket_km->socket_km)))
   {
     cerrar_kernel_scheduler(colas->socket_servidor, colas->logger,
                             MC_ERROR_ENVIO_KERNEL_MEMORY,
                             colas->socket_km->socket_km);
-    return espacio;
+    return -1;
   }
 
-  return recibir_tamanio(colas, espacio);
+  return recibir_tamanio(colas);
 }
 
 int tamanio_proceso(t_colas* colas, uint32_t pid)
@@ -1717,10 +1714,10 @@ static void rutina_des_suspension(t_colas* colas)
                                    &seguir_operando);
 }
 
-static int recibir_espacio(t_colas* colas, int espacio)
+static int recibir_espacio(t_colas* colas)
 {
-  int op_code = -1;
-  op_code = recibir_operacion(colas->socket_km->socket_km);
+  int espacio;
+  int op_code = recibir_operacion(colas->socket_km->socket_km);
 
   switch (op_code)
   {
@@ -1732,7 +1729,7 @@ static int recibir_espacio(t_colas* colas, int espacio)
     case OP_NUEVO_MEMORY_STICK:
       free(recibir_string(colas->socket_km->socket_km));
       crear_hilo_rutina_des_suspension(colas);
-      recibir_espacio(colas, espacio);
+      recibir_espacio(colas);
       break;
     case OP_MEMORIA_CORRUPTA:
       cerrar_kernel_scheduler(colas->socket_servidor, colas->logger,
@@ -1743,13 +1740,14 @@ static int recibir_espacio(t_colas* colas, int espacio)
                               MC_FALLO_CONEXION_KERNEL_MEMORY, -1);
       break;
   }
+  logger_info(colas->logger, "## Espacio disponible: %d", espacio);
   return espacio;
 }
 
-static int recibir_tamanio(t_colas* colas, int espacio)
+static int recibir_tamanio(t_colas* colas)
 {
-  int op_code = -1;
-  op_code = recibir_operacion(colas->socket_km->socket_km);
+  int op_code = recibir_operacion(colas->socket_km->socket_km);
+  int espacio;
 
   switch (op_code)
   {
@@ -1761,7 +1759,7 @@ static int recibir_tamanio(t_colas* colas, int espacio)
     case OP_NUEVO_MEMORY_STICK:
       free(recibir_string(colas->socket_km->socket_km));
       crear_hilo_rutina_des_suspension(colas);
-      recibir_tamanio(colas, espacio);
+      recibir_tamanio(colas);
       break;
     case OP_MEMORIA_CORRUPTA:
       cerrar_kernel_scheduler(colas->socket_servidor, colas->logger,
@@ -1772,6 +1770,7 @@ static int recibir_tamanio(t_colas* colas, int espacio)
                               MC_FALLO_CONEXION_KERNEL_MEMORY, -1);
       break;
   }
+  logger_info(colas->logger, "## Tamaño proceso: %d", espacio);
   return espacio;
 }
 
