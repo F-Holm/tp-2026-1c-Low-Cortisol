@@ -120,8 +120,11 @@ static bool puede_des_suspender_sin_compactacion_sin_mutex(t_colas* colas,
                                                            t_pcb* proceso);
 static bool des_suspender_proceso_sin_compactacion(t_colas* colas,
                                                    t_pcb* proceso);
+static bool esta_vacia_sin_unlock(t_lista* lista);
 static bool esta_vacia(t_lista* lista);
 static bool retirar_de_la_lista(t_colas* colas, int estado_deseado);
+static void retirar_elementos_des_suspension(t_colas* colas, t_lista* lista, int estado,
+                                 bool* seguir_operando);
 static void rutina_des_suspension(t_colas* colas);
 static int recibir_espacio(t_colas* colas, int espacio);
 static int recibir_tamanio(t_colas* colas, int espacio);
@@ -1583,14 +1586,13 @@ static bool puede_des_suspender_sin_compactacion_sin_mutex(t_colas* colas,
                                                            t_pcb* proceso)
 {
   pthread_mutex_lock(&(colas->socket_km->mutex_socket));
-  if (!(puede_des_suspender_sin_mutex(proceso, colas)))
+  if (!puede_des_suspender_sin_mutex(proceso, colas))
   {
     return false;
   }
 
-  if (!(enviar_buffer(OP_DES_SUSPENDER_PROCESO_SIN_COMPACTACION,
-                      &(proceso->pid), sizeof(uint32_t),
-                      colas->socket_km->socket_km)))
+  if (!enviar_buffer(OP_DES_SUSPENDER_PROCESO_SIN_COMPACTACION, &(proceso->pid),
+                     sizeof(uint32_t), colas->socket_km->socket_km))
   {
     cerrar_kernel_scheduler(colas->socket_servidor, colas->logger,
                             MC_ERROR_ENVIO_KERNEL_MEMORY,
@@ -1616,10 +1618,18 @@ static bool des_suspender_proceso_sin_compactacion(t_colas* colas,
   return false;
 }
 
-static bool esta_vacia(t_lista* lista)
+static bool esta_vacia_sin_unlock(t_lista* lista)
 {
   pthread_mutex_lock(&(lista->mutex_lista));
   return list_is_empty(lista->lista);
+}
+
+static bool esta_vacia(t_lista* lista)
+{
+  pthread_mutex_lock(&(lista->mutex_lista));
+  bool ret = list_is_empty(lista->lista);
+  pthread_mutex_unlock(&(lista->mutex_lista));
+  return ret;
 }
 
 static bool retirar_de_la_lista(t_colas* colas, int estado_deseado)
@@ -1647,7 +1657,26 @@ static bool retirar_de_la_lista(t_colas* colas, int estado_deseado)
     return resultado;
   }
 
+  pthread_mutex_unlock(&(proceso->mutex_estado));
   return true;
+}
+
+static void retirar_elementos_des_suspension(t_colas* colas, t_lista* lista,
+                                             int estado, bool* seguir_operando)
+{
+  while (!esta_vacia_sin_unlock(lista) && *seguir_operando)
+  {
+    if (esta_compactando(colas))
+    {
+      pthread_mutex_unlock(&(lista->mutex_lista));
+      *seguir_operando = false;
+    }
+    else
+    {
+      *seguir_operando = retirar_de_la_lista(colas, estado);
+    }
+  }
+  pthread_mutex_unlock(&(lista->mutex_lista));
 }
 
 static void rutina_des_suspension(t_colas* colas)
@@ -1655,36 +1684,15 @@ static void rutina_des_suspension(t_colas* colas)
   bool seguir_operando = true;
   while (seguir_operando)
   {
-    while (seguir_operando && !(esta_vacia(&(colas->susp_ready))))
-    {
-      if (esta_compactando(colas))
-      {
-        pthread_mutex_unlock(&(colas->susp_ready.mutex_lista));
-        seguir_operando = false;
-      }
-      else
-      {
-        seguir_operando = retirar_de_la_lista(colas, EST_SUSP_READY);
-      }
-    }
-    while (seguir_operando && !(esta_vacia(&(colas->susp_block))))
-    {
-      if (esta_compactando(colas))
-      {
-        pthread_mutex_unlock(&(colas->susp_block.mutex_lista));
-        seguir_operando = false;
-      }
-      else
-      {
-        seguir_operando = retirar_de_la_lista(colas, EST_SUSP_BLOCK);
-      }
-    }
+    retirar_elementos_des_suspension(colas, &(colas->susp_ready),
+                                     EST_SUSP_READY, &seguir_operando);
+    retirar_elementos_des_suspension(colas, &(colas->susp_block),
+                                     EST_SUSP_BLOCK, &seguir_operando);
+
     if (seguir_operando &&
         !(esta_vacia(&(colas->susp_ready)) || esta_vacia(&(colas->susp_block))))
     {
       seguir_operando = false;
-      pthread_mutex_unlock(&(colas->susp_ready.mutex_lista));
-      pthread_mutex_unlock(&(colas->susp_block.mutex_lista));
     }
   }
 }
