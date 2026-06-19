@@ -234,14 +234,10 @@ void* escucha_scheduler(void* ptr)
         int tamanio = calcular_espacio_libre(
             datos_scheduler->memoria_principal->huecos,
             datos_scheduler->memoria_principal->mutex_memoria_principal);
-               logger_info(
-            datos_scheduler->logger,
-            "espacio libre calculado");
+        logger_info(datos_scheduler->logger, "espacio libre calculado");
         enviar_buffer(OP_MEMORIA_DISPONIBLE, &tamanio, sizeof(int),
                       datos_scheduler->socket_scheduler);
-                      logger_info(
-            datos_scheduler->logger,
-            "espacio libre enviado");
+        logger_info(datos_scheduler->logger, "espacio libre enviado");
       }
       case OP_PEDIR_TAMANIO_PROCESO:
       {
