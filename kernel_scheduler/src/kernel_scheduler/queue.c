@@ -123,8 +123,8 @@ static bool des_suspender_proceso_sin_compactacion(t_colas* colas,
 static bool esta_vacia_sin_unlock(t_lista* lista);
 static bool esta_vacia(t_lista* lista);
 static bool retirar_de_la_lista(t_colas* colas, int estado_deseado);
-static void retirar_elementos_des_suspension(t_colas* colas, t_lista* lista, int estado,
-                                 bool* seguir_operando);
+static void retirar_elementos_des_suspension(t_colas* colas, t_lista* lista,
+                                             int estado, bool* seguir_operando);
 static void rutina_des_suspension(t_colas* colas);
 static int recibir_espacio(t_colas* colas, int espacio);
 static int recibir_tamanio(t_colas* colas, int espacio);
@@ -1764,9 +1764,7 @@ static void* hilo_rutina_des_suspension(void* datos_des_suspension)
   {
     bloquear_hilos_suspendido(colas);
     rutina_des_suspension(colas);
-    pthread_mutex_lock(&(colas->mutex_des_suspension_activa));
-    colas->des_suspension_activa = false;
-    pthread_mutex_unlock(&(colas->mutex_des_suspension_activa));
+    esta_des_suspendiendo_set(colas, false);
     desbloquear_hilos_suspendido(colas);
   }
   pthread_mutex_unlock(&(colas->mutex_rutina));
