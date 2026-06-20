@@ -24,6 +24,8 @@
 | `make test` | Compila y ejecuta los tests. |
 | `make format` | Ejecuta clang-format para darle formato estándar a todo el código. |
 | `make run` | Compila y ejecuta los módulos. |
+| `make memcheck` | Compila y ejecuta los módulos con memcheck. |
+| `make helgrind` | Compila y ejecuta los módulos con helgrind. |
 | `make kill` | Detiene la ejecución del sistema. |
 
 ---
