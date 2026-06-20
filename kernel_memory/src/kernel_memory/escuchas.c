@@ -245,7 +245,8 @@ void* escucha_scheduler(void* ptr)
       case OP_PEDIR_TAMANIO_PROCESO:
       {
         int a;
-        int* pid = (int*)recibir_buffer(&a, datos_scheduler->socket_scheduler);
+        uint32_t* pid =
+            (uint32_t*)recibir_buffer(&a, datos_scheduler->socket_scheduler);
         t_proceso* proceso = buscar_proceso(
             datos_scheduler->procesos, datos_scheduler->mutex_procesos, *pid);
         int tamanio = calcular_tamanio_proceso(proceso);
@@ -255,7 +256,7 @@ void* escucha_scheduler(void* ptr)
                       datos_scheduler->socket_scheduler);
         break;
       }
-      case OP_CIERRE_KERNEL_SCHEDULER :
+      case OP_CIERRE_KERNEL_SCHEDULER:
       {
         liberar_datos_scheduler(datos_scheduler);
         break;
@@ -318,12 +319,15 @@ void* escucha_cpu(void* ptr)
         usleep(datos_cpu->instruction_delay * 1000);
         enviar_buffer(OP_ENVIAR_CONTEXTO, &proceso->registro,
                       sizeof(t_registros), datos_cpu->socket_cpu);
+        logger_info(datos_cpu->logger, "Enviando tabla de segmentos");
         t_paquete* tabla_segmentos_proceso =
             crear_paquete(OP_TABLA_DE_SEGMENTOS);
         agregar_segmentos_a_paquete(
             filtrar_segmentos_proceso(*pid, proceso->segmentos),
             tabla_segmentos_proceso);
         enviar_paquete(tabla_segmentos_proceso, datos_cpu->socket_cpu);
+        logger_info(datos_cpu->logger, "Tabla de segmentos enviada");
+        eliminar_paquete(tabla_segmentos_proceso);
         free(pid);
         break;
       }

@@ -7,8 +7,6 @@ void aniadir_lista_mtx(t_list* lista, pthread_mutex_t* mutex, void* elemento)
   pthread_mutex_unlock(mutex);
 }
 
-
-
 bool recibir_id_cpu(t_datos_cpu* datos_cpu)
 {
   if (recibir_operacion(datos_cpu->socket_cpu) == OP_ID_CPU)
@@ -100,7 +98,8 @@ void enviar_sticks_conectadas(t_list* sticks_conectados,
   for (int i = 0; i < total_sticks; i++)
   {
     t_paquete* paquete = crear_paquete(OP_PAQUETE);
-    t_datos_stick* stick_actual = (t_datos_stick*)list_get(sticks_conectados, i);
+    t_datos_stick* stick_actual =
+        (t_datos_stick*)list_get(sticks_conectados, i);
 
     char puerto[6];
     snprintf(puerto, sizeof(puerto), "%u", stick_actual->puerto_stick);
@@ -113,7 +112,6 @@ void enviar_sticks_conectadas(t_list* sticks_conectados,
     eliminar_paquete(paquete);
   }
   pthread_mutex_unlock(mutex_lista_sockets);
-
 }
 
 void enviar_conexion_cpu(t_datos_stick* datos_stick, t_list* cpus_conectados)
@@ -180,8 +178,10 @@ t_proceso* buscar_proceso(t_list* lista_procesos,
   {
     t_proceso* proceso = list_get(lista_procesos, i);
     if (proceso->pid == pid)
+    {
       pthread_mutex_unlock(mutex_procesos);
-    return proceso;
+      return proceso;
+    }
   }
   pthread_mutex_unlock(mutex_procesos);
   return NULL;

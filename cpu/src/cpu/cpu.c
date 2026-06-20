@@ -160,11 +160,12 @@ t_registros* recibir_contexto_kernel_memory(t_cpu* cpu)
 
 t_list* recibir_tabla_segmentos(t_cpu* cpu)
 {
-    escuchar_kernel_memory(cpu);
-    t_list* tabla_segmentos = recibir_paquete(cpu->socket_kernel_memory);
-    log_info(cpu->logger, "Tabla de segmentos recibida - Cantidad de segmentos: %d",
-             list_size(tabla_segmentos));
-    return tabla_segmentos;
+  escuchar_kernel_memory(cpu);
+  t_list* tabla_segmentos = recibir_paquete(cpu->socket_kernel_memory);
+  log_info(cpu->logger,
+           "Tabla de segmentos recibida - Cantidad de segmentos: %d",
+           list_size(tabla_segmentos));
+  return tabla_segmentos;
 }
 
 void ejecutar_ciclo_instruccion(t_cpu* cpu, uint32_t pid, t_contexto* contexto)
