@@ -249,6 +249,8 @@ void* escucha_scheduler(void* ptr)
         t_proceso* proceso = buscar_proceso(
             datos_scheduler->procesos, datos_scheduler->mutex_procesos, *pid);
         int tamanio = calcular_tamanio_proceso(proceso);
+        logger_info(datos_scheduler->logger,
+                    "tamanio de proceso requerido es de: %d", tamanio);
         enviar_buffer(OP_TAMANIO_PROCESO, &tamanio, sizeof(int),
                       datos_scheduler->socket_scheduler);
         break;
