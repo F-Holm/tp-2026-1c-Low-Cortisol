@@ -93,9 +93,9 @@ static void cerrar_hilo_escucha(t_io* estructuras_io, t_list* lista_sockets_cpu,
                                 pthread_cond_t* cond_fin_cpu,
                                 t_datos_servidor_escucha* datos)
 {
-  cerrar_io(estructuras_io);
-  printf("llego a cerrar io");
   cerrar_cpu(lista_sockets_cpu, mutex_lista_sockets_cpu, cond_fin_cpu,
              datos->colas);
+  cerrar_io(estructuras_io);
+  logger_info(datos->logger, "## Servidor cerrado");
   free(datos);
 }
