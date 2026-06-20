@@ -690,6 +690,7 @@ static void inicializar_cola_ready(t_cola_ready* cola, int algoritmo,
   pthread_cond_init(&(cola->salida_desbloqueada), NULL);
   pthread_cond_init(&(cola->cola_vacia), NULL);
   cola->desalojar_todo = false;
+  cola->cant_procesos_ready = 0;
   cola->mayor_prioridad = INT_MAX;
   cola->terminar_cola = false;
 }
