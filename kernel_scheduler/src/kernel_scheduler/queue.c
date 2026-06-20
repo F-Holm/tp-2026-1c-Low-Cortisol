@@ -1716,20 +1716,21 @@ static void rutina_des_suspension(t_colas* colas)
 
 static int recibir_espacio(t_colas* colas)
 {
-  int espacio;
   int op_code = recibir_operacion(colas->socket_km->socket_km);
 
   switch (op_code)
   {
     case OP_MEMORIA_DISPONIBLE:
+      int espacio;
       int* aux = recibir_buffer(&espacio, colas->socket_km->socket_km);
       espacio = *aux;
       free(aux);
+      logger_info(colas->logger, "## Espacio disponible: %d", espacio);
       break;
     case OP_NUEVO_MEMORY_STICK:
       free(recibir_string(colas->socket_km->socket_km));
       crear_hilo_rutina_des_suspension(colas);
-      recibir_espacio(colas);
+      return recibir_espacio(colas);
       break;
     case OP_MEMORIA_CORRUPTA:
       cerrar_kernel_scheduler(colas->socket_servidor, colas->logger,
@@ -1740,26 +1741,27 @@ static int recibir_espacio(t_colas* colas)
                               MC_FALLO_CONEXION_KERNEL_MEMORY, -1);
       break;
   }
-  logger_info(colas->logger, "## Espacio disponible: %d", espacio);
-  return espacio;
+  return -1;
 }
 
 static int recibir_tamanio(t_colas* colas)
 {
   int op_code = recibir_operacion(colas->socket_km->socket_km);
-  int espacio;
 
   switch (op_code)
   {
     case OP_TAMANIO_PROCESO:
+      int espacio;
       int* aux = recibir_buffer(&espacio, colas->socket_km->socket_km);
       espacio = *aux;
       free(aux);
+      logger_info(colas->logger, "## Tamaño proceso: %d", espacio);
+      return espacio;
       break;
     case OP_NUEVO_MEMORY_STICK:
       free(recibir_string(colas->socket_km->socket_km));
       crear_hilo_rutina_des_suspension(colas);
-      recibir_tamanio(colas);
+      return recibir_tamanio(colas);
       break;
     case OP_MEMORIA_CORRUPTA:
       cerrar_kernel_scheduler(colas->socket_servidor, colas->logger,
@@ -1770,8 +1772,7 @@ static int recibir_tamanio(t_colas* colas)
                               MC_FALLO_CONEXION_KERNEL_MEMORY, -1);
       break;
   }
-  logger_info(colas->logger, "## Tamaño proceso: %d", espacio);
-  return espacio;
+  return -1;
 }
 
 static void* hilo_rutina_des_suspension(void* datos_des_suspension)
