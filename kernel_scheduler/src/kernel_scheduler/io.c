@@ -79,6 +79,7 @@ bool atender_nuevo_io(t_io io[3], int socket_fd, t_colas* colas,
   io[tipo_io].lista_io = malloc(sizeof(t_lista_io));
   io[tipo_io].lista_io->lista_io = list_create();
   pthread_mutex_init(&(io[tipo_io].lista_io->mutex_lista_io), NULL);
+  io[tipo_io].cerrar_hilo = false;
 
   if (pthread_create(&(io[tipo_io].hilo_io), NULL, hilo_io,
                      (void*)(&(io[tipo_io]))))
