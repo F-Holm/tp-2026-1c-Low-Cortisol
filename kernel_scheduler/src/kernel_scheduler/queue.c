@@ -660,7 +660,7 @@ static void destruir_contador_hilos(t_colas* colas)
 
 static void destruir_contador_syscalls(t_colas* colas)
 {
-  destruir_contador(colas->contador_hilos);
+  destruir_contador(colas->contador_syscalls);
 }
 
 static void inicializar_cola_ready(t_cola_ready* cola, int algoritmo,
