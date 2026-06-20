@@ -384,9 +384,13 @@ void cambio_exec_exit(t_pcb* pcb, t_colas* colas, int motivo)
   if (gestionar_estado_pcb(colas->logger, pcb, EST_EXEC, EST_EXIT))
   {
     cambio_sacar_exec(pcb, &(colas->exec), colas->contador_syscalls);
+    pthread_mutex_unlock(&(pcb->mutex_estado));
     cambio_a_exit(pcb, colas, motivo);
   }
-  pthread_mutex_unlock(&(pcb->mutex_estado));
+  else
+  {
+    pthread_mutex_unlock(&(pcb->mutex_estado));
+  }
 }
 
 void cambio_exec_block(t_pcb* pcb, t_colas* colas)
