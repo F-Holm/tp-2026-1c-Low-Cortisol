@@ -26,7 +26,8 @@ t_proceso* buscar_proceso(t_list* lista_procesos,
                           pthread_mutex_t* mutex_procesos, uint32_t pid);
 int calcular_memoria_total(t_list* sticks_conectados,
                            pthread_mutex_t* mutex_lista_sockets);
-int calcular_espacio_libre(t_list* huecos, pthread_mutex_t* mutex_huecos);
+int calcular_espacio_libre(t_list* huecos, pthread_mutex_t* mutex_huecos,
+                           t_logger* logger);
 int calcular_base_final_segmento(t_list* segmentos);
 t_list* filtrar_segmentos_proceso(int pid, t_list* segmentos);
 void agregar_segmentos_a_paquete(t_list* segmentos,

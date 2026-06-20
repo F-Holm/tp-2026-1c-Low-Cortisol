@@ -161,12 +161,12 @@ int calcular_memoria_total(t_list* sticks_conectados,
   return total;
 }
 
-int calcular_espacio_libre(t_list* huecos, pthread_mutex_t* mutex_huecos)
+int calcular_espacio_libre(t_list* huecos, pthread_mutex_t* mutex_huecos,
+                           t_logger* logger)
 {
   int total = 0;
-  printf("HOLAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
+  logger_info(logger, "Calculando huecos...");
   pthread_mutex_lock(mutex_huecos);
-  printf("HOLAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
   t_list_iterator* iterador = list_iterator_create(huecos);
   while (list_iterator_has_next(iterador))
   {
@@ -175,6 +175,7 @@ int calcular_espacio_libre(t_list* huecos, pthread_mutex_t* mutex_huecos)
   }
   list_iterator_destroy(iterador);
   pthread_mutex_unlock(mutex_huecos);
+  logger_info(logger, "hay %d espacio libre", total);
   return total;
 }
 
@@ -196,8 +197,12 @@ t_proceso* buscar_proceso(t_list* lista_procesos,
 t_memoria_principal* aniadir_memoria_total(
     t_memoria_principal* memoria_principal, int memoria_total)
 {
+  t_hueco* hueco_nuevo = malloc(sizeof(t_hueco));
   pthread_mutex_lock(memoria_principal->mutex_memoria_principal);
+  hueco_nuevo->base = memoria_principal->tamanio_total;
   memoria_principal->tamanio_total += memoria_total;
+  hueco_nuevo->size = memoria_total;
+  list_add(memoria_principal->huecos, hueco_nuevo);
   pthread_mutex_unlock(memoria_principal->mutex_memoria_principal);
   return memoria_principal;
 }
@@ -301,7 +306,8 @@ void crear_segmento(uint32_t id, uint32_t pid, int size,
   // Chequeo de cantidad de memoria disponible
   pthread_mutex_lock(memoria_principal->mutex_memoria_principal);
   if (calcular_espacio_libre(memoria_principal->huecos,
-                             memoria_principal->mutex_memoria_principal) < size)
+                             memoria_principal->mutex_memoria_principal,
+                             logger) < size)
   {
     logger_info(logger, "No hay espacio suficiente para crear el segmento");
     enviar_string(OP_MEMORIA_INSUFICIENTE, "No hay memoria suficiente",
