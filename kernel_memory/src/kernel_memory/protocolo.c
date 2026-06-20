@@ -157,7 +157,6 @@ int calcular_espacio_libre(t_list* huecos, pthread_mutex_t* mutex_huecos,
 {
   int total = 0;
   logger_info(logger, "Calculando huecos...");
-  pthread_mutex_lock(mutex_huecos);
   t_list_iterator* iterador = list_iterator_create(huecos);
   while (list_iterator_has_next(iterador))
   {
@@ -165,7 +164,6 @@ int calcular_espacio_libre(t_list* huecos, pthread_mutex_t* mutex_huecos,
     total += hueco_actual->size;
   }
   list_iterator_destroy(iterador);
-  pthread_mutex_unlock(mutex_huecos);
   logger_info(logger, "hay %d espacio libre", total);
   return total;
 }

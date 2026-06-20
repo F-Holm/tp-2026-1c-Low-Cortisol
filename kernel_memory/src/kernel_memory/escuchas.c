@@ -228,6 +228,7 @@ void* escucha_scheduler(void* ptr)
       }
       case OP_PEDIR_MEMORIA_DISPONIBLE:
       {
+        free(recibir_string(datos_scheduler->socket_scheduler));
         logger_info(
             datos_scheduler->logger,
             "Se requiere la memoria disponible por parte del scheduler");
@@ -322,6 +323,8 @@ void* escucha_cpu(void* ptr)
         logger_info(datos_cpu->logger, "Enviando tabla de segmentos");
         t_paquete* tabla_segmentos_proceso =
             crear_paquete(OP_TABLA_DE_SEGMENTOS);
+        // agregar_string_a_paquete(tabla_segmentos_proceso, "NO"); para evitar
+        // error lista vacia
         agregar_segmentos_a_paquete(
             filtrar_segmentos_proceso(*pid, proceso->segmentos),
             tabla_segmentos_proceso);
@@ -338,12 +341,15 @@ void* escucha_cpu(void* ptr)
         t_registros registros = *(t_registros*)list_get(paquete, 1);
         t_proceso* proceso =
             buscar_proceso(datos_cpu->procesos, datos_cpu->mutex_procesos, pid);
-        pthread_mutex_lock(datos_cpu->mutex_procesos);
-        proceso->registro = registros;
-        pthread_mutex_unlock(datos_cpu->mutex_procesos);
-        // enviar_string(OP_CONTEXTO_ACTUALIZADO,"",datos_cpu->socket_cpu);
-        // Chequear si está bien enviarle ese opcode a cpu.
-        free(paquete);
+        if (proceso != NULL)
+        {
+          pthread_mutex_lock(datos_cpu->mutex_procesos);
+          proceso->registro = registros;
+          pthread_mutex_unlock(datos_cpu->mutex_procesos);
+          // enviar_string(OP_CONTEXTO_ACTUALIZADO,"",datos_cpu->socket_cpu);
+          // Chequear si está bien enviarle ese opcode a cpu.
+        }
+        list_destroy_and_destroy_elements(paquete, free);
         break;
       }
       case OP_CODE_ERROR:

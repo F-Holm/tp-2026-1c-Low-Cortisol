@@ -165,6 +165,7 @@ t_list* recibir_tabla_segmentos(t_cpu* cpu)
   log_info(cpu->logger,
            "Tabla de segmentos recibida - Cantidad de segmentos: %d",
            list_size(tabla_segmentos));
+  // free(list_remove(tabla_segmentos, 0)); para evitar error listas vacias
   return tabla_segmentos;
 }
 
