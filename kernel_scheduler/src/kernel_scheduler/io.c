@@ -37,6 +37,7 @@ static bool comparar_prioridad_sleep(void* syscall1, void* syscall2);
 static void* transformar_peticion(void* peticion, int tipo_io, t_pcb* pcb);
 static void agregar_ordenado(void* pedido, t_io* io);
 static void destruir_io(t_io* io);
+static bool chequeo_cerrar_hilo(t_io* io);
 
 t_io* crear_estructuras_io(void)
 {
@@ -86,7 +87,8 @@ bool atender_nuevo_io(t_io io[3], int socket_fd, t_colas* colas,
                  V_TIPO_IO[tipo_io]);
     return false;
   }
-
+  logger_info(colas->logger, "## Se creo el hilo de io de tipo %s",
+              V_TIPO_IO[tipo_io]);
   return true;
 }
 
@@ -127,14 +129,13 @@ void cerrar_io(t_io* io)
       pthread_mutex_lock(&(io[i].mutex_fin));
       io[i].cerrar_hilo = true;
       pthread_mutex_unlock(&(io[i].mutex_fin));
+      pthread_mutex_lock(&(io->lista_io->mutex_lista_io));
+      pthread_cond_signal(&(io->nuevo_proceso));
+      pthread_mutex_unlock(&(io->lista_io->mutex_lista_io));
       shutdown(io[i].socket_io, SHUT_RDWR);
       pthread_join(io[i].hilo_io, NULL);
       close(io[i].socket_io);
       destruir_io(&io[i]);
-    }
-    else
-    {
-      pthread_mutex_unlock(&(io[i].mutex_fin));
     }
   }
   free(io);
@@ -521,6 +522,13 @@ static bool atender_io(t_io* io)
   }
   return true;
 }
+static bool chequeo_cerrar_hilo(t_io* io)
+{
+  pthread_mutex_lock(&(io->mutex_fin));
+  bool cerrar_io = io->cerrar_hilo;
+  pthread_mutex_unlock(&(io->mutex_fin));
+  return cerrar_io;
+}
 
 static void* hilo_io(void* hilo_io)
 {
@@ -528,18 +536,22 @@ static void* hilo_io(void* hilo_io)
   bool seguir_atendiendo = true;
   while (seguir_atendiendo)
   {
-    pthread_mutex_lock(&(io->mutex_fin));
-    if (io->cerrar_hilo)
-    {
-      cerrar_hilo_io(io);
-      return NULL;
-    }
-    pthread_mutex_unlock(&(io->mutex_fin));
     pthread_mutex_lock(&(io->lista_io->mutex_lista_io));
     while (list_is_empty(io->lista_io->lista_io))
     {
       pthread_cond_wait(&(io->nuevo_proceso), &(io->lista_io->mutex_lista_io));
+      if (chequeo_cerrar_hilo(io))
+      {
+        break;
+      }
     }
+    if (chequeo_cerrar_hilo(io))
+    {
+      pthread_mutex_unlock(&(io->lista_io->mutex_lista_io));
+      cerrar_hilo_io(io);
+      return NULL;
+    }
+
     if (!(atender_io(io)))
     {
       seguir_atendiendo = false;
