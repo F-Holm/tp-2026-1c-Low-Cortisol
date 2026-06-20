@@ -231,13 +231,16 @@ void* escucha_scheduler(void* ptr)
         logger_info(
             datos_scheduler->logger,
             "Se requiere la memoria disponible por parte del scheduler");
+
         int tamanio = calcular_espacio_libre(
             datos_scheduler->memoria_principal->huecos,
-            datos_scheduler->memoria_principal->mutex_memoria_principal);
+            datos_scheduler->memoria_principal->mutex_memoria_principal,
+            datos_scheduler->logger);
         logger_info(datos_scheduler->logger, "espacio libre calculado");
         enviar_buffer(OP_MEMORIA_DISPONIBLE, &tamanio, sizeof(int),
                       datos_scheduler->socket_scheduler);
         logger_info(datos_scheduler->logger, "espacio libre enviado");
+        break;
       }
       case OP_PEDIR_TAMANIO_PROCESO:
       {
@@ -248,6 +251,7 @@ void* escucha_scheduler(void* ptr)
         int tamanio = calcular_tamanio_proceso(proceso);
         enviar_buffer(OP_TAMANIO_PROCESO, &tamanio, sizeof(int),
                       datos_scheduler->socket_scheduler);
+        break;
       }
       case OP_CODE_ERROR:
         conexion_estable = false;
