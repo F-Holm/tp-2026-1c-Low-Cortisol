@@ -16,6 +16,8 @@ const char* const MOTIVOS_CIERE[4] = {
 static bool es_mas_prioritario(void* pcb1, void* pcb2);
 static void log_shutdown(t_logger* logger, int motivo_cierre);
 static void comprobar_motivo_cierre(int* motivo_cierre, int socket_km);
+static void avisar_cierre_kernel_memory(int motivo_cierre, int socket_km,
+                                        t_logger* logger);
 
 static pthread_mutex_t mutex_pid_pcb;
 static pthread_mutex_t mutex_shutdown;
@@ -169,6 +171,7 @@ void cerrar_kernel_scheduler(int socket_servidor, t_logger* logger,
   pthread_mutex_lock(&mutex_shutdown);
   if (!shutdown_activado)
   {
+    avisar_cierre_kernel_memory(motivo_cierre, socket_km, logger);
     comprobar_motivo_cierre(&motivo_cierre, socket_km);
     log_shutdown(logger, motivo_cierre);
     shutdown(socket_servidor, SHUT_RDWR);
@@ -218,5 +221,17 @@ static void comprobar_motivo_cierre(int* motivo_cierre, int socket_km)
         free(recibir_string(socket_km));
         break;
     }
+  }
+}
+
+static void avisar_cierre_kernel_memory(int motivo_cierre, int socket_km,
+                                        t_logger* logger)
+{
+  if (motivo_cierre == MC_SIN_PROCESOS)
+  {
+    logger_info(logger,
+                "## Avisando al Kernel Memory del cierre del Kernel Scheduler");
+    enviar_string(OP_CIERRE_KERNEL_SCHEDULER,
+                  "No hay más procesos para ejecutar", socket_km);
   }
 }
