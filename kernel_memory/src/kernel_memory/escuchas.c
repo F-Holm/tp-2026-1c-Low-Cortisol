@@ -255,6 +255,11 @@ void* escucha_scheduler(void* ptr)
                       datos_scheduler->socket_scheduler);
         break;
       }
+      case OP_CIERRE_KERNEL_SCHEDULER :
+      {
+        liberar_datos_scheduler(datos_scheduler);
+        break;
+      }
       case OP_CODE_ERROR:
         conexion_estable = false;
         break;

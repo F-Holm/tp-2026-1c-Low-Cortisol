@@ -7,13 +7,7 @@ void aniadir_lista_mtx(t_list* lista, pthread_mutex_t* mutex, void* elemento)
   pthread_mutex_unlock(mutex);
 }
 
-t_list* copiar_lista_mtx(pthread_mutex_t* mutex, t_list* lista)
-{
-  pthread_mutex_lock(mutex);
-  t_list* copia = list_duplicate(lista);
-  pthread_mutex_unlock(mutex);
-  return copia;
-}
+
 
 bool recibir_id_cpu(t_datos_cpu* datos_cpu)
 {
@@ -100,15 +94,13 @@ void enviar_sticks_conectadas(t_list* sticks_conectados,
                               pthread_mutex_t* mutex_lista_sockets,
                               t_datos_cpu* datos_cpu)
 {
-  t_list* copia_sticks =
-      copiar_lista_mtx(mutex_lista_sockets, sticks_conectados);
-
-  int total_sticks = list_size(copia_sticks);
+  pthread_mutex_lock(mutex_lista_sockets);
+  int total_sticks = list_size(sticks_conectados);
 
   for (int i = 0; i < total_sticks; i++)
   {
     t_paquete* paquete = crear_paquete(OP_PAQUETE);
-    t_datos_stick* stick_actual = (t_datos_stick*)list_get(copia_sticks, i);
+    t_datos_stick* stick_actual = (t_datos_stick*)list_get(sticks_conectados, i);
 
     char puerto[6];
     snprintf(puerto, sizeof(puerto), "%u", stick_actual->puerto_stick);
@@ -120,7 +112,8 @@ void enviar_sticks_conectadas(t_list* sticks_conectados,
     enviar_paquete(paquete, datos_cpu->socket_cpu);
     eliminar_paquete(paquete);
   }
-  list_destroy(copia_sticks);
+  pthread_mutex_unlock(mutex_lista_sockets);
+
 }
 
 void enviar_conexion_cpu(t_datos_stick* datos_stick, t_list* cpus_conectados)
