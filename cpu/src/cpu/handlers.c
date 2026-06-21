@@ -212,6 +212,7 @@ bool handler_mem_alloc(t_cpu* cpu, t_contexto* contexto,
     free(datos_syscall);
     cerrar_modulo(cpu);
   }
+  actualizar_tabla_segmentos(cpu, pid, contexto);
   return false;
 }
 
