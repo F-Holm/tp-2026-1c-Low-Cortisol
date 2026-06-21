@@ -386,21 +386,28 @@ void notificar_compactacion(int socket_scheduler)
 }
 
 t_segmento* buecar_y_eliminar_segmento(uint32_t id, uint32_t pid,
-                                       t_memoria_principal* memoria_principal)
+                                       t_memoria_principal* memoria_principal,t_logger* logger )
 {
   t_segmento* segmento = NULL;
   pthread_mutex_lock(memoria_principal->mutex_memoria_principal);
+  logger_info(logger, "recorriendo lista de segmentos :");
   for (int i = 0; i < list_size(memoria_principal->segmentos); i++)
   {
     t_segmento* segmento_actual = list_get(memoria_principal->segmentos, i);
     if (segmento_actual->id == id && segmento_actual->pid == pid)
     {
-      segmento = segmento_actual;
+      segmento->base = segmento_actual->base;
+      segmento->id = segmento_actual->id;
+      segmento->pid = segmento_actual->pid;
+      segmento->size = segmento_actual->size;
       list_remove(memoria_principal->segmentos, i);
-      break;
+      logger_info(logger, "se ha eliminado el segmento con ID: %d, PID: %d",segmento->id, segmento->pid);
+      pthread_mutex_unlock(memoria_principal->mutex_memoria_principal);
+      return segmento;
     }
   }
   pthread_mutex_unlock(memoria_principal->mutex_memoria_principal);
+  logger_error(logger, "ha ocurrido un error con la eliminacion del segmento");
   return segmento;
 }
 
@@ -428,16 +435,17 @@ void es_hueco_posterior(t_hueco* hueco_aux, t_hueco* hueco_actual,
 }
 
 void eliminar_segmento(uint32_t id, uint32_t pid,
-                       t_memoria_principal* memoria_principal)
+                       t_memoria_principal* memoria_principal, t_logger* logger)
 {
   t_hueco* nuevo_hueco = malloc(sizeof(t_hueco));
   nuevo_hueco->base = 0;
   nuevo_hueco->size = 0;
+  logger_info(logger, "eliminando segmento requerido ID : %d, PID : %d",id, pid);
   t_segmento* segmento_aux =
-      buecar_y_eliminar_segmento(id, pid, memoria_principal);
+      buecar_y_eliminar_segmento(id, pid, memoria_principal, logger);
   pthread_mutex_lock(memoria_principal->mutex_memoria_principal);
   if (segmento_aux == NULL)
-  {  // logger_error()
+  { logger_error(logger, "no se encontro segmento");
   }
   if (hueco_antes_segmento(segmento_aux->base,
                            segmento_aux->base + segmento_aux->size,
