@@ -228,6 +228,7 @@ void* escucha_scheduler(void* ptr)
       }
       case OP_PEDIR_MEMORIA_DISPONIBLE:
       {
+        free(recibir_string(datos_scheduler->socket_scheduler));
         logger_info(
             datos_scheduler->logger,
             "Se requiere la memoria disponible por parte del scheduler");
@@ -341,6 +342,14 @@ void* escucha_cpu(void* ptr)
         pthread_mutex_lock(datos_cpu->mutex_procesos);
         proceso->registro = registros;
         pthread_mutex_unlock(datos_cpu->mutex_procesos);
+        if (proceso != NULL){
+          pthread_mutex_lock(datos_cpu->mutex_procesos);
+          proceso->registro = registros;
+          pthread_mutex_unlock(datos_cpu->mutex_procesos);
+          // enviar_string(OP_CONTEXTO_ACTUALIZADO,"",datos_cpu->socket_cpu);
+          // Chequear si está bien enviarle ese opcode a cpu.
+        }
+        list_destroy_and_destroy_elements(paquete, free);
         // enviar_string(OP_CONTEXTO_ACTUALIZADO,"",datos_cpu->socket_cpu);
         // Chequear si está bien enviarle ese opcode a cpu.
         free(paquete);
