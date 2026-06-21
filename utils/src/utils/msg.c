@@ -184,6 +184,10 @@ t_list* recibir_paquete(int socket_fd)
   {
     memcpy(&tamanio, buffer + desplazamiento, sizeof(int));
     desplazamiento += sizeof(int);
+    if (tamanio == 0)
+    {
+      break;
+    }
     char* valor = malloc(tamanio);
     memcpy(valor, buffer + desplazamiento, tamanio);
     desplazamiento += tamanio;
