@@ -91,6 +91,7 @@ void escuchar_kernel_memory(t_cpu* cpu)
 void manejo_instrucciones(t_cpu* cpu)
 {
   t_contexto* contexto = malloc(sizeof(t_contexto));
+  contexto->cambio_segmento = false;
   uint32_t pid;
   contexto->tablaDeSegmentos = list_create();
 
@@ -202,7 +203,12 @@ void ejecutar_ciclo_instruccion(t_cpu* cpu, uint32_t pid, t_contexto* contexto)
     }
     log_info(cpu->logger, "Scheduler notificado del fin de ciclo");
     seguir = check_interrupt(cpu, pid);
-
+    if (contexto->cambio_segmento == true)
+    {
+      actualizar_tabla_segmentos(cpu, pid, contexto);
+      contexto->cambio_segmento = false;
+    }
+    
     destruir_instruccion(instruccion);
   }
   enviar_contexto_actualizado(cpu, pid, contexto->registros);

@@ -10,6 +10,7 @@ typedef struct
 {
   t_registros* registros;
   t_list* tablaDeSegmentos;
+  bool cambio_segmento;
 } t_contexto;
 
 uint32_t get_registro(t_registros* contexto, char* registro);

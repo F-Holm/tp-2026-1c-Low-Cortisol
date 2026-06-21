@@ -212,7 +212,7 @@ bool handler_mem_alloc(t_cpu* cpu, t_contexto* contexto,
     free(datos_syscall);
     cerrar_modulo(cpu);
   }
-  actualizar_tabla_segmentos(cpu, pid, contexto);
+  contexto->cambio_segmento = true;
   return false;
 }
 
@@ -239,6 +239,7 @@ bool handler_mem_free(t_cpu* cpu, t_contexto* contexto,
     free(datos_syscall);
     cerrar_modulo(cpu);
   }
+  contexto->cambio_segmento = true;
   return false;
 }
 
