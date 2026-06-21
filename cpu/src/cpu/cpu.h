@@ -46,7 +46,7 @@ void manejo_instrucciones(t_cpu* cpu);
 uint32_t recibir_pid_kernel_scheduler(t_cpu* cpu);
 bool pedir_contexto_kernel_memory(t_cpu* cpu, uint32_t pid);
 t_registros* recibir_contexto_kernel_memory(t_cpu* cpu);
-t_list* recibir_tabla_segmentos(t_cpu* cpu);
+t_list* recibir_tabla_segmentos(t_cpu* cpu, t_contexto* contexto);
 void ejecutar_ciclo_instruccion(t_cpu* cpu, uint32_t pid, t_contexto* contexto);
 char* etapa_fetch(t_cpu* cpu, uint32_t pid, uint32_t pc);
 void pedir_instruccion_kernel_memory(t_cpu* cpu, uint32_t pid, uint32_t pc);
