@@ -228,7 +228,6 @@ void* escucha_scheduler(void* ptr)
       }
       case OP_PEDIR_MEMORIA_DISPONIBLE:
       {
-        free(recibir_string(datos_scheduler->socket_scheduler));
         logger_info(
             datos_scheduler->logger,
             "Se requiere la memoria disponible por parte del scheduler");
@@ -323,8 +322,6 @@ void* escucha_cpu(void* ptr)
         logger_info(datos_cpu->logger, "Enviando tabla de segmentos");
         t_paquete* tabla_segmentos_proceso =
             crear_paquete(OP_TABLA_DE_SEGMENTOS);
-        // agregar_string_a_paquete(tabla_segmentos_proceso, "NO"); para evitar
-        // error lista vacia
         agregar_segmentos_a_paquete(
             filtrar_segmentos_proceso(*pid, proceso->segmentos),
             tabla_segmentos_proceso);
@@ -341,15 +338,36 @@ void* escucha_cpu(void* ptr)
         t_registros registros = *(t_registros*)list_get(paquete, 1);
         t_proceso* proceso =
             buscar_proceso(datos_cpu->procesos, datos_cpu->mutex_procesos, pid);
-        if (proceso != NULL)
+        pthread_mutex_lock(datos_cpu->mutex_procesos);
+        proceso->registro = registros;
+        pthread_mutex_unlock(datos_cpu->mutex_procesos);
+        // enviar_string(OP_CONTEXTO_ACTUALIZADO,"",datos_cpu->socket_cpu);
+        // Chequear si está bien enviarle ese opcode a cpu.
+        free(paquete);
+        break;
+      }
+      case OP_TABLA_SEG_ACTUALIZADA:
+      {
+        int a;
+        uint32_t* pid = (uint32_t*)recibir_buffer(&a, datos_cpu->socket_cpu);
+        t_proceso* proceso = buscar_proceso(datos_cpu->procesos,
+                                            datos_cpu->mutex_procesos, *pid);
+        if (proceso == NULL)
         {
-          pthread_mutex_lock(datos_cpu->mutex_procesos);
-          proceso->registro = registros;
-          pthread_mutex_unlock(datos_cpu->mutex_procesos);
-          // enviar_string(OP_CONTEXTO_ACTUALIZADO,"",datos_cpu->socket_cpu);
-          // Chequear si está bien enviarle ese opcode a cpu.
+          logger_error(datos_cpu->logger, "PROCESO NO ENCONTRADO");
+          break;
         }
-        list_destroy_and_destroy_elements(paquete, free);
+        logger_info(datos_cpu->logger, "Enviando tabla de segmentos a cpu : %d",
+                    datos_cpu->id);
+        t_paquete* tabla_segmentos_proceso =
+            crear_paquete(OP_TABLA_DE_SEGMENTOS);
+        agregar_segmentos_a_paquete(
+            filtrar_segmentos_proceso(*pid, proceso->segmentos),
+            tabla_segmentos_proceso);
+        enviar_paquete(tabla_segmentos_proceso, datos_cpu->socket_cpu);
+        logger_info(datos_cpu->logger, "Tabla de segmentos enviada");
+        eliminar_paquete(tabla_segmentos_proceso);
+        free(pid);
         break;
       }
       case OP_CODE_ERROR:
