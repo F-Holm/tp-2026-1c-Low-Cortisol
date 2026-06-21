@@ -153,7 +153,7 @@ static t_config* iniciar_config(char* archivo_config,
 
 static void cerrar_config(t_config_vars* config_vars, t_config* config)
 {
-  list_clean_and_destroy_elements(config_vars->algoritmos_cmn, free);
+  list_destroy_and_destroy_elements(config_vars->algoritmos_cmn, free);
   config_destroy(config);
 }
 
