@@ -112,7 +112,6 @@ bool responder_handshake(int socket_fd, int id_modulo, t_logger* logger)
                  HANDSHAKE_MSG[id_modulo]);
     return false;
   }
-  logger_info(logger, "## Handshake exitoso con %s", HANDSHAKE_MSG[id_modulo]);
   return true;
 }
 
