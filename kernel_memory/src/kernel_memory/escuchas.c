@@ -342,7 +342,8 @@ void* escucha_cpu(void* ptr)
         pthread_mutex_lock(datos_cpu->mutex_procesos);
         proceso->registro = registros;
         pthread_mutex_unlock(datos_cpu->mutex_procesos);
-        if (proceso != NULL){
+        if (proceso != NULL)
+        {
           pthread_mutex_lock(datos_cpu->mutex_procesos);
           proceso->registro = registros;
           pthread_mutex_unlock(datos_cpu->mutex_procesos);

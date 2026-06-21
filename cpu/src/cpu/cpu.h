@@ -57,5 +57,6 @@ bool etapa_execute(t_cpu* cpu, t_contexto* contexto, t_instruccion* instruccion,
 bool check_interrupt(t_cpu* cpu, uint32_t pid);
 void enviar_contexto_actualizado(t_cpu* cpu, uint32_t pid,
                                  t_registros* contexto_actualizado);
+void actualizar_tabla_segmentos(t_cpu* cpu, uint32_t pid, t_contexto* contexto);
 
 #endif /* CPU_CPU_H_ */
