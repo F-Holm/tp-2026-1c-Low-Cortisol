@@ -358,6 +358,7 @@ void* escucha_cpu(void* ptr)
       }
       case OP_TABLA_SEG_ACTUALIZADA:
       {
+        logger_info(datos_cpu->logger, "CPU requiere actualizar la tabla de segmentos");
         int a;
         uint32_t* pid = (uint32_t*)recibir_buffer(&a, datos_cpu->socket_cpu);
         t_proceso* proceso = buscar_proceso(datos_cpu->procesos,
@@ -375,7 +376,7 @@ void* escucha_cpu(void* ptr)
             filtrar_segmentos_proceso(*pid, proceso->segmentos),
             tabla_segmentos_proceso);
         enviar_paquete(tabla_segmentos_proceso, datos_cpu->socket_cpu);
-        logger_info(datos_cpu->logger, "Tabla de segmentos enviada");
+        logger_info(datos_cpu->logger, "Tabla de segmentos enviada a cpu");
         eliminar_paquete(tabla_segmentos_proceso);
         free(pid);
         break;
