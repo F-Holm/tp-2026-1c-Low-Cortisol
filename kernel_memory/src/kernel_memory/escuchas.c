@@ -66,8 +66,11 @@ void* escucha_scheduler(void* ptr)
         t_syscall_memory* syscall = (t_syscall_memory*)recibir_buffer(
             &a, datos_scheduler->socket_scheduler);
         eliminar_segmento(syscall->pid, syscall->id_segmento,
-                          datos_scheduler->memoria_principal, datos_scheduler->logger);
+                          datos_scheduler->memoria_principal,
+                          datos_scheduler->logger);
+        logger_info(datos_scheduler->logger, "se ha eliminado correctamente");                  
         free(syscall);
+        enviar_string(OP_MEMORIA_LIBERADA, "Memoria liberada", datos_scheduler->socket_scheduler);
         break;
       }
       case OP_PETICION_IO_STDIN:
@@ -213,7 +216,8 @@ void* escucha_scheduler(void* ptr)
           {
             t_segmento* segmento = list_get(proceso_a_terminar->segmentos, i);
             eliminar_segmento(segmento->id, proceso_a_terminar->pid,
-                              datos_scheduler->memoria_principal, datos_scheduler->logger);
+                              datos_scheduler->memoria_principal,
+                              datos_scheduler->logger);
           }
           liberar_proceso(proceso_a_terminar);
         }

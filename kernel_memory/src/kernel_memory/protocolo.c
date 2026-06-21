@@ -269,19 +269,27 @@ static t_hueco selector_de_huecos(uint32_t tamanio, t_logger* logger,
 }
 
 static void actualizar_lista_segmentos(t_memoria_principal* memoria_principal,
-                                       t_hueco hueco_elegido, int tamanio)
+                                       t_hueco hueco_elegido, int tamanio,
+                                       uint32_t pid, uint32_t id)
 {
-  t_list_iterator* iterador =
-      list_iterator_create(memoria_principal->segmentos);
-  while (list_iterator_has_next(iterador))
-  {
-    t_segmento* segmento_actual = list_iterator_next(iterador);
-    if (segmento_actual->base == hueco_elegido.base)
+  /* t_list_iterator* iterador =
+        list_iterator_create(memoria_principal->segmentos);
+    while (list_iterator_has_next(iterador))
     {
-      segmento_actual->size += tamanio;
+      t_segmento* segmento_actual = list_iterator_next(iterador);
+      if (segmento_actual->base == hueco_elegido.base)
+      {
+        segmento_actual->size += tamanio;
+      }
     }
-  }
-  list_iterator_destroy(iterador);
+    list_iterator_destroy(iterador);
+    */
+  t_segmento* segmento = malloc(sizeof(t_segmento));
+  segmento->base = hueco_elegido.base;
+  segmento->pid = pid;
+  segmento->id = id;
+  segmento->size = tamanio;
+  list_add(memoria_principal->segmentos, segmento);
 }
 
 void crear_segmento(uint32_t id, uint32_t pid, int size,
@@ -318,7 +326,7 @@ void crear_segmento(uint32_t id, uint32_t pid, int size,
       compactar_memoria(socket_scheduler, memoria_principal);
       selector_de_huecos(size, logger, memoria_principal);
     }
-    actualizar_lista_segmentos(memoria_principal, hueco_elegido, size);
+    actualizar_lista_segmentos(memoria_principal, hueco_elegido, size, pid, id);
     pthread_mutex_unlock(memoria_principal->mutex_memoria_principal);
     enviar_string(OP_MEMORIA_ALOJADA, "Se ha alojado la memoria",
                   socket_scheduler);
@@ -386,14 +394,21 @@ void notificar_compactacion(int socket_scheduler)
 }
 
 t_segmento* buecar_y_eliminar_segmento(uint32_t id, uint32_t pid,
-                                       t_memoria_principal* memoria_principal,t_logger* logger )
+                                       t_memoria_principal* memoria_principal,
+                                       t_logger* logger)
 {
-  t_segmento* segmento = NULL;
+  t_segmento* segmento = malloc(sizeof(t_segmento));
   pthread_mutex_lock(memoria_principal->mutex_memoria_principal);
-  logger_info(logger, "recorriendo lista de segmentos :");
+  logger_info(logger, "recorriendo lista de segmentos de tamanio %d: ",
+              list_size(memoria_principal->segmentos));
   for (int i = 0; i < list_size(memoria_principal->segmentos); i++)
   {
     t_segmento* segmento_actual = list_get(memoria_principal->segmentos, i);
+    logger_info(logger,
+                "se busca el segmento con ID: %d, PID: %d para que sea igual "
+                "que PID: %u ID %u:",
+                segmento_actual->id, segmento_actual->pid, pid, id);
+
     if (segmento_actual->id == id && segmento_actual->pid == pid)
     {
       segmento->base = segmento_actual->base;
@@ -401,14 +416,16 @@ t_segmento* buecar_y_eliminar_segmento(uint32_t id, uint32_t pid,
       segmento->pid = segmento_actual->pid;
       segmento->size = segmento_actual->size;
       list_remove(memoria_principal->segmentos, i);
-      logger_info(logger, "se ha eliminado el segmento con ID: %d, PID: %d",segmento->id, segmento->pid);
+      logger_info(logger, "se ha eliminado el segmento con ID: %d, PID: %d",
+                  segmento->id, segmento->pid);
       pthread_mutex_unlock(memoria_principal->mutex_memoria_principal);
       return segmento;
     }
   }
   pthread_mutex_unlock(memoria_principal->mutex_memoria_principal);
   logger_error(logger, "ha ocurrido un error con la eliminacion del segmento");
-  return segmento;
+  free(segmento);
+  return NULL;
 }
 
 void es_hueco_anterior(t_hueco* hueco_aux, t_hueco* hueco_actual,
@@ -440,12 +457,14 @@ void eliminar_segmento(uint32_t id, uint32_t pid,
   t_hueco* nuevo_hueco = malloc(sizeof(t_hueco));
   nuevo_hueco->base = 0;
   nuevo_hueco->size = 0;
-  logger_info(logger, "eliminando segmento requerido ID : %d, PID : %d",id, pid);
+  logger_info(logger, "eliminando segmento requerido ID : %d, PID : %d", id,
+              pid);
   t_segmento* segmento_aux =
       buecar_y_eliminar_segmento(id, pid, memoria_principal, logger);
   pthread_mutex_lock(memoria_principal->mutex_memoria_principal);
   if (segmento_aux == NULL)
-  { logger_error(logger, "no se encontro segmento");
+  {
+    logger_error(logger, "No se encontro segmento");
   }
   if (hueco_antes_segmento(segmento_aux->base,
                            segmento_aux->base + segmento_aux->size,
@@ -464,6 +483,7 @@ void eliminar_segmento(uint32_t id, uint32_t pid,
                          memoria_principal, i);
     }
     list_add(memoria_principal->huecos, nuevo_hueco);
+    logger_info(logger, "Segmento en medio de huecos");
   }
   else if (hueco_antes_segmento(segmento_aux->base,
                                 segmento_aux->base + segmento_aux->size,
@@ -476,6 +496,7 @@ void eliminar_segmento(uint32_t id, uint32_t pid,
       es_hueco_anterior(nuevo_hueco, hueco_actual, segmento_aux,
                         memoria_principal, i);
     }
+    logger_info(logger, "Segmento despues de hueco");
   }
   else if (hueco_despues_segmento(segmento_aux->base,
                                   segmento_aux->base + segmento_aux->size,
@@ -488,16 +509,18 @@ void eliminar_segmento(uint32_t id, uint32_t pid,
       es_hueco_posterior(nuevo_hueco, hueco_actual, segmento_aux,
                          memoria_principal, i);
     }
+    logger_info(logger, "Segmento antes de hueco");
   }
   else
   {
     nuevo_hueco->base = segmento_aux->base;
     nuevo_hueco->size = segmento_aux->size;
     list_add(memoria_principal->huecos, nuevo_hueco);
-    free(segmento_aux);
+    logger_info(logger, "Segmento entre dos segmentos");
   }
   pthread_mutex_unlock(memoria_principal->mutex_memoria_principal);
   free(nuevo_hueco);
+  free(segmento_aux);
 }
 
 bool hueco_antes_segmento(int base_segmento, int final_segmento, t_list* huecos)
