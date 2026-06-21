@@ -316,7 +316,7 @@ void enviar_contexto_actualizado(t_cpu* cpu, uint32_t pid,
 void actualizar_tabla_segmentos(t_cpu* cpu, uint32_t pid, t_contexto* contexto)
 {
   if (!enviar_buffer(OP_TABLA_SEG_ACTUALIZADA, &pid, sizeof(uint32_t),
-                     cpu->socket_kernel_scheduler))
+                     cpu->socket_kernel_memory))
   {
     log_error(cpu->logger,
               "## Fallo en la petición para actualizar tabla de segmentos");
