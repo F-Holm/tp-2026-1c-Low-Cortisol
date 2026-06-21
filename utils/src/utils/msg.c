@@ -23,10 +23,13 @@ void crear_buffer(t_paquete* paquete)
 
 void* recibir_buffer(int* size, int socket_fd)
 {
-  void* buffer;
-
   recv(socket_fd, size, sizeof(int), MSG_WAITALL);
-  buffer = malloc(*size);
+  if (*size == 0)
+  {
+    return NULL;
+  }
+
+  void* buffer = malloc(*size);
   recv(socket_fd, buffer, *size, MSG_WAITALL);
 
   return buffer;
@@ -41,8 +44,11 @@ void* serializar_paquete(t_paquete* paquete, int bytes)
   desplazamiento += sizeof(int);
   memcpy(magic + desplazamiento, &(paquete->buffer->size), sizeof(int));
   desplazamiento += sizeof(int);
-  memcpy(magic + desplazamiento, paquete->buffer->stream,
-         paquete->buffer->size);
+  if (paquete->buffer->stream != NULL)
+  {
+    memcpy(magic + desplazamiento, paquete->buffer->stream,
+           paquete->buffer->size);
+  }
   desplazamiento += paquete->buffer->size;
 
   return magic;
