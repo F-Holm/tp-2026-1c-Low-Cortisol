@@ -339,33 +339,26 @@ void* escucha_cpu(void* ptr)
         t_registros registros = *(t_registros*)list_get(paquete, 1);
         t_proceso* proceso =
             buscar_proceso(datos_cpu->procesos, datos_cpu->mutex_procesos, pid);
-        pthread_mutex_lock(datos_cpu->mutex_procesos);
-        proceso->registro = registros;
-        pthread_mutex_unlock(datos_cpu->mutex_procesos);
         if (proceso != NULL)
         {
           pthread_mutex_lock(datos_cpu->mutex_procesos);
           proceso->registro = registros;
           pthread_mutex_unlock(datos_cpu->mutex_procesos);
-          // enviar_string(OP_CONTEXTO_ACTUALIZADO,"",datos_cpu->socket_cpu);
-          // Chequear si está bien enviarle ese opcode a cpu.
         }
         list_destroy_and_destroy_elements(paquete, free);
-        // enviar_string(OP_CONTEXTO_ACTUALIZADO,"",datos_cpu->socket_cpu);
-        // Chequear si está bien enviarle ese opcode a cpu.
-        free(paquete);
         break;
       }
       case OP_TABLA_SEG_ACTUALIZADA:
       {
-        logger_info(datos_cpu->logger, "CPU requiere actualizar la tabla de segmentos");
+        logger_info(datos_cpu->logger,
+                    "CPU requiere actualizar la tabla de segmentos");
         int a;
         uint32_t* pid = (uint32_t*)recibir_buffer(&a, datos_cpu->socket_cpu);
         t_proceso* proceso = buscar_proceso(datos_cpu->procesos,
                                             datos_cpu->mutex_procesos, *pid);
         if (proceso == NULL)
         {
-          logger_error(datos_cpu->logger, "PROCESO NO ENCONTRADO");
+          logger_info(datos_cpu->logger, "PROCESO NO ENCONTRADO");
           break;
         }
         logger_info(datos_cpu->logger, "Enviando tabla de segmentos a cpu : %d",
