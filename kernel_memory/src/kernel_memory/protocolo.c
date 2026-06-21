@@ -272,18 +272,6 @@ static void actualizar_lista_segmentos(t_memoria_principal* memoria_principal,
                                        t_hueco hueco_elegido, int tamanio,
                                        uint32_t pid, uint32_t id)
 {
-  /* t_list_iterator* iterador =
-        list_iterator_create(memoria_principal->segmentos);
-    while (list_iterator_has_next(iterador))
-    {
-      t_segmento* segmento_actual = list_iterator_next(iterador);
-      if (segmento_actual->base == hueco_elegido.base)
-      {
-        segmento_actual->size += tamanio;
-      }
-    }
-    list_iterator_destroy(iterador);
-    */
   t_segmento* segmento = malloc(sizeof(t_segmento));
   segmento->base = hueco_elegido.base;
   segmento->pid = pid;
