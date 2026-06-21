@@ -48,7 +48,7 @@ t_segmento* buscar_segmento_por_id(t_list* tablaSegmentos,
 
 void seg_fault_KS(t_cpu* cpu, uint32_t pid)
 {
-  if (!enviar_buffer(OP_SEG_FAULT, &pid, sizeof(uint32_t),
+  if (!enviar_string(OP_SEG_FAULT,"SEGMENTATION FAULT",
                      cpu->socket_kernel_scheduler))
   {
     log_error(cpu->logger, "## Fallo en el envío de segmentation fault");
