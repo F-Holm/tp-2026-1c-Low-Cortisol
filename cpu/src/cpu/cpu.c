@@ -208,7 +208,7 @@ void ejecutar_ciclo_instruccion(t_cpu* cpu, uint32_t pid, t_contexto* contexto)
       actualizar_tabla_segmentos(cpu, pid, contexto);
       contexto->cambio_segmento = false;
     }
-    
+
     destruir_instruccion(instruccion);
   }
   enviar_contexto_actualizado(cpu, pid, contexto->registros);
