@@ -108,7 +108,7 @@ void manejo_instrucciones(t_cpu* cpu)
 
     contexto->registros = recibir_contexto_kernel_memory(cpu);
 
-    contexto->tablaDeSegmentos = recibir_tabla_segmentos(cpu);
+    contexto->tablaDeSegmentos = recibir_tabla_segmentos(cpu, contexto);
 
     ejecutar_ciclo_instruccion(cpu, pid, contexto);
 
@@ -160,14 +160,14 @@ t_registros* recibir_contexto_kernel_memory(t_cpu* cpu)
   return registros;
 }
 
-t_list* recibir_tabla_segmentos(t_cpu* cpu)
+t_list* recibir_tabla_segmentos(t_cpu* cpu, t_contexto* contexto)
 {
   escuchar_kernel_memory(cpu);
+  list_destroy_and_destroy_elements(contexto->tablaDeSegmentos, free);
   t_list* tabla_segmentos = recibir_paquete(cpu->socket_kernel_memory);
   log_info(cpu->logger,
            "Tabla de segmentos recibida - Cantidad de segmentos: %d",
            list_size(tabla_segmentos));
-  // free(list_remove(tabla_segmentos, 0)); para evitar error listas vacias
   return tabla_segmentos;
 }
 
@@ -330,6 +330,6 @@ void actualizar_tabla_segmentos(t_cpu* cpu, uint32_t pid, t_contexto* contexto)
   }
   log_info(cpu->logger, "Pedido de tabla actualizada");
 
-  contexto->tablaDeSegmentos = recibir_tabla_segmentos(cpu);
+  contexto->tablaDeSegmentos = recibir_tabla_segmentos(cpu, contexto);
   log_info(cpu->logger, "Tabla actualizada correcamente");
 }
