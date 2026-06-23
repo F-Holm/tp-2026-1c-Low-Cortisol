@@ -275,6 +275,8 @@ static void manejar_ciclo_cpu_ok(t_datos_syscall* datos)
 static void manejar_segmentation_fault(t_datos_syscall* datos)
 {
   free(recibir_string(datos->datos->socket_fd));
+  cambio_exec_exit(datos->pcb, datos->datos->colas, MPF_SEGMENTATION_FAULT);
+  datos->motivo_desalojo = MD_SEGMENTATION_FAULT;
 }
 
 static void manejar_syscall_mutex_create(t_datos_syscall* datos)
