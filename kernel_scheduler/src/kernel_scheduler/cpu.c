@@ -418,6 +418,7 @@ static void manejar_syscall_iniciar_proceso(t_datos_syscall* datos)
 
 static void manejar_syscall_exit(t_datos_syscall* datos)
 {
+  free(recibir_string(datos->datos->socket_fd));
   cambio_exec_exit(datos->pcb, datos->datos->colas, MFP_INSTRUCCION_EXIT);
   datos->motivo_desalojo = MD_FIN_PROCESO;
 }
