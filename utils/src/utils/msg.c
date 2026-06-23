@@ -193,7 +193,10 @@ t_list* recibir_paquete(int socket_fd)
     desplazamiento += tamanio;
     list_add(valores, valor);
   }
-  free(buffer);
+  if (buffer != NULL)
+  {
+    free(buffer);
+  }
   return valores;
 }
 
