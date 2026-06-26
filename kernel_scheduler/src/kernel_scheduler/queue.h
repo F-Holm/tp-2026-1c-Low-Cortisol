@@ -170,7 +170,7 @@ void cambio_block_ready(t_pcb* pcb, t_colas* colas);
 void cambio_block_susp_block(t_pcb* pcb, t_colas* colas);
 void cambio_susp_block_block(t_pcb* pcb, t_colas* colas);
 void cambio_susp_block_susp_ready(t_pcb* pcb, t_colas* colas);
-void cambio_susp_ready_ready(t_pcb* pcb, t_colas* colas);
+bool cambio_susp_ready_ready(t_pcb* pcb, t_colas* colas);
 void cambio_desbloquear(t_pcb* pcb, t_colas* colas);
 
 // Para errores o rutinas de cierre
