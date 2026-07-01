@@ -85,12 +85,6 @@ static void cambio_susp_block_susp_ready_sin_mutex(t_pcb* pcb, t_colas* colas);
 static bool avisar_proceso_des_suspendido(t_pcb* pcb, t_colas* colas);
 static bool puede_des_suspender(t_pcb* pcb, t_colas* colas);
 static bool cambio_susp_ready_ready_sin_mutex(t_pcb* pcb, t_colas* colas);
-static void cambio_susp_block_block_sin_mutex_sin_compactacion(t_pcb* pcb,
-                                                               t_colas* colas);
-static void cambio_susp_ready_ready_sin_mutex_sin_compactacion(t_pcb* pcb,
-                                                               t_colas* colas);
-static void cambio_des_suspender_sin_mutex_ni_compactacion(t_pcb* pcb,
-                                                           t_colas* colas);
 static bool cambio_cualquiera_exit(t_colas* colas, int estado, int motivo);
 static void bloquear_hilo_suspendido(t_datos_hilo_suspendido* datos);
 static void desbloquear_hilo_suspendido(t_datos_hilo_suspendido* datos);
@@ -113,15 +107,8 @@ static void* hilo_des_suspensor(void* datos_void);
 // funciones de Bloqueo/Desbloqueo total
 static void bloqueo_total(t_colas* colas);
 static bool entra_proceso(t_colas* colas, t_pcb* proceso);
-static bool puede_des_suspender_sin_mutex(t_pcb* pcb, t_colas* colas);
-static bool puede_des_suspender_sin_compactacion_sin_mutex(t_colas* colas,
-                                                           t_pcb* proceso);
-static bool des_suspender_proceso_sin_compactacion(t_colas* colas,
-                                                   t_pcb* proceso);
 static bool esta_vacia(t_lista* lista);
-static bool retirar_de_la_lista(t_colas* colas, int estado_deseado);
-static void retirar_elementos_des_suspension(t_colas* colas, t_lista* lista,
-                                             int estado, bool* seguir_operando);
+static bool retirar_de_la_lista(t_colas* colas);
 static void rutina_des_suspension(t_colas* colas);
 static int recibir_espacio(t_colas* colas);
 static int recibir_tamanio(t_colas* colas);
@@ -529,8 +516,8 @@ int tamanio_proceso(t_colas* colas, uint32_t pid)
   return espacio;
 }
 
-void crear_hilo_rutina_des_suspension(
-    t_colas* colas)  // usar para memoria liberada y/o nuevo stick
+// usar para memoria liberada, nuevo stick o fin de compactación
+void crear_hilo_rutina_des_suspension(t_colas* colas)
 {
   if (esta_compactando(colas) || esta_des_suspendiendo_set(colas, true))
   {
@@ -1250,12 +1237,6 @@ static bool puede_des_suspender(t_pcb* pcb, t_colas* colas)
          tamanio_proceso(colas, pcb->pid);
 }
 
-static bool puede_des_suspender_sin_mutex(t_pcb* pcb, t_colas* colas)
-{
-  return espacio_disponible_sin_mutex(colas, pcb->pid) >=
-         tamanio_proceso_sin_mutex(colas, pcb->pid);
-}
-
 static bool cambio_susp_ready_ready_sin_mutex(t_pcb* pcb, t_colas* colas)
 {
   if (pcb->estado != EST_SUSP_READY)
@@ -1287,39 +1268,6 @@ static bool cambio_susp_ready_ready_sin_mutex(t_pcb* pcb, t_colas* colas)
   cambio_sacar_susp_ready(pcb, &(colas->susp_ready));
   cambio_a_ready(pcb, &(colas->ready));
   return true;
-}
-
-static void cambio_susp_block_block_sin_mutex_sin_compactacion(t_pcb* pcb,
-                                                               t_colas* colas)
-{
-  if (gestionar_estado_pcb(colas->logger, pcb, EST_SUSP_BLOCK, EST_BLOCK))
-  {
-    cambio_sacar_susp_block(pcb, &(colas->susp_block));
-    cambio_a_block(pcb, &(colas->block));
-  }
-}
-
-static void cambio_susp_ready_ready_sin_mutex_sin_compactacion(t_pcb* pcb,
-                                                               t_colas* colas)
-{
-  if (gestionar_estado_pcb(colas->logger, pcb, EST_SUSP_READY, EST_READY))
-  {
-    cambio_sacar_susp_ready(pcb, &(colas->susp_ready));
-    cambio_a_ready(pcb, &(colas->ready));
-  }
-}
-
-static void cambio_des_suspender_sin_mutex_ni_compactacion(t_pcb* pcb,
-                                                           t_colas* colas)
-{
-  if (pcb->estado == EST_BLOCK)
-  {
-    cambio_susp_ready_ready_sin_mutex_sin_compactacion(pcb, colas);
-  }
-  else
-  {
-    cambio_susp_block_block_sin_mutex_sin_compactacion(pcb, colas);
-  }
 }
 
 static bool cambio_cualquiera_exit(t_colas* colas, int estado, int motivo)
@@ -1612,69 +1560,20 @@ static bool entra_proceso(t_colas* colas, t_pcb* proceso)
   }
 }
 
-static bool puede_des_suspender_sin_compactacion_sin_mutex(t_colas* colas,
-                                                           t_pcb* proceso)
-{
-  pthread_mutex_lock(&(colas->socket_km->mutex_socket));
-  if (!puede_des_suspender_sin_mutex(proceso, colas))
-  {
-    return false;
-  }
-
-  if (!enviar_buffer(OP_DES_SUSPENDER_PROCESO, &(proceso->pid),
-                     sizeof(uint32_t), colas->socket_km->socket_km))
-  {
-    cerrar_kernel_scheduler(colas->socket_servidor, colas->logger,
-                            MC_ERROR_ENVIO_KERNEL_MEMORY,
-                            colas->socket_km->socket_km);
-    return false;
-  }
-
-  bool ret = entra_proceso(colas, proceso);
-  pthread_mutex_unlock(&(colas->socket_km->mutex_socket));
-  return ret;
-}
-
-static bool des_suspender_proceso_sin_compactacion(t_colas* colas,
-                                                   t_pcb* proceso)
-{
-  bool des_suspender_proceso =
-      puede_des_suspender_sin_compactacion_sin_mutex(colas, proceso);
-  if (des_suspender_proceso)
-  {
-    cambio_des_suspender_sin_mutex_ni_compactacion(proceso, colas);
-    return true;
-  }
-  return false;
-}
-
 static bool esta_vacia(t_lista* lista)
 {
   pthread_mutex_lock(&(lista->mutex_lista));
   return list_is_empty(lista->lista);
 }
 
-static bool retirar_de_la_lista(t_colas* colas, int estado_deseado)
+static bool retirar_de_la_lista(t_colas* colas)
 {
-  t_lista* lista;
-  switch (estado_deseado)
-  {
-    case EST_SUSP_READY:
-      lista = &(colas->susp_ready);
-      break;
-    case EST_SUSP_BLOCK:
-      lista = &(colas->susp_block);
-      break;
-    default:
-      return false;
-  }
-
-  t_pcb* proceso = list_get(lista->lista, 0);
-  pthread_mutex_unlock(&(lista->mutex_lista));
+  t_pcb* proceso = list_get(colas->susp_ready.lista, 0);
+  pthread_mutex_unlock(&(colas->susp_ready.mutex_lista));
   pthread_mutex_lock(&(proceso->mutex_estado));
-  if (proceso->estado == estado_deseado)
+  if (proceso->estado == EST_SUSP_READY)
   {
-    bool resultado = des_suspender_proceso_sin_compactacion(colas, proceso);
+    bool resultado = cambio_susp_ready_ready_sin_mutex(proceso, colas);
     pthread_mutex_unlock(&(proceso->mutex_estado));
     return resultado;
   }
@@ -1683,34 +1582,21 @@ static bool retirar_de_la_lista(t_colas* colas, int estado_deseado)
   return true;
 }
 
-static void retirar_elementos_des_suspension(t_colas* colas, t_lista* lista,
-                                             int estado, bool* seguir_operando)
-{
-  while (!esta_vacia(lista) && *seguir_operando)
-  {
-    if (esta_compactando(colas))
-    {
-      pthread_mutex_unlock(&(lista->mutex_lista));
-      *seguir_operando = false;
-    }
-    else
-    {
-      *seguir_operando = retirar_de_la_lista(colas, estado);
-    }
-  }
-  pthread_mutex_unlock(&(lista->mutex_lista));
-  logger_info(colas->logger, "## Des-suspensión de procesos de %s terminada",
-              ESTADOS_STR[estado]);
-}
-
 static void rutina_des_suspension(t_colas* colas)
 {
   bool seguir_operando = true;
 
-  retirar_elementos_des_suspension(colas, &(colas->susp_ready), EST_SUSP_READY,
-                                   &seguir_operando);
-  retirar_elementos_des_suspension(colas, &(colas->susp_block), EST_SUSP_BLOCK,
-                                   &seguir_operando);
+  while (!esta_vacia(&(colas->susp_ready)) && seguir_operando)
+  {
+    if (esta_compactando(colas))
+    {
+      pthread_mutex_unlock(&(colas->susp_ready.mutex_lista));
+      break;
+    }
+
+    seguir_operando = retirar_de_la_lista(colas);
+  }
+  pthread_mutex_unlock(&(colas->susp_ready.mutex_lista));
 }
 
 static int recibir_espacio(t_colas* colas)
