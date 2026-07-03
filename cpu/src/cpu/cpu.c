@@ -167,7 +167,7 @@ t_list* recibir_tabla_segmentos(t_cpu* cpu, t_contexto* contexto)
   log_info(cpu->logger,
            "Tabla de segmentos recibida - Cantidad de segmentos: %d",
            list_size(tabla_segmentos));
-  return tabla_segmentos  printf("todos los segmentos enviados");;
+  return tabla_segmentos;
 }
 
 void ejecutar_ciclo_instruccion(t_cpu* cpu, uint32_t pid, t_contexto* contexto)
