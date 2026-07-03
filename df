@@ -1,0 +1,28 @@
+[1mdiff --git a/cpu/src/cpu/cpu.c b/cpu/src/cpu/cpu.c[m
+[1mindex 0d600c8..0da9d8c 100644[m
+[1m--- a/cpu/src/cpu/cpu.c[m
+[1m+++ b/cpu/src/cpu/cpu.c[m
+[36m@@ -111,9 +111,8 @@[m [mvoid manejo_instrucciones(t_cpu* cpu)[m
+     contexto->tablaDeSegmentos = recibir_tabla_segmentos(cpu, contexto);[m
+ [m
+     ejecutar_ciclo_instruccion(cpu, pid, contexto);[m
+[31m-[m
+[31m-    list_destroy_and_destroy_elements(contexto->tablaDeSegmentos, free);[m
+   }[m
+[32m+[m[32m  list_destroy_and_destroy_elements(contexto->tablaDeSegmentos, free);[m
+   free(contexto);[m
+   log_info(cpu->logger, "PROGRAMA FINALIZADO CORRECTAMENTE");[m
+   cerrar_modulo(cpu);[m
+[1mdiff --git a/utils/src/utils/msg.c b/utils/src/utils/msg.c[m
+[1mindex 7305987..a0b4185 100644[m
+[1m--- a/utils/src/utils/msg.c[m
+[1m+++ b/utils/src/utils/msg.c[m
+[36m@@ -91,6 +91,8 @@[m [mbool enviar_string(int codigo_operacion, char* mensaje, int socket_fd)[m
+ [m
+   void* a_enviar = serializar_paquete(paquete, bytes);[m
+ [m
+[32m+[m[32m  printf("tamaño enviado: %d\n", bytes);[m
+[32m+[m
+   bool ret = send(socket_fd, a_enviar, bytes, MSG_NOSIGNAL) > 0;[m
+ [m
+   free(a_enviar);[m
