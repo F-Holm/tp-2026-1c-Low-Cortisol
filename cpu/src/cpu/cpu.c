@@ -111,9 +111,8 @@ void manejo_instrucciones(t_cpu* cpu)
     contexto->tablaDeSegmentos = recibir_tabla_segmentos(cpu, contexto);
 
     ejecutar_ciclo_instruccion(cpu, pid, contexto);
-
-    list_destroy_and_destroy_elements(contexto->tablaDeSegmentos, free);
   }
+  list_destroy_and_destroy_elements(contexto->tablaDeSegmentos, free);
   free(contexto);
   log_info(cpu->logger, "PROGRAMA FINALIZADO CORRECTAMENTE");
   cerrar_modulo(cpu);
@@ -331,5 +330,5 @@ void actualizar_tabla_segmentos(t_cpu* cpu, uint32_t pid, t_contexto* contexto)
   log_info(cpu->logger, "Pedido de tabla actualizada");
 
   contexto->tablaDeSegmentos = recibir_tabla_segmentos(cpu, contexto);
-  log_info(cpu->logger, "Tabla actualizada correcamente");
+  log_info(cpu->logger, "Tabla actualizada correctamente");
 }
