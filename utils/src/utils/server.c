@@ -16,6 +16,11 @@ int iniciar_servidor(char* puerto)
   // Creamos el socket de escucha del servidor
   socket_servidor =
       socket(hints.ai_family, hints.ai_socktype, hints.ai_protocol);
+
+  // Hacer el socket reutilizable, eliminar si esto genera problemas
+  int opt = 1;
+  setsockopt(socket_servidor, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+
   // Asociamos el socket a un puerto
   bind(socket_servidor, servinfo->ai_addr, servinfo->ai_addrlen);
   // Escuchamos las conexiones entrantes
