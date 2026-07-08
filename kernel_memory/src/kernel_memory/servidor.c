@@ -43,7 +43,7 @@ void handshake(t_datos_kernel_mem* datos_kernel_memory, int client_socket)
       t_datos_cpu* datos_cpu = inicializar_datos_cpu(
           client_socket, datos_kernel_memory->procesos,
           datos_kernel_memory->mutex_procesos,
-          datos_kernel_memory->instruction_delay, datos_kernel_memory->logger);
+          datos_kernel_memory->instruction_delay, datos_kernel_memory->memoria_principal, datos_kernel_memory->logger);
       inicializar_correcto = recibir_id_cpu(datos_cpu);
       enviar_buffer(OP_TAMANIO_MAX_SEG, &datos_kernel_memory->segment_max_size,
                     sizeof(int), datos_cpu->socket_cpu);

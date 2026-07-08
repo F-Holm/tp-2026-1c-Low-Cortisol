@@ -45,7 +45,7 @@ t_datos_scheduler* inicializar_datos_scheduler(
 
 t_datos_cpu* inicializar_datos_cpu(int socket_cpu, t_list* procesos,
                                    pthread_mutex_t* mutex_procesos,
-                                   int instruction_delay, t_logger* logger)
+                                   int instruction_delay,t_memoria_principal* memoria_principal, t_logger* logger)
 {
   t_datos_cpu* datos_cpu = malloc(sizeof(t_datos_cpu));
   datos_cpu->socket_cpu = socket_cpu;
@@ -54,6 +54,7 @@ t_datos_cpu* inicializar_datos_cpu(int socket_cpu, t_list* procesos,
   datos_cpu->instruction_delay = instruction_delay;
   datos_cpu->logger = logger;
   datos_cpu->id = -1;
+  datos_cpu->memoria_principal = memoria_principal;
   return datos_cpu;
 }
 

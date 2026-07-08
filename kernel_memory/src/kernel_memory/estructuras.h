@@ -59,8 +59,9 @@ typedef struct
   int socket_cpu;
   t_logger* logger;
   int instruction_delay;
-  t_list* procesos;
+  t_list* procesos; 
   pthread_mutex_t* mutex_procesos;
+  t_memoria_principal* memoria_principal;
 } t_datos_cpu;
 
 typedef struct

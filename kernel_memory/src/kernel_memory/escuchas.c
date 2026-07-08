@@ -329,7 +329,7 @@ void* escucha_cpu(void* ptr)
         t_paquete* tabla_segmentos_proceso =
             crear_paquete(OP_TABLA_DE_SEGMENTOS);
         agregar_segmentos_a_paquete(
-            filtrar_segmentos_proceso(*pid, proceso->segmentos),
+            filtrar_segmentos_proceso(*pid,  datos_cpu->memoria_principal, datos_cpu->logger),
             tabla_segmentos_proceso);
         enviar_paquete(tabla_segmentos_proceso, datos_cpu->socket_cpu);
         logger_info(datos_cpu->logger, "Tabla de segmentos enviada");
@@ -371,7 +371,7 @@ void* escucha_cpu(void* ptr)
         t_paquete* tabla_segmentos_proceso =
             crear_paquete(OP_TABLA_DE_SEGMENTOS);
         agregar_segmentos_a_paquete(
-            filtrar_segmentos_proceso(*pid, proceso->segmentos),
+            filtrar_segmentos_proceso(*pid, datos_cpu->memoria_principal, datos_cpu->logger),
             tabla_segmentos_proceso);
         enviar_paquete(tabla_segmentos_proceso, datos_cpu->socket_cpu);
         logger_info(datos_cpu->logger, "Tabla de segmentos enviada a cpu");
