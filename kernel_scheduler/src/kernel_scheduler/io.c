@@ -158,11 +158,6 @@ static bool envio_stdout(t_io* io_out, t_stdout* peticion, char* buffer)
                  "## Error al enviar la respuesta de Kernel Memory a IO");
     return false;
   }
-  int cod_op = recibir_operacion(io_out->socket_io);
-  if (cod_op == OP_CODE_ERROR)
-  {
-    return false;
-  }
   return true;
 }
 
@@ -452,10 +447,9 @@ static bool io_stdout_f(t_stdout* peticion, t_io* io_out)
   envio = envio_stdout(io_out, peticion, buffer);
   if (!envio)
   {
-    free(buffer);
     return false;
   }
-  free(buffer);
+  
   cod_op = recibir_operacion(io_out->socket_io);
   if (cod_op != OP_RESPUESTA_STDOUT)
   {
