@@ -274,7 +274,7 @@ static void finalizar_io(void* peticion, t_io* io, t_pcb* pcb)
   logger_info(io->logger, "## PID %d - Retirado de la lista de IO", pcb->pid);
 
   // Paso a ready o susp ready dependiendo del tiempo bloqueado
-  cambio_desbloquear(pcb, io->colas);
+  liberar_peticion(peticion, io);
   logger_info(io->logger, "##  <%d> - Finalizó IO y pasa a READY / SUSP. READY",
               pcb->pid);
 }
@@ -453,11 +453,11 @@ static bool io_stdout_f(t_stdout* peticion, t_io* io_out)
   if (!envio)
   {
     free(buffer);
-    return D_ERROR_IO;
+    return false;
   }
   free(buffer);
   cod_op = recibir_operacion(io_out->socket_io);
-  if (cod_op == OP_CODE_ERROR)
+  if (cod_op !== OP_RESPUESTA_STDOUT)
   {
     logger_error(io_out->logger,
                  "## Error en la respuesta de IO a Kernel Scheduler");
