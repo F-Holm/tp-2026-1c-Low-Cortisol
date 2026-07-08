@@ -17,6 +17,9 @@ output/
 *.obj
 *.elf
 
+# Valgrind files
+vgcore.*
+
 # Linker output
 *.ilk
 *.map
