@@ -39,9 +39,9 @@ void liberar_datos_kernel_mem(t_datos_kernel_mem* datos_kernel)
 
   // Liberar mutex
   pthread_mutex_destroy(datos_kernel->mutex_lista_sockets);
-  pthread_mutex_destroy(datos_kernel->mutex_procesos);
+  pthread_mutex_destroy(datos_kernel->memoria_principal->mutex_procesos);
   free(datos_kernel->mutex_lista_sockets);
-  free(datos_kernel->mutex_procesos);
+  free(datos_kernel->memoria_principal->mutex_procesos);
   // Liberar listas (solo la estructura, no los elementos)
   if (datos_kernel->sticks_conectados != NULL)
     list_destroy(datos_kernel->sticks_conectados);

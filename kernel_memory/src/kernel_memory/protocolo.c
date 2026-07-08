@@ -538,23 +538,24 @@ bool hueco_despues_segmento(int base_segmento, int final_segmento,
   return false;
 }
 
-t_list* filtrar_segmentos_proceso(int pid, t_list* segmentos)
+t_list* filtrar_segmentos_proceso(int pid, t_list* segmentos, t_logger* logger)
 {
   t_list* lista_filtrada = list_create();
   if (segmentos == NULL)
   {
+    logger_info(logger, "Lista de segmentos es NULL");
     return lista_filtrada;
   }
 
   for (int i = 0; i < list_size(segmentos); i++)
   {
+    logger_info(logger, "Filtrando segmento");
     t_segmento* segmento_actual = list_get(segmentos, i);
     if (segmento_actual->pid == pid)
     {
       list_add(lista_filtrada, segmento_actual);
     }
   }
-
   return lista_filtrada;
 }
 

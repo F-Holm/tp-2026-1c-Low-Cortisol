@@ -13,11 +13,11 @@ t_datos_kernel_mem* inicializar_datos_kernel_memory(
     int compaction_delay, int segment_max_size,
     t_allocation_strategy allocation_strategy, t_logger* logger);
 t_datos_scheduler* inicializar_datos_scheduler(
-    int socket_scheduler, t_list* procesos, char* scripts_basepath,
-    pthread_mutex_t* mutex_procesos, t_memoria_principal* memoria_principal,
-    t_list* sticks_conectadas, pthread_mutex_t* mutex_sticks, t_logger* logger);
-t_datos_cpu* inicializar_datos_cpu(int socket_cpu, t_list* procesos,
-                                   pthread_mutex_t* mutex_procesos,
+    int socket_scheduler, char* scripts_basepath,
+    t_memoria_principal* memoria_principal, t_list* sticks_conectadas,
+    pthread_mutex_t* mutex_sticks, t_logger* logger);
+t_datos_cpu* inicializar_datos_cpu(int socket_cpu,
+                                   t_memoria_principal* memoria_principal,
                                    int instruction_delay, t_logger* logger);
 t_datos_stick* inicializar_datos_stick(int socket_stick, t_logger* logger,
                                        int socket_scheduler);

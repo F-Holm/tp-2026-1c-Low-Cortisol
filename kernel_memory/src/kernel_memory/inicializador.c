@@ -16,26 +16,21 @@ t_datos_kernel_mem* inicializar_datos_kernel_memory(
   datos_kernel->allocation_strategy = allocation_strategy;
   datos_kernel->sticks_conectados = list_create();
   datos_kernel->cpus_conectados = list_create();
-  datos_kernel->procesos = list_create();
   datos_kernel->memoria_principal =
       inicializar_memoria_principal(segment_max_size, allocation_strategy);
-  datos_kernel->mutex_procesos = malloc(sizeof(pthread_mutex_t));
   datos_kernel->mutex_lista_sockets = malloc(sizeof(pthread_mutex_t));
-  pthread_mutex_init(datos_kernel->mutex_procesos, NULL);
   pthread_mutex_init(datos_kernel->mutex_lista_sockets, NULL);
   return datos_kernel;
 }
 
 t_datos_scheduler* inicializar_datos_scheduler(
-    int socket_scheduler, t_list* procesos, char* scripts_basepath,
-    pthread_mutex_t* mutex_procesos, t_memoria_principal* memoria_principal,
-    t_list* sticks_conectadas, pthread_mutex_t* mutex_sticks, t_logger* logger)
+    int socket_scheduler, char* scripts_basepath,
+    t_memoria_principal* memoria_principal, t_list* sticks_conectadas,
+    pthread_mutex_t* mutex_sticks, t_logger* logger)
 {
   t_datos_scheduler* datos_scheduler = malloc(sizeof(t_datos_scheduler));
   datos_scheduler->socket_scheduler = socket_scheduler;
-  datos_scheduler->mutex_procesos = mutex_procesos;
   datos_scheduler->logger = logger;
-  datos_scheduler->procesos = procesos;
   datos_scheduler->scripts_basepath = scripts_basepath;
   datos_scheduler->sticks_conectados = sticks_conectadas;
   datos_scheduler->mutex_lista_sockets = mutex_sticks;
@@ -43,17 +38,16 @@ t_datos_scheduler* inicializar_datos_scheduler(
   return datos_scheduler;
 }
 
-t_datos_cpu* inicializar_datos_cpu(int socket_cpu, t_list* procesos,
-                                   pthread_mutex_t* mutex_procesos,
+t_datos_cpu* inicializar_datos_cpu(int socket_cpu,
+                                   t_memoria_principal* memoria_principal,
                                    int instruction_delay, t_logger* logger)
 {
   t_datos_cpu* datos_cpu = malloc(sizeof(t_datos_cpu));
   datos_cpu->socket_cpu = socket_cpu;
-  datos_cpu->procesos = procesos;
-  datos_cpu->mutex_procesos = mutex_procesos;
   datos_cpu->instruction_delay = instruction_delay;
   datos_cpu->logger = logger;
   datos_cpu->id = -1;
+  datos_cpu->memoria_principal = memoria_principal;
   return datos_cpu;
 }
 
@@ -151,7 +145,10 @@ t_memoria_principal* inicializar_memoria_principal(
   memoria->tamanio_total = 0;
   memoria->tamanio_maximo_segmento = tamanio_maximo_segmento;
   memoria->mutex_memoria_principal = malloc(sizeof(pthread_mutex_t));
+  memoria->procesos = list_create();
   pthread_mutex_init(memoria->mutex_memoria_principal, NULL);
+  memoria->mutex_procesos = malloc(sizeof(pthread_mutex_t));
+  pthread_mutex_init(memoria->mutex_procesos, NULL);
   memoria->segmentos = list_create();
   memoria->allocation_strategy = allocation_strategy;
   memoria->huecos = list_create();
