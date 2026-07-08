@@ -21,8 +21,6 @@ typedef struct
   t_list* huecos;
   int allocation_strategy;
   pthread_mutex_t* mutex_memoria_principal;
-  t_list* procesos;
-  pthread_mutex_t* mutex_procesos;
 } t_memoria_principal;
 
 typedef struct
@@ -37,7 +35,9 @@ typedef struct
   t_logger* logger;
   t_list* sticks_conectados;
   t_list* cpus_conectados;
+  t_list* procesos;
   t_memoria_principal* memoria_principal;
+  pthread_mutex_t* mutex_procesos;
   pthread_mutex_t* mutex_lista_sockets;
 } t_datos_kernel_mem;
 
@@ -45,6 +45,8 @@ typedef struct
 {
   int socket_scheduler;
   t_logger* logger;
+  t_list* procesos;
+  pthread_mutex_t* mutex_procesos;
   char* scripts_basepath;
   t_list* sticks_conectados;
   pthread_mutex_t* mutex_lista_sockets;
@@ -57,6 +59,8 @@ typedef struct
   int socket_cpu;
   t_logger* logger;
   int instruction_delay;
+  t_list* procesos; 
+  pthread_mutex_t* mutex_procesos;
   t_memoria_principal* memoria_principal;
 } t_datos_cpu;
 

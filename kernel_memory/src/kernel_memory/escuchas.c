@@ -18,9 +18,8 @@ void* escucha_scheduler(void* ptr)
             *pid, path_relativo, datos_scheduler->scripts_basepath,
             datos_scheduler->logger);
 
-        aniadir_lista_mtx(datos_scheduler->memoria_principal->procesos,
-                          datos_scheduler->memoria_principal->mutex_procesos,
-                          proceso);
+        aniadir_lista_mtx(datos_scheduler->procesos,
+                          datos_scheduler->mutex_procesos, proceso);
 
         logger_info(datos_scheduler->logger, "## PID: %d  - Proceso Creado",
                     *pid);
@@ -206,16 +205,12 @@ void* escucha_scheduler(void* ptr)
         uint32_t* pid =
             (uint32_t*)recibir_buffer(&a, datos_scheduler->socket_scheduler);
         t_proceso* proceso_a_terminar = buscar_proceso(
-            datos_scheduler->memoria_principal->procesos,
-            datos_scheduler->memoria_principal->mutex_procesos, *pid);
+            datos_scheduler->procesos, datos_scheduler->mutex_procesos, *pid);
         if (proceso_a_terminar != NULL)
         {
-          pthread_mutex_lock(
-              datos_scheduler->memoria_principal->mutex_procesos);
-          list_remove_element(datos_scheduler->memoria_principal->procesos,
-                              proceso_a_terminar);
-          pthread_mutex_unlock(
-              datos_scheduler->memoria_principal->mutex_procesos);
+          pthread_mutex_lock(datos_scheduler->mutex_procesos);
+          list_remove_element(datos_scheduler->procesos, proceso_a_terminar);
+          pthread_mutex_unlock(datos_scheduler->mutex_procesos);
           logger_info(datos_scheduler->logger, "Proceso con PID %u terminado",
                       *pid);
           for (int i = 0; i < list_size(proceso_a_terminar->segmentos); i++)
@@ -259,8 +254,7 @@ void* escucha_scheduler(void* ptr)
         uint32_t* pid =
             (uint32_t*)recibir_buffer(&a, datos_scheduler->socket_scheduler);
         t_proceso* proceso = buscar_proceso(
-            datos_scheduler->memoria_principal->procesos,
-            datos_scheduler->memoria_principal->mutex_procesos, *pid);
+            datos_scheduler->procesos, datos_scheduler->mutex_procesos, *pid);
         int tamanio = calcular_tamanio_proceso(proceso);
         logger_info(datos_scheduler->logger,
                     "tamanio de proceso requerido es de: %d", tamanio);
@@ -303,8 +297,7 @@ void* escucha_cpu(void* ptr)
         list_destroy_and_destroy_elements(paquete, free);
 
         t_proceso* proceso =
-            buscar_proceso(datos_cpu->memoria_principal->procesos,
-                           datos_cpu->memoria_principal->mutex_procesos, pid);
+            buscar_proceso(datos_cpu->procesos, datos_cpu->mutex_procesos, pid);
         char* instruccion = proceso->instrucciones[pc];
 
         logger_info(datos_cpu->logger,
@@ -319,9 +312,8 @@ void* escucha_cpu(void* ptr)
       {
         int a;
         uint32_t* pid = (uint32_t*)recibir_buffer(&a, datos_cpu->socket_cpu);
-        t_proceso* proceso =
-            buscar_proceso(datos_cpu->memoria_principal->procesos,
-                           datos_cpu->memoria_principal->mutex_procesos, *pid);
+        t_proceso* proceso = buscar_proceso(datos_cpu->procesos,
+                                            datos_cpu->mutex_procesos, *pid);
         if (proceso == NULL)
         {
           logger_error(datos_cpu->logger, "PROCESO NO ENCONTRADO");
@@ -337,8 +329,7 @@ void* escucha_cpu(void* ptr)
         t_paquete* tabla_segmentos_proceso =
             crear_paquete(OP_TABLA_DE_SEGMENTOS);
         agregar_segmentos_a_paquete(
-            filtrar_segmentos_proceso(*pid, datos_cpu->memoria_principal->segmentos,
-                                      datos_cpu->logger),
+            filtrar_segmentos_proceso(*pid,  datos_cpu->memoria_principal, datos_cpu->logger),
             tabla_segmentos_proceso);
         enviar_paquete(tabla_segmentos_proceso, datos_cpu->socket_cpu);
         logger_info(datos_cpu->logger, "Tabla de segmentos enviada");
@@ -352,13 +343,12 @@ void* escucha_cpu(void* ptr)
         uint32_t pid = *(uint32_t*)list_get(paquete, 0);
         t_registros registros = *(t_registros*)list_get(paquete, 1);
         t_proceso* proceso =
-            buscar_proceso(datos_cpu->memoria_principal->procesos,
-                           datos_cpu->memoria_principal->mutex_procesos, pid);
+            buscar_proceso(datos_cpu->procesos, datos_cpu->mutex_procesos, pid);
         if (proceso != NULL)
         {
-          pthread_mutex_lock(datos_cpu->memoria_principal->mutex_procesos);
+          pthread_mutex_lock(datos_cpu->mutex_procesos);
           proceso->registro = registros;
-          pthread_mutex_unlock(datos_cpu->memoria_principal->mutex_procesos);
+          pthread_mutex_unlock(datos_cpu->mutex_procesos);
         }
         list_destroy_and_destroy_elements(paquete, free);
         break;
@@ -369,9 +359,8 @@ void* escucha_cpu(void* ptr)
                     "CPU requiere actualizar la tabla de segmentos");
         int a;
         uint32_t* pid = (uint32_t*)recibir_buffer(&a, datos_cpu->socket_cpu);
-        t_proceso* proceso =
-            buscar_proceso(datos_cpu->memoria_principal->procesos,
-                           datos_cpu->memoria_principal->mutex_procesos, *pid);
+        t_proceso* proceso = buscar_proceso(datos_cpu->procesos,
+                                            datos_cpu->mutex_procesos, *pid);
         if (proceso == NULL)
         {
           logger_info(datos_cpu->logger, "PROCESO NO ENCONTRADO");
@@ -382,12 +371,8 @@ void* escucha_cpu(void* ptr)
         t_paquete* tabla_segmentos_proceso =
             crear_paquete(OP_TABLA_DE_SEGMENTOS);
         agregar_segmentos_a_paquete(
-            filtrar_segmentos_proceso(*pid, proceso->segmentos,
-                                      datos_cpu->logger),
+            filtrar_segmentos_proceso(*pid, datos_cpu->memoria_principal, datos_cpu->logger),
             tabla_segmentos_proceso);
-        logger_info(datos_cpu->logger, "Envio %d segmentos a cpu",
-                    list_size(filtrar_segmentos_proceso(
-                        *pid, proceso->segmentos, datos_cpu->logger)));
         enviar_paquete(tabla_segmentos_proceso, datos_cpu->socket_cpu);
         logger_info(datos_cpu->logger, "Tabla de segmentos enviada a cpu");
         eliminar_paquete(tabla_segmentos_proceso);

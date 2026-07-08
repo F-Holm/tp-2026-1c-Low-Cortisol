@@ -18,8 +18,9 @@ void handshake(t_datos_kernel_mem* datos_kernel_memory, int client_socket)
                   "## Kernel Scheduler Conectado - FD del socket: %i",
                   client_socket);
       t_datos_scheduler* datos_scheduler = inicializar_datos_scheduler(
-          client_socket,
+          client_socket, datos_kernel_memory->procesos,
           datos_kernel_memory->scripts_basepath,
+          datos_kernel_memory->mutex_procesos,
           datos_kernel_memory->memoria_principal,
           datos_kernel_memory->sticks_conectados,
           datos_kernel_memory->mutex_lista_sockets,
@@ -40,8 +41,9 @@ void handshake(t_datos_kernel_mem* datos_kernel_memory, int client_socket)
       bool inicializar_correcto = true;
       logger_info(datos_kernel_memory->logger, "Se ha conectado una CPU!");
       t_datos_cpu* datos_cpu = inicializar_datos_cpu(
-          client_socket,datos_kernel_memory->memoria_principal,
-          datos_kernel_memory->instruction_delay, datos_kernel_memory->logger);
+          client_socket, datos_kernel_memory->procesos,
+          datos_kernel_memory->mutex_procesos,
+          datos_kernel_memory->instruction_delay, datos_kernel_memory->memoria_principal, datos_kernel_memory->logger);
       inicializar_correcto = recibir_id_cpu(datos_cpu);
       enviar_buffer(OP_TAMANIO_MAX_SEG, &datos_kernel_memory->segment_max_size,
                     sizeof(int), datos_cpu->socket_cpu);
