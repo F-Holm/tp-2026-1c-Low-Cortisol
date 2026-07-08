@@ -457,14 +457,13 @@ static bool io_stdout_f(t_stdout* peticion, t_io* io_out)
   }
   free(buffer);
   cod_op = recibir_operacion(io_out->socket_io);
-  if (cod_op !== OP_RESPUESTA_STDOUT)
+  if (cod_op != OP_RESPUESTA_STDOUT)
   {
     logger_error(io_out->logger,
                  "## Error en la respuesta de IO a Kernel Scheduler");
     return false;
   }
   free(recibir_string(io_out->socket_io));
-
   finalizar_io(peticion, io_out, peticion->pcb);
   return true;
 }
