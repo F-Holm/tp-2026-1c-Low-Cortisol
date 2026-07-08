@@ -14,7 +14,8 @@
 static bool envio_stdout(t_io* io_out, t_stdout* peticion, char* buffer);
 static bool peticion_stdout_km(t_stdout* peticion, t_io* io_out);
 static bool envio_stdin(t_stdin* peticion, t_io* io_in, char* buffer);
-static bool comunicacion_io_stdin(t_stdin* peticion, t_io* io_in, char* buffer);
+static bool comunicacion_io_stdin(t_stdin* peticion, t_io* io_in,
+                                  char** buffer);
 static bool comunicacion_io_sleep(t_sleep* peticion, t_io* io_sleep);
 // funcion de finalizacion io (no se me ocurre un nombre mejor)
 static void finalizar_io(void* peticion, t_io* io, t_pcb* pcb);
@@ -196,7 +197,7 @@ static bool envio_stdin(t_stdin* peticion, t_io* io_in, char* buffer)
   return true;
 }
 
-static bool comunicacion_io_stdin(t_stdin* peticion, t_io* io_in, char* buffer)
+static bool comunicacion_io_stdin(t_stdin* peticion, t_io* io_in, char** buffer)
 {
   int peticion_size = sizeof(t_peticion_stdin);
   bool envio = enviar_buffer(OP_PETICION_IO_STDIN, peticion->peticion,
@@ -216,11 +217,12 @@ static bool comunicacion_io_stdin(t_stdin* peticion, t_io* io_in, char* buffer)
   {
     return false;
   }
-  buffer = recibir_string(io_in->socket_io);
+  *buffer = recibir_string(io_in->socket_io);
 
-  if (buffer == NULL)
+  if (*buffer == NULL)
   {
     logger_error(io_in->logger, "## Error al recibir la respuesa de IO");
+    free(*buffer);
     return false;
   }
   return true;
@@ -359,11 +361,10 @@ static bool charla_km_stdin(t_io* io_in)
 static int io_stdin_f(t_stdin* peticion, t_io* io_in)
 {
   // Envio peticion a IO
-  char* buffer = malloc(peticion->peticion->tamanio_a_leer);
-  bool envio = comunicacion_io_stdin(peticion, io_in, buffer);
+  char* buffer;
+  bool envio = comunicacion_io_stdin(peticion, io_in, &buffer);
   if (!envio)
   {
-    free(buffer);
     return false;
   }
   // Le envio el paquete al Kernel Memory para que escriba en la memoria
