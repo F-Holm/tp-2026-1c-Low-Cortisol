@@ -73,8 +73,8 @@ int main(int argc, char* argv[])
         int posicion_inicial = *(int*)list_get(paquete, 0);
         char* bytes_a_escribir = (char*)list_get(paquete, 1);
         int cantidad_bytes = *(int*)list_get(paquete, 2);
-        logger_info(ms_recursos.logger, "Escritura por parte del Kernel memory de %d bytes, desde %d, la candena %s",
-                    cantidad_bytes, posicion_inicial, bytes_a_escribir);
+        logger_info(ms_recursos.logger, "Escritura por parte del Kernel memory de %d bytes, desde %d, la candena",
+                    cantidad_bytes, posicion_inicial);
         escribir_memoria(&ms_recursos, posicion_inicial, bytes_a_escribir,
                          cantidad_bytes, ms_recursos.socket_km);
         logger_info(ms_recursos.logger, "## Escritura de %d bytes realizada",
