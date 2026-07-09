@@ -24,6 +24,7 @@ void crear_buffer(t_paquete* paquete)
 void* recibir_buffer(int* size, int socket_fd)
 {
   recv(socket_fd, size, sizeof(int), MSG_WAITALL);
+  printf("Recibiendo buffer de tamaño: %d\n", *size);
   if (*size == 0)
   {
     return NULL;
