@@ -86,7 +86,7 @@ static bool avisar_proceso_des_suspendido(t_pcb* pcb, t_colas* colas);
 static bool puede_des_suspender(t_pcb* pcb, t_colas* colas);
 static bool cambio_susp_ready_ready_sin_mutex(t_pcb* pcb, t_colas* colas);
 static bool cambio_cualquiera_exit(t_colas* colas, int estado, int motivo);
-static void bloquear_hilo_suspendido(t_datos_hilo_suspendido* datos);
+static void bloquear_hilo_suspendido(t_datos_hilo_suspendido* datos, t_lista* lista);
 static void desbloquear_hilo_suspendido(t_datos_hilo_suspendido* datos);
 static void esperar_desbloqueo(t_datos_hilo_suspendido* datos);
 static t_pcb* obtener_proceso_bloqueado(t_colas* colas,
@@ -457,9 +457,9 @@ void vaciar_colas(t_colas* colas)
 void bloquear_hilos_suspendido(t_colas* colas)
 {
   bloquear_hilo_suspendido(
-      colas->datos_suspendido->datos_hilo_suspensor->datos);
+      colas->datos_suspendido->datos_hilo_suspensor->datos, &(colas->block));
   bloquear_hilo_suspendido(
-      colas->datos_suspendido->datos_hilo_des_suspensor->datos);
+      colas->datos_suspendido->datos_hilo_des_suspensor->datos, &(colas->susp_ready));
   logger_info(colas->logger, "## Hilos suspendido bloqueados");
 }
 
@@ -1302,7 +1302,7 @@ static bool cambio_cualquiera_exit(t_colas* colas, int estado, int motivo)
   return true;
 }
 
-static void bloquear_hilo_suspendido(t_datos_hilo_suspendido* datos)
+static void bloquear_hilo_suspendido(t_datos_hilo_suspendido* datos, t_lista* lista)
 {
   pthread_mutex_lock(&(datos->mutex_estado));
   switch (datos->estado)
@@ -1311,8 +1311,10 @@ static void bloquear_hilo_suspendido(t_datos_hilo_suspendido* datos)
       datos->estado = EH_BLOQUEADO;
       break;
     case EH_ESPERANDO_PROCESO:
-      pthread_cond_signal(datos->esperar_proceso);
+      pthread_mutex_lock(&(lista->mutex_lista));
       datos->estado = EH_BLOQUEADO;
+      pthread_cond_signal(datos->esperar_proceso);
+      pthread_mutex_unlock(&(lista->mutex_lista));
       break;
   }
   pthread_mutex_unlock(&(datos->mutex_estado));
@@ -1431,7 +1433,7 @@ static void des_suspender_proceso(t_colas* colas,
 
   if (!exitoso)
   {
-    bloquear_hilo_suspendido(datos->datos);
+    bloquear_hilo_suspendido(datos->datos, &(colas->susp_ready));
   }
 
   pthread_mutex_lock(&(datos->datos->mutex_estado));
