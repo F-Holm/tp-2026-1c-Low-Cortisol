@@ -1,6 +1,5 @@
 #include "swap/swap.h"
 
-
 void cerrar_todo(t_modulo_swap* datos_swap, t_config* config)
 {
   close(datos_swap->socket_swap);
@@ -12,30 +11,28 @@ static bool inicializar_archivo_swap(t_modulo_swap* datos_swap);
 
 bool inicializar_configuracion(t_modulo_swap* datos_swap, t_config* config)
 {
-  char* log_levelstr =
-      config_get_string_value(config, "LOG_LEVEL");
+  char* log_levelstr = config_get_string_value(config, "LOG_LEVEL");
 
   datos_swap->ip = config_get_string_value(config, "IP");
   datos_swap->puerto = config_get_string_value(config, "PORT");
-  datos_swap->tamanio_swap =
-      config_get_int_value(config, "SWAP_FILE_SIZE");
-  datos_swap->tamanio_bloque =
-      config_get_int_value(config, "BLOCK_SIZE");
-  datos_swap->logger =
-      logger_create("swap.log", "SWAP", true, log_level_from_string(log_levelstr));
+  datos_swap->tamanio_swap = config_get_int_value(config, "SWAP_FILE_SIZE");
+  datos_swap->tamanio_bloque = config_get_int_value(config, "BLOCK_SIZE");
+  datos_swap->logger = logger_create("swap.log", "SWAP", true,
+                                     log_level_from_string(log_levelstr));
   if (datos_swap->logger == NULL)
   {
     config_destroy(config);
     return false;
   }
-  datos_swap->swap_file_path = config_get_string_value(config, "SWAP_FILE_PATH");
-  if(!inicializar_archivo_swap(datos_swap))
+  datos_swap->swap_file_path =
+      config_get_string_value(config, "SWAP_FILE_PATH");
+  if (!inicializar_archivo_swap(datos_swap))
   {
     logger_error(datos_swap->logger, "## Error al inicializar el archivo SWAP");
     cerrar_todo(datos_swap, config);
     return false;
   }
-  
+
   return true;
 }
 
@@ -57,7 +54,7 @@ bool iniciar_conexion(t_modulo_swap* datos_swap, t_config* config)
   if (!envio_correcto)
   {
     logger_error(datos_swap->logger,
-              "## Error en el Handshake con Kernel Memory");
+                 "## Error en el Handshake con Kernel Memory");
     cerrar_todo(datos_swap, config);
     return false;
   }
@@ -66,7 +63,7 @@ bool iniciar_conexion(t_modulo_swap* datos_swap, t_config* config)
   if (recepcion_correcta != MID_KERNEL_MEMORY)
   {
     logger_error(datos_swap->logger,
-              "## Error en el Handshake con Kernel Memory");
+                 "## Error en el Handshake con Kernel Memory");
     cerrar_todo(datos_swap, config);
     return false;
   }
@@ -94,7 +91,7 @@ bool iniciar_conexion(t_modulo_swap* datos_swap, t_config* config)
 static bool inicializar_archivo_swap(t_modulo_swap* datos_swap)
 {
   FILE* archivo_swap = fopen(datos_swap->swap_file_path, "wb+");
-  if(archivo_swap == NULL)
+  if (archivo_swap == NULL)
     return false;
 
   // Asignar tamanio e inicializar el archivo con ceros
@@ -105,22 +102,23 @@ static bool inicializar_archivo_swap(t_modulo_swap* datos_swap)
   return true;
 }
 
-static void buscar_bloque(FILE* archivo_swap, int num_bloque, int tamanio_bloque)
+static void buscar_bloque(FILE* archivo_swap, int num_bloque,
+                          int tamanio_bloque)
 {
-  fseek(archivo_swap, num_bloque * tamanio_bloque, 0); 
+  fseek(archivo_swap, num_bloque * tamanio_bloque, 0);
 }
 
-void escribir_bloque(FILE* archivo_swap, int num_bloque, int tamanio_bloque, char* contenido_a_escribir)
+void escribir_bloque(FILE* archivo_swap, int num_bloque, int tamanio_bloque,
+                     char* contenido_a_escribir)
 {
   buscar_bloque(archivo_swap, num_bloque, tamanio_bloque);
   fwrite(contenido_a_escribir, tamanio_bloque, 1, archivo_swap);
   fflush(archivo_swap);
-  enviar_string(OP_DISCO_ESCRITO, "", datos_swap.socket_swap);
 }
 
-void leer_bloque(FILE* archivo_swap, int num_bloque, int tamanio_bloque, char* contenido_leido)
+void leer_bloque(FILE* archivo_swap, int num_bloque, int tamanio_bloque,
+                 char* contenido_leido)
 {
   buscar_bloque(archivo_swap, num_bloque, tamanio_bloque);
   fread(contenido_leido, tamanio_bloque, 1, archivo_swap);
-  enviar_string(OP_DISCO_LEIDO, contenido_leido, datos_swap.socket_swap);
 }

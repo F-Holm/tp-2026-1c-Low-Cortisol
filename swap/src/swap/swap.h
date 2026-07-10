@@ -16,8 +16,8 @@
 #include <unistd.h>
 
 #include "utils/client.h"
-#include "utils/msg.h"
 #include "utils/logger.h"
+#include "utils/msg.h"
 
 typedef struct
 {
@@ -40,7 +40,9 @@ typedef struct
 void cerrar_todo(t_modulo_swap* modulo_swap, t_config* config);
 bool iniciar_conexion(t_modulo_swap* modulo_swap, t_config* config);
 bool inicializar_configuracion(t_modulo_swap* modulo_swap, t_config* config);
-void escribir_bloque(FILE* archivo_swap, int num_bloque, int tamanio_bloque, char* contenido_a_escribir);
-void leer_bloque(FILE* archivo_swap, int num_bloque, int tamanio_bloque, char* contenido_leido);
+void escribir_bloque(FILE* archivo_swap, int num_bloque, int tamanio_bloque,
+                     char* contenido_a_escribir);
+void leer_bloque(FILE* archivo_swap, int num_bloque, int tamanio_bloque,
+                 char* contenido_leido);
 
 #endif  // SWAP_SWAP_H
