@@ -115,10 +115,12 @@ void escribir_bloque(FILE* archivo_swap, int num_bloque, int tamanio_bloque, cha
   buscar_bloque(archivo_swap, num_bloque, tamanio_bloque);
   fwrite(contenido_a_escribir, tamanio_bloque, 1, archivo_swap);
   fflush(archivo_swap);
+  enviar_string(OP_DISCO_ESCRITO, "", datos_swap.socket_swap);
 }
 
 void leer_bloque(FILE* archivo_swap, int num_bloque, int tamanio_bloque, char* contenido_leido)
 {
   buscar_bloque(archivo_swap, num_bloque, tamanio_bloque);
   fread(contenido_leido, tamanio_bloque, 1, archivo_swap);
+  enviar_string(OP_DISCO_LEIDO, contenido_leido, datos_swap.socket_swap);
 }

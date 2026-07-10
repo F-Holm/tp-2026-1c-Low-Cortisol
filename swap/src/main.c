@@ -46,7 +46,6 @@ int main(int argc, char* argv[])
         int numero_bloque = *(int*)list_get(paquete, 0);
         char* contenido_a_escribir = (char*)list_get(paquete, 1);
         escribir_bloque(datos_swap.archivo_swap, numero_bloque, datos_swap.tamanio_bloque, contenido_a_escribir);
-        enviar_string(OP_DISCO_ESCRITO, "", datos_swap.socket_swap);
         list_destroy_and_destroy_elements(paquete, free);
       break;
 
@@ -61,7 +60,6 @@ int main(int argc, char* argv[])
       }
       char* contenido_leido = malloc(datos_swap.tamanio_bloque);
       leer_bloque(datos_swap.archivo_swap, *num_bloque, datos_swap.tamanio_bloque, contenido_leido);
-      enviar_string(OP_DISCO_LEIDO, contenido_leido, datos_swap.socket_swap);
       free(num_bloque);
       break;
 
