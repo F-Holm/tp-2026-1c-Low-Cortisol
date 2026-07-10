@@ -17,16 +17,18 @@
 
 #include "utils/client.h"
 #include "utils/msg.h"
+#include "utils/logger.h"
 
 typedef struct
 {
-  t_config* config;
-  t_log* logger;
+  t_logger* logger;
   char* ip;
   char* puerto;
   int socket_swap;
-  int swap_size;
-  int block_size;
+  int tamanio_swap;
+  int tamanio_bloque;
+  char* swap_file_path;
+  FILE* archivo_swap;
 } t_modulo_swap;
 
 typedef struct
@@ -35,8 +37,10 @@ typedef struct
   int block_size;
 } t_envio_a_km;
 
-void cerrar_todo(t_modulo_swap* modulo_swap);
-bool iniciar_conexion(t_modulo_swap* modulo_swap);
-bool inicializar_configuracion(t_modulo_swap* modulo_swap);
+void cerrar_todo(t_modulo_swap* modulo_swap, t_config* config);
+bool iniciar_conexion(t_modulo_swap* modulo_swap, t_config* config);
+bool inicializar_configuracion(t_modulo_swap* modulo_swap, t_config* config);
+void escribir_bloque(FILE* archivo_swap, int num_bloque, int tamanio_bloque, char* contenido_a_escribir);
+void leer_bloque(FILE* archivo_swap, int num_bloque, int tamanio_bloque, char* contenido_leido);
 
 #endif  // SWAP_SWAP_H
