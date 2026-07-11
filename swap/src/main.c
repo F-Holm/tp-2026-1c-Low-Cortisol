@@ -64,8 +64,9 @@ int main(int argc, char* argv[])
         char* contenido_leido = malloc(datos_swap.tamanio_bloque);
         leer_bloque(datos_swap.archivo_swap, *num_bloque,
                     datos_swap.tamanio_bloque, contenido_leido);
-        enviar_string(OP_DISCO_LEIDO, contenido_leido, datos_swap.socket_swap);
+        enviar_buffer(OP_DISCO_LEIDO, contenido_leido, datos_swap.tamanio_bloque, datos_swap.socket_swap);
         free(num_bloque);
+        free(contenido_leido);
         break;
 
       default:
