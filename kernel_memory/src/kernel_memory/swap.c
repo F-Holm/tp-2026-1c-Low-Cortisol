@@ -23,41 +23,74 @@ static int seleccionar_bloque_libre(t_datos_swap* datos_swap)
     return -1;
 }
 
-static void agregar_bloque_a_lista_swap(t_segmento* segmento, int contador, t_datos_swap* datos_swap, t_logger* logger)
+static int agregar_bloque_a_lista_swap(t_segmento* segmento, int contador, t_datos_swap* datos_swap, t_logger* logger) 
+/*retorna el numero de bloque agregado o -1 si no se pudo agregar*/
 {
-    t_datos_bloque* bloque = malloc(sizeof(t_datos_bloque));
-    bloque->num_segmento = segmento->num_segmento;
-    bloque->num_bloque_del_segmento = contador;
-    bloque->pid = segmento->pid;
-    bloque->num_bloque = seleccionar_bloque_libre(datos_swap);
-    list_replace(datos_swap->lista_bloques, bloque->num_bloque, bloque);
-    logger_info(logger, "Agregando bloque a swap: PID %d, Segmento %d, Bloque del segmento %d.", bloque->pid, bloque->num_segmento, bloque->num_bloque_del_segmento);
+    int num_bloque_libre = seleccionar_bloque_libre(datos_swap);
+    if(num_bloque_libre != -1)
+    {
+        t_datos_bloque* bloque_libre = list_get(datos_swap->lista_bloques, num_bloque_libre);
+        bloque_libre->num_segmento = segmento->id;
+        bloque_libre->num_bloque_del_segmento = contador;
+        bloque_libre->pid = segmento->pid;
+        logger_info(logger, "Agregando bloque a swap: PID %d, Segmento %d, Bloque del segmento %d.", bloque_libre->pid, bloque_libre->num_segmento, bloque_libre->num_bloque_del_segmento);
+    } else 
+    {
+        logger_info(logger, "No se puede agregar el segmento a swap: No hay bloques libres.");
+    }
+    return num_bloque_libre;
 }
 
-void escribir_bloque_en_swap(int num_bloque, char* contenido, t_datos_swap* swap) 
+static void escribir_bloque_en_swap(int num_bloque, char* contenido, t_datos_swap* swap) 
 {
     t_paquete* paquete = crear_paquete(OP_ESCRIBIR_DISCO);
     agregar_a_paquete(paquete, &num_bloque, sizeof(int)); 
-    strcat(contenido, "\0");
-    agregar_a_paquete(paquete, contenido, strlen(contenido) + 1);
+    char* buffer_auxiliar = calloc(swap->tamanio_bloque, 1);
+    memcpy(buffer_auxiliar, contenido, /*FALTA CALCULAR EL TAMANIO DE CONTENIDO*/); 
+    agregar_a_paquete(paquete, buffer_auxiliar, swap->tamanio_bloque);
     enviar_paquete(paquete, swap->socket_swap);
     eliminar_paquete(paquete);
+    free(buffer_auxiliar);
 }
 
 void suspender_proceso(t_proceso* proceso_a_suspender, t_datos_scheduler* datos_scheduler)
 {
-    int contador = 0;
-    //t_list* lista_auxiliar = filtrar_segmentos_proceso(proceso_a_suspender->pid, datos_scheduler->memoria_principal, datos_scheduler->logger);
+    int tamanio_bloque = datos_scheduler->datos_swap->tamanio_bloque;
+    bool proceso_suspendido = false;
     t_list_iterator* iterador = list_iterator_create(datos_scheduler->memoria_principal->segmentos);
     while (list_iterator_has_next(iterador)) {
-        t_datos_bloque* segmento_actual = list_iterator_next(iterador);
+        t_segmento* segmento_actual = list_iterator_next(iterador);
         if (segmento_actual->pid == proceso_a_suspender->pid) {
-            escribir_bloque_en_swap(segmento_actual->num_bloque, /*definir de donde obtengo el contenido*/, datos_scheduler->datos_swap);
-            agregar_bloque_a_lista_swap(segmento_actual, contador, datos_scheduler->datos_swap, datos_scheduler->logger);
-            // llamar a eliminar_segmento y eliminar el recien escrito 
-            eliminar_segmento(segmento_actual->num_segmento, proceso_a_suspender->pid, datos_scheduler->memoria_principal, datos_scheduler->logger);
-            contador++;
+            int cant_bloques_x_segmento = (segmento_actual->size + tamanio_bloque - 1) / tamanio_bloque;
+            for (int i = 0; i < cant_bloques_x_segmento; i++)
+            {
+                int offset = i * tamanio_bloque;
+                int bytes_a_leer = (segmento_actual->size - offset) < tamanio_bloque ? (segmento_actual->size - offset) : tamanio_bloque;
+                // FALTA LOGICA PARA OBTENER EL CONTENIDO A LEER. VA ACA
+                int num_bloque = agregar_bloque_a_lista_swap(segmento_actual, i, datos_scheduler->datos_swap, datos_scheduler->logger);
+                if(num_bloque != -1)
+                {
+                    escribir_bloque_en_swap(num_bloque, /*CONTENIDO A LEER*/, datos_scheduler->datos_swap);
+                    eliminar_segmento(segmento_actual->id, proceso_a_suspender->pid, datos_scheduler->memoria_principal, datos_scheduler->logger);
+                    proceso_suspendido = true;
+                } else 
+                {
+                    logger_info(datos_scheduler->logger, "No se pudo suspender el proceso PID %d: No hay bloques libres en swap.", proceso_a_suspender->pid);
+                    enviar_string(OP_SUSPENSION_NO_EXITOSA, "No se pudo suspender el proceso porque swap esta lleno.", datos_scheduler->socket_scheduler);
+                    list_iterator_destroy(iterador);
+                    return;
+                }
+            }
+            
         }
     }
     list_iterator_destroy(iterador);
+    if(proceso_suspendido)
+    {
+        enviar_string(OP_SUSPENSION_EXITOSA, "", datos_scheduler->socket_scheduler);
+    } else 
+    {
+        logger_info(datos_scheduler->logger, "No se encontro el proceso PID %d.", proceso_a_suspender->pid);
+        enviar_string(OP_SUSPENSION_NO_EXITOSA, "No se pudo suspender el proceso porque no se encontro su pid.", datos_scheduler->socket_scheduler);
+    }
 }

@@ -268,12 +268,8 @@ void* escucha_scheduler(void* ptr)
         int a;
         uint32_t* pid = (uint32_t*)recibir_buffer(&a, datos_scheduler->socket_scheduler);
         t_proceso* proceso_a_suspender = buscar_proceso(datos_scheduler->procesos, datos_scheduler->mutex_procesos, *pid);
-        //llamar a suspender_proceso 
-          // filtrar los segmentos del proceso a suspender en lista de segmentos
-          // escribir en swap este segmento
-          // agregarlo a la tabla de bloques del swap
-          // llamar a eliminar_segmento y eliminar el recien escrito 
-          // destruir la lista auxiliar de segmentos
+        suspender_proceso(proceso_a_suspender, datos_scheduler);
+        free(pid);
         break;
       }
       case OP_CIERRE_KERNEL_SCHEDULER:
