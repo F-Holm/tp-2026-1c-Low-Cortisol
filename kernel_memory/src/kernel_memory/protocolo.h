@@ -29,7 +29,9 @@ int calcular_memoria_total(t_list* sticks_conectados,
 int calcular_espacio_libre(t_list* huecos, pthread_mutex_t* mutex_huecos,
                            t_logger* logger);
 int calcular_base_final_segmento(t_list* segmentos);
-t_list* filtrar_segmentos_proceso(int pid,  t_memoria_principal* memoria_principal, t_logger* logger);
+t_list* filtrar_segmentos_proceso(int pid,
+                                  t_memoria_principal* memoria_principal,
+                                  t_logger* logger);
 void agregar_segmentos_a_paquete(t_list* segmentos,
                                  t_paquete* tabla_segmentos_proceso);
 t_memoria_principal* aniadir_memoria_total(

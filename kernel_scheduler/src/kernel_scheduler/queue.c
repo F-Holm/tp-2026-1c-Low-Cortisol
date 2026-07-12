@@ -86,7 +86,8 @@ static bool avisar_proceso_des_suspendido(t_pcb* pcb, t_colas* colas);
 static bool puede_des_suspender(t_pcb* pcb, t_colas* colas);
 static bool cambio_susp_ready_ready_sin_mutex(t_pcb* pcb, t_colas* colas);
 static bool cambio_cualquiera_exit(t_colas* colas, int estado, int motivo);
-static void bloquear_hilo_suspendido(t_datos_hilo_suspendido* datos, t_lista* lista);
+static void bloquear_hilo_suspendido(t_datos_hilo_suspendido* datos,
+                                     t_lista* lista);
 static void desbloquear_hilo_suspendido(t_datos_hilo_suspendido* datos);
 static void esperar_desbloqueo(t_datos_hilo_suspendido* datos);
 static t_pcb* obtener_proceso_bloqueado(t_colas* colas,
@@ -456,10 +457,11 @@ void vaciar_colas(t_colas* colas)
 
 void bloquear_hilos_suspendido(t_colas* colas)
 {
+  bloquear_hilo_suspendido(colas->datos_suspendido->datos_hilo_suspensor->datos,
+                           &(colas->block));
   bloquear_hilo_suspendido(
-      colas->datos_suspendido->datos_hilo_suspensor->datos, &(colas->block));
-  bloquear_hilo_suspendido(
-      colas->datos_suspendido->datos_hilo_des_suspensor->datos, &(colas->susp_ready));
+      colas->datos_suspendido->datos_hilo_des_suspensor->datos,
+      &(colas->susp_ready));
   logger_info(colas->logger, "## Hilos suspendido bloqueados");
 }
 
@@ -1302,7 +1304,8 @@ static bool cambio_cualquiera_exit(t_colas* colas, int estado, int motivo)
   return true;
 }
 
-static void bloquear_hilo_suspendido(t_datos_hilo_suspendido* datos, t_lista* lista)
+static void bloquear_hilo_suspendido(t_datos_hilo_suspendido* datos,
+                                     t_lista* lista)
 {
   pthread_mutex_lock(&(datos->mutex_estado));
   switch (datos->estado)

@@ -538,7 +538,9 @@ bool hueco_despues_segmento(int base_segmento, int final_segmento,
   return false;
 }
 
-t_list* filtrar_segmentos_proceso(int pid, t_memoria_principal* memoria_principal, t_logger* logger)
+t_list* filtrar_segmentos_proceso(int pid,
+                                  t_memoria_principal* memoria_principal,
+                                  t_logger* logger)
 {
   t_list* lista_filtrada = list_create();
 

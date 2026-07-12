@@ -45,7 +45,9 @@ t_datos_scheduler* inicializar_datos_scheduler(
 
 t_datos_cpu* inicializar_datos_cpu(int socket_cpu, t_list* procesos,
                                    pthread_mutex_t* mutex_procesos,
-                                   int instruction_delay,t_memoria_principal* memoria_principal, t_logger* logger)
+                                   int instruction_delay,
+                                   t_memoria_principal* memoria_principal,
+                                   t_logger* logger)
 {
   t_datos_cpu* datos_cpu = malloc(sizeof(t_datos_cpu));
   datos_cpu->socket_cpu = socket_cpu;
@@ -70,11 +72,32 @@ t_datos_stick* inicializar_datos_stick(int socket_stick, t_logger* logger,
   return datos_stick;
 }
 
+static void inicializar_lista_bloques(t_datos_swap* datos_swap)
+{
+  int cantidad_bloques = datos_swap->tamanio_swap / datos_swap->tamanio_bloque;
+  for (int i = 0; i < cantidad_bloques; i++)
+  {
+    t_datos_bloque* bloque = malloc(sizeof(t_datos_bloque));
+    bloque->num_bloque = i;
+    bloque->pid = -1;
+    bloque->num_segmento = -1;
+    bloque->num_bloque_del_segmento = -1;
+    list_add(datos_swap->lista_bloques, bloque);
+  }
+}
+
 t_datos_swap* inicializar_datos_swap(int socket_swap, t_logger* logger)
 {
   t_datos_swap* datos_swap = malloc(sizeof(t_datos_swap));
   datos_swap->socket_swap = socket_swap;
   datos_swap->logger = logger;
+  int a;
+  t_envio_a_km* envio_km = (t_envio_a_km*)recibir_buffer(&a, socket_swap);
+  datos_swap->tamanio_swap = envio_km->tamanio_swap;
+  datos_swap->tamanio_bloque = envio_km->tamanio_bloque;
+  free(envio_km);
+  datos_swap->lista_bloques = list_create();
+  inicializar_lista_bloques(datos_swap);
   return datos_swap;
 }
 

@@ -449,7 +449,7 @@ static bool io_stdout_f(t_stdout* peticion, t_io* io_out)
   {
     return false;
   }
-  
+
   cod_op = recibir_operacion(io_out->socket_io);
   if (cod_op != OP_RESPUESTA_STDOUT)
   {

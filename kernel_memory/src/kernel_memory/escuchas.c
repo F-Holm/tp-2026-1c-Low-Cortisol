@@ -28,7 +28,6 @@ void* escucha_scheduler(void* ptr)
         list_destroy(paquete);
         break;
       }
-
       case OP_SYSCALL_MEM_ALLOC:
       {
         logger_info(datos_scheduler->logger, "Llego una syscall de MEM_ALLOC");
@@ -262,6 +261,21 @@ void* escucha_scheduler(void* ptr)
                       datos_scheduler->socket_scheduler);
         break;
       }
+      case OP_SUSPENDER_PROCESO:
+      {
+        logger_info(datos_scheduler->logger,
+                    "Llego una solicitud de SUSPENDER_PROCESO");
+        int a;
+        uint32_t* pid = (uint32_t*)recibir_buffer(&a, datos_scheduler->socket_scheduler);
+        t_proceso* proceso_a_suspender = buscar_proceso(datos_scheduler->procesos, datos_scheduler->mutex_procesos, *pid);
+        //llamar a suspender_proceso 
+          // filtrar los segmentos del proceso a suspender en lista de segmentos
+          // escribir en swap este segmento
+          // agregarlo a la tabla de bloques del swap
+          // llamar a eliminar_segmento y eliminar el recien escrito 
+          // destruir la lista auxiliar de segmentos
+        break;
+      }
       case OP_CIERRE_KERNEL_SCHEDULER:
       {
         liberar_datos_scheduler(datos_scheduler);
@@ -329,7 +343,8 @@ void* escucha_cpu(void* ptr)
         t_paquete* tabla_segmentos_proceso =
             crear_paquete(OP_TABLA_DE_SEGMENTOS);
         agregar_segmentos_a_paquete(
-            filtrar_segmentos_proceso(*pid,  datos_cpu->memoria_principal, datos_cpu->logger),
+            filtrar_segmentos_proceso(*pid, datos_cpu->memoria_principal,
+                                      datos_cpu->logger),
             tabla_segmentos_proceso);
         enviar_paquete(tabla_segmentos_proceso, datos_cpu->socket_cpu);
         logger_info(datos_cpu->logger, "Tabla de segmentos enviada");
@@ -371,7 +386,8 @@ void* escucha_cpu(void* ptr)
         t_paquete* tabla_segmentos_proceso =
             crear_paquete(OP_TABLA_DE_SEGMENTOS);
         agregar_segmentos_a_paquete(
-            filtrar_segmentos_proceso(*pid, datos_cpu->memoria_principal, datos_cpu->logger),
+            filtrar_segmentos_proceso(*pid, datos_cpu->memoria_principal,
+                                      datos_cpu->logger),
             tabla_segmentos_proceso);
         enviar_paquete(tabla_segmentos_proceso, datos_cpu->socket_cpu);
         logger_info(datos_cpu->logger, "Tabla de segmentos enviada a cpu");

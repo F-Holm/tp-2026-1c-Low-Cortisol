@@ -51,6 +51,7 @@ typedef struct
   t_list* sticks_conectados;
   pthread_mutex_t* mutex_lista_sockets;
   t_memoria_principal* memoria_principal;
+  t_datos_swap* datos_swap;
 } t_datos_scheduler;
 
 typedef struct
@@ -59,7 +60,7 @@ typedef struct
   int socket_cpu;
   t_logger* logger;
   int instruction_delay;
-  t_list* procesos; 
+  t_list* procesos;
   pthread_mutex_t* mutex_procesos;
   t_memoria_principal* memoria_principal;
 } t_datos_cpu;
@@ -78,6 +79,9 @@ typedef struct
 {
   int socket_swap;
   t_logger* logger;
+  t_list* lista_bloques;
+  int tamanio_swap;
+  int tamanio_bloque;
 } t_datos_swap;
 
 typedef struct
@@ -95,5 +99,13 @@ typedef struct
   int base;
   int size;
 } t_hueco;
+
+typedef struct
+{
+  int num_bloque;
+  uint32_t pid;
+  int num_segmento;
+  int num_bloque_del_segmento;
+} t_datos_bloque;
 
 #endif
