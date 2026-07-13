@@ -1,5 +1,6 @@
 #include "kernel_memory/swap.h"
 
+/* FUNCION EN DESUSO POR AHORA
 t_list* filtrar_bloques_por_pid(t_list* bloques, uint32_t pid) {
   t_list* resultado = list_create();
   t_list_iterator* iterador = list_iterator_create(bloques);
@@ -10,7 +11,7 @@ t_list* filtrar_bloques_por_pid(t_list* bloques, uint32_t pid) {
   }
   list_iterator_destroy(iterador);
   return resultado;
-}
+}*/
 
 static int seleccionar_bloque_libre(t_datos_swap* datos_swap)
 {
@@ -58,10 +59,13 @@ void suspender_proceso(t_proceso* proceso_a_suspender, t_datos_scheduler* datos_
     int tamanio_bloque = datos_scheduler->datos_swap->tamanio_bloque;
     bool proceso_suspendido = false;
     t_list_iterator* iterador = list_iterator_create(datos_scheduler->memoria_principal->segmentos);
-    while (list_iterator_has_next(iterador)) {
+    while (list_iterator_has_next(iterador)) 
+    {
         t_segmento* segmento_actual = list_iterator_next(iterador);
-        if (segmento_actual->pid == proceso_a_suspender->pid) {
+        if (segmento_actual->pid == proceso_a_suspender->pid) 
+        {
             int cant_bloques_x_segmento = (segmento_actual->size + tamanio_bloque - 1) / tamanio_bloque;
+            bool segmento_suspendido = false;
             for (int i = 0; i < cant_bloques_x_segmento; i++)
             {
                 int offset = i * tamanio_bloque;
@@ -71,15 +75,22 @@ void suspender_proceso(t_proceso* proceso_a_suspender, t_datos_scheduler* datos_
                 if(num_bloque != -1)
                 {
                     escribir_bloque_en_swap(num_bloque, /*CONTENIDO A LEER*/, datos_scheduler->datos_swap);
-                    eliminar_segmento(segmento_actual->id, proceso_a_suspender->pid, datos_scheduler->memoria_principal, datos_scheduler->logger);
-                    proceso_suspendido = true;
+                    segmento_suspendido = true;
                 } else 
                 {
                     logger_info(datos_scheduler->logger, "No se pudo suspender el proceso PID %d: No hay bloques libres en swap.", proceso_a_suspender->pid);
                     enviar_string(OP_SUSPENSION_NO_EXITOSA, "No se pudo suspender el proceso porque swap esta lleno.", datos_scheduler->socket_scheduler);
-                    list_iterator_destroy(iterador);
-                    return;
+                    segmento_suspendido = false;
+                    break;
                 }
+            }
+            if(segmento_suspendido)
+            {
+                eliminar_segmento(segmento_actual->id, proceso_a_suspender->pid, datos_scheduler->memoria_principal, datos_scheduler->logger); 
+            } else 
+            {
+                list_iterator_destroy(iterador);
+                return;
             }
             
         }
