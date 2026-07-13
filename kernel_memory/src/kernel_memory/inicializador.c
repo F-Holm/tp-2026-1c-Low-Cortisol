@@ -93,8 +93,8 @@ t_datos_swap* inicializar_datos_swap(int socket_swap, t_logger* logger)
   datos_swap->logger = logger;
   int a;
   t_envio_a_km* envio_km = (t_envio_a_km*)recibir_buffer(&a, socket_swap);
-  datos_swap->tamanio_swap = envio_km->tamanio_swap;
-  datos_swap->tamanio_bloque = envio_km->tamanio_bloque;
+  datos_swap->tamanio_swap = envio_km->swap_size;
+  datos_swap->tamanio_bloque = envio_km->block_size;
   free(envio_km);
   datos_swap->lista_bloques = list_create();
   inicializar_lista_bloques(datos_swap);

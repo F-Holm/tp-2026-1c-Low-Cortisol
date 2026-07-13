@@ -1,5 +1,5 @@
-#ifndef SWAP_SWAP_H
-#define SWAP_SWAP_H
+#ifndef SWAP_SWAP_H_
+#define SWAP_SWAP_H_
 
 #include <assert.h>
 #include <commons/collections/list.h>
@@ -18,6 +18,7 @@
 #include "utils/client.h"
 #include "utils/logger.h"
 #include "utils/msg.h"
+#include "utils/swap_km.h"
 
 typedef struct
 {
@@ -30,12 +31,6 @@ typedef struct
   char* swap_file_path;
   FILE* archivo_swap;
 } t_modulo_swap;
-
-typedef struct
-{
-  int swap_size;
-  int block_size;
-} t_envio_a_km;
 
 void cerrar_todo(t_modulo_swap* modulo_swap, t_config* config);
 bool iniciar_conexion(t_modulo_swap* modulo_swap, t_config* config);
