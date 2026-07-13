@@ -34,6 +34,7 @@ static int agregar_bloque_a_lista_swap(t_segmento* segmento, int contador, t_dat
         bloque_libre->num_segmento = segmento->id;
         bloque_libre->num_bloque_del_segmento = contador;
         bloque_libre->pid = segmento->pid;
+        bloque_libre->tamanio_segmento = segmento->size;
         logger_info(logger, "Agregando bloque a swap: PID %d, Segmento %d, Bloque del segmento %d.", bloque_libre->pid, bloque_libre->num_segmento, bloque_libre->num_bloque_del_segmento);
     } else 
     {
@@ -121,4 +122,15 @@ void suspender_proceso(t_proceso* proceso_a_suspender, t_datos_scheduler* datos_
         logger_info(datos_scheduler->logger, "No se encontro el proceso PID %d.", proceso_a_suspender->pid);
         enviar_string(OP_SUSPENSION_NO_EXITOSA, "No se pudo suspender el proceso porque no se encontro su pid.", datos_scheduler->socket_scheduler);
     }
+}
+
+void desuspender_proceso()
+{
+    // 1. revisar si el proceso esta suspendido en swap, esto pasa si tiene segmentos en disco
+    // 2. leer los bloques de swap segmento por segmento
+    // 3. calcular tamanio del segmento para posteriormente llamar a crear_segmento
+    // 4. escribir en sticks el contenido del segmento
+    // 5. eliminar los bloques del segmento de swap poiendole sus valores en -1 en la lista
+    // repetir 2 al 5 para cada segmento del proceso
+    // 6. enviar a scheduler mensaje de exito o fracaso de la des-suspension (los de fracasso seguramente vayan por la mitad de la funcion, no al final)
 }

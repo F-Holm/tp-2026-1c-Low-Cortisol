@@ -106,6 +106,7 @@ typedef struct
   uint32_t pid;
   int num_segmento;
   int num_bloque_del_segmento;
+  int tamanio_segmento;
 } t_datos_bloque;
 
 #endif

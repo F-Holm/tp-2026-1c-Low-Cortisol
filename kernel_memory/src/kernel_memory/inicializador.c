@@ -82,6 +82,7 @@ static void inicializar_lista_bloques(t_datos_swap* datos_swap)
     bloque->pid = -1;
     bloque->num_segmento = -1;
     bloque->num_bloque_del_segmento = -1;
+    bloque->tamanio_segmento = -1;
     list_add(datos_swap->lista_bloques, bloque);
   }
 }
