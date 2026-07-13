@@ -105,3 +105,58 @@ void suspender_proceso(t_proceso* proceso_a_suspender, t_datos_scheduler* datos_
         enviar_string(OP_SUSPENSION_NO_EXITOSA, "No se pudo suspender el proceso porque no se encontro su pid.", datos_scheduler->socket_scheduler);
     }
 }
+
+
+int cantidad_segmentos_proceso_suspendido(t_proceso* proceso, t_datos_scheduler* datos_scheduler){
+    //Los bloques estan en orden de segmento (o por lo menos deberian)
+    int cantidad_segmentos = -1;
+    int id_segmento_anterior = -1;
+    t_list_iterator* iterador = list_iterator_create(datos->datos_swap->lista_bloques);
+    while(list_iterator_has_next(iterador))
+    {
+     t_bloque* bloque = list_iterator_next(iterador);
+     if(bloque->pid == proceso->pid){
+        if(bloque->num_segmento != id_segmento_anterior){
+           id_segmento_anterior = bloque_num_segmento;
+           cantidad_segmentos++;
+       }
+     }
+    }
+ return cantidad_segmentos;
+}
+
+int cantidad_bloques_de_segmento(int id_segmento, t_proceso* proceso, t_datos_scheduler* datos){
+    int cantidad_bloques;
+    t_list_iterator* iterador = list_iterator_create(datos->datos_swap->lista_bloques);
+    while(list_iterator_has_next(iterador)){
+       t_bloque* bloque = list_iterator_next(iterador);
+       if((bloque->pid == proceso_pid) && (bloque->num_segmento == id_segmento)){
+          cantidad_bloques = bloque->num_bloque_del_segmento; 
+       }
+    }
+    return cantidad_bloques;
+}
+
+
+void des_suspender_proceso(t_proceso* proceso, t_datos_scheduler* datos){
+    int cantidad_segmentos = cantidad_segmentos_proceso_suspendido(proceso, datos);
+    t_list_iterator* iterador = list_iterator_create(datos->datos_swap->lista_bloques);
+    if(cantidad_segmentos == -1){
+        logger_info(datos_scheduler->logger, "El proceso no esta suspendido");
+        enviar_string(OP_DES_SUSPENSION_NO_EXITOSA, "No se des suspendio el proceso", datos->socket_scheduler);
+        return;
+    }
+    while(list_iterator_has_next(iterador)){
+    t_bloque* bloque = list_iterator_next(datos->datos_swap->lista_bloques);
+    //Asumo que la lista de bloques y la lista de segmentos estan en orden ascedente
+    if(bloque)
+
+
+
+
+
+
+    }
+
+
+}
