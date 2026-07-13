@@ -42,22 +42,35 @@ static int agregar_bloque_a_lista_swap(t_segmento* segmento, int contador, t_dat
     return num_bloque_libre;
 }
 
-static void escribir_bloque_en_swap(int num_bloque, char* contenido, t_datos_swap* swap) 
+static void escribir_bloque_en_swap(int num_bloque, char* contenido, int cantidad_bytes, t_datos_swap* swap) 
 {
     t_paquete* paquete = crear_paquete(OP_ESCRIBIR_DISCO);
     agregar_a_paquete(paquete, &num_bloque, sizeof(int)); 
     char* buffer_auxiliar = calloc(swap->tamanio_bloque, 1);
-    memcpy(buffer_auxiliar, contenido, /*FALTA CALCULAR EL TAMANIO DE CONTENIDO*/); 
+    memcpy(buffer_auxiliar, contenido, cantidad_bytes); 
     agregar_a_paquete(paquete, buffer_auxiliar, swap->tamanio_bloque);
     enviar_paquete(paquete, swap->socket_swap);
     eliminar_paquete(paquete);
     free(buffer_auxiliar);
 }
 
+void eliminar_segmentos_del_proceso(t_list* segmentos_a_eliminar, uint32_t pid, t_datos_scheduler* datos_scheduler)
+{
+    t_list_iterator* it = list_iterator_create(segmentos_a_eliminar);
+    while (list_iterator_has_next(it))
+    {
+        t_segmento* seg = list_iterator_next(it);
+        eliminar_segmento(seg->id, pid, datos_scheduler->memoria_principal, datos_scheduler->logger);
+    }
+    list_iterator_destroy(it);
+    list_destroy(segmentos_a_eliminar);
+}
+
 void suspender_proceso(t_proceso* proceso_a_suspender, t_datos_scheduler* datos_scheduler)
 {
     int tamanio_bloque = datos_scheduler->datos_swap->tamanio_bloque;
     bool proceso_suspendido = false;
+    t_list* segmentos_a_eliminar = list_create();
     t_list_iterator* iterador = list_iterator_create(datos_scheduler->memoria_principal->segmentos);
     while (list_iterator_has_next(iterador)) 
     {
@@ -69,33 +82,37 @@ void suspender_proceso(t_proceso* proceso_a_suspender, t_datos_scheduler* datos_
             for (int i = 0; i < cant_bloques_x_segmento; i++)
             {
                 int offset = i * tamanio_bloque;
-                int bytes_a_leer = (segmento_actual->size - offset) < tamanio_bloque ? (segmento_actual->size - offset) : tamanio_bloque;
-                // FALTA LOGICA PARA OBTENER EL CONTENIDO A LEER. VA ACA
+                int cantidad_bytes_a_leer = (segmento_actual->size - offset) < tamanio_bloque ? (segmento_actual->size - offset) : tamanio_bloque;
+                char* contenido = leer_de_sticks(segmento_actual->base + offset, cantidad_bytes_a_leer, datos_scheduler->sticks_conectados, datos_scheduler->mutex_lista_sockets, datos_scheduler->logger);
                 int num_bloque = agregar_bloque_a_lista_swap(segmento_actual, i, datos_scheduler->datos_swap, datos_scheduler->logger);
                 if(num_bloque != -1)
                 {
-                    escribir_bloque_en_swap(num_bloque, /*CONTENIDO A LEER*/, datos_scheduler->datos_swap);
+                    escribir_bloque_en_swap(num_bloque, contenido, cantidad_bytes_a_leer, datos_scheduler->datos_swap);
                     segmento_suspendido = true;
                 } else 
                 {
                     logger_info(datos_scheduler->logger, "No se pudo suspender el proceso PID %d: No hay bloques libres en swap.", proceso_a_suspender->pid);
                     enviar_string(OP_SUSPENSION_NO_EXITOSA, "No se pudo suspender el proceso porque swap esta lleno.", datos_scheduler->socket_scheduler);
                     segmento_suspendido = false;
+                    free(contenido);
                     break;
                 }
+                free(contenido);
             }
             if(segmento_suspendido)
             {
-                eliminar_segmento(segmento_actual->id, proceso_a_suspender->pid, datos_scheduler->memoria_principal, datos_scheduler->logger); 
+                list_add(segmentos_a_eliminar, segmento_actual);
+                //eliminar_segmento(segmento_actual->id, proceso_a_suspender->pid, datos_scheduler->memoria_principal, datos_scheduler->logger); 
+                proceso_suspendido = true;
             } else 
             {
                 list_iterator_destroy(iterador);
                 return;
             }
-            
         }
     }
     list_iterator_destroy(iterador);
+    eliminar_segmentos_del_proceso(segmentos_a_eliminar, proceso_a_suspender->pid, datos_scheduler);
     if(proceso_suspendido)
     {
         enviar_string(OP_SUSPENSION_EXITOSA, "", datos_scheduler->socket_scheduler);

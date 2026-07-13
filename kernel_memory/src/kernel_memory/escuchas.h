@@ -14,6 +14,7 @@
 #include "utils/kernel_scheduler_cpu.h"
 #include "utils/logger.h"
 #include "utils/msg.h"
+#include "kernel_memory/swap.h"
 
 void* escucha_scheduler(void* ptr);
 void* escucha_cpu(void* ptr);

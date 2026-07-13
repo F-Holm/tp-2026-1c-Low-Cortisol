@@ -43,6 +43,15 @@ typedef struct
 
 typedef struct
 {
+  int socket_swap;
+  t_logger* logger;
+  t_list* lista_bloques;
+  int tamanio_swap;
+  int tamanio_bloque;
+} t_datos_swap;
+
+typedef struct
+{
   int socket_scheduler;
   t_logger* logger;
   t_list* procesos;
@@ -74,15 +83,6 @@ typedef struct
   int socket_scheduler;
   t_logger* logger;
 } t_datos_stick;
-
-typedef struct
-{
-  int socket_swap;
-  t_logger* logger;
-  t_list* lista_bloques;
-  int tamanio_swap;
-  int tamanio_bloque;
-} t_datos_swap;
 
 typedef struct
 {

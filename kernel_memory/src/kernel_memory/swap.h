@@ -7,6 +7,7 @@
 
 #include "kernel_memory/estructuras.h"
 #include "kernel_memory/protocolo.h"
-t_list* filtrar_bloques_por_pid(t_list* bloques, uint32_t pid);
+
+void suspender_proceso(t_proceso* proceso_a_suspender, t_datos_scheduler* datos_scheduler);
 
 #endif // KERNEL_MEMORY_SWAP_H_
