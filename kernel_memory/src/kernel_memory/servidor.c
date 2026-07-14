@@ -24,7 +24,7 @@ void handshake(t_datos_kernel_mem* datos_kernel_memory, int client_socket)
           datos_kernel_memory->memoria_principal,
           datos_kernel_memory->sticks_conectados,
           datos_kernel_memory->mutex_lista_sockets,
-          datos_kernel_memory->logger);
+          datos_kernel_memory->datos_swap, datos_kernel_memory->logger);
       datos_kernel_memory->socket_scheduler = client_socket;
       empezar_escucha_scheduler(datos_scheduler);
     }
@@ -113,7 +113,7 @@ void handshake(t_datos_kernel_mem* datos_kernel_memory, int client_socket)
       logger_info(datos_kernel_memory->logger, "Se ha conectado el SWAP");
       t_datos_swap* datos_swap =
           inicializar_datos_swap(client_socket, datos_kernel_memory->logger);
-      empezar_escucha_swap(datos_swap);
+      datos_kernel_memory->datos_swap = datos_swap;
       break;
     }
     default:
