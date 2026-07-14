@@ -658,7 +658,8 @@ char* leer_de_sticks(int direccion_fisica, int tamanio,
   resultado[tamanio] = '\0';
   int bytes_leidos = 0;
   int dir_actual = direccion_fisica;
-
+  logger_info(logger, "Leyendo %d bytes desde dir_fisica %d", tamanio,
+              direccion_fisica);
   while (bytes_leidos < tamanio)
   {
     int offset_en_stick = 0;
@@ -686,7 +687,7 @@ char* leer_de_sticks(int direccion_fisica, int tamanio,
     enviar_paquete(paquete, stick->socket_stick);
     eliminar_paquete(paquete);
     pthread_mutex_unlock(mutex_sticks);
-
+    
     // Recibo respuesta
     int stick_socket =
         ((t_datos_stick*)list_get(sticks_conectados, indice))->socket_stick;

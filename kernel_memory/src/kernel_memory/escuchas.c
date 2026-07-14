@@ -97,6 +97,8 @@ void* escucha_scheduler(void* ptr)
             dir_fisica, datos_scheduler->sticks_conectados,
             datos_scheduler->mutex_lista_sockets, &offset_en_stick);
         pthread_mutex_lock(datos_scheduler->mutex_lista_sockets);
+        logger_info(datos_scheduler->logger, "Empiezo a escribir en el stick %d, offset %d", indice,
+                    offset_en_stick);
         t_datos_stick* stick_a_escribir_inicial =
             list_get(datos_scheduler->sticks_conectados, indice);
         int tamanio = stick_a_escribir_inicial->tamanio_stick - dir_fisica -
@@ -113,8 +115,6 @@ void* escucha_scheduler(void* ptr)
           agregar_a_paquete(paquete, &tamanio_cortado, sizeof(int));
           enviar_paquete(paquete, stick_a_escribir_inicial->socket_stick);
           eliminar_paquete(paquete);
-          char* mensaje = recibir_string(OP_MEMORY_STICK_ESCRITO);
-          free(mensaje);
           logger_info(datos_scheduler->logger,
                       "##PID: %d - Escritura - Dir. Fisica: %d - Tamaño: %d",
                       peticion_stdin->pid, dir_fisica, tamanio_cortado);
@@ -136,8 +136,6 @@ void* escucha_scheduler(void* ptr)
             enviar_paquete(paquete2, stick_a_escribir->socket_stick);
             free(cadena_cortada);
             eliminar_paquete(paquete2);
-            char* mensaje = recibir_string(OP_MEMORY_STICK_ESCRITO);
-            free(mensaje);
             logger_info(datos_scheduler->logger,
                         "##PID: %d - Escritura - Dir. Fisica: %d - Tamaño: %d",
                         peticion_stdin->pid, 0, tamanio_cortado2);
@@ -152,14 +150,11 @@ void* escucha_scheduler(void* ptr)
           agregar_a_paquete(paquete, &tamanio_string, sizeof(int));
           enviar_paquete(paquete, stick_a_escribir_inicial->socket_stick);
           eliminar_paquete(paquete);
-          char* mensaje = recibir_string(OP_MEMORY_STICK_ESCRITO);
-          free(mensaje);
           logger_info(datos_scheduler->logger,
                       "##PID: %d - Escritura - Dir. Fisica: %d - Tamaño: %d",
                       peticion_stdin->pid, dir_fisica, tamanio_string);
         }
         pthread_mutex_unlock(datos_scheduler->mutex_lista_sockets);
-        enviar_string(OP_OK, "OK", datos_scheduler->socket_scheduler);
         break;
       }
       case OP_PETICION_IO_STDOUT:
@@ -169,6 +164,11 @@ void* escucha_scheduler(void* ptr)
         int size;
         t_peticion_stdout* peticion_stdout = (t_peticion_stdout*)recibir_buffer(
             &size, datos_scheduler->socket_scheduler);
+        logger_info(datos_scheduler->logger,
+                    "## PID: %u - Petición de lectura de STDOUT - "
+                    "Dirección lógica: %u - Tamaño a leer: %d",
+                    peticion_stdout->pid, peticion_stdout->direccion_logica,
+                    peticion_stdout->tamanio_a_escribir);
         int dir_fisica = traducir_direccion_logica(
             peticion_stdout->pid, peticion_stdout->direccion_logica,
             peticion_stdout->tamanio_a_escribir,
@@ -459,7 +459,7 @@ void* escucha_stick(void* ptr)
                       datos_stick->socket_scheduler);
         free(lectura);
         break;
-      case OP_MEMORY_STICK_ESCRITO:
+       case OP_MEMORY_STICK_ESCRITO:
         char* buffer = recibir_string(datos_stick->socket_stick);
         free(buffer);
         logger_info(datos_stick->logger, "Se ha escrito en la memory stick");
