@@ -25,6 +25,15 @@ typedef struct
 
 typedef struct
 {
+  int socket_swap;
+  t_logger* logger;
+  t_list* lista_bloques;
+  int tamanio_swap;
+  int tamanio_bloque;
+} t_datos_swap;
+
+typedef struct
+{
   int socket_kernel_memory;
   int instruction_delay;
   int compaction_delay;
@@ -37,18 +46,10 @@ typedef struct
   t_list* cpus_conectados;
   t_list* procesos;
   t_memoria_principal* memoria_principal;
+  t_datos_swap* datos_swap;
   pthread_mutex_t* mutex_procesos;
   pthread_mutex_t* mutex_lista_sockets;
 } t_datos_kernel_mem;
-
-typedef struct
-{
-  int socket_swap;
-  t_logger* logger;
-  t_list* lista_bloques;
-  int tamanio_swap;
-  int tamanio_bloque;
-} t_datos_swap;
 
 typedef struct
 {

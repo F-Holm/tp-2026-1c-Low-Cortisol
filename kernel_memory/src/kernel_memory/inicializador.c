@@ -19,6 +19,7 @@ t_datos_kernel_mem* inicializar_datos_kernel_memory(
   datos_kernel->procesos = list_create();
   datos_kernel->memoria_principal =
       inicializar_memoria_principal(segment_max_size, allocation_strategy);
+  datos_kernel->datos_swap = NULL;
   datos_kernel->mutex_procesos = malloc(sizeof(pthread_mutex_t));
   datos_kernel->mutex_lista_sockets = malloc(sizeof(pthread_mutex_t));
   pthread_mutex_init(datos_kernel->mutex_procesos, NULL);
@@ -29,7 +30,8 @@ t_datos_kernel_mem* inicializar_datos_kernel_memory(
 t_datos_scheduler* inicializar_datos_scheduler(
     int socket_scheduler, t_list* procesos, char* scripts_basepath,
     pthread_mutex_t* mutex_procesos, t_memoria_principal* memoria_principal,
-    t_list* sticks_conectadas, pthread_mutex_t* mutex_sticks, t_logger* logger)
+    t_list* sticks_conectadas, pthread_mutex_t* mutex_sticks,
+    t_datos_swap* datos_swap, t_logger* logger)
 {
   t_datos_scheduler* datos_scheduler = malloc(sizeof(t_datos_scheduler));
   datos_scheduler->socket_scheduler = socket_scheduler;
@@ -40,6 +42,7 @@ t_datos_scheduler* inicializar_datos_scheduler(
   datos_scheduler->sticks_conectados = sticks_conectadas;
   datos_scheduler->mutex_lista_sockets = mutex_sticks;
   datos_scheduler->memoria_principal = memoria_principal;
+  datos_scheduler->datos_swap = datos_swap;
   return datos_scheduler;
 }
 

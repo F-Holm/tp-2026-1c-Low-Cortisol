@@ -156,6 +156,7 @@ void* escucha_scheduler(void* ptr)
                       peticion_stdin->pid, dir_fisica, tamanio_string);
         }
         pthread_mutex_unlock(datos_scheduler->mutex_lista_sockets);
+        logger_info(datos_scheduler->logger, "Peticion STDIN finalizada");
         break;
       }
       case OP_PETICION_IO_STDOUT:
@@ -195,6 +196,7 @@ void* escucha_scheduler(void* ptr)
                       datos_scheduler->socket_scheduler);
         free(buffer);
         free(peticion_stdout);
+        logger_info(datos_scheduler->logger, "Peticion STDOUT finalizada");
         break;
       }
       case OP_TERMINAR_PROCESO:
