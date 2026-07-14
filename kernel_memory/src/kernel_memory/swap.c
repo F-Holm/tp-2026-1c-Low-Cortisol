@@ -187,8 +187,18 @@ static int quitar_bloque_lista_swap(int num_bloque, t_datos_swap* datos_swap,
   return num_bloque;
 }
 
+static int calcular_direccion_con_offset(int tamanio_bloque,
+                                         t_memoria_principal* memoria_principal,
+                                         uint32_t pid, t_datos_bloque* bloque)
+{
+  t_segmento* segmento =
+      buscar_segmento(memoria_principal, pid, bloque->num_segmento);
+  return (segmento->base + tamanio_bloque * bloque->num_bloque_del_segmento);
+}
+
 void des_suspender_proceso(uint32_t pid, t_datos_scheduler* datos_scheduler)
 {
+  int tamanio_bloque = datos_scheduler->datos_swap->tamanio_bloque;
   bool proceso_encontrado = false;
   t_list_iterator* iterador =
       list_iterator_create(datos_scheduler->datos_swap->lista_bloques);
@@ -207,10 +217,12 @@ void des_suspender_proceso(uint32_t pid, t_datos_scheduler* datos_scheduler)
                        datos_scheduler->logger);
       char* contenido =
           leer_bloque_en_swap(bloque->num_bloque, datos_scheduler->datos_swap);
-      // escribir_en_sticks QUE FALTA HACERLA, AVISARLE A CRISTIAN QUE TIENE QUE
-      // PASAR ESO A FUNCION, CODIGO DE ESCUCHAS.C DESDE 104 HASTA 164 CREO
-      // capaz tenga que calcular el offset del bloque que se esta escribiendo:
-      // tamanio_bloque*num_bloque_del_segmento
+      int direccion_a_escribir = calcular_direccion_con_offset(
+          tamanio_bloque, datos_scheduler->memoria_principal, pid, bloque);
+      escribir_en_sticks(pid, direccion_a_escribir, tamanio_bloque, contenido,
+                         datos_scheduler->sticks_conectados,
+                         datos_scheduler->mutex_lista_sockets,
+                         datos_scheduler->logger);
       free(contenido);
       if (bloque->num_bloque !=
           quitar_bloque_lista_swap(bloque->num_bloque,

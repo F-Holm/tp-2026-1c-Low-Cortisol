@@ -75,4 +75,6 @@ int calcular_tamanio_proceso(t_proceso* proceso);
 void escribir_en_sticks(int pid, int dir_fisica, int tamanio_a_leer,
                         char* string_escribir, t_list* sticks_conectados,
                         pthread_mutex_t* mutex_lista_sockets, t_logger* logger);
+t_segmento* buscar_segmento(t_memoria_principal* memoria_principal,
+                            uint32_t pid, uint32_t num_segmento);
 #endif
