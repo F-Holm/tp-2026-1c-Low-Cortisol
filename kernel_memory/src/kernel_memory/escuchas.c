@@ -267,8 +267,18 @@ void* escucha_scheduler(void* ptr)
                     "Llego una solicitud de SUSPENDER_PROCESO");
         int a;
         uint32_t* pid = (uint32_t*)recibir_buffer(&a, datos_scheduler->socket_scheduler);
-        t_proceso* proceso_a_suspender = buscar_proceso(datos_scheduler->procesos, datos_scheduler->mutex_procesos, *pid);
+        t_proceso* proceso_a_suspender = buscar_proceso(datos_scheduler->procesos, datos_scheduler->mutex_procesos, *pid); // SE USA ESTA LISTA DE PROCESOS? 
         suspender_proceso(proceso_a_suspender, datos_scheduler);
+        free(pid);
+        break;
+      }
+      case OP_DES_SUSPENDER_PROCESO:
+      {
+        logger_info(datos_scheduler->logger,
+                    "Llego una solicitud de DES_SUSPENDER_PROCESO");
+        int a;
+        uint32_t* pid = (uint32_t*)recibir_buffer(&a, datos_scheduler->socket_scheduler);
+        des_suspender_proceso(*pid, datos_scheduler);
         free(pid);
         break;
       }
