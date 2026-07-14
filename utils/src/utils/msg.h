@@ -63,10 +63,10 @@ typedef enum
                                 // suspendido)
   OP_TAMANIO_PROCESO,           // tamaño del proceso en memoria
   OP_NUEVO_MEMORY_STICK,        // avisar que se conectó un memory stick
-  OP_SUSPENDER_PROCESO,         // no devuelve nada porque no puede fallar
+  OP_SUSPENDER_PROCESO,
   OP_SUSPENSION_EXITOSA,
   OP_SUSPENSION_NO_EXITOSA,
-  OP_DES_SUSPENDER_PROCESO,     // devuelve uno de los siguientes 2 mensajes
+  OP_DES_SUSPENDER_PROCESO,  // devuelve uno de los siguientes 2 mensajes
   OP_DES_SUSPENSION_EXITOSA,
   OP_DES_SUSPENSION_NO_EXITOSA,
   OP_COMPACTACION_NECESARIA,
@@ -83,7 +83,11 @@ typedef enum
   OP_TABLA_DE_SEGMENTOS,
   OP_MEMORIA_INSUFICIENTE,
   OP_CIERRE_KERNEL_SCHEDULER,
-  OP_TABLA_SEG_ACTUALIZADA
+  OP_TABLA_SEG_ACTUALIZADA,
+  OP_ESCRIBIR_DISCO,
+  OP_LEER_DISCO,
+  OP_DISCO_ESCRITO,
+  OP_DISCO_LEIDO
 } t_op_code;
 
 typedef struct

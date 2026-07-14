@@ -194,6 +194,8 @@ void* manejar_cliente_cpu(void* datos_hilo_cpu_void)
     {
       case OP_MEMORY_STICK_LEER:
       {
+        logger_info(datos_hilo_cpu->ms_recursos->logger,
+                    "## Recibiendo instrucción de lectura de parte de la cpu");
         t_list* paquete = recibir_paquete(datos_hilo_cpu->socket_cpu);
         if (list_size(paquete) != 2)
         {
@@ -203,6 +205,9 @@ void* manejar_cliente_cpu(void* datos_hilo_cpu_void)
         }
         int posicion_inicial = *(int*)list_get(paquete, 0);
         int cantidad_bytes = *(int*)list_get(paquete, 1);
+        logger_info(datos_hilo_cpu->ms_recursos->logger,
+                    "## Lectura de %d bytes, desde %d por parte de la cpu",
+                    cantidad_bytes, posicion_inicial);
         list_destroy_and_destroy_elements(paquete, free);
         leer_memoria(datos_hilo_cpu->ms_recursos, posicion_inicial,
                      cantidad_bytes, datos_hilo_cpu->socket_cpu);
@@ -210,6 +215,9 @@ void* manejar_cliente_cpu(void* datos_hilo_cpu_void)
       }
       case OP_MEMORY_STICK_ESCRIBIR:
       {
+        logger_info(
+            datos_hilo_cpu->ms_recursos->logger,
+            "## Recibiendo instrucción de escritura de parte de la cpu");
         t_list* paquete = recibir_paquete(datos_hilo_cpu->socket_cpu);
         if (list_size(paquete) != 3)
         {

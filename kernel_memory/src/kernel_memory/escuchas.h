@@ -10,6 +10,7 @@
 #include "kernel_memory/estructuras.h"
 #include "kernel_memory/inicializador.h"
 #include "kernel_memory/liberador.h"
+#include "kernel_memory/swap.h"
 #include "protocolo.h"
 #include "utils/kernel_scheduler_cpu.h"
 #include "utils/logger.h"

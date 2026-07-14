@@ -538,7 +538,9 @@ bool hueco_despues_segmento(int base_segmento, int final_segmento,
   return false;
 }
 
-t_list* filtrar_segmentos_proceso(int pid, t_memoria_principal* memoria_principal, t_logger* logger)
+t_list* filtrar_segmentos_proceso(int pid,
+                                  t_memoria_principal* memoria_principal,
+                                  t_logger* logger)
 {
   t_list* lista_filtrada = list_create();
 
@@ -568,8 +570,8 @@ void agregar_segmentos_a_paquete(t_list* segmentos,
   }
 }
 
-static t_segmento* buscar_segmento(t_memoria_principal* memoria_principal,
-                                   uint32_t pid, uint32_t num_segmento)
+t_segmento* buscar_segmento(t_memoria_principal* memoria_principal,
+                            uint32_t pid, uint32_t num_segmento)
 {
   t_segmento* seg_encontrado = NULL;
   uint32_t contador_segmentos_pid = 0;
@@ -656,7 +658,8 @@ char* leer_de_sticks(int direccion_fisica, int tamanio,
   resultado[tamanio] = '\0';
   int bytes_leidos = 0;
   int dir_actual = direccion_fisica;
-
+  logger_info(logger, "Leyendo %d bytes desde dir_fisica %d", tamanio,
+              direccion_fisica);
   while (bytes_leidos < tamanio)
   {
     int offset_en_stick = 0;
@@ -732,4 +735,65 @@ int calcular_tamanio_proceso(t_proceso* proceso)
     tamanio += segmento_aux->size;
   }
   return tamanio;
+}
+
+void escribir_en_sticks(int pid, int dir_fisica, int tamanio_a_leer,
+                        char* string_escribir, t_list* sticks_conectados,
+                        pthread_mutex_t* mutex_lista_sockets, t_logger* logger)
+{
+  int offset_en_stick = 0;
+  int indice = encontrar_stick(dir_fisica, sticks_conectados,
+                               mutex_lista_sockets, &offset_en_stick);
+  pthread_mutex_lock(mutex_lista_sockets);
+  logger_info(logger, "Empiezo a escribir en el stick %d, offset %d", indice,
+              offset_en_stick);
+  t_datos_stick* stick_a_escribir_inicial = list_get(sticks_conectados, indice);
+  int tamanio =
+      stick_a_escribir_inicial->tamanio_stick - dir_fisica - tamanio_a_leer;
+  t_paquete* paquete = crear_paquete(OP_MEMORY_STICK_ESCRIBIR);
+  if (tamanio < 0)
+  {
+    int tamanio_sumado = stick_a_escribir_inicial->tamanio_stick - dir_fisica;
+    char* cadena_cortada = cortar_cadena(tamanio_sumado, string_escribir);
+    int tamanio_cortado = strlen(cadena_cortada);
+    agregar_a_paquete(paquete, &dir_fisica, sizeof(int));
+    agregar_string_a_paquete(paquete, cadena_cortada);
+    agregar_a_paquete(paquete, &tamanio_cortado, sizeof(int));
+    enviar_paquete(paquete, stick_a_escribir_inicial->socket_stick);
+    eliminar_paquete(paquete);
+    logger_info(logger, "##PID: %d - Escritura - Dir. Fisica: %d - Tamaño: %d",
+                pid, dir_fisica, tamanio_cortado);
+
+    for (int i = indice + 1; tamanio_sumado < tamanio_a_leer; i++)
+    {
+      t_datos_stick* stick_a_escribir = list_get(sticks_conectados, i);
+      tamanio_sumado = +stick_a_escribir->tamanio_stick;
+      t_paquete* paquete2 = crear_paquete(OP_MEMORY_STICK_ESCRIBIR);
+      agregar_a_paquete(paquete2, 0, sizeof(int));
+      char* cadena_cortada = cortar_cadena(stick_a_escribir->tamanio_stick,
+                                           string_escribir + tamanio_sumado);
+      int tamanio_cortado2 = strlen(cadena_cortada);
+      agregar_string_a_paquete(paquete2, cadena_cortada);
+      agregar_a_paquete(paquete2, &tamanio_cortado2, sizeof(int));
+      enviar_paquete(paquete2, stick_a_escribir->socket_stick);
+      free(cadena_cortada);
+      eliminar_paquete(paquete2);
+      logger_info(logger,
+                  "##PID: %d - Escritura - Dir. Fisica: %d - Tamaño: %d", pid,
+                  0, tamanio_cortado2);
+    }
+    free(cadena_cortada);
+  }
+  else
+  {
+    int tamanio_string = strlen(string_escribir);
+    agregar_a_paquete(paquete, &dir_fisica, sizeof(int));
+    agregar_string_a_paquete(paquete, string_escribir);
+    agregar_a_paquete(paquete, &tamanio_string, sizeof(int));
+    enviar_paquete(paquete, stick_a_escribir_inicial->socket_stick);
+    eliminar_paquete(paquete);
+    logger_info(logger, "##PID: %d - Escritura - Dir. Fisica: %d - Tamaño: %d",
+                pid, dir_fisica, tamanio_string);
+  }
+  pthread_mutex_unlock(mutex_lista_sockets);
 }
