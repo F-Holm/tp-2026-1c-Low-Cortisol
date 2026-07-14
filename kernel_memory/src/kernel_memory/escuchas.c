@@ -116,7 +116,6 @@ void* escucha_scheduler(void* ptr)
           agregar_a_paquete(paquete, &tamanio_cortado, sizeof(int));
           enviar_paquete(paquete, stick_a_escribir_inicial->socket_stick);
           eliminar_paquete(paquete);
-          logger_info(datos_scheduler->logger, "A espera de confiramacion de escritura del stick");
           logger_info(datos_scheduler->logger,
                       "##PID: %d - Escritura - Dir. Fisica: %d - Tamaño: %d",
                       peticion_stdin->pid, dir_fisica, tamanio_cortado);
@@ -135,11 +134,9 @@ void* escucha_scheduler(void* ptr)
             int tamanio_cortado2 = strlen(cadena_cortada);
             agregar_string_a_paquete(paquete2, cadena_cortada);
             agregar_a_paquete(paquete2, &tamanio_cortado2, sizeof(int));
-            logger_info(datos_scheduler->logger, "enviado al stick la dir fisica %d, el tamanio %d y la cadena", 0, tamanio_cortado2);
             enviar_paquete(paquete2, stick_a_escribir->socket_stick);
             free(cadena_cortada);
             eliminar_paquete(paquete2);
-            logger_info(datos_scheduler->logger, "A espera de confiramacion de escritura del stick");
             logger_info(datos_scheduler->logger,
                         "##PID: %d - Escritura - Dir. Fisica: %d - Tamaño: %d",
                         peticion_stdin->pid, 0, tamanio_cortado2);
@@ -152,17 +149,13 @@ void* escucha_scheduler(void* ptr)
           agregar_a_paquete(paquete, &dir_fisica, sizeof(int));
           agregar_string_a_paquete(paquete, string_escribir);
           agregar_a_paquete(paquete, &tamanio_string, sizeof(int));
-          logger_info(datos_scheduler->logger, "enviado al stick la dir fisica %d, el tamanio %d y la cadena", dir_fisica, tamanio_string);
           enviar_paquete(paquete, stick_a_escribir_inicial->socket_stick);
           eliminar_paquete(paquete);
-          logger_info(datos_scheduler->logger, "A espera de confiramacion de escritura del stick");
           logger_info(datos_scheduler->logger,
                       "##PID: %d - Escritura - Dir. Fisica: %d - Tamaño: %d",
                       peticion_stdin->pid, dir_fisica, tamanio_string);
         }
         pthread_mutex_unlock(datos_scheduler->mutex_lista_sockets);
-        logger_info(datos_scheduler->logger,
-                    "se ha escrito correctamente en la memoria stick, envio respuesta al scheduler");
         break;
       }
       case OP_PETICION_IO_STDOUT:

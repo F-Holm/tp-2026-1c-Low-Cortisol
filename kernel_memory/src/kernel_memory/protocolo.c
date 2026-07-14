@@ -672,8 +672,6 @@ char* leer_de_sticks(int direccion_fisica, int tamanio,
       return NULL;
     }
     pthread_mutex_lock(mutex_sticks);
-    logger_info(logger, "NO HAY DEADLOCKS: Leyendo del stick %d, offset %d", indice,
-                offset_en_stick);
     t_datos_stick* stick = list_get(sticks_conectados, indice);
     int bytes_hasta_fin_stick = stick->tamanio_stick - offset_en_stick;
     int cant_bytes_a_leer = tamanio - bytes_leidos;
@@ -688,9 +686,6 @@ char* leer_de_sticks(int direccion_fisica, int tamanio,
     eliminar_paquete(paquete);
     pthread_mutex_unlock(mutex_sticks);
     
-    logger_info(logger, "voy a enviar al stick:  %d, el offset %d, "
-                "y cantidad de bytes a leer %d", indice, offset_en_stick,
-                cant_bytes_a_leer);
     // Recibo respuesta
     int stick_socket =
         ((t_datos_stick*)list_get(sticks_conectados, indice))->socket_stick;
