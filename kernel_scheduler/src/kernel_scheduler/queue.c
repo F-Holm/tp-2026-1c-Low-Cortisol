@@ -79,7 +79,8 @@ static t_pcb* cambio_sacar_susp_block_siguiente(t_lista* susp_block);
 static void cambio_sacar_susp_ready(t_pcb* pcb, t_lista* susp_ready);
 static t_pcb* cambio_sacar_susp_ready_siguiente(t_lista* susp_ready);
 static void cambio_block_ready_sin_mutex(t_pcb* pcb, t_colas* colas);
-static void avisar_proceso_suspendido(t_pcb* pcb, t_colas* colas);
+static bool recibir_respuesta_suspender_proceso(t_colas* colas);
+static bool avisar_proceso_suspendido(t_pcb* pcb, t_colas* colas);
 static void cambio_block_susp_block_sin_mutex(t_pcb* pcb, t_colas* colas);
 static void cambio_susp_block_susp_ready_sin_mutex(t_pcb* pcb, t_colas* colas);
 static bool avisar_proceso_des_suspendido(t_pcb* pcb, t_colas* colas);
@@ -1181,7 +1182,34 @@ static void cambio_block_ready_sin_mutex(t_pcb* pcb, t_colas* colas)
   }
 }
 
-static void avisar_proceso_suspendido(t_pcb* pcb, t_colas* colas)
+static bool recibir_respuesta_suspender_proceso(t_colas* colas)
+{
+  int op_code = recibir_operacion(colas->socket_km->socket_km);
+  switch (op_code)
+  {
+    case OP_SUSPENSION_EXITOSA:
+      free(recibir_string(colas->socket_km->socket_km));
+      return true;
+    case OP_SUSPENSION_NO_EXITOSA:
+      break;
+    case OP_NUEVO_MEMORY_STICK:
+      free(recibir_string(colas->socket_km->socket_km));
+      crear_hilo_rutina_des_suspension(colas);
+      return recibir_respuesta_suspender_proceso(colas);
+    case OP_MEMORIA_CORRUPTA:
+      cerrar_kernel_scheduler(colas->socket_servidor, colas->logger,
+                              MC_MEMORIA_CORRUPTA, -1);
+      break;
+    default:
+      cerrar_kernel_scheduler(colas->socket_servidor, colas->logger,
+                              MC_FALLO_CONEXION_KERNEL_MEMORY, -1);
+      break;
+  }
+  free(recibir_string(colas->socket_km->socket_km));
+  return false;
+}
+
+static bool avisar_proceso_suspendido(t_pcb* pcb, t_colas* colas)
 {
   pthread_mutex_lock(&(colas->socket_km->mutex_socket));
   if (!enviar_buffer(OP_SUSPENDER_PROCESO, &(pcb->pid), sizeof(uint32_t),
@@ -1190,18 +1218,34 @@ static void avisar_proceso_suspendido(t_pcb* pcb, t_colas* colas)
     cerrar_kernel_scheduler(colas->socket_servidor, colas->logger,
                             MC_ERROR_ENVIO_KERNEL_MEMORY,
                             colas->socket_km->socket_km);
+    return false;
   }
+
+  bool ret = recibir_respuesta_suspender_proceso(colas);
   pthread_mutex_unlock(&(colas->socket_km->mutex_socket));
+  return ret;
 }
 
 static void cambio_block_susp_block_sin_mutex(t_pcb* pcb, t_colas* colas)
 {
-  if (gestionar_estado_pcb(colas->logger, pcb, EST_BLOCK, EST_SUSP_BLOCK))
+  if (pcb->estado != EST_BLOCK)
   {
-    avisar_proceso_suspendido(pcb, colas);
-    cambio_sacar_block(pcb, &(colas->block));
-    cambio_a_susp_block(pcb, &(colas->susp_block));
+    log_estado_no_valido(colas->logger, pcb->pid, pcb->estado, EST_BLOCK,
+                         EST_SUSP_BLOCK);
+    return;
   }
+
+  if (!avisar_proceso_suspendido(pcb, colas))
+  {
+    logger_info(colas->logger, "No se pudo suspender el proceso %u", pcb->pid);
+    return;
+  }
+
+  log_cambio_estado(colas->logger, pcb->pid, EST_BLOCK, EST_SUSP_BLOCK);
+  pcb->estado = EST_SUSP_BLOCK;
+
+  cambio_sacar_block(pcb, &(colas->block));
+  cambio_a_susp_block(pcb, &(colas->susp_block));
 }
 
 static void cambio_susp_block_susp_ready_sin_mutex(t_pcb* pcb, t_colas* colas)
