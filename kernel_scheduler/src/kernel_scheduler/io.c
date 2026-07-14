@@ -329,8 +329,7 @@ static void cerrar_hilo_io(t_io* io)
 static bool charla_km_stdin(t_io* io_in)
 {
   int cod_op = -1;
-  cod_op = recibir_operacion(io_in->socket_io);
-
+  cod_op = recibir_operacion(io_in->socket_km->socket_km);
   switch (cod_op)
   {
     case OP_MEMORIA_CORRUPTA:
