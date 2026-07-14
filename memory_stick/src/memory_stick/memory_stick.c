@@ -130,15 +130,18 @@ bool get_args(int argc, char** argv, char** archivo_config, char** tamanio_str,
 
 void leer_memoria(t_ms_recursos* ms_recursos, int posicion_inicial,
                   int cantidad_de_bytes, int socket_destino)
-{    
-  logger_info(ms_recursos->logger, "Memory stick necesita leer %d bytes, desde %d", cantidad_de_bytes, posicion_inicial);
+{
+  logger_info(ms_recursos->logger,
+              "Memory stick necesita leer %d bytes, desde %d",
+              cantidad_de_bytes, posicion_inicial);
   char* bytes_a_devolver = malloc(cantidad_de_bytes);
   pthread_mutex_lock(ms_recursos->mutex_memoria);
   memcpy(bytes_a_devolver, ms_recursos->memoria + posicion_inicial,
          cantidad_de_bytes);
   pthread_mutex_unlock(ms_recursos->mutex_memoria);
   usleep(ms_recursos->memory_delay * 1000);
-  logger_info(ms_recursos->logger, "Memory stick leyo los bytes, %s", bytes_a_devolver);
+  logger_info(ms_recursos->logger, "Memory stick leyo los bytes, %s",
+              bytes_a_devolver);
   enviar_buffer(OP_MEMORY_STICK_LEIDO, bytes_a_devolver, cantidad_de_bytes,
                 socket_destino);
   free(bytes_a_devolver);

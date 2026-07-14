@@ -7,8 +7,8 @@
 #include "commons/collections/list.h"
 #include "kernel_memory/estructuras.h"
 #include "utils/logger.h"
-#include "utils/swap_km.h"
 #include "utils/msg.h"
+#include "utils/swap_km.h"
 
 t_datos_kernel_mem* inicializar_datos_kernel_memory(
     int socket_kernel_memory, char* scripts_basepath, int instruction_delay,

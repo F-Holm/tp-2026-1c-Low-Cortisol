@@ -97,7 +97,8 @@ void* escucha_scheduler(void* ptr)
             dir_fisica, datos_scheduler->sticks_conectados,
             datos_scheduler->mutex_lista_sockets, &offset_en_stick);
         pthread_mutex_lock(datos_scheduler->mutex_lista_sockets);
-        logger_info(datos_scheduler->logger, "Empiezo a escribir en el stick %d, offset %d", indice,
+        logger_info(datos_scheduler->logger,
+                    "Empiezo a escribir en el stick %d, offset %d", indice,
                     offset_en_stick);
         t_datos_stick* stick_a_escribir_inicial =
             list_get(datos_scheduler->sticks_conectados, indice);
@@ -266,8 +267,11 @@ void* escucha_scheduler(void* ptr)
         logger_info(datos_scheduler->logger,
                     "Llego una solicitud de SUSPENDER_PROCESO");
         int a;
-        uint32_t* pid = (uint32_t*)recibir_buffer(&a, datos_scheduler->socket_scheduler);
-        t_proceso* proceso_a_suspender = buscar_proceso(datos_scheduler->procesos, datos_scheduler->mutex_procesos, *pid); // SE USA ESTA LISTA DE PROCESOS? 
+        uint32_t* pid =
+            (uint32_t*)recibir_buffer(&a, datos_scheduler->socket_scheduler);
+        t_proceso* proceso_a_suspender = buscar_proceso(
+            datos_scheduler->procesos, datos_scheduler->mutex_procesos,
+            *pid);  // SE USA ESTA LISTA DE PROCESOS?
         suspender_proceso(proceso_a_suspender, datos_scheduler);
         free(pid);
         break;
@@ -277,7 +281,8 @@ void* escucha_scheduler(void* ptr)
         logger_info(datos_scheduler->logger,
                     "Llego una solicitud de DES_SUSPENDER_PROCESO");
         int a;
-        uint32_t* pid = (uint32_t*)recibir_buffer(&a, datos_scheduler->socket_scheduler);
+        uint32_t* pid =
+            (uint32_t*)recibir_buffer(&a, datos_scheduler->socket_scheduler);
         des_suspender_proceso(*pid, datos_scheduler);
         free(pid);
         break;
@@ -459,7 +464,7 @@ void* escucha_stick(void* ptr)
                       datos_stick->socket_scheduler);
         free(lectura);
         break;
-       case OP_MEMORY_STICK_ESCRITO:
+      case OP_MEMORY_STICK_ESCRITO:
         char* buffer = recibir_string(datos_stick->socket_stick);
         free(buffer);
         logger_info(datos_stick->logger, "Se ha escrito en la memory stick");

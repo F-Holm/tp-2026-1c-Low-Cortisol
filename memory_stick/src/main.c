@@ -61,7 +61,8 @@ int main(int argc, char* argv[])
       }
       case OP_MEMORY_STICK_ESCRIBIR:
       {
-        logger_info(ms_recursos.logger, "## Recibiendo instrucción de escritura");
+        logger_info(ms_recursos.logger,
+                    "## Recibiendo instrucción de escritura");
         t_list* paquete = recibir_paquete(ms_recursos.socket_km);
         if (list_size(paquete) != 3)
         {
@@ -73,7 +74,9 @@ int main(int argc, char* argv[])
         int posicion_inicial = *(int*)list_get(paquete, 0);
         char* bytes_a_escribir = (char*)list_get(paquete, 1);
         int cantidad_bytes = *(int*)list_get(paquete, 2);
-        logger_info(ms_recursos.logger, "Escritura por parte del Kernel memory de %d bytes, desde %d, la candena",
+        logger_info(ms_recursos.logger,
+                    "Escritura por parte del Kernel memory de %d bytes, desde "
+                    "%d, la candena",
                     cantidad_bytes, posicion_inicial);
         escribir_memoria(&ms_recursos, posicion_inicial, bytes_a_escribir,
                          cantidad_bytes, ms_recursos.socket_km);

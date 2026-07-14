@@ -50,7 +50,8 @@ int main(int argc, char* argv[])
                         datos_swap.tamanio_bloque, contenido_a_escribir);
         enviar_string(OP_DISCO_ESCRITO, "", datos_swap.socket_swap);
         list_destroy_and_destroy_elements(paquete, free);
-        logger_info(datos_swap.logger, "## Escritura de bloque: <%d>", numero_bloque);
+        logger_info(datos_swap.logger, "## Escritura de bloque: <%d>",
+                    numero_bloque);
         break;
 
       case OP_LEER_DISCO:
@@ -65,8 +66,10 @@ int main(int argc, char* argv[])
         char* contenido_leido = malloc(datos_swap.tamanio_bloque);
         leer_bloque(datos_swap.archivo_swap, *num_bloque,
                     datos_swap.tamanio_bloque, contenido_leido);
-        enviar_buffer(OP_DISCO_LEIDO, contenido_leido, datos_swap.tamanio_bloque, datos_swap.socket_swap);
-        logger_info(datos_swap.logger, "## Lectura de bloque: <%d>", *num_bloque);
+        enviar_buffer(OP_DISCO_LEIDO, contenido_leido,
+                      datos_swap.tamanio_bloque, datos_swap.socket_swap);
+        logger_info(datos_swap.logger, "## Lectura de bloque: <%d>",
+                    *num_bloque);
         free(num_bloque);
         free(contenido_leido);
         break;
