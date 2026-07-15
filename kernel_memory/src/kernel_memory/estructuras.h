@@ -15,6 +15,7 @@ typedef enum
 
 typedef struct
 {
+  int compaction_delay;
   int tamanio_total;
   int tamanio_maximo_segmento;
   t_list* segmentos;

@@ -91,7 +91,6 @@ void handshake(t_datos_kernel_mem* datos_kernel_memory, int client_socket)
                       datos_kernel_memory->socket_scheduler);
         aniadir_memoria_total(datos_kernel_memory->memoria_principal,
                               datos_stick->tamanio_stick);
-        empezar_escucha_stick(datos_stick);
       }
       else
       {
