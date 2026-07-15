@@ -96,7 +96,8 @@ void suspender_proceso(t_proceso* proceso_a_suspender,
         char* contenido = leer_de_sticks(
             segmento_actual->base + offset, cantidad_bytes_a_leer,
             datos_scheduler->sticks_conectados,
-            datos_scheduler->mutex_lista_sockets, datos_scheduler->logger);
+            datos_scheduler->mutex_lista_sockets, datos_scheduler->logger,
+            datos_scheduler->socket_scheduler);
         int num_bloque = agregar_bloque_lista_swap(segmento_actual, i,
                                                    datos_scheduler->datos_swap,
                                                    datos_scheduler->logger);
@@ -222,7 +223,8 @@ void des_suspender_proceso(uint32_t pid, t_datos_scheduler* datos_scheduler)
       escribir_en_sticks(pid, direccion_a_escribir, tamanio_bloque, contenido,
                          datos_scheduler->sticks_conectados,
                          datos_scheduler->mutex_lista_sockets,
-                         datos_scheduler->logger);
+                         datos_scheduler->logger,
+                         datos_scheduler->socket_scheduler);
       free(contenido);
       if (bloque->num_bloque !=
           quitar_bloque_lista_swap(bloque->num_bloque,
