@@ -88,7 +88,7 @@ bool io_tipo_sleep(t_modulo_io* sio)
 
   // Simulo el sleep
   log_info(sio->logger, "## PID: %d - Haciendo sleep por %d segundos",
-           peticion_sleep->pid, peticion_sleep->tiempo_bloqueado);
+           peticion_sleep->pid, peticion_sleep->tiempo_bloqueado / 1000);
   usleep(peticion_sleep->tiempo_bloqueado * 1000);  // Convertir a microsegundos
 
   // Envio OK a Scheduler para que sepa que ya terminó el IO

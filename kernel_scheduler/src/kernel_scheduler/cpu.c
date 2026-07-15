@@ -305,7 +305,7 @@ static void manejar_syscall_mutex_lock(t_datos_syscall* datos)
     case RM_NOMBRE_MUTEX_NO_EXISTE:
       cambio_exec_exit(datos->pcb, datos->datos->colas,
                        MPF_NOMBRE_MUTEX_NO_EXISTE);
-      datos->motivo_desalojo = MD_NOMBRE_MUTEX_YA_EXISTE;
+      datos->motivo_desalojo = MD_NOMBRE_MUTEX_NO_EXISTE;
       break;
     case RM_PROCESO_NO_TIENE_MUTEX_BLOQUEADO:
       cambio_exec_exit(datos->pcb, datos->datos->colas,

@@ -370,32 +370,6 @@ void* escucha_cpu(void* ptr)
   return NULL;
 }
 
-void* escucha_swap(void* ptr)
-{
-  t_datos_swap* datos_swap = (t_datos_swap*)ptr;
-  bool conexion_estable = true;
-  while (conexion_estable)
-  {
-    switch (recibir_operacion(datos_swap->socket_swap))
-    {
-      case OP_PAQUETE:
-        // t_list* paquete = recibir_paquete(datos_swap->socket_swap);
-        logger_info(datos_swap->logger, "Llego un paquete de la memory stick");
-        // comunicaciones
-        break;
-      case OP_CODE_ERROR:
-        conexion_estable = false;
-        break;
-
-      default:
-        break;
-    }
-  }
-  liberar_datos_swap(datos_swap);
-  return NULL;
-}
-
-
 void empezar_escucha_scheduler(t_datos_scheduler* datos_scheduler)
 {
   pthread_t hilo_escucha;
@@ -407,12 +381,5 @@ void empezar_escucha_cpu(t_datos_cpu* datos_cpu)
 {
   pthread_t hilo_escucha;
   pthread_create(&hilo_escucha, NULL, escucha_cpu, datos_cpu);
-  pthread_detach(hilo_escucha);
-}
-
-void empezar_escucha_swap(t_datos_swap* datos_swap)
-{
-  pthread_t hilo_escucha;
-  pthread_create(&hilo_escucha, NULL, escucha_swap, datos_swap);
   pthread_detach(hilo_escucha);
 }

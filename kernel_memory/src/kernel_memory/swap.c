@@ -96,8 +96,7 @@ void suspender_proceso(t_proceso* proceso_a_suspender,
         char* contenido = leer_de_sticks(
             segmento_actual->base + offset, cantidad_bytes_a_leer,
             datos_scheduler->sticks_conectados,
-            datos_scheduler->mutex_lista_sockets, datos_scheduler->logger,
-            datos_scheduler->socket_scheduler);
+            datos_scheduler->mutex_lista_sockets, datos_scheduler->logger);
         int num_bloque = agregar_bloque_lista_swap(segmento_actual, i,
                                                    datos_scheduler->datos_swap,
                                                    datos_scheduler->logger);
@@ -188,8 +187,18 @@ static int quitar_bloque_lista_swap(int num_bloque, t_datos_swap* datos_swap,
   return num_bloque;
 }
 
+static int calcular_direccion_con_offset(int tamanio_bloque,
+                                         t_memoria_principal* memoria_principal,
+                                         uint32_t pid, t_datos_bloque* bloque)
+{
+  t_segmento* segmento =
+      buscar_segmento(memoria_principal, pid, bloque->num_segmento);
+  return (segmento->base + tamanio_bloque * bloque->num_bloque_del_segmento);
+}
+
 void des_suspender_proceso(uint32_t pid, t_datos_scheduler* datos_scheduler)
 {
+  int tamanio_bloque = datos_scheduler->datos_swap->tamanio_bloque;
   bool proceso_encontrado = false;
   t_list_iterator* iterador =
       list_iterator_create(datos_scheduler->datos_swap->lista_bloques);
@@ -208,6 +217,12 @@ void des_suspender_proceso(uint32_t pid, t_datos_scheduler* datos_scheduler)
                        datos_scheduler->logger);
       char* contenido =
           leer_bloque_en_swap(bloque->num_bloque, datos_scheduler->datos_swap);
+      int direccion_a_escribir = calcular_direccion_con_offset(
+          tamanio_bloque, datos_scheduler->memoria_principal, pid, bloque);
+      escribir_en_sticks(pid, direccion_a_escribir, tamanio_bloque, contenido,
+                         datos_scheduler->sticks_conectados,
+                         datos_scheduler->mutex_lista_sockets,
+                         datos_scheduler->logger);
       free(contenido);
       if (bloque->num_bloque !=
           quitar_bloque_lista_swap(bloque->num_bloque,

@@ -571,8 +571,8 @@ void agregar_segmentos_a_paquete(t_list* segmentos,
   }
 }
 
-static t_segmento* buscar_segmento(t_memoria_principal* memoria_principal,
-                                   uint32_t pid, uint32_t num_segmento)
+t_segmento* buscar_segmento(t_memoria_principal* memoria_principal,
+                            uint32_t pid, uint32_t num_segmento)
 {
   t_segmento* seg_encontrado = NULL;
   uint32_t contador_segmentos_pid = 0;

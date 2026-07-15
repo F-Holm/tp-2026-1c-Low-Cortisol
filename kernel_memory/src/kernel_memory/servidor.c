@@ -113,7 +113,6 @@ void handshake(t_datos_kernel_mem* datos_kernel_memory, int client_socket)
       t_datos_swap* datos_swap =
           inicializar_datos_swap(client_socket, datos_kernel_memory->logger);
       datos_kernel_memory->datos_swap = datos_swap;
-      empezar_escucha_swap(datos_swap);
       break;
     }
     default:
