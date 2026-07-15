@@ -17,8 +17,8 @@ t_datos_kernel_mem* inicializar_datos_kernel_memory(
   datos_kernel->sticks_conectados = list_create();
   datos_kernel->cpus_conectados = list_create();
   datos_kernel->procesos = list_create();
-  datos_kernel->memoria_principal =
-      inicializar_memoria_principal(segment_max_size, allocation_strategy);
+  datos_kernel->memoria_principal = inicializar_memoria_principal(
+      segment_max_size, allocation_strategy, compaction_delay);
   datos_kernel->datos_swap = NULL;
   datos_kernel->mutex_procesos = malloc(sizeof(pthread_mutex_t));
   datos_kernel->mutex_lista_sockets = malloc(sizeof(pthread_mutex_t));
@@ -173,11 +173,13 @@ bool inicializar_ip_stick(t_datos_stick* datos_stick, int client_socket)
 }
 
 t_memoria_principal* inicializar_memoria_principal(
-    int tamanio_maximo_segmento, t_allocation_strategy allocation_strategy)
+    int tamanio_maximo_segmento, t_allocation_strategy allocation_strategy,
+    int compaction_delay)
 {
   t_memoria_principal* memoria = malloc(sizeof(t_memoria_principal));
   memoria->tamanio_total = 0;
   memoria->tamanio_maximo_segmento = tamanio_maximo_segmento;
+  memoria->compaction_delay = compaction_delay;
   memoria->mutex_memoria_principal = malloc(sizeof(pthread_mutex_t));
   pthread_mutex_init(memoria->mutex_memoria_principal, NULL);
   memoria->segmentos = list_create();

@@ -96,7 +96,8 @@ void suspender_proceso(t_proceso* proceso_a_suspender,
         char* contenido = leer_de_sticks(
             segmento_actual->base + offset, cantidad_bytes_a_leer,
             datos_scheduler->sticks_conectados,
-            datos_scheduler->mutex_lista_sockets, datos_scheduler->logger);
+            datos_scheduler->mutex_lista_sockets, datos_scheduler->logger,
+            datos_scheduler->socket_scheduler);
         int num_bloque = agregar_bloque_lista_swap(segmento_actual, i,
                                                    datos_scheduler->datos_swap,
                                                    datos_scheduler->logger);
@@ -207,10 +208,6 @@ void des_suspender_proceso(uint32_t pid, t_datos_scheduler* datos_scheduler)
                        datos_scheduler->logger);
       char* contenido =
           leer_bloque_en_swap(bloque->num_bloque, datos_scheduler->datos_swap);
-      // escribir_en_sticks QUE FALTA HACERLA, AVISARLE A CRISTIAN QUE TIENE QUE
-      // PASAR ESO A FUNCION, CODIGO DE ESCUCHAS.C DESDE 104 HASTA 164 CREO
-      // capaz tenga que calcular el offset del bloque que se esta escribiendo:
-      // tamanio_bloque*num_bloque_del_segmento
       free(contenido);
       if (bloque->num_bloque !=
           quitar_bloque_lista_swap(bloque->num_bloque,

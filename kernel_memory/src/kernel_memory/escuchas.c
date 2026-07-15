@@ -92,10 +92,17 @@ void* escucha_scheduler(void* ptr)
                         datos_scheduler->socket_scheduler);
           break;
         }
-        escribir_en_sticks(
+        if (!escribir_en_sticks(
             peticion_stdin->pid, dir_fisica, peticion_stdin->tamanio_a_leer,
             string_escribir, datos_scheduler->sticks_conectados,
-            datos_scheduler->mutex_lista_sockets, datos_scheduler->logger);
+            datos_scheduler->mutex_lista_sockets, datos_scheduler->logger,
+            datos_scheduler->socket_scheduler))
+        {
+          logger_error(datos_scheduler->logger, "Error al escribir en sticks");
+          conexion_estable = false;
+          break;
+        }
+        enviar_string(OP_RESPUESTA_STDIN, "Memoria Escrita", datos_scheduler->socket_scheduler);
         logger_info(datos_scheduler->logger, "Peticion STDIN finalizada");
         break;
       }
@@ -125,11 +132,13 @@ void* escucha_scheduler(void* ptr)
         char* buffer = leer_de_sticks(
             dir_fisica, peticion_stdout->tamanio_a_escribir,
             datos_scheduler->sticks_conectados,
-            datos_scheduler->mutex_lista_sockets, datos_scheduler->logger);
+            datos_scheduler->mutex_lista_sockets, datos_scheduler->logger,
+            datos_scheduler->socket_scheduler);
         if (buffer == NULL)
         {
           enviar_string(OP_RESPUESTA_STDOUT, "Error lectura stick",
                         datos_scheduler->socket_scheduler);
+          conexion_estable = false;
           break;
         }
         enviar_string(OP_RESPUESTA_STDOUT, buffer,
@@ -212,8 +221,7 @@ void* escucha_scheduler(void* ptr)
         uint32_t* pid =
             (uint32_t*)recibir_buffer(&a, datos_scheduler->socket_scheduler);
         t_proceso* proceso_a_suspender = buscar_proceso(
-            datos_scheduler->procesos, datos_scheduler->mutex_procesos,
-            *pid);  // SE USA ESTA LISTA DE PROCESOS?
+            datos_scheduler->procesos, datos_scheduler->mutex_procesos, *pid);
         suspender_proceso(proceso_a_suspender, datos_scheduler);
         free(pid);
         break;
@@ -244,6 +252,8 @@ void* escucha_scheduler(void* ptr)
         break;
     }
   }
+  enviar_string(OP_MEMORIA_CORRUPTA, "Cierre de kernel",
+                datos_scheduler->socket_scheduler);
   liberar_datos_scheduler(datos_scheduler);
   return NULL;
 }
@@ -385,45 +395,6 @@ void* escucha_swap(void* ptr)
   return NULL;
 }
 
-void* escucha_stick(void* ptr)
-{
-  t_datos_stick* datos_stick = (t_datos_stick*)ptr;
-  bool conexion_estable = true;
-  while (conexion_estable)
-  {
-    switch (recibir_operacion(datos_stick->socket_stick))
-    {
-      case OP_PAQUETE:
-        // t_list* paquete = recibir_paquete(datos_stick->socket_stick);
-        logger_info(datos_stick->logger, "Llego un paquete de la memory stick");
-        // comunicaciones
-        break;
-      case OP_MEMORY_STICK_LEIDO:
-        char* lectura = recibir_string(datos_stick->socket_stick);
-        logger_info(datos_stick->logger, "Se ha leido de la memory stick: %s",
-                    lectura);
-        enviar_string(OP_RESPUESTA_STDOUT, lectura,
-                      datos_stick->socket_scheduler);
-        free(lectura);
-        break;
-      case OP_MEMORY_STICK_ESCRITO:
-        char* buffer = recibir_string(datos_stick->socket_stick);
-        free(buffer);
-        logger_info(datos_stick->logger, "Se ha escrito en la memory stick");
-        enviar_string(OP_RESPUESTA_STDIN, "Se realizo la escritura",
-                      datos_stick->socket_scheduler);
-        break;
-      case OP_CODE_ERROR:
-        conexion_estable = false;
-        break;
-
-      default:
-        break;
-    }
-  }
-  liberar_datos_stick(datos_stick);
-  return NULL;
-}
 
 void empezar_escucha_scheduler(t_datos_scheduler* datos_scheduler)
 {
@@ -436,13 +407,6 @@ void empezar_escucha_cpu(t_datos_cpu* datos_cpu)
 {
   pthread_t hilo_escucha;
   pthread_create(&hilo_escucha, NULL, escucha_cpu, datos_cpu);
-  pthread_detach(hilo_escucha);
-}
-
-void empezar_escucha_stick(t_datos_stick* datos_stick)
-{
-  pthread_t hilo_escucha;
-  pthread_create(&hilo_escucha, NULL, escucha_stick, datos_stick);
   pthread_detach(hilo_escucha);
 }
 
