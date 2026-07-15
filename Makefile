@@ -89,6 +89,37 @@ execute: $(BUILD_TARGET)
 	@echo "Revisá la carpeta ./output/ para ver los reportes de Valgrind de cada módulo."
 	@echo "Usa 'make kill' para detener todo."
 
+base: BUILD_TARGET = all
+base: VALGRIND_CMD =
+base: executebase
+
+executebase: $(BUILD_TARGET)
+	@mkdir -p ./output
+	@echo "Lanzando sistema con: [$(VALGRIND_CMD)] ..."
+	
+	$(VALGRIND_CMD) ./kernel_memory/bin/kernel_memory ./kernel_memory/base.config > ./output/kernel_memory.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./kernel_scheduler/bin/kernel_scheduler ./kernel_scheduler/base.config PLANI_PRE_0.prc > ./output/kernel_scheduler.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/base256.config 256 > ./output/memory_stick_1.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./swap/bin/swap ./swap/swap.config > ./output/swap.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./io/bin/io ./io/io.config SLEEP > ./output/io_sleep.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./io/bin/io ./io/io.config STDIN < ./pseudocodigo/entradas_io_stdin.txt > ./output/io_stdin.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./io/bin/io ./io/io.config STDOUT > ./output/io_stdout.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./cpu/bin/cpu ./cpu/cpu.config CPU-1 > ./output/cpu_1.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	
+	@echo "Sistema lanzado con éxito. La terminal está libre."
+	@echo "Revisá la carpeta ./output/ para ver los reportes de Valgrind de cada módulo."
+	@echo "Usa 'make kill' para detener todo."
+
+
+
 kill:
 	@echo "Cerrando el sistema..."
 	-pkill -f valgrind
