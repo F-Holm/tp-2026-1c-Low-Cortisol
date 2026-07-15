@@ -31,4 +31,5 @@ t_proceso* inicializar_proceso(u_int32_t pid, char* path_relativo,
                                char* scripts_basepath, t_logger* logger);
 bool inicializar_ip_stick(t_datos_stick* datos_stick, int client_socket);
 t_memoria_principal* inicializar_memoria_principal(
-    int tamanio_total, t_allocation_strategy allocation_strategy, int compaction_delay);
+    int tamanio_total, t_allocation_strategy allocation_strategy,
+    int compaction_delay);

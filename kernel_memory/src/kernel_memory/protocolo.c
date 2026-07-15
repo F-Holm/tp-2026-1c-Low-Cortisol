@@ -782,11 +782,12 @@ bool escribir_en_sticks(int pid, int dir_fisica, int tamanio_a_leer,
     eliminar_paquete(paquete);
     logger_info(logger, "##PID: %d - Escritura - Dir. Fisica: %d - Tamaño: %d",
                 pid, dir_fisica, tamanio_cortado);
-     if (recibir_operacion(stick_a_escribir_inicial->socket_stick) == OP_MEMORY_STICK_ESCRITO)
-      {
-        char* buffer = recibir_string(stick_a_escribir_inicial->socket_stick);
-        free(buffer);
-      }
+    if (recibir_operacion(stick_a_escribir_inicial->socket_stick) ==
+        OP_MEMORY_STICK_ESCRITO)
+    {
+      char* buffer = recibir_string(stick_a_escribir_inicial->socket_stick);
+      free(buffer);
+    }
 
     for (int i = indice + 1; tamanio_sumado < tamanio_a_leer; i++)
     {
@@ -815,7 +816,8 @@ bool escribir_en_sticks(int pid, int dir_fisica, int tamanio_a_leer,
       logger_info(logger,
                   "##PID: %d - Escritura - Dir. Fisica: %d - Tamaño: %d", pid,
                   0, tamanio_cortado2);
-      if (recibir_operacion(stick_a_escribir->socket_stick) == OP_MEMORY_STICK_ESCRITO)
+      if (recibir_operacion(stick_a_escribir->socket_stick) ==
+          OP_MEMORY_STICK_ESCRITO)
       {
         char* buffer = recibir_string(stick_a_escribir->socket_stick);
         free(buffer);
@@ -842,11 +844,12 @@ bool escribir_en_sticks(int pid, int dir_fisica, int tamanio_a_leer,
     eliminar_paquete(paquete);
     logger_info(logger, "##PID: %d - Escritura - Dir. Fisica: %d - Tamaño: %d",
                 pid, dir_fisica, tamanio_string);
-    if (recibir_operacion(stick_a_escribir_inicial->socket_stick) == OP_MEMORY_STICK_ESCRITO)
-      {
-        char* buffer = recibir_string(stick_a_escribir_inicial->socket_stick);
-        free(buffer);
-      }
+    if (recibir_operacion(stick_a_escribir_inicial->socket_stick) ==
+        OP_MEMORY_STICK_ESCRITO)
+    {
+      char* buffer = recibir_string(stick_a_escribir_inicial->socket_stick);
+      free(buffer);
+    }
   }
   pthread_mutex_unlock(mutex_lista_sockets);
   return true;

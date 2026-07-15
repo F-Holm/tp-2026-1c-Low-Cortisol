@@ -93,16 +93,17 @@ void* escucha_scheduler(void* ptr)
           break;
         }
         if (!escribir_en_sticks(
-            peticion_stdin->pid, dir_fisica, peticion_stdin->tamanio_a_leer,
-            string_escribir, datos_scheduler->sticks_conectados,
-            datos_scheduler->mutex_lista_sockets, datos_scheduler->logger,
-            datos_scheduler->socket_scheduler))
+                peticion_stdin->pid, dir_fisica, peticion_stdin->tamanio_a_leer,
+                string_escribir, datos_scheduler->sticks_conectados,
+                datos_scheduler->mutex_lista_sockets, datos_scheduler->logger,
+                datos_scheduler->socket_scheduler))
         {
           logger_error(datos_scheduler->logger, "Error al escribir en sticks");
           conexion_estable = false;
           break;
         }
-        enviar_string(OP_RESPUESTA_STDIN, "Memoria Escrita", datos_scheduler->socket_scheduler);
+        enviar_string(OP_RESPUESTA_STDIN, "Memoria Escrita",
+                      datos_scheduler->socket_scheduler);
         logger_info(datos_scheduler->logger, "Peticion STDIN finalizada");
         break;
       }
