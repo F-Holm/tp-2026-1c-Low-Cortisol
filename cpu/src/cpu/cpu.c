@@ -188,7 +188,7 @@ t_list* recibir_tabla_segmentos(t_cpu* cpu, t_contexto* contexto)
 bool ejecutar_ciclo_instruccion(t_cpu* cpu, uint32_t pid, t_contexto* contexto)
 {
   bool seguir = true;
-  int syscall = 1;
+  t_bool_extendido syscall = 1;
   t_bool_extendido interrupt = 1;
   while (seguir)
   {
@@ -357,6 +357,8 @@ bool actualizar_tabla_segmentos(t_cpu* cpu, uint32_t pid, t_contexto* contexto)
     return false;
   }
 
+  if(!escuchar_kernel_memory(cpu))
+    return false;
   contexto->tablaDeSegmentos = recibir_tabla_segmentos(cpu, contexto);
   log_info(cpu->logger, "Tabla actualizada correctamente");
   return true;
