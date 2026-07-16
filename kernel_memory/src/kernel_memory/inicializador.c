@@ -100,6 +100,7 @@ t_datos_swap* inicializar_datos_swap(int socket_swap, t_logger* logger)
   if (op != OP_INFO_SWAP)
   {
     logger_error(logger, "Opcode inesperado al recibir info de swap");
+    free(datos_swap);
     return NULL;
   }
   int a;

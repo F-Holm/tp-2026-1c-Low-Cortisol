@@ -2,10 +2,17 @@
 
 void liberar_datos_cpu(t_datos_cpu* datos_cpu)
 {
-  if (datos_cpu == NULL)
-    return;
-  terminar_comunicacion(datos_cpu->socket_cpu);
+  cerrar_cpu(datos_cpu);
   free(datos_cpu);
+}
+
+void cerrar_cpu(t_datos_cpu* cpu)
+{
+  if(cpu->socket_cpu != -1)
+  {
+    terminar_comunicacion(cpu->socket_cpu);
+    cpu->socket_cpu = -1;
+  }
 }
 
 void liberar_datos_stick(t_datos_stick* datos_stick)
@@ -18,10 +25,17 @@ void liberar_datos_stick(t_datos_stick* datos_stick)
 
 void liberar_datos_swap(t_datos_swap* datos_swap)
 {
-  if (datos_swap == NULL)
-    return;
-  terminar_comunicacion(datos_swap->socket_swap);
-  free(datos_swap);
+    if (datos_swap == NULL)
+      return;
+    if (datos_swap->lista_bloques != NULL)
+    {
+      list_destroy_and_destroy_elements(datos_swap->lista_bloques, free);
+    }
+    if (datos_swap->socket_swap > 0)
+    {
+      terminar_comunicacion(datos_swap->socket_swap);
+    }
+    free(datos_swap);
 }
 
 void liberar_datos_scheduler(t_datos_scheduler* datos_scheduler)
@@ -66,8 +80,23 @@ void liberar_datos_kernel_mem(t_datos_kernel_mem* datos_kernel)
     }
     list_destroy(datos_kernel->cpus_conectados);
   }
-  // falta liberar memoria principal y datos swap y procesos si es necesario
-
+  if(datos_kernel->datos_swap != NULL)
+  {
+    liberar_datos_swap(datos_kernel->datos_swap);
+  }
+  if (datos_kernel->memoria_principal != NULL)
+  {
+    liberar_memoria_principal(datos_kernel->memoria_principal);
+  }
+  if(datos_kernel->procesos != NULL)
+  {
+    for(int i=0;i<list_size(datos_kernel->procesos);i++)
+    {
+      t_proceso* p=list_get(datos_kernel->procesos,i);
+      liberar_proceso(p);
+    }
+    list_destroy(datos_kernel->procesos);
+  }
   // Cerrar socket principal
   if (datos_kernel->socket_kernel_memory > 0)
   {
@@ -86,4 +115,17 @@ void liberar_proceso(t_proceso* proceso)
   free(proceso->instrucciones);
   list_destroy_and_destroy_elements(proceso->segmentos, free);
   free(proceso);
+}
+
+void liberar_memoria_principal(t_memoria_principal* memoria)
+{
+  if (memoria == NULL)
+    return;
+  pthread_mutex_destroy(memoria->mutex_memoria_principal);
+  free(memoria->mutex_memoria_principal);
+  if (memoria->segmentos != NULL)
+    list_destroy_and_destroy_elements(memoria->segmentos, free);
+  if (memoria->huecos != NULL)
+    list_destroy_and_destroy_elements(memoria->huecos, free);
+  free(memoria);
 }

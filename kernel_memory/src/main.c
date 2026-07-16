@@ -40,6 +40,7 @@ int main(int argc, char* argv[])
   }
 
   liberar_datos_kernel_mem(datos_kernel);
-
+  config_destroy(config);
+  logger_destroy(logger);
   return 0;
 }

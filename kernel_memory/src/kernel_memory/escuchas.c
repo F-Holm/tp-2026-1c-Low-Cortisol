@@ -373,7 +373,7 @@ void* escucha_cpu(void* ptr)
         break;
     }
   }
-  liberar_datos_cpu(datos_cpu);
+  cerrar_cpu(datos_cpu);
   return NULL;
 }
 
