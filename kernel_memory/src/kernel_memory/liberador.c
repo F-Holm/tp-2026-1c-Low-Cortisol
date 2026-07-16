@@ -8,7 +8,7 @@ void liberar_datos_cpu(t_datos_cpu* datos_cpu)
 
 void cerrar_cpu(t_datos_cpu* cpu)
 {
-  if(cpu->socket_cpu != -1)
+  if (cpu->socket_cpu != -1)
   {
     terminar_comunicacion(cpu->socket_cpu);
     cpu->socket_cpu = -1;
@@ -25,17 +25,17 @@ void liberar_datos_stick(t_datos_stick* datos_stick)
 
 void liberar_datos_swap(t_datos_swap* datos_swap)
 {
-    if (datos_swap == NULL)
-      return;
-    if (datos_swap->lista_bloques != NULL)
-    {
-      list_destroy_and_destroy_elements(datos_swap->lista_bloques, free);
-    }
-    if (datos_swap->socket_swap > 0)
-    {
-      terminar_comunicacion(datos_swap->socket_swap);
-    }
-    free(datos_swap);
+  if (datos_swap == NULL)
+    return;
+  if (datos_swap->lista_bloques != NULL)
+  {
+    list_destroy_and_destroy_elements(datos_swap->lista_bloques, free);
+  }
+  if (datos_swap->socket_swap > 0)
+  {
+    terminar_comunicacion(datos_swap->socket_swap);
+  }
+  free(datos_swap);
 }
 
 void liberar_datos_scheduler(t_datos_scheduler* datos_scheduler)
@@ -80,7 +80,7 @@ void liberar_datos_kernel_mem(t_datos_kernel_mem* datos_kernel)
     }
     list_destroy(datos_kernel->cpus_conectados);
   }
-  if(datos_kernel->datos_swap != NULL)
+  if (datos_kernel->datos_swap != NULL)
   {
     liberar_datos_swap(datos_kernel->datos_swap);
   }
@@ -88,11 +88,11 @@ void liberar_datos_kernel_mem(t_datos_kernel_mem* datos_kernel)
   {
     liberar_memoria_principal(datos_kernel->memoria_principal);
   }
-  if(datos_kernel->procesos != NULL)
+  if (datos_kernel->procesos != NULL)
   {
-    for(int i=0;i<list_size(datos_kernel->procesos);i++)
+    for (int i = 0; i < list_size(datos_kernel->procesos); i++)
     {
-      t_proceso* p=list_get(datos_kernel->procesos,i);
+      t_proceso* p = list_get(datos_kernel->procesos, i);
       liberar_proceso(p);
     }
     list_destroy(datos_kernel->procesos);

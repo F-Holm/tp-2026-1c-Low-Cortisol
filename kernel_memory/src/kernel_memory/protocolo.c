@@ -386,25 +386,16 @@ t_segmento* buecar_y_eliminar_segmento(uint32_t id, uint32_t pid,
                                        t_memoria_principal* memoria_principal,
                                        t_logger* logger)
 {
-  t_segmento* segmento = malloc(sizeof(t_segmento));
   pthread_mutex_lock(memoria_principal->mutex_memoria_principal);
-  logger_info(logger, "recorriendo lista de segmentos de tamanio %d: ",
+
+  logger_info(logger, "recorriendo lista de segmentos de tamanio %d:",
               list_size(memoria_principal->segmentos));
   for (int i = 0; i < list_size(memoria_principal->segmentos); i++)
   {
     t_segmento* segmento_actual = list_get(memoria_principal->segmentos, i);
-    logger_info(logger,
-                "se busca el segmento con ID: %d, PID: %d para que sea igual "
-                "que PID: %u ID %u:",
-                segmento_actual->id, segmento_actual->pid, pid, id);
-
     if (segmento_actual->id == id && segmento_actual->pid == pid)
     {
-      segmento->base = segmento_actual->base;
-      segmento->id = segmento_actual->id;
-      segmento->pid = segmento_actual->pid;
-      segmento->size = segmento_actual->size;
-      list_remove(memoria_principal->segmentos, i);
+      t_segmento* segmento = list_remove(memoria_principal->segmentos, i);
       logger_info(logger, "se ha eliminado el segmento con ID: %d, PID: %d",
                   segmento->id, segmento->pid);
       pthread_mutex_unlock(memoria_principal->mutex_memoria_principal);
@@ -413,7 +404,6 @@ t_segmento* buecar_y_eliminar_segmento(uint32_t id, uint32_t pid,
   }
   pthread_mutex_unlock(memoria_principal->mutex_memoria_principal);
   logger_error(logger, "ha ocurrido un error con la eliminacion del segmento");
-  free(segmento);
   return NULL;
 }
 

@@ -23,9 +23,7 @@ void* escucha_scheduler(void* ptr)
 
         logger_info(datos_scheduler->logger, "## PID: %d  - Proceso Creado",
                     *pid);
-        free(pid);
-        list_clean(paquete);
-        list_destroy(paquete);
+        list_destroy_and_destroy_elements(paquete, free);
         enviar_string(OP_PROCESO_INICIADO, "Proceso creado",
                       datos_scheduler->socket_scheduler);
         break;
@@ -48,7 +46,6 @@ void* escucha_scheduler(void* ptr)
               OP_TAMANIO_SEGMENTO_EXCEDIDO,
               "Tamaño solicitado es mayor al tamaño máximo de segmento",
               datos_scheduler->socket_scheduler);
-          free(syscall);
         }
         else
         {
@@ -57,7 +54,7 @@ void* escucha_scheduler(void* ptr)
                          datos_scheduler->socket_scheduler,
                          datos_scheduler->logger);
         }
-
+        free(syscall);
         break;
       }
       case OP_SYSCALL_MEM_FREE:
@@ -92,6 +89,7 @@ void* escucha_scheduler(void* ptr)
         {
           enviar_string(OP_RESPUESTA_STDIN, "Segmentation Fault",
                         datos_scheduler->socket_scheduler);
+          list_destroy_and_destroy_elements(paquete_stdin, free);
           break;
         }
         if (!escribir_en_sticks(
@@ -102,11 +100,13 @@ void* escucha_scheduler(void* ptr)
         {
           logger_error(datos_scheduler->logger, "Error al escribir en sticks");
           conexion_estable = false;
+          list_destroy_and_destroy_elements(paquete_stdin, free);
           break;
         }
         enviar_string(OP_RESPUESTA_STDIN, "Memoria Escrita",
                       datos_scheduler->socket_scheduler);
         logger_info(datos_scheduler->logger, "Peticion STDIN finalizada");
+        list_destroy_and_destroy_elements(paquete_stdin, free);
         break;
       }
       case OP_PETICION_IO_STDOUT:
@@ -130,6 +130,7 @@ void* escucha_scheduler(void* ptr)
         {
           enviar_string(OP_RESPUESTA_STDOUT, "Segmentation Fault",
                         datos_scheduler->socket_scheduler);
+          free(peticion_stdout);
           break;
         }
         char* buffer = leer_de_sticks(
@@ -142,6 +143,7 @@ void* escucha_scheduler(void* ptr)
           enviar_string(OP_RESPUESTA_STDOUT, "Error lectura stick",
                         datos_scheduler->socket_scheduler);
           conexion_estable = false;
+          free(peticion_stdout);
           break;
         }
         enviar_string(OP_RESPUESTA_STDOUT, buffer,
@@ -214,6 +216,7 @@ void* escucha_scheduler(void* ptr)
                     "tamanio de proceso requerido es de: %d", tamanio);
         enviar_buffer(OP_TAMANIO_PROCESO, &tamanio, sizeof(int),
                       datos_scheduler->socket_scheduler);
+        free(pid);
         break;
       }
       case OP_SUSPENDER_PROCESO:
@@ -301,6 +304,7 @@ void* escucha_cpu(void* ptr)
         {
           logger_error(datos_cpu->logger, "Proceso con pid %d no encontrado",
                        *pid);
+          free(pid);
           break;
         }
         logger_info(datos_cpu->logger, "## PID: %d - Obtener registro", *pid);
@@ -312,10 +316,12 @@ void* escucha_cpu(void* ptr)
         logger_info(datos_cpu->logger, "Enviando tabla de segmentos");
         t_paquete* tabla_segmentos_proceso =
             crear_paquete(OP_TABLA_DE_SEGMENTOS);
-        agregar_segmentos_a_paquete(
-            filtrar_segmentos_proceso(*pid, datos_cpu->memoria_principal,
-                                      datos_cpu->logger),
-            tabla_segmentos_proceso);
+        t_list* lista_segmentos = filtrar_segmentos_proceso(
+            *pid, datos_cpu->memoria_principal, datos_cpu->logger);
+
+        agregar_segmentos_a_paquete(lista_segmentos, tabla_segmentos_proceso);
+
+        list_destroy(lista_segmentos);
         enviar_paquete(tabla_segmentos_proceso, datos_cpu->socket_cpu);
         logger_info(datos_cpu->logger, "Tabla de segmentos enviada");
         eliminar_paquete(tabla_segmentos_proceso);
@@ -348,17 +354,22 @@ void* escucha_cpu(void* ptr)
                                             datos_cpu->mutex_procesos, *pid);
         if (proceso == NULL)
         {
-          logger_info(datos_cpu->logger, "PROCESO NO ENCONTRADO");
+          logger_info(datos_cpu->logger,
+                      "No se encontró el proceso con PID %u para terminar",
+                      *pid);
+          free(pid);
           break;
         }
         logger_info(datos_cpu->logger, "Enviando tabla de segmentos a cpu : %d",
                     datos_cpu->id);
         t_paquete* tabla_segmentos_proceso =
             crear_paquete(OP_TABLA_DE_SEGMENTOS);
-        agregar_segmentos_a_paquete(
-            filtrar_segmentos_proceso(*pid, datos_cpu->memoria_principal,
-                                      datos_cpu->logger),
-            tabla_segmentos_proceso);
+        t_list* lista_segmentos = filtrar_segmentos_proceso(
+            *pid, datos_cpu->memoria_principal, datos_cpu->logger);
+
+        agregar_segmentos_a_paquete(lista_segmentos, tabla_segmentos_proceso);
+
+        list_destroy(lista_segmentos);
         enviar_paquete(tabla_segmentos_proceso, datos_cpu->socket_cpu);
         logger_info(datos_cpu->logger, "Tabla de segmentos enviada a cpu");
         eliminar_paquete(tabla_segmentos_proceso);
