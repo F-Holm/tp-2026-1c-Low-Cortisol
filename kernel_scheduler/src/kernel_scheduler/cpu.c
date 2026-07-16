@@ -204,6 +204,7 @@ static void gestionar_desalojo_prioritario(t_datos_syscall* datos)
         cambio_a_exec(nueva_pcb, &(datos->datos->colas->exec));
         datos->motivo_desalojo = MD_PROCESO_PRIORITARIO;
         datos->pcb = nueva_pcb;
+        datos->contador = 0;
       }
       else
       {
