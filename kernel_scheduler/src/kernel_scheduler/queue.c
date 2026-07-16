@@ -1856,20 +1856,24 @@ static bool avisar_nuevo_proceso(t_colas* colas, char* archivo_instrucciones,
       case OP_PROCESO_INICIADO:
         free(recibir_string(colas->socket_km->socket_km));
         ret = true;
+        seguir_operando = false;
         break;
       case OP_MEMORIA_CORRUPTA:
         free(recibir_string(colas->socket_km->socket_km));
         cerrar_kernel_scheduler(colas->socket_servidor, colas->logger,
                                 MC_MEMORIA_CORRUPTA, -1);
+        seguir_operando = false;
         break;
       case OP_NUEVO_MEMORY_STICK:
         free(recibir_string(colas->socket_km->socket_km));
         crear_hilo_rutina_des_suspension(colas);
+        seguir_operando = true;
         break;
       default:
         free(recibir_string(colas->socket_km->socket_km));
         cerrar_kernel_scheduler(colas->socket_servidor, colas->logger,
                                 MC_FALLO_CONEXION_KERNEL_MEMORY, -1);
+        seguir_operando = false;
         break;
     }
   }

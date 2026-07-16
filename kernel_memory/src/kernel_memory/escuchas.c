@@ -296,7 +296,8 @@ void* escucha_cpu(void* ptr)
                                             datos_cpu->mutex_procesos, *pid);
         if (proceso == NULL)
         {
-          logger_error(datos_cpu->logger, "Proceso con pid %d no encontrado", *pid);
+          logger_error(datos_cpu->logger, "Proceso con pid %d no encontrado",
+                       *pid);
           break;
         }
         logger_info(datos_cpu->logger, "## PID: %d - Obtener registro", *pid);
