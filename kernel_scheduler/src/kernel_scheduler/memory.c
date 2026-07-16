@@ -22,7 +22,7 @@ bool allocate_memory(t_syscall_memory* mem_alloc, t_colas* colas)
   if (!comms)
   {
     logger_error(colas->logger,
-                 " Error en la comunicacion con el Kernel Memory");
+                 "Error en la comunicacion con el Kernel Memory");
     cerrar_kernel_scheduler(colas->socket_servidor, colas->logger,
                             MC_ERROR_ENVIO_KERNEL_MEMORY,
                             colas->socket_km->socket_km);
@@ -45,7 +45,7 @@ bool free_memory(t_syscall_memory* mem_free, t_colas* colas)
   if (!comms)
   {
     logger_error(colas->logger,
-                 " Error en la comunicacion con el Kernel Memory");
+                 "Error en la comunicacion con el Kernel Memory");
     cerrar_kernel_scheduler(colas->socket_servidor, colas->logger,
                             MC_ERROR_ENVIO_KERNEL_MEMORY,
                             colas->socket_km->socket_km);

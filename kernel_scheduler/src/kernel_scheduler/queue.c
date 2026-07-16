@@ -343,7 +343,7 @@ void cambio_ready_exec(t_pcb* pcb, t_colas* colas)
 void cambio_new_ready(t_colas* colas, char* archivo_instrucciones,
                       int prioridad)
 {
-  logger_info(colas->logger, " Creando proceso de prioridad %d ubicado en %s",
+  logger_info(colas->logger, "Creando proceso de prioridad %d ubicado en %s",
               prioridad, archivo_instrucciones);
   t_pcb* pcb = cambio_sacar_new(archivo_instrucciones, prioridad, colas);
   if (pcb != NULL)
@@ -470,7 +470,7 @@ void bloquear_hilos_suspendido(t_colas* colas)
   bloquear_hilo_suspendido(
       colas->datos_suspendido->datos_hilo_des_suspensor->datos,
       &(colas->susp_ready));
-  logger_info(colas->logger, " Hilos suspendido bloqueados");
+  logger_info(colas->logger, "Hilos suspendido bloqueados");
 }
 
 void desbloquear_hilos_suspendido(t_colas* colas)
@@ -479,7 +479,7 @@ void desbloquear_hilos_suspendido(t_colas* colas)
       colas->datos_suspendido->datos_hilo_suspensor->datos);
   desbloquear_hilo_suspendido(
       colas->datos_suspendido->datos_hilo_des_suspensor->datos);
-  logger_info(colas->logger, " Hilos suspendido desbloqueados");
+  logger_info(colas->logger, "Hilos suspendido desbloqueados");
 }
 
 int espacio_disponible_sin_mutex(t_colas* colas, uint32_t pid)
@@ -539,13 +539,13 @@ void crear_hilo_rutina_des_suspension(t_colas* colas)
   {
     logger_error(
         colas->logger,
-        " Error en la creación del hilo de la rutina de des-suspension");
+        "Error en la creación del hilo de la rutina de des-suspension");
   }
   else
   {
     pthread_detach(hilo);
     logger_info(colas->logger,
-                " Hilo de la rutina de des-suspension iniciado exitosamente");
+                "Hilo de la rutina de des-suspension iniciado exitosamente");
   }
 }
 
@@ -632,7 +632,7 @@ static void restar_contador_hilos(t_colas* colas)
 
 static void esperar_contador_hilos(t_colas* colas)
 {
-  logger_info(colas->logger, " Esperando a que finalicen todos los hilos");
+  logger_info(colas->logger, "Esperando a que finalicen todos los hilos");
   pthread_mutex_lock(&(colas->contador_hilos->mutex_contador));
   while (colas->contador_hilos->cantidad > 0)
   {
@@ -640,7 +640,7 @@ static void esperar_contador_hilos(t_colas* colas)
                       &(colas->contador_hilos->mutex_contador));
   }
   pthread_mutex_unlock(&(colas->contador_hilos->mutex_contador));
-  logger_info(colas->logger, " Hilos finalizados");
+  logger_info(colas->logger, "Hilos finalizados");
 }
 
 static void destruir_contador(t_contador* contador)
@@ -749,11 +749,11 @@ static void iniciar_hilo_suspensor(t_colas* colas)
           &(colas->datos_suspendido->datos_hilo_suspensor->datos->hilo), NULL,
           hilo_suspensor, colas) != 0)
   {
-    logger_error(colas->logger, " Error en la creación del hilo suspensor");
+    logger_error(colas->logger, "Error en la creación del hilo suspensor");
   }
   else
   {
-    logger_info(colas->logger, " Hilo suspensor iniciado exitosamente");
+    logger_info(colas->logger, "Hilo suspensor iniciado exitosamente");
   }
 }
 
@@ -763,11 +763,11 @@ static void iniciar_hilo_des_suspensor(t_colas* colas)
           &(colas->datos_suspendido->datos_hilo_des_suspensor->datos->hilo),
           NULL, hilo_des_suspensor, colas) != 0)
   {
-    logger_error(colas->logger, " Error en la creación del hilo des-suspensor");
+    logger_error(colas->logger, "Error en la creación del hilo des-suspensor");
   }
   else
   {
-    logger_info(colas->logger, " Hilo des-suspensor iniciado exitosamente");
+    logger_info(colas->logger, "Hilo des-suspensor iniciado exitosamente");
   }
 }
 
@@ -1304,7 +1304,7 @@ static bool cambio_susp_ready_ready_sin_mutex(t_pcb* pcb, t_colas* colas)
   if (!puede_des_suspender(pcb, colas))
   {
     logger_info(colas->logger,
-                " No hay suficiente espacio para des-suspender al proceso %u",
+                "No hay suficiente espacio para des-suspender al proceso %u",
                 pcb->pid);
     return false;
   }
@@ -1668,7 +1668,7 @@ static int recibir_espacio(t_colas* colas)
       int* aux = recibir_buffer(&espacio, colas->socket_km->socket_km);
       espacio = *aux;
       free(aux);
-      logger_info(colas->logger, " Espacio disponible: %d", espacio);
+      logger_info(colas->logger, "Espacio disponible: %d", espacio);
       break;
     case OP_NUEVO_MEMORY_STICK:
       free(recibir_string(colas->socket_km->socket_km));
@@ -1698,7 +1698,7 @@ static int recibir_tamanio(t_colas* colas)
       int* aux = recibir_buffer(&espacio, colas->socket_km->socket_km);
       espacio = *aux;
       free(aux);
-      logger_info(colas->logger, " Tamaño proceso: %d", espacio);
+      logger_info(colas->logger, "Tamaño proceso: %d", espacio);
       return espacio;
       break;
     case OP_NUEVO_MEMORY_STICK:
@@ -1729,7 +1729,7 @@ static void* hilo_rutina_des_suspension(void* datos_des_suspension)
     rutina_des_suspension(colas);
     esta_des_suspendiendo_set(colas, false);
     desbloquear_hilos_suspendido(colas);
-    logger_info(colas->logger, " Rutina de des-suspensión terminada");
+    logger_info(colas->logger, "Rutina de des-suspensión terminada");
   }
   pthread_mutex_unlock(&(colas->mutex_rutina));
   restar_contador_hilos(colas);
@@ -1780,13 +1780,13 @@ static void crear_hilo_desbloquear_cola_ready(t_colas* colas)
   if (pthread_create(&hilo, NULL, hilo_desbloquear_cola_ready, colas) != 0)
   {
     logger_error(colas->logger,
-                 " Error en la creación del hilo de desbloquear cola ready");
+                 "Error en la creación del hilo de desbloquear cola ready");
   }
   else
   {
     pthread_detach(hilo);
     logger_info(colas->logger,
-                " Hilo de desbloquear cola ready iniciado exitosamente");
+                "Hilo de desbloquear cola ready iniciado exitosamente");
   }
 }
 

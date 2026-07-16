@@ -41,7 +41,7 @@ static int conectar_kernel_memory(char* ip, char* puerto, t_logger* logger)
   int socket_km = crear_conexion(ip, puerto);
   if (socket_km <= 0)
   {
-    logger_error(logger, " Error de conexión con Kernel Memory");
+    logger_error(logger, "Error de conexión con Kernel Memory");
     return -1;
   }
   logger_info(logger, "## Conectado a Kernel Memory");
@@ -52,15 +52,15 @@ static bool handshake_kernel_memory(int socket_km, t_logger* logger)
 {
   if (!enviar_handshake(MID_KERNEL_SCHEDULER, socket_km))
   {
-    logger_error(logger, " Error en el envio del Handshake con Kernel Memory");
+    logger_error(logger, "Error en el envio del Handshake con Kernel Memory");
     return false;
   }
   if (recibir_handshake(socket_km) != MID_KERNEL_MEMORY)
   {
     logger_error(logger,
-                 " Error en la recepción del Handshake con Kernel Memory");
+                 "Error en la recepción del Handshake con Kernel Memory");
     return false;
   }
-  logger_info(logger, " Handshake exitoso con Kernel Memory");
+  logger_info(logger, "Handshake exitoso con Kernel Memory");
   return true;
 }

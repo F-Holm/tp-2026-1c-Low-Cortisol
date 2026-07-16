@@ -234,7 +234,7 @@ static void avisar_cierre_kernel_memory(int motivo_cierre, int socket_km,
   if (motivo_cierre == MC_SIN_PROCESOS)
   {
     logger_info(logger,
-                " Avisando al Kernel Memory del cierre del Kernel Scheduler");
+                "Avisando al Kernel Memory del cierre del Kernel Scheduler");
     enviar_string(OP_CIERRE_KERNEL_SCHEDULER,
                   "No hay más procesos para ejecutar", socket_km);
   }
