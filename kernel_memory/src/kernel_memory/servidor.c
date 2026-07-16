@@ -19,8 +19,8 @@ bool handshake(t_datos_kernel_mem* datos_kernel_memory, int client_socket)
                   "## Kernel Scheduler Conectado - FD del socket: %i",
                   client_socket);
       t_datos_scheduler* datos_scheduler = inicializar_datos_scheduler(
-          datos_kernel_memory->socket_kernel_memory, client_socket, datos_kernel_memory->procesos,
-          datos_kernel_memory->scripts_basepath,
+          datos_kernel_memory->socket_kernel_memory, client_socket,
+          datos_kernel_memory->procesos, datos_kernel_memory->scripts_basepath,
           datos_kernel_memory->mutex_procesos,
           datos_kernel_memory->memoria_principal,
           datos_kernel_memory->sticks_conectados,

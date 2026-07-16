@@ -28,10 +28,10 @@ t_datos_kernel_mem* inicializar_datos_kernel_memory(
 }
 
 t_datos_scheduler* inicializar_datos_scheduler(
-      int socket_kernel_memory, int socket_scheduler, t_list* procesos, char* scripts_basepath,
-    pthread_mutex_t* mutex_procesos, t_memoria_principal* memoria_principal,
-    t_list* sticks_conectadas, pthread_mutex_t* mutex_sticks,
-    t_datos_swap* datos_swap, t_logger* logger)
+    int socket_kernel_memory, int socket_scheduler, t_list* procesos,
+    char* scripts_basepath, pthread_mutex_t* mutex_procesos,
+    t_memoria_principal* memoria_principal, t_list* sticks_conectadas,
+    pthread_mutex_t* mutex_sticks, t_datos_swap* datos_swap, t_logger* logger)
 {
   t_datos_scheduler* datos_scheduler = malloc(sizeof(t_datos_scheduler));
   datos_scheduler->socket_kernel_memory = socket_kernel_memory;
