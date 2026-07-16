@@ -137,7 +137,7 @@ t_colas* inicializar_colas(int algoritmo, t_list* algoritmos_cmn, int quantum,
   inicializar_lista(&(colas->susp_block));
   inicializar_lista(&(colas->susp_ready));
   colas->contador_procesos =
-      inicializar_contador_procesos(socket_servidor, logger);
+      inicializar_contador_procesos(socket_servidor, logger, socket_km);
   colas->contador_hilos = crear_contador();
   colas->contador_syscalls = crear_contador();
   pthread_mutex_init(&(colas->mutex_rutina), NULL);

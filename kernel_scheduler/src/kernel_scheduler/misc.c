@@ -127,14 +127,15 @@ unsigned long time_diff(unsigned long time_1, unsigned long time_2)
   return time_1 > time_2 ? time_1 - time_2 : time_2 - time_1;
 }
 
-t_contador_procesos* inicializar_contador_procesos(int socket_servidor,
-                                                   t_logger* logger)
+t_contador_procesos* inicializar_contador_procesos(
+    int socket_servidor, t_logger* logger, t_socket_kernel_memory* socket_km)
 {
   t_contador_procesos* contador = malloc(sizeof(t_contador_procesos));
   contador->cantidad_procesos_activos = 0;
   pthread_mutex_init(&(contador->mutex_contador), NULL);
   contador->socket_servidor = socket_servidor;
   contador->logger = logger;
+  contador->socket_km = socket_km;
   return contador;
 }
 
@@ -149,12 +150,16 @@ void disminuir_contador_procesos(t_contador_procesos* contador)
 {
   pthread_mutex_lock(&(contador->mutex_contador));
   contador->cantidad_procesos_activos--;
-  if (contador->cantidad_procesos_activos == 0)
-  {
-    cerrar_kernel_scheduler(contador->socket_servidor, contador->logger,
-                            MC_SIN_PROCESOS, -1);
-  }
+  bool ultimo = contador->cantidad_procesos_activos == 0;
   pthread_mutex_unlock(&(contador->mutex_contador));
+
+  if (ultimo)
+  {
+    pthread_mutex_lock(&(contador->socket_km->mutex_socket));
+    cerrar_kernel_scheduler(contador->socket_servidor, contador->logger,
+                            MC_SIN_PROCESOS, contador->socket_km->socket_km);
+    pthread_mutex_unlock(&(contador->socket_km->mutex_socket));
+  }
 }
 
 void destruir_contador_procesos(t_contador_procesos* contador)
