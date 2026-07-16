@@ -18,14 +18,15 @@ uint32_t mmu(t_cpu* cpu, t_contexto* contexto, uint32_t dir_logica,
   if (segmento == NULL)
   {
     log_error(cpu->logger, "## Segmento %u no encontrado", num_segmento);
-    cerrar_modulo(cpu);
-    return DIR_INVALIDA;
+    return DIR_INVALIDA-1;
   }
 
   if (desplazamiento + tamanio > segmento->size)
   {
-    seg_fault_KS(cpu, pid);
-    return DIR_INVALIDA;
+    if(seg_fault_KS(cpu, pid))
+      return DIR_INVALIDA;
+    else
+      return DIR_INVALIDA-1;
   }
 
   return segmento->base + desplazamiento;
@@ -46,15 +47,16 @@ t_segmento* buscar_segmento_por_id(t_list* tablaSegmentos,
   return NULL;
 }
 
-void seg_fault_KS(t_cpu* cpu, uint32_t pid)
+bool seg_fault_KS(t_cpu* cpu, uint32_t pid)
 {
   if (!enviar_string(OP_SEG_FAULT, "SEGMENTATION FAULT",
                      cpu->socket_kernel_scheduler))
   {
     log_error(cpu->logger, "## Fallo en el envío de segmentation fault");
-    cerrar_modulo(cpu);
+    return false;
   }
   log_info(cpu->logger, "Envio correcto seg fault");
+  return true;
 }
 
 t_memory_stick_info* encontrar_stick(t_cpu* cpu, uint32_t dir_fisica)

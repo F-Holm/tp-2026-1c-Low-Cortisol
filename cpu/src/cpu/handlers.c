@@ -63,14 +63,17 @@ bool handler_jnz(t_cpu* cpu, t_contexto* contexto, t_instruccion* instruccion,
 
 /*             INSTRUCCIONES CON MODIFICACION DE MEMORIA           */
 
-bool handler_mov_in(t_cpu* cpu, t_contexto* contexto,
+t_bool_extendido handler_mov_in(t_cpu* cpu, t_contexto* contexto,
                     t_instruccion* instruccion, uint32_t pid)
 {
   uint32_t dir_fisica =
       mmu(cpu, contexto, contexto->registros->SI, sizeof(uint32_t), pid);
 
   if (dir_fisica == DIR_INVALIDA)
-    return true;
+    return BE_TRUE;
+  else if(dir_fisica == DIR_INVALIDA-1)
+    return BE_ERROR;
+
 
   void* dato_leido = leer_memoria(cpu, dir_fisica, sizeof(uint32_t));
   uint32_t valor = *(uint32_t*)dato_leido;
@@ -81,10 +84,10 @@ bool handler_mov_in(t_cpu* cpu, t_contexto* contexto,
   log_info(cpu->logger,
            "PID: %u - Acción: LEER - Dirección Física: %u - Valor: %u", pid,
            dir_fisica, valor);
-  return true;
+  return BE_TRUE;
 }
 
-bool handler_mov_out(t_cpu* cpu, t_contexto* contexto,
+t_bool_extendido handler_mov_out(t_cpu* cpu, t_contexto* contexto,
                      t_instruccion* instruccion, uint32_t pid)
 {
   uint32_t valor =
@@ -93,7 +96,9 @@ bool handler_mov_out(t_cpu* cpu, t_contexto* contexto,
       mmu(cpu, contexto, contexto->registros->DI, sizeof(uint32_t), pid);
 
   if (dir_fisica == DIR_INVALIDA)
-    return true;
+    return BE_TRUE;
+  else if(dir_fisica == DIR_INVALIDA-1)
+    return BE_ERROR;
 
   escribir_memoria(cpu, dir_fisica, &valor, sizeof(uint32_t));
 
@@ -101,10 +106,10 @@ bool handler_mov_out(t_cpu* cpu, t_contexto* contexto,
            "PID: %u - Acción: ESCRIBIR - Dirección Física: %u - Valor: %u", pid,
            dir_fisica, valor);
 
-  return true;
+  return BE_TRUE;
 }
 
-bool handler_copy_mem(t_cpu* cpu, t_contexto* contexto,
+t_bool_extendido handler_copy_mem(t_cpu* cpu, t_contexto* contexto,
                       t_instruccion* instruccion, uint32_t pid)
 {
   uint32_t cant_bytes =
@@ -113,12 +118,16 @@ bool handler_copy_mem(t_cpu* cpu, t_contexto* contexto,
   uint32_t direccion_SI =
       mmu(cpu, contexto, contexto->registros->SI, sizeof(uint32_t), pid);
   if (direccion_SI == DIR_INVALIDA)
-    return true;
+    return BE_TRUE;
+  else if(direccion_SI == DIR_INVALIDA-1)
+    return BE_ERROR;
 
   uint32_t direccion_DI =
       mmu(cpu, contexto, contexto->registros->DI, sizeof(uint32_t), pid);
   if (direccion_DI == DIR_INVALIDA)
-    return true;
+    return BE_TRUE;
+  else if(direccion_DI == DIR_INVALIDA-1)
+    return BE_ERROR;
 
   void* bytes_leidos = leer_memoria(cpu, direccion_SI, cant_bytes);
 
@@ -133,12 +142,12 @@ bool handler_copy_mem(t_cpu* cpu, t_contexto* contexto,
            direccion_DI, (char*)bytes_leidos);
 
   free(bytes_leidos);
-  return true;
+  return BE_TRUE;
 }
 
 /*             SYSCALLS(MANEJADAS POR SCHEDULER)           */
 
-bool handler_mutex_create(t_cpu* cpu, t_contexto* contexto,
+t_bool_extendido handler_mutex_create(t_cpu* cpu, t_contexto* contexto,
                           t_instruccion* instruccion, uint32_t pid)
 {
   if (enviar_string(OP_SYSCALL_MUTEX_CREATE, instruccion->parametros[0],
@@ -150,12 +159,12 @@ bool handler_mutex_create(t_cpu* cpu, t_contexto* contexto,
   {
     log_error(cpu->logger,
               "## fallo el envio de la syscall al kernel scheduler");
-    cerrar_modulo(cpu);
+    return BE_ERROR;
   }
-  return false;
+  return BE_FALSE;
 }
 
-bool handler_mutex_lock(t_cpu* cpu, t_contexto* contexto,
+t_bool_extendido handler_mutex_lock(t_cpu* cpu, t_contexto* contexto,
                         t_instruccion* instruccion, uint32_t pid)
 {
   if (enviar_string(OP_SYSCALL_MUTEX_LOCK, instruccion->parametros[0],
@@ -167,12 +176,12 @@ bool handler_mutex_lock(t_cpu* cpu, t_contexto* contexto,
   {
     log_error(cpu->logger,
               "## fallo el envio de la syscall al kernel scheduler");
-    cerrar_modulo(cpu);
+    return BE_ERROR;
   }
-  return false;
+  return BE_FALSE;
 }
 
-bool handler_mutex_unlock(t_cpu* cpu, t_contexto* contexto,
+t_bool_extendido handler_mutex_unlock(t_cpu* cpu, t_contexto* contexto,
                           t_instruccion* instruccion, uint32_t pid)
 {
   if (enviar_string(OP_SYSCALL_MUTEX_UNLOCK, instruccion->parametros[0],
@@ -184,12 +193,12 @@ bool handler_mutex_unlock(t_cpu* cpu, t_contexto* contexto,
   {
     log_error(cpu->logger,
               "## fallo el envio de la syscall al kernel scheduler");
-    cerrar_modulo(cpu);
+    return BE_ERROR;
   }
-  return false;
+  return BE_FALSE;
 }
 
-bool handler_mem_alloc(t_cpu* cpu, t_contexto* contexto,
+t_bool_extendido handler_mem_alloc(t_cpu* cpu, t_contexto* contexto,
                        t_instruccion* instruccion, uint32_t pid)
 {
   t_syscall_memory* datos_syscall;
@@ -210,13 +219,13 @@ bool handler_mem_alloc(t_cpu* cpu, t_contexto* contexto,
     log_error(cpu->logger,
               "## fallo el envio de la syscall al kernel scheduler");
     free(datos_syscall);
-    cerrar_modulo(cpu);
+    return BE_ERROR;
   }
   contexto->cambio_segmento = true;
-  return false;
+  return BE_FALSE;
 }
 
-bool handler_mem_free(t_cpu* cpu, t_contexto* contexto,
+t_bool_extendido handler_mem_free(t_cpu* cpu, t_contexto* contexto,
                       t_instruccion* instruccion, uint32_t pid)
 {
   t_syscall_memory* datos_syscall;
@@ -237,13 +246,13 @@ bool handler_mem_free(t_cpu* cpu, t_contexto* contexto,
     log_error(cpu->logger,
               "## fallo el envio de la syscall al kernel scheduler");
     free(datos_syscall);
-    cerrar_modulo(cpu);
+    return BE_ERROR;
   }
   contexto->cambio_segmento = true;
-  return false;
+  return BE_FALSE;
 }
 
-bool handler_sleep(t_cpu* cpu, t_contexto* contexto, t_instruccion* instruccion,
+t_bool_extendido handler_sleep(t_cpu* cpu, t_contexto* contexto, t_instruccion* instruccion,
                    uint32_t pid)
 {
   t_peticion_sleep* datos_syscall;
@@ -263,12 +272,12 @@ bool handler_sleep(t_cpu* cpu, t_contexto* contexto, t_instruccion* instruccion,
     log_error(cpu->logger,
               "## fallo el envio de la syscall al kernel scheduler");
     free(datos_syscall);
-    cerrar_modulo(cpu);
+    return BE_ERROR;
   }
-  return false;
+  return BE_FALSE;
 }
 
-bool handler_stdout(t_cpu* cpu, t_contexto* contexto,
+t_bool_extendido handler_stdout(t_cpu* cpu, t_contexto* contexto,
                     t_instruccion* instruccion, uint32_t pid)
 {
   t_peticion_stdout* datos_syscall;
@@ -291,12 +300,12 @@ bool handler_stdout(t_cpu* cpu, t_contexto* contexto,
     log_error(cpu->logger,
               "## fallo el envio de la syscall al kernel scheduler");
     free(datos_syscall);
-    cerrar_modulo(cpu);
+    return BE_ERROR;
   }
-  return false;
+  return BE_FALSE;
 }
 
-bool handler_stdin(t_cpu* cpu, t_contexto* contexto, t_instruccion* instruccion,
+t_bool_extendido handler_stdin(t_cpu* cpu, t_contexto* contexto, t_instruccion* instruccion,
                    uint32_t pid)
 {
   t_peticion_stdin* datos_syscall;
@@ -319,12 +328,12 @@ bool handler_stdin(t_cpu* cpu, t_contexto* contexto, t_instruccion* instruccion,
     log_error(cpu->logger,
               "## fallo el envio de la syscall al kernel scheduler");
     free(datos_syscall);
-    cerrar_modulo(cpu);
+    return BE_ERROR;
   }
-  return false;
+  return BE_FALSE;
 }
 
-bool handler_init_proc(t_cpu* cpu, t_contexto* contexto,
+t_bool_extendido handler_init_proc(t_cpu* cpu, t_contexto* contexto,
                        t_instruccion* instruccion, uint32_t pid)
 {
   int prioridad = atoi(instruccion->parametros[1]);
@@ -343,12 +352,12 @@ bool handler_init_proc(t_cpu* cpu, t_contexto* contexto,
     log_error(cpu->logger,
               "## fallo el envio de la syscall al kernel scheduler");
     eliminar_paquete(paquete_syscall);
-    cerrar_modulo(cpu);
+    return BE_ERROR;
   }
-  return false;
+  return BE_FALSE;
 }
 
-bool handler_exit(t_cpu* cpu, t_contexto* contexto, t_instruccion* instruccion,
+t_bool_extendido handler_exit(t_cpu* cpu, t_contexto* contexto, t_instruccion* instruccion,
                   uint32_t pid)
 {
   if (enviar_string(OP_SYSCALL_EXIT, "PROCESO TERMINADO",
@@ -360,7 +369,7 @@ bool handler_exit(t_cpu* cpu, t_contexto* contexto, t_instruccion* instruccion,
   {
     log_error(cpu->logger,
               "## fallo el envio de la syscall al kernel scheduler");
-    cerrar_modulo(cpu);
+    return BE_ERROR;
   }
-  return false;
+  return BE_FALSE;
 }

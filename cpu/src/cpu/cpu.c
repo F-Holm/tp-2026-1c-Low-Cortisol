@@ -86,7 +86,6 @@ bool escuchar_kernel_memory(t_cpu* cpu)
                   codigo_operacion);
         return false;
     }
-    log_info(cpu->logger, "Codigo de operacion recibido: %d", codigo_operacion);
   }
   return true;
 }
@@ -126,7 +125,6 @@ void manejo_instrucciones(t_cpu* cpu)
   }
   list_destroy_and_destroy_elements(contexto->tablaDeSegmentos, free);
   free(contexto);
-  log_info(cpu->logger, "PROGRAMA FINALIZADO");
   cerrar_modulo(cpu);
 }
 
