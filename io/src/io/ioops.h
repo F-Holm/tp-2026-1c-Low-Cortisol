@@ -6,7 +6,6 @@
 #include <commons/config.h>
 #include <commons/log.h>
 #include <netdb.h>
-#include <readline/readline.h>
 #include <signal.h>
 #include <stdbool.h>
 #include <stdint.h>

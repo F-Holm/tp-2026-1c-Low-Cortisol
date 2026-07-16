@@ -5,26 +5,32 @@ bool io_tipo_stdin(t_modulo_io* sio)
   int size_peticion;
   t_peticion_stdin* peticion_stdin =
       (t_peticion_stdin*)recibir_buffer(&size_peticion, sio->socket_io);
-  char* buffer;
   log_info(sio->logger, "## PID %d -Inicio de IO", peticion_stdin->pid);
 
   // Solicito el input por teclado
   log_info(sio->logger, "## PID %d -Ingrese %d caracteres", peticion_stdin->pid,
            peticion_stdin->tamanio_a_leer);
 
-  buffer = readline(">");
-  if (buffer == NULL)
+  char* buffer = NULL;
+  size_t tamanio = 0;
+
+  printf("> ");
+  fflush(stdout);
+
+  if (getline(&buffer, &tamanio, stdin) == -1)
   {
     log_error(sio->logger, " Error al leer el input del usuario");
     free(peticion_stdin);
     free(buffer);
     return false;
   }
-  else if (strlen(buffer) >= peticion_stdin->tamanio_a_leer)
+
+  if (tamanio >= peticion_stdin->tamanio_a_leer)
   {
     buffer[peticion_stdin->tamanio_a_leer - 1] = '\0';
-    // Trunco el buffer si es necesario
   }
+
+  buffer[strcspn(buffer, "\n")] = '\0';
 
   bool envio_correcto =
       enviar_string(OP_RESPUESTA_STDIN, buffer, sio->socket_io);
