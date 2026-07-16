@@ -29,7 +29,7 @@ bool iniciar_enviar_tipo_io(t_modulo_io* modulo_io)
 
   if (modulo_io->socket_io == -1)
   {
-    log_error(modulo_io->logger, "#ERROR DE CONEXION");
+    log_error(modulo_io->logger, "ERROR DE CONEXION");
     cerrar_todo(modulo_io);
     return false;
   }
@@ -39,8 +39,7 @@ bool iniciar_enviar_tipo_io(t_modulo_io* modulo_io)
   bool envio_correcto = enviar_handshake(MID_IO, modulo_io->socket_io);
   if (!envio_correcto)
   {
-    log_error(modulo_io->logger,
-              "## Error en el Handshake con Kernel Scheduler");
+    log_error(modulo_io->logger, " Error en el Handshake con Kernel Scheduler");
     cerrar_todo(modulo_io);
     return false;
   }
@@ -48,22 +47,21 @@ bool iniciar_enviar_tipo_io(t_modulo_io* modulo_io)
   int recepcion_correcta = recibir_handshake(modulo_io->socket_io);
   if (recepcion_correcta != MID_KERNEL_SCHEDULER)
   {
-    log_error(modulo_io->logger,
-              "## Error en el Handshake con Kernel Scheduler");
+    log_error(modulo_io->logger, " Error en el Handshake con Kernel Scheduler");
     cerrar_todo(modulo_io);
     return false;
   }
-  log_info(modulo_io->logger, "## Handshake exitoso con Kernel Scheduler");
+  log_info(modulo_io->logger, " Handshake exitoso con Kernel Scheduler");
 
   envio_correcto = enviar_string(
       OP_TIPO_IO, (char*)V_TIPO_IO[modulo_io->tipo_io], modulo_io->socket_io);
   if (!envio_correcto)
   {
-    log_error(modulo_io->logger, "## Error en el Envío de tipo de IO");
+    log_error(modulo_io->logger, " Error en el Envío de tipo de IO");
     cerrar_todo(modulo_io);
     return false;
   }
-  log_info(modulo_io->logger, "## Envio correcto de tipo de IO");
+  log_info(modulo_io->logger, " Envio correcto de tipo de IO");
   return true;
 }
 

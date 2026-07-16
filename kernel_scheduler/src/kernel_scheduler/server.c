@@ -19,10 +19,10 @@ int crear_socket_servidor(char* puerto, t_logger* logger)
   int ret = iniciar_servidor(puerto);
   if (ret <= 0)
   {
-    logger_error(logger, "## Error en la creación del servidor");
+    logger_error(logger, "Error en la creación del servidor");
     return -1;
   }
-  logger_info(logger, "## Creación del servidor exitosa");
+  logger_info(logger, "Creación del servidor exitosa");
   return ret;
 }
 
@@ -73,7 +73,7 @@ void servidor_escucha(t_datos_servidor_escucha* datos)
                              datos->colas->ready.cola_multi_nivel);
         break;
       default:
-        logger_info(datos->logger, "## Recepción de handshake no válido");
+        logger_info(datos->logger, "Recepción de handshake no válido");
         manejo_exitoso = false;
         break;
     }
@@ -92,9 +92,9 @@ static void cerrar_hilo_escucha(t_io* estructuras_io, t_list* lista_sockets_cpu,
                                 pthread_cond_t* cond_fin_cpu,
                                 t_datos_servidor_escucha* datos)
 {
-  logger_info(datos->logger, "## Cerrando servidor");
+  logger_info(datos->logger, "Cerrando servidor");
   cerrar_cpu(lista_sockets_cpu, mutex_lista_sockets_cpu, cond_fin_cpu,
              datos->colas);
   cerrar_io(estructuras_io);
-  logger_info(datos->logger, "## Servidor cerrado");
+  logger_info(datos->logger, "Servidor cerrado");
 }

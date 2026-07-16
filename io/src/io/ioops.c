@@ -9,13 +9,13 @@ bool io_tipo_stdin(t_modulo_io* sio)
   log_info(sio->logger, "## PID %d -Inicio de IO", peticion_stdin->pid);
 
   // Solicito el input por teclado
-  log_info(sio->logger, "PID %d -Ingrese %d caracteres", peticion_stdin->pid,
+  log_info(sio->logger, "## PID %d -Ingrese %d caracteres", peticion_stdin->pid,
            peticion_stdin->tamanio_a_leer);
 
   buffer = readline(">");
   if (buffer == NULL)
   {
-    log_error(sio->logger, "## Error al leer el input del usuario");
+    log_error(sio->logger, " Error al leer el input del usuario");
     free(peticion_stdin);
     return false;
   }
@@ -30,7 +30,7 @@ bool io_tipo_stdin(t_modulo_io* sio)
   if (!envio_correcto)
   {
     log_error(sio->logger,
-              "## Error al enviar la respuesta de IO a Kernel Scheduler");
+              " Error al enviar la respuesta de IO a Kernel Scheduler");
     free(buffer);
     free(peticion_stdin);
     return false;
@@ -52,7 +52,7 @@ bool io_tipo_stdout(t_modulo_io* sio)
   if (buffer == NULL)
   {
     log_error(sio->logger,
-              "## Error - No se recibió nada para escribir en pantalla");
+              " Error - No se recibió nada para escribir en pantalla");
     free(peticion);
     return false;
   }
@@ -67,7 +67,7 @@ bool io_tipo_stdout(t_modulo_io* sio)
   if (!envio_correcto)
   {
     log_error(sio->logger,
-              "## Error al enviar la respuesta de IO a Kernel Scheduler");
+              " Error al enviar la respuesta de IO a Kernel Scheduler");
     free(peticion);
     free(buffer);
     return false;
@@ -96,7 +96,7 @@ bool io_tipo_sleep(t_modulo_io* sio)
   if (!envio_correcto)
   {
     log_error(sio->logger,
-              "## Error al enviar la respuesta de IO a Kernel Scheduler");
+              " Error al enviar la respuesta de IO a Kernel Scheduler");
     free(peticion_sleep);
     return false;
   }
