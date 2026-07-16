@@ -29,7 +29,6 @@ bool recibir_tamanio_maximo_segmento(t_cpu* cpu)
               codigo_operacion);
     int size;
     free(recibir_buffer(&size, cpu->socket_kernel_memory));
-    cerrar_modulo(cpu);
     return false;
   }
   return true;
@@ -125,7 +124,6 @@ void manejo_instrucciones(t_cpu* cpu)
   }
   list_destroy_and_destroy_elements(contexto->tablaDeSegmentos, free);
   free(contexto);
-  cerrar_modulo(cpu);
 }
 
 uint32_t recibir_pid_kernel_scheduler(t_cpu* cpu)

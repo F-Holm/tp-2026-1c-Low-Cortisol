@@ -97,7 +97,8 @@ void* leer_memoria(t_cpu* cpu, uint32_t dir_fisica, uint32_t tamanio)
     else
       bytes_a_leer = tamanio - bytes_leidos;
 
-    solicitar_lectura_MS(cpu, stick, dir_en_stick, bytes_a_leer);
+    if(!solicitar_lectura_MS(cpu, stick, dir_en_stick, bytes_a_leer))
+      return NULL;
 
     char* lectura_parcial = confirmacion_letura_MS(cpu, stick);
 
@@ -115,7 +116,7 @@ void* leer_memoria(t_cpu* cpu, uint32_t dir_fisica, uint32_t tamanio)
   return resultado;
 }
 
-void solicitar_lectura_MS(t_cpu* cpu, t_memory_stick_info* stick,
+bool solicitar_lectura_MS(t_cpu* cpu, t_memory_stick_info* stick,
                           uint32_t dir_en_stick, uint32_t bytes_a_leer)
 {
   t_paquete* paquete = crear_paquete(OP_MEMORY_STICK_LEER);
@@ -125,10 +126,11 @@ void solicitar_lectura_MS(t_cpu* cpu, t_memory_stick_info* stick,
   if (!enviar_paquete(paquete, stick->socket_MS))
   {
     log_error(cpu->logger, "## Error en el envio de la lectura al MS");
-    cerrar_modulo(cpu);
+    return false;
   }
   log_info(cpu->logger, "Lectura solicitada correctamente al MS");
   eliminar_paquete(paquete);
+  return true;
 }
 
 char* confirmacion_letura_MS(t_cpu* cpu, t_memory_stick_info* stick)
@@ -147,7 +149,7 @@ char* confirmacion_letura_MS(t_cpu* cpu, t_memory_stick_info* stick)
   }
 }
 
-void escribir_memoria(t_cpu* cpu, uint32_t dir_fisica, void* datos_a_escribir,
+bool escribir_memoria(t_cpu* cpu, uint32_t dir_fisica, void* datos_a_escribir,
                       uint32_t tamanio)
 {
   uint32_t bytes_escritos = 0;
@@ -159,7 +161,7 @@ void escribir_memoria(t_cpu* cpu, uint32_t dir_fisica, void* datos_a_escribir,
     if (stick == NULL)
     {
       log_error(cpu->logger, "## No se encontró el Memory Stick");
-      return;
+      return false;
     }
 
     uint32_t dir_en_stick = (dir_fisica + bytes_escritos) - stick->offset;
@@ -171,16 +173,19 @@ void escribir_memoria(t_cpu* cpu, uint32_t dir_fisica, void* datos_a_escribir,
     else
       bytes_a_escribir = tamanio - bytes_escritos;
 
-    solicitar_escritura_MS(cpu, stick, dir_en_stick,
-                           datos_a_escribir + bytes_escritos, bytes_a_escribir);
+    if(!solicitar_escritura_MS(cpu, stick, dir_en_stick,
+                           datos_a_escribir + bytes_escritos, bytes_a_escribir))
+      return false;
 
-    confirmacion_escritura_MS(cpu, stick);
+    if(!confirmacion_escritura_MS(cpu, stick))
+      return false;
 
     bytes_escritos += bytes_a_escribir;
   }
+  return true;
 }
 
-void solicitar_escritura_MS(t_cpu* cpu, t_memory_stick_info* stick,
+bool solicitar_escritura_MS(t_cpu* cpu, t_memory_stick_info* stick,
                             uint32_t dir_en_stick, void* datos,
                             uint32_t bytes_a_escribir)
 {
@@ -192,22 +197,23 @@ void solicitar_escritura_MS(t_cpu* cpu, t_memory_stick_info* stick,
   {
     log_error(cpu->logger, "## Error en el envio de la escritura al MS");
     eliminar_paquete(paquete);
-    cerrar_modulo(cpu);
+    return false;
   }
   log_info(cpu->logger, "Escritura solicitada correctamente al MS");
   eliminar_paquete(paquete);
+  return true;
 }
 
-void confirmacion_escritura_MS(t_cpu* cpu, t_memory_stick_info* stick)
+bool confirmacion_escritura_MS(t_cpu* cpu, t_memory_stick_info* stick)
 {
   int codigo_op = recibir_operacion(stick->socket_MS);
   free(recibir_string(stick->socket_MS));
   if (codigo_op == OP_MEMORY_STICK_ESCRITO)
   {
     log_info(cpu->logger, "Escritura realizada");
-    return;
+    return true;
   }
   log_error(cpu->logger,
             "No se recibió la respuesta de escritura correctamente");
-  cerrar_modulo(cpu);
+  return false;
 }

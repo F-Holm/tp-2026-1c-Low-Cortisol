@@ -72,6 +72,8 @@ int main(int argc, char* argv[])
   iniciar_diccionario(cpu->handlers);
 
   manejo_instrucciones(cpu);
+  
+  cerrar_modulo(cpu);
 
   return 0;
 }

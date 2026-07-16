@@ -78,6 +78,8 @@ t_bool_extendido handler_mov_in(t_cpu* cpu, t_contexto* contexto,
   void* dato_leido = leer_memoria(cpu, dir_fisica, sizeof(uint32_t));
   uint32_t valor = *(uint32_t*)dato_leido;
   free(dato_leido);
+  if(!valor)
+    return BE_ERROR;
 
   set_registro(contexto->registros, instruccion->parametros[0], valor);
 
@@ -100,7 +102,8 @@ t_bool_extendido handler_mov_out(t_cpu* cpu, t_contexto* contexto,
   else if(dir_fisica == DIR_INVALIDA-1)
     return BE_ERROR;
 
-  escribir_memoria(cpu, dir_fisica, &valor, sizeof(uint32_t));
+  if(!escribir_memoria(cpu, dir_fisica, &valor, sizeof(uint32_t)))
+    return BE_ERROR;
 
   log_info(cpu->logger,
            "PID: %u - Acción: ESCRIBIR - Dirección Física: %u - Valor: %u", pid,
@@ -131,11 +134,15 @@ t_bool_extendido handler_copy_mem(t_cpu* cpu, t_contexto* contexto,
 
   void* bytes_leidos = leer_memoria(cpu, direccion_SI, cant_bytes);
 
+  if(!bytes_leidos)
+    return BE_ERROR;
+
   log_info(cpu->logger,
            "PID: %u - Acción: LEER - Dirección Física: %u - Valor: %s", pid,
            direccion_SI, (char*)bytes_leidos);
 
-  escribir_memoria(cpu, direccion_DI, bytes_leidos, cant_bytes);
+  if(!escribir_memoria(cpu, direccion_DI, bytes_leidos, cant_bytes))
+    return BE_ERROR;
 
   log_info(cpu->logger,
            "PID: %u - Acción: ESCRIBIR - Dirección Física: %u - Valor: %s", pid,
