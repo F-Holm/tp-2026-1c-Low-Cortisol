@@ -39,8 +39,7 @@ bool iniciar_enviar_tipo_io(t_modulo_io* modulo_io)
   bool envio_correcto = enviar_handshake(MID_IO, modulo_io->socket_io);
   if (!envio_correcto)
   {
-    log_error(modulo_io->logger,
-              " Error en el Handshake con Kernel Scheduler");
+    log_error(modulo_io->logger, " Error en el Handshake con Kernel Scheduler");
     cerrar_todo(modulo_io);
     return false;
   }
@@ -48,8 +47,7 @@ bool iniciar_enviar_tipo_io(t_modulo_io* modulo_io)
   int recepcion_correcta = recibir_handshake(modulo_io->socket_io);
   if (recepcion_correcta != MID_KERNEL_SCHEDULER)
   {
-    log_error(modulo_io->logger,
-              " Error en el Handshake con Kernel Scheduler");
+    log_error(modulo_io->logger, " Error en el Handshake con Kernel Scheduler");
     cerrar_todo(modulo_io);
     return false;
   }

@@ -203,7 +203,6 @@ static bool comunicacion_io_stdin(t_stdin* peticion, t_io* io_in, char** buffer)
 
     return false;
   }
-  
 
   // recibo la respuesta de IO
   int cod_op = recibir_operacion(io_in->socket_io);
@@ -260,8 +259,7 @@ static void finalizar_io(void* peticion, t_io* io, t_pcb* pcb)
   if (list_remove_element(io->lista_io->lista_io, peticion) == 0)
   {
     pthread_mutex_unlock(&(io->lista_io->mutex_lista_io));
-    logger_error(io->logger,
-                 " Error al retirar el proceso de la lista de IO");
+    logger_error(io->logger, " Error al retirar el proceso de la lista de IO");
     return;
   }
   pthread_mutex_unlock(&(io->lista_io->mutex_lista_io));

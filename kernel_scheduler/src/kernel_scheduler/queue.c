@@ -763,8 +763,7 @@ static void iniciar_hilo_des_suspensor(t_colas* colas)
           &(colas->datos_suspendido->datos_hilo_des_suspensor->datos->hilo),
           NULL, hilo_des_suspensor, colas) != 0)
   {
-    logger_error(colas->logger,
-                 " Error en la creación del hilo des-suspensor");
+    logger_error(colas->logger, " Error en la creación del hilo des-suspensor");
   }
   else
   {

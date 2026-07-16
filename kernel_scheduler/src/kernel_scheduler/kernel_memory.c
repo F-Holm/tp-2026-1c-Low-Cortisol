@@ -52,8 +52,7 @@ static bool handshake_kernel_memory(int socket_km, t_logger* logger)
 {
   if (!enviar_handshake(MID_KERNEL_SCHEDULER, socket_km))
   {
-    logger_error(logger,
-                 " Error en el envio del Handshake con Kernel Memory");
+    logger_error(logger, " Error en el envio del Handshake con Kernel Memory");
     return false;
   }
   if (recibir_handshake(socket_km) != MID_KERNEL_MEMORY)

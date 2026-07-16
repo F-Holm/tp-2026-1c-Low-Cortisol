@@ -222,8 +222,8 @@ static void gestionar_fin_quantum(t_datos_syscall* datos)
   if (datos->motivo_desalojo == MD_SIN_DESALOJO &&
       datos->datos->colas->exec.quantum == datos->contador)
   {
-    logger_info(datos->datos->logger,
-                " CPU %s: Desalojando por fin de quantum", datos->datos->id);
+    logger_info(datos->datos->logger, " CPU %s: Desalojando por fin de quantum",
+                datos->datos->id);
     log_desalojo_fin_quantum(datos->datos->logger, datos->pcb->pid);
     cambio_exec_ready(datos->pcb, datos->datos->colas);
     datos->motivo_desalojo = MD_FIN_QUANTUM;
@@ -232,9 +232,8 @@ static void gestionar_fin_quantum(t_datos_syscall* datos)
 
 static bool enviar_desalojo(t_datos_syscall* datos)
 {
-  logger_info(datos->datos->logger,
-              "CPU %s: Enviando mensaje de desalojo: %s", datos->datos->id,
-              MOTIVOS_DESALOJO[datos->motivo_desalojo]);
+  logger_info(datos->datos->logger, "CPU %s: Enviando mensaje de desalojo: %s",
+              datos->datos->id, MOTIVOS_DESALOJO[datos->motivo_desalojo]);
   return enviar_string(
       (datos->motivo_desalojo != MD_SIN_DESALOJO ? OP_INTERRUPCION
                                                  : OP_SIN_INTERRUPCION),
@@ -268,8 +267,7 @@ static bool enviar_codigo(t_datos_syscall* datos)
 static void manejar_ciclo_cpu_ok(t_datos_syscall* datos)
 {
   free(recibir_string(datos->datos->socket_fd));
-  logger_info(datos->datos->logger, " CPU %s: Ciclo CPU OK",
-              datos->datos->id);
+  logger_info(datos->datos->logger, " CPU %s: Ciclo CPU OK", datos->datos->id);
 }
 
 static void manejar_segmentation_fault(t_datos_syscall* datos)
@@ -470,15 +468,13 @@ static void* manejar_cliente_cpu(void* datos_hilo_cpu_void)
         break;
       }
       logger_info(datos_syscall.datos->logger,
-                  " CPU %s: Enviar el código exitoso",
-                  datos_syscall.datos->id);
+                  " CPU %s: Enviar el código exitoso", datos_syscall.datos->id);
       datos_syscall.motivo_desalojo = MD_SIN_DESALOJO;
     }
 
     int op_code = recibir_operacion(datos_syscall.datos->socket_fd);
-    logger_info(datos_syscall.datos->logger,
-                " CPU %s: Operación recibida: %d", datos_syscall.datos->id,
-                op_code);
+    logger_info(datos_syscall.datos->logger, " CPU %s: Operación recibida: %d",
+                datos_syscall.datos->id, op_code);
     if (op_code < OP_CICLO_CPU_OK || op_code > OP_SYSCALL_EXIT)
     {
       op_code = OP_SYSCALL_EXIT + 1;
@@ -511,10 +507,9 @@ static void* manejar_cliente_cpu(void* datos_hilo_cpu_void)
 
     if (datos_syscall.motivo_desalojo == MD_PROCESO_PRIORITARIO)
     {
-      logger_info(
-          datos_syscall.datos->logger,
-          " CPU %s: Actualizando motivo desalojo (proceso prioritario)",
-          datos_syscall.datos->id);
+      logger_info(datos_syscall.datos->logger,
+                  " CPU %s: Actualizando motivo desalojo (proceso prioritario)",
+                  datos_syscall.datos->id);
       datos_syscall.motivo_desalojo = MD_SIN_DESALOJO;
     }
   }

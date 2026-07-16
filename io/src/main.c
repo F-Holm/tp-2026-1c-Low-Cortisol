@@ -66,6 +66,7 @@ int main(int argc, char* argv[])
         seguir_operando = false;
     }
   }
+  log_info(sio.logger, " Cierre de IO");
   // Liberar y Cerrar
   cerrar_todo(&sio);
   free(sio.input);
