@@ -307,11 +307,6 @@ static void manejar_syscall_mutex_lock(t_datos_syscall* datos)
                        MPF_NOMBRE_MUTEX_NO_EXISTE);
       datos->motivo_desalojo = MD_NOMBRE_MUTEX_NO_EXISTE;
       break;
-    case RM_PROCESO_NO_TIENE_MUTEX_BLOQUEADO:
-      cambio_exec_exit(datos->pcb, datos->datos->colas,
-                       MPF_PROCESO_NO_TIENE_MUTEX_BLOQUEADO);
-      datos->motivo_desalojo = MD_PROCESO_NO_TIENE_MUTEX_BLOQUEADO;
-      break;
     case RM_MUTEX_BLOQUEADO:
       break;
     case RM_ESPERANDO_MUTEX:
@@ -326,6 +321,11 @@ static void manejar_syscall_mutex_unlock(t_datos_syscall* datos)
   char* id_mutex = recibir_string(datos->datos->socket_fd);
   switch (lista_mutex_unlock(datos->datos->lista_mutex, id_mutex, datos->pcb))
   {
+    case RM_NOMBRE_MUTEX_NO_EXISTE:
+      cambio_exec_exit(datos->pcb, datos->datos->colas,
+                       MPF_NOMBRE_MUTEX_NO_EXISTE);
+      datos->motivo_desalojo = MD_NOMBRE_MUTEX_NO_EXISTE;
+      break;
     case RM_MUTEX_DESBLOQUEADO:
       break;
     case RM_PROCESO_NO_TIENE_MUTEX_BLOQUEADO:

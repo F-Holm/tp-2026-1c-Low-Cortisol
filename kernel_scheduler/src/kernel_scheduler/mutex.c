@@ -54,13 +54,17 @@ int crear_y_add_mutex(t_lista_mutex* lista_mutex, char* id,
 
 int lista_mutex_lock(t_lista_mutex* lista_mutex, char* id, t_pcb* pcb)
 {
+  pthread_mutex_lock(&(lista_mutex->mutex_lista));
   t_mutex* mutex = dictionary_get(lista_mutex->lista, id);
+  pthread_mutex_unlock(&(lista_mutex->mutex_lista));
   return mutex == NULL ? RM_NOMBRE_MUTEX_NO_EXISTE : mutex_lock(mutex, pcb);
 }
 
 int lista_mutex_unlock(t_lista_mutex* lista_mutex, char* id, t_pcb* pcb)
 {
+  pthread_mutex_lock(&(lista_mutex->mutex_lista));
   t_mutex* mutex = dictionary_get(lista_mutex->lista, id);
+  pthread_mutex_unlock(&(lista_mutex->mutex_lista));
   return mutex == NULL ? RM_NOMBRE_MUTEX_NO_EXISTE : mutex_unlock(mutex, pcb);
 }
 
@@ -176,7 +180,7 @@ static void eliminar_prioridad(t_pcb* pcb, int prioridad, t_logger* logger)
 
 static int mutex_lock(t_mutex* mutex, t_pcb* pcb)
 {
-  bool ret = RM_ESPERANDO_MUTEX;
+  int ret = RM_ESPERANDO_MUTEX;
   int prioridad_pcb = get_prioridad_pcb(pcb);
   pthread_mutex_lock(&(mutex->mutex));
   if (mutex->estado == 1)
@@ -242,7 +246,7 @@ static int mutex_unlock(t_mutex* mutex, t_pcb* pcb)
     }
     log_mutex_tomado(mutex->colas->logger, mutex->proceso_actual->pid,
                      mutex->id);
-    cambio_desbloquear(pcb, mutex->colas);
+    cambio_desbloquear(mutex->proceso_actual, mutex->colas);
   }
   mutex->estado++;
   pthread_mutex_unlock(&(mutex->mutex));

@@ -266,7 +266,7 @@ executephp: logs $(BUILD_TARGET)
 	@mkdir -p ./output
 	@echo "Lanzando sistema base con: [$(VALGRIND_CMD)] ..."
 	
-	$(VALGRIND_CMD) ./kernel_memory/bin/kernel_memory ./kernel_memory/configs/mem.config > ./output/kernel_memory.log 2>&1 &
+	$(VALGRIND_CMD) ./kernel_memory/bin/kernel_memory ./kernel_memory/configs/php.config > ./output/kernel_memory.log 2>&1 &
 	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./kernel_scheduler/bin/kernel_scheduler ./kernel_scheduler/configs/php.config PHP.prc > ./output/kernel_scheduler.log 2>&1 &
 	@sleep $(SLEEP_TIME)
