@@ -262,7 +262,11 @@ void cambio_a_exec(t_pcb* pcb, t_lista_execute* exec)
   pthread_mutex_lock(&(exec->mutex_lista));
   if (exec->desalojo)
   {
-    pthread_mutex_lock(&(exec->prioridad_mas_baja->mutex_prioridad));
+    t_pcb* prioridad_mas_baja = exec->prioridad_mas_baja;
+    if (prioridad_mas_baja != NULL)
+    {
+      pthread_mutex_lock(&(exec->prioridad_mas_baja->mutex_prioridad));
+    }
     pthread_mutex_lock(&(pcb->mutex_prioridad));
     if (exec->prioridad_mas_baja == NULL ||
         exec->prioridad_mas_baja->prioridad >= pcb->prioridad)
@@ -270,7 +274,10 @@ void cambio_a_exec(t_pcb* pcb, t_lista_execute* exec)
       exec->prioridad_mas_baja = pcb;
     }
     pthread_mutex_unlock(&(pcb->mutex_prioridad));
-    pthread_mutex_unlock(&(exec->prioridad_mas_baja->mutex_prioridad));
+    if (prioridad_mas_baja != NULL)
+    {
+      pthread_mutex_unlock(&(exec->prioridad_mas_baja->mutex_prioridad));
+    }
   }
   list_add(exec->lista, pcb);
   pthread_mutex_unlock(&(exec->mutex_lista));
