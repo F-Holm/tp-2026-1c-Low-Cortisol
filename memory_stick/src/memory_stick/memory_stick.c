@@ -56,8 +56,7 @@ bool iniciar_modulo(t_ms_recursos* ms_recursos, char* archivo_config,
     return false;
 
   // Reservar la memoria indicada en el archivo config
-  ms_recursos->memoria = malloc(sizeof(char) * atoi(tamanio));
-
+  ms_recursos->memoria = calloc(atoi(tamanio), sizeof(char));
   // Mutex
   ms_recursos->mutex_memoria = malloc(sizeof(pthread_mutex_t));
   pthread_mutex_init(ms_recursos->mutex_memoria, NULL);
@@ -101,8 +100,10 @@ void cerrar_modulo_error(t_ms_recursos* ms_recursos)
     config_destroy(ms_recursos->config);
   if (ms_recursos->memoria != NULL)
     free(ms_recursos->memoria);
-  if (ms_recursos->mutex_memoria != NULL)
+  if (ms_recursos->mutex_memoria != NULL) {
     pthread_mutex_destroy(ms_recursos->mutex_memoria);
+    free(ms_recursos->mutex_memoria);
+  }
 }
 
 void cerrar_modulo(t_ms_recursos* ms_recursos, pthread_t* thread_server_cpu)
@@ -115,6 +116,7 @@ void cerrar_modulo(t_ms_recursos* ms_recursos, pthread_t* thread_server_cpu)
   config_destroy(ms_recursos->config);
   free(ms_recursos->memoria);
   pthread_mutex_destroy(ms_recursos->mutex_memoria);
+  free(ms_recursos->mutex_memoria);
 }
 
 bool get_args(int argc, char** argv, char** archivo_config, char** tamanio_str,
@@ -134,7 +136,8 @@ void leer_memoria(t_ms_recursos* ms_recursos, int posicion_inicial,
   logger_info(ms_recursos->logger,
               "Memory stick necesita leer %d bytes, desde %d",
               cantidad_de_bytes, posicion_inicial);
-  char* bytes_a_devolver = malloc(cantidad_de_bytes);
+  //char* bytes_a_devolver = malloc(cantidad_de_bytes);
+  char* bytes_a_devolver = calloc(cantidad_de_bytes + 1, 1);
   pthread_mutex_lock(ms_recursos->mutex_memoria);
   memcpy(bytes_a_devolver, ms_recursos->memoria + posicion_inicial,
          cantidad_de_bytes);

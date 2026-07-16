@@ -48,6 +48,7 @@ int main(int argc, char* argv[])
         {
           logger_error(ms_recursos.logger,
                        "Cantidad de parametros para leer memoria invalida.");
+          list_destroy_and_destroy_elements(paquete, free);
           break;
         }
         int posicion_inicial = *(int*)list_get(paquete, 0);
@@ -56,7 +57,7 @@ int main(int argc, char* argv[])
                      ms_recursos.socket_km);
         logger_info(ms_recursos.logger, "## Lectura  de %d bytes",
                     cantidad_bytes);
-
+        list_destroy_and_destroy_elements(paquete, free);
         break;
       }
       case OP_MEMORY_STICK_ESCRIBIR:
@@ -69,6 +70,7 @@ int main(int argc, char* argv[])
           logger_error(
               ms_recursos.logger,
               "Cantidad de parametros para escribir memoria invalida.");
+          list_destroy_and_destroy_elements(paquete, free);
           break;
         }
         int posicion_inicial = *(int*)list_get(paquete, 0);
@@ -82,6 +84,7 @@ int main(int argc, char* argv[])
                          cantidad_bytes, ms_recursos.socket_km);
         logger_info(ms_recursos.logger, "## Escritura de %d bytes realizada",
                     cantidad_bytes);
+        list_destroy_and_destroy_elements(paquete, free);
         break;
       }
       default:
