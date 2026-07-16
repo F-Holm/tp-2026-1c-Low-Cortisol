@@ -690,6 +690,7 @@ static void inicializar_cola_ready(t_cola_ready* cola, int algoritmo,
     cola->cantidad_colas = 1;
     cola->colas = malloc(sizeof(t_cola_individual_ready));
     cola->colas->cola = list_create();
+    cola->colas->algoritmo = algoritmo;
   }
   pthread_mutex_init(&(cola->mutex_cola), NULL);
   pthread_cond_init(&(cola->nuevo_proceso), NULL);
