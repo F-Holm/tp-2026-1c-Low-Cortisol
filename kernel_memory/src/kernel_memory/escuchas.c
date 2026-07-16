@@ -242,7 +242,9 @@ void* escucha_scheduler(void* ptr)
       }
       case OP_CIERRE_KERNEL_SCHEDULER:
       {
-        liberar_datos_scheduler(datos_scheduler);
+        logger_info(datos_scheduler->logger,
+                    "Llego una solicitud de cerrar comunicaciones");
+        conexion_estable = false;
         break;
       }
       case OP_CODE_ERROR:
@@ -255,6 +257,7 @@ void* escucha_scheduler(void* ptr)
         break;
     }
   }
+  logger_info(datos_scheduler->logger, "Cierre de escucha del scheduler");
   enviar_string(OP_MEMORIA_CORRUPTA, "Cierre de kernel",
                 datos_scheduler->socket_scheduler);
   liberar_datos_scheduler(datos_scheduler);
@@ -365,8 +368,8 @@ void* escucha_cpu(void* ptr)
       case OP_CODE_ERROR:
         conexion_estable = false;
         break;
-
       default:
+        conexion_estable = false;
         break;
     }
   }

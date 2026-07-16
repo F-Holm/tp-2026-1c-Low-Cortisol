@@ -1,7 +1,8 @@
 #include "kernel_memory/servidor.h"
 
-void handshake(t_datos_kernel_mem* datos_kernel_memory, int client_socket)
+bool handshake(t_datos_kernel_mem* datos_kernel_memory, int client_socket)
 {
+  logger_info(datos_kernel_memory->logger, "Se ha aceptado a un cliente!");
   logger_info(datos_kernel_memory->logger, "Servidor a la espera de handshake");
   int identificador = recibir_handshake(client_socket);
   switch (identificador)
@@ -12,13 +13,13 @@ void handshake(t_datos_kernel_mem* datos_kernel_memory, int client_socket)
       {
         enviar_handshake_error(datos_kernel_memory->logger, client_socket,
                                "Kernel Scheduler");
-        return;
+        return false;
       }
       logger_info(datos_kernel_memory->logger,
                   "## Kernel Scheduler Conectado - FD del socket: %i",
                   client_socket);
       t_datos_scheduler* datos_scheduler = inicializar_datos_scheduler(
-          client_socket, datos_kernel_memory->procesos,
+          datos_kernel_memory->socket_kernel_memory, client_socket, datos_kernel_memory->procesos,
           datos_kernel_memory->scripts_basepath,
           datos_kernel_memory->mutex_procesos,
           datos_kernel_memory->memoria_principal,
@@ -36,7 +37,7 @@ void handshake(t_datos_kernel_mem* datos_kernel_memory, int client_socket)
       {
         enviar_handshake_error(datos_kernel_memory->logger, client_socket,
                                "CPU");
-        return;
+        return false;
       }
       bool inicializar_correcto = true;
       logger_info(datos_kernel_memory->logger, "Se ha conectado una CPU!");
@@ -71,7 +72,7 @@ void handshake(t_datos_kernel_mem* datos_kernel_memory, int client_socket)
       {
         enviar_handshake_error(datos_kernel_memory->logger, client_socket,
                                "Memory Stick");
-        return;
+        return false;
       }
       logger_info(datos_kernel_memory->logger,
                   "Se ha conectado una memory Stick!");
@@ -107,7 +108,7 @@ void handshake(t_datos_kernel_mem* datos_kernel_memory, int client_socket)
       {
         enviar_handshake_error(datos_kernel_memory->logger, client_socket,
                                "SWAP");
-        return;
+        return false;
       }
       logger_info(datos_kernel_memory->logger, "Se ha conectado el SWAP");
       t_datos_swap* datos_swap =
@@ -116,17 +117,18 @@ void handshake(t_datos_kernel_mem* datos_kernel_memory, int client_socket)
       break;
     }
     default:
+      return false;
       break;
   }
+  return true;
 }
 
-void accept_cliente(void* ptr)
+bool accept_cliente(void* ptr)
 {
   t_datos_kernel_mem* datos_kernel_memory = (t_datos_kernel_mem*)ptr;
   logger_info(datos_kernel_memory->logger,
               "Servidor a la espera de un cliente");
   int socket_cliente =
       esperar_cliente(datos_kernel_memory->socket_kernel_memory);
-  logger_info(datos_kernel_memory->logger, "Se ha aceptado a un cliente!");
-  handshake(datos_kernel_memory, socket_cliente);
+  return handshake(datos_kernel_memory, socket_cliente);
 }

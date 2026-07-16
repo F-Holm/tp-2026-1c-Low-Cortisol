@@ -4,7 +4,7 @@
 #include <commons/collections/list.h>
 #include <pthread.h>
 #include <stdlib.h>
-
+#include <sys/socket.h>
 #include "kernel_memory/configurador.h"
 #include "kernel_memory/estructuras.h"
 

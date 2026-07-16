@@ -10,7 +10,7 @@
 #include "utils/msg.h"
 #include "utils/server.h"
 
-void handshake(t_datos_kernel_mem* datos_kernel_memory, int client_socket);
-void accept_cliente(void* ptr);
+bool handshake(t_datos_kernel_mem* datos_kernel_memory, int client_socket);
+bool accept_cliente(void* ptr);
 
 #endif

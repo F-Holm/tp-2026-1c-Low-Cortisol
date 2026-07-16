@@ -33,10 +33,10 @@ int main(int argc, char* argv[])
       compaction_delay, segment_max_size, allocation_strategy, logger);
 
   logger_info(logger, "## Kernel Memory Iniciado ");
-
-  while (true)
+  bool conexion_estable = true;
+  while (conexion_estable)
   {
-    accept_cliente(datos_kernel);
+    conexion_estable = accept_cliente(datos_kernel);
   }
 
   liberar_datos_kernel_mem(datos_kernel);

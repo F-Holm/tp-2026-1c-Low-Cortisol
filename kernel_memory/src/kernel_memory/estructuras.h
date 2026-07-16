@@ -54,6 +54,7 @@ typedef struct
 
 typedef struct
 {
+  int socket_kernel_memory;
   int socket_scheduler;
   t_logger* logger;
   t_list* procesos;

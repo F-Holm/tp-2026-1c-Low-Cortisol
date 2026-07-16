@@ -14,7 +14,7 @@ t_datos_kernel_mem* inicializar_datos_kernel_memory(
     int socket_kernel_memory, char* scripts_basepath, int instruction_delay,
     int compaction_delay, int segment_max_size,
     t_allocation_strategy allocation_strategy, t_logger* logger);
-t_datos_scheduler* inicializar_datos_scheduler(
+t_datos_scheduler* inicializar_datos_scheduler(  int socket_kernel_memory,
     int socket_scheduler, t_list* procesos, char* scripts_basepath,
     pthread_mutex_t* mutex_procesos, t_memoria_principal* memoria_principal,
     t_list* sticks_conectadas, pthread_mutex_t* mutex_sticks,

@@ -29,11 +29,13 @@ void liberar_datos_scheduler(t_datos_scheduler* datos_scheduler)
   if (datos_scheduler == NULL)
     return;
   terminar_comunicacion(datos_scheduler->socket_scheduler);
+  shutdown(datos_scheduler->socket_kernel_memory, SHUT_RDWR);
   free(datos_scheduler);
 }
 
 void liberar_datos_kernel_mem(t_datos_kernel_mem* datos_kernel)
 {
+  logger_info(datos_kernel->logger, "Liberando datos de kernel memory y finalizando programa.");
   if (datos_kernel == NULL)
     return;
 
@@ -43,14 +45,28 @@ void liberar_datos_kernel_mem(t_datos_kernel_mem* datos_kernel)
   free(datos_kernel->mutex_lista_sockets);
   free(datos_kernel->mutex_procesos);
   // Liberar listas (solo la estructura, no los elementos)
-  if (datos_kernel->sticks_conectados != NULL)
+  if (datos_kernel->sticks_conectados != NULL){
+    for (int i = 0; i < list_size(datos_kernel->sticks_conectados); i++)
+    {
+      t_datos_stick* stick = (t_datos_stick*)list_get(datos_kernel->sticks_conectados, i);
+      liberar_datos_stick(stick);
+    }
     list_destroy(datos_kernel->sticks_conectados);
-  if (datos_kernel->cpus_conectados != NULL)
+  }
+  if (datos_kernel->cpus_conectados != NULL){
+    for (int i = 0; i < list_size(datos_kernel->cpus_conectados); i++)
+    {
+      t_datos_cpu* cpu = (t_datos_cpu*)list_get(datos_kernel->cpus_conectados, i);
+      liberar_datos_cpu(cpu);
+    }
     list_destroy(datos_kernel->cpus_conectados);
+  }
+  // falta liberar memoria principal y datos swap y procesos si es necesario
 
   // Cerrar socket principal
-  if (datos_kernel->socket_kernel_memory > 0)
+  if (datos_kernel->socket_kernel_memory > 0){
     terminar_comunicacion(datos_kernel->socket_kernel_memory);
+  }
 
   free(datos_kernel);
 }
