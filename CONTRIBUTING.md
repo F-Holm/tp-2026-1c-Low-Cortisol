@@ -38,6 +38,9 @@
 | `make mem` | Compila y ejecuta los módulos. |
 | `make mem-memcheck` | Compila y ejecuta los módulos con memcheck. |
 | `make mem-helgrind` | Compila y ejecuta los módulos con helgrind. |
+| `make pmp` | Compila y ejecuta los módulos. |
+| `make pmp-memcheck` | Compila y ejecuta los módulos con memcheck. |
+| `make pmp-helgrind` | Compila y ejecuta los módulos con helgrind. |
 | `make php` | Compila y ejecuta los módulos. |
 | `make php-memcheck` | Compila y ejecuta los módulos con memcheck. |
 | `make php-helgrind` | Compila y ejecuta los módulos con helgrind. |
