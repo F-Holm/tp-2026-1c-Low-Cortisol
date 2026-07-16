@@ -26,6 +26,8 @@ void* escucha_scheduler(void* ptr)
         free(pid);
         list_clean(paquete);
         list_destroy(paquete);
+        enviar_string(OP_PROCESO_INICIADO, "Proceso creado",
+                      datos_scheduler->socket_scheduler);
         break;
       }
       case OP_SYSCALL_MEM_ALLOC:
@@ -294,7 +296,7 @@ void* escucha_cpu(void* ptr)
                                             datos_cpu->mutex_procesos, *pid);
         if (proceso == NULL)
         {
-          logger_error(datos_cpu->logger, "PROCESO NO ENCONTRADO");
+          logger_error(datos_cpu->logger, "Proceso con pid %d no encontrado", *pid);
           break;
         }
         logger_info(datos_cpu->logger, "## PID: %d - Obtener registro", *pid);
