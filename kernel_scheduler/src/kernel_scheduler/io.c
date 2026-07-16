@@ -62,7 +62,7 @@ bool atender_nuevo_io(t_io io[3], int socket_fd, t_colas* colas,
 
   if (io[tipo_io].socket_io != -1)
   {
-    logger_error(colas->logger, "## IO de tipo repetido: %d. Cerrando conexión",
+    logger_error(colas->logger, " IO de tipo repetido: %d. Cerrando conexión",
                  tipo_io);
     close(socket_fd);
     return false;
@@ -85,11 +85,11 @@ bool atender_nuevo_io(t_io io[3], int socket_fd, t_colas* colas,
   if (pthread_create(&(io[tipo_io].hilo_io), NULL, hilo_io,
                      (void*)(&(io[tipo_io]))))
   {
-    logger_error(colas->logger, "## Error al crear el hilo para IO de tipo %s",
+    logger_error(colas->logger, " Error al crear el hilo para IO de tipo %s",
                  V_TIPO_IO[tipo_io]);
     return false;
   }
-  logger_info(colas->logger, "## Se creo el hilo de io de tipo %s",
+  logger_info(colas->logger, " Se creo el hilo de io de tipo %s",
               V_TIPO_IO[tipo_io]);
   return true;
 }
@@ -155,7 +155,7 @@ static bool envio_stdout(t_io* io_out, t_stdout* peticion, char* buffer)
   if (!envio)
   {
     logger_error(io_out->logger,
-                 "## Error al enviar la respuesta de Kernel Memory a IO");
+                 " Error al enviar la respuesta de Kernel Memory a IO");
     return false;
   }
   return true;
@@ -169,7 +169,7 @@ static bool peticion_stdout_km(t_stdout* peticion, t_io* io_out)
   if (!envio)
   {
     logger_error(io_out->logger,
-                 "## Error en la comunicacion con el Kernel Memory");
+                 " Error en la comunicacion con el Kernel Memory");
     return false;
   }
   return true;
@@ -185,7 +185,7 @@ static bool envio_stdin(t_stdin* peticion, t_io* io_in, char* buffer)
   eliminar_paquete(paquete);
   if (!envio)
   {
-    logger_error(io_in->logger, "## Error en el envio a Kernel memory");
+    logger_error(io_in->logger, " Error en el envio a Kernel memory");
     return false;
   }
   free(buffer);
@@ -199,12 +199,11 @@ static bool comunicacion_io_stdin(t_stdin* peticion, t_io* io_in, char** buffer)
                              peticion_size, io_in->socket_io);
   if (!envio)
   {
-    logger_error(io_in->logger, "## Error em el envio a IO");
+    logger_error(io_in->logger, " Error em el envio a IO");
 
     return false;
   }
-  logger_info(io_in->logger, "## (%d) - Solicitó syscall: STDIN",
-              peticion->peticion->pid);
+  
 
   // recibo la respuesta de IO
   int cod_op = recibir_operacion(io_in->socket_io);
@@ -216,7 +215,7 @@ static bool comunicacion_io_stdin(t_stdin* peticion, t_io* io_in, char** buffer)
 
   if (*buffer == NULL)
   {
-    logger_error(io_in->logger, "## Error al recibir la respuesa de IO");
+    logger_error(io_in->logger, " Error al recibir la respuesa de IO");
     free(*buffer);
     return false;
   }
@@ -230,7 +229,7 @@ static bool comunicacion_io_sleep(t_sleep* peticion, t_io* io_sleep)
                              peticion_size, io_sleep->socket_io);
   if (!envio)
   {
-    logger_error(io_sleep->logger, "## Error al enviar a IO");
+    logger_error(io_sleep->logger, " Error al enviar a IO");
     return false;
   }
 
@@ -238,7 +237,7 @@ static bool comunicacion_io_sleep(t_sleep* peticion, t_io* io_sleep)
   if (cod_op == OP_CODE_ERROR)
   {
     logger_error(io_sleep->logger,
-                 "## Error en la respuesta de IO a Kernel Scheduler");
+                 " Error en la respuesta de IO a Kernel Scheduler");
     return false;
   }
   char* respuesta = recibir_string(io_sleep->socket_io);
@@ -246,7 +245,7 @@ static bool comunicacion_io_sleep(t_sleep* peticion, t_io* io_sleep)
   {
     logger_error(
         io_sleep->logger,
-        "## Error en la respuesta de IO a Kernel Scheduler. Expected: OK");
+        " Error en la respuesta de IO a Kernel Scheduler. Expected: OK");
     free(respuesta);
     return false;
   }
@@ -262,11 +261,11 @@ static void finalizar_io(void* peticion, t_io* io, t_pcb* pcb)
   {
     pthread_mutex_unlock(&(io->lista_io->mutex_lista_io));
     logger_error(io->logger,
-                 "## Error al retirar el proceso de la lista de IO");
+                 " Error al retirar el proceso de la lista de IO");
     return;
   }
   pthread_mutex_unlock(&(io->lista_io->mutex_lista_io));
-  logger_info(io->logger, "## PID %d - Retirado de la lista de IO", pcb->pid);
+  logger_info(io->logger, " PID %d - Retirado de la lista de IO", pcb->pid);
 
   // Paso a ready o susp ready dependiendo del tiempo bloqueado
   liberar_peticion(peticion, io);
@@ -435,7 +434,7 @@ static bool io_stdout_f(t_stdout* peticion, t_io* io_out)
   if (buffer == NULL)
   {
     logger_error(io_out->logger,
-                 "## Error al recibir la respuesa de Kernel Memory");
+                 " Error al recibir la respuesa de Kernel Memory");
     free(buffer);
     cerrar_kernel_scheduler(io_out->socket_server, io_out->logger,
                             MC_FALLO_CONEXION_KERNEL_MEMORY, -1);
@@ -453,7 +452,7 @@ static bool io_stdout_f(t_stdout* peticion, t_io* io_out)
   if (cod_op != OP_RESPUESTA_STDOUT)
   {
     logger_error(io_out->logger,
-                 "## Error en la respuesta de IO a Kernel Scheduler");
+                 " Error en la respuesta de IO a Kernel Scheduler");
     return false;
   }
   free(recibir_string(io_out->socket_io));
@@ -468,7 +467,7 @@ static bool atender_stdin(t_io* io)
   if (peticion == NULL)
   {
     logger_error(io->logger,
-                 "## Error al obtener la peticion de la lista de stdin");
+                 "#Error al obtener la peticion de la lista de stdin");
     return false;
   }
   return io_stdin_f(peticion, io);
@@ -481,7 +480,7 @@ static bool atender_stdout(t_io* io)
   if (peticion == NULL)
   {
     logger_error(io->logger,
-                 "## Error al obtener la peticion de la lista de stdout");
+                 " Error al obtener la peticion de la lista de stdout");
     return false;
   }
   return io_stdout_f(peticion, io);
@@ -494,7 +493,7 @@ static bool atender_sleep(t_io* io)
   if (peticion == NULL)
   {
     logger_error(io->logger,
-                 "## Error al obtener la peticion de la lista de sleep");
+                 " Error al obtener la peticion de la lista de sleep");
     return false;
   }
   return io_sleep_f(peticion, io);
@@ -545,7 +544,7 @@ static void* hilo_io(void* hilo_io)
     if (!(atender_io(io)))
     {
       seguir_atendiendo = false;
-      logger_error(io->logger, "## Error en la operacion de io de tipo %s",
+      logger_error(io->logger, " Error en la operacion de io de tipo %s",
                    V_TIPO_IO[io->tipo_io]);
     }
   }
@@ -558,7 +557,7 @@ static int obtener_tipo_io(int socket_fd, t_logger* logger)
   if (recibir_operacion(socket_fd) != OP_TIPO_IO)
   {
     logger_error(logger,
-                 "## Error en el tipo de operación. Expected: OP_TIPO_IO");
+                 " Error en el tipo de operación. Expected: OP_TIPO_IO");
     return -1;
   }
 
@@ -573,11 +572,11 @@ static int obtener_tipo_io(int socket_fd, t_logger* logger)
     tipo_io = E_SLEEP;
   else
   {
-    logger_error(logger, "## Tipo de IO no válido: %s", buffer);
+    logger_error(logger, " Tipo de IO no válido: %s", buffer);
     free(buffer);
     return -1;
   }
-  logger_info(logger, "## IO de tipo %s conectada", buffer);
+  logger_info(logger, " IO de tipo %s conectada", buffer);
   free(buffer);
   return tipo_io;
 }

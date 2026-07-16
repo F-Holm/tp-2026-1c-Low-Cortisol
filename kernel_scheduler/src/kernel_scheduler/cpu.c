@@ -165,7 +165,7 @@ static void gestionar_cola_bloqueada(t_datos_syscall* datos)
       esta_cola_ready_bloqueada(&(datos->datos->colas->ready)))
   {
     logger_info(datos->datos->logger,
-                "## CPU %s: Ejecución de procesos bloqueada", datos->datos->id);
+                " CPU %s: Ejecución de procesos bloqueada", datos->datos->id);
     cambio_exec_ready(datos->pcb, datos->datos->colas);
     datos->motivo_desalojo = MD_COMPACTACION;
   }
@@ -187,7 +187,7 @@ static void gestionar_desalojo_prioritario(t_datos_syscall* datos)
     if (prioridad_desalojado > prioridad_nuevo)
     {
       logger_info(datos->datos->logger,
-                  "## CPU %s: Desalojando proceso por cola prioritaria",
+                  " CPU %s: Desalojando proceso por cola prioritaria",
                   datos->datos->id);
       t_pcb* nueva_pcb =
           cambio_sacar_ready_siguiente_sin_mutex(&(datos->datos->colas->ready));
@@ -207,7 +207,7 @@ static void gestionar_desalojo_prioritario(t_datos_syscall* datos)
       else
       {
         logger_error(datos->datos->logger,
-                     "## Error en el desalojo por prioridad");
+                     " Error en el desalojo por prioridad");
       }
     }
     else
@@ -223,7 +223,7 @@ static void gestionar_fin_quantum(t_datos_syscall* datos)
       datos->datos->colas->exec.quantum == datos->contador)
   {
     logger_info(datos->datos->logger,
-                "## CPU %s: Desalojando por fin de quantum", datos->datos->id);
+                " CPU %s: Desalojando por fin de quantum", datos->datos->id);
     log_desalojo_fin_quantum(datos->datos->logger, datos->pcb->pid);
     cambio_exec_ready(datos->pcb, datos->datos->colas);
     datos->motivo_desalojo = MD_FIN_QUANTUM;
@@ -233,7 +233,7 @@ static void gestionar_fin_quantum(t_datos_syscall* datos)
 static bool enviar_desalojo(t_datos_syscall* datos)
 {
   logger_info(datos->datos->logger,
-              "## CPU %s: Enviando mensaje de desalojo: %s", datos->datos->id,
+              "CPU %s: Enviando mensaje de desalojo: %s", datos->datos->id,
               MOTIVOS_DESALOJO[datos->motivo_desalojo]);
   return enviar_string(
       (datos->motivo_desalojo != MD_SIN_DESALOJO ? OP_INTERRUPCION
@@ -245,13 +245,13 @@ static void gestionar_pedir_proceso(t_datos_syscall* datos)
 {
   if (datos->motivo_desalojo != MD_SIN_DESALOJO)
   {
-    logger_info(datos->datos->logger, "## CPU %s: Pidiendo nuevo proceso",
+    logger_info(datos->datos->logger, " CPU %s: Pidiendo nuevo proceso",
                 datos->datos->id);
     datos->contador = 0;
     datos->pcb = cambio_sacar_ready_bloqueante(&(datos->datos->colas->ready));
     if (datos->pcb != NULL)
     {
-      logger_info(datos->datos->logger, "## CPU %s: obtuvo proceso: %u",
+      logger_info(datos->datos->logger, " CPU %s: obtuvo proceso: %u",
                   datos->datos->id, datos->pcb->pid);
       cambio_ready_exec(datos->pcb, datos->datos->colas);
       cambio_a_exec(datos->pcb, &(datos->datos->colas->exec));
@@ -268,7 +268,7 @@ static bool enviar_codigo(t_datos_syscall* datos)
 static void manejar_ciclo_cpu_ok(t_datos_syscall* datos)
 {
   free(recibir_string(datos->datos->socket_fd));
-  logger_info(datos->datos->logger, "## CPU %s: Ciclo CPU OK",
+  logger_info(datos->datos->logger, " CPU %s: Ciclo CPU OK",
               datos->datos->id);
 }
 
@@ -453,7 +453,7 @@ static void* manejar_cliente_cpu(void* datos_hilo_cpu_void)
 
     if (datos_syscall.pcb == NULL)
     {
-      logger_info(datos_syscall.datos->logger, "## CPU %s: Cierre de CPU",
+      logger_info(datos_syscall.datos->logger, " CPU %s: Cierre de CPU",
                   datos_syscall.datos->id);
       datos_syscall.seguir_operando = false;
       break;
@@ -464,20 +464,20 @@ static void* manejar_cliente_cpu(void* datos_hilo_cpu_void)
       if (!enviar_codigo(&datos_syscall))
       {
         logger_info(datos_syscall.datos->logger,
-                    "## CPU %s: Fallo al enviar el código",
+                    " CPU %s: Fallo al enviar el código",
                     datos_syscall.datos->id);
         datos_syscall.seguir_operando = false;
         break;
       }
       logger_info(datos_syscall.datos->logger,
-                  "## CPU %s: Enviar el código exitoso",
+                  " CPU %s: Enviar el código exitoso",
                   datos_syscall.datos->id);
       datos_syscall.motivo_desalojo = MD_SIN_DESALOJO;
     }
 
     int op_code = recibir_operacion(datos_syscall.datos->socket_fd);
     logger_info(datos_syscall.datos->logger,
-                "## CPU %s: Operación recibida: %d", datos_syscall.datos->id,
+                " CPU %s: Operación recibida: %d", datos_syscall.datos->id,
                 op_code);
     if (op_code < OP_CICLO_CPU_OK || op_code > OP_SYSCALL_EXIT)
     {
@@ -503,7 +503,7 @@ static void* manejar_cliente_cpu(void* datos_hilo_cpu_void)
     if (!enviar_desalojo(&datos_syscall))
     {
       logger_info(datos_syscall.datos->logger,
-                  "## CPU %s: Error al enviar el desalojo",
+                  " CPU %s: Error al enviar el desalojo",
                   datos_syscall.datos->id);
       datos_syscall.seguir_operando = false;
       break;
@@ -513,19 +513,19 @@ static void* manejar_cliente_cpu(void* datos_hilo_cpu_void)
     {
       logger_info(
           datos_syscall.datos->logger,
-          "## CPU %s: Actualizando motivo desalojo (proceso prioritario)",
+          " CPU %s: Actualizando motivo desalojo (proceso prioritario)",
           datos_syscall.datos->id);
       datos_syscall.motivo_desalojo = MD_SIN_DESALOJO;
     }
   }
 
-  logger_info(datos_syscall.datos->logger, "## CPU %s: Cerrando hilo",
+  logger_info(datos_syscall.datos->logger, " CPU %s: Cerrando hilo",
               datos_syscall.datos->id);
   if (datos_syscall.motivo_desalojo == MD_PROCESO_PRIORITARIO &&
       datos_syscall.pcb != NULL)
   {
     logger_info(datos_syscall.datos->logger,
-                "## CPU %s: Guardando proceso en ejecución",
+                " CPU %s: Guardando proceso en ejecución",
                 datos_syscall.datos->id);
     cambio_exec_ready(datos_syscall.pcb, datos_syscall.datos->colas);
   }
@@ -566,7 +566,7 @@ static bool crear_hilo_cpu(t_datos_hilo_cpu* datos)
   pthread_t hilo_cpu;
   if (pthread_create(&hilo_cpu, NULL, manejar_cliente_cpu, datos) != 0)
   {
-    logger_error(datos->logger, "## Error en la creación del hilo de la CPU");
+    logger_error(datos->logger, " Error en la creación del hilo de la CPU");
     return false;
   }
   pthread_detach(hilo_cpu);
@@ -577,10 +577,10 @@ static char* obtener_id_cpu(int socket_cpu, t_logger* logger)
 {
   if (recibir_operacion(socket_cpu) != OP_ID_CPU)
   {
-    logger_error(logger, "## Error en la recepción del ID de la CPU");
+    logger_error(logger, " Error en la recepción del ID de la CPU");
     return NULL;
   }
   char* id_cpu = recibir_string(socket_cpu);
-  logger_info(logger, "## CPU %s Conectada", id_cpu);
+  logger_info(logger, " CPU %s Conectada", id_cpu);
   return id_cpu;
 }
