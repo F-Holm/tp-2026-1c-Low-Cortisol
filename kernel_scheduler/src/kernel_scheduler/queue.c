@@ -40,7 +40,8 @@ static void iniciar_hilos_suspendido(t_colas* colas, int suspension_timeout);
 static void destruir_cola_ready(t_cola_ready* cola);
 static void destruir_lista_exec(t_lista_execute* lista);
 static void destruir_lista(t_lista* lista);
-static void terminar_hilo_suspendido(t_datos_hilo_suspendido* datos);
+static void terminar_hilo_suspendido(t_datos_hilo_suspendido* datos,
+                                     t_lista* lista);
 static void esperar_hilo_suspendido(t_datos_hilo_suspendido* datos);
 static void destruir_hilo_suspendido(t_datos_hilo_suspendido* datos);
 static void destruir_hilo_suspensor(t_datos_hilo_suspensor* datos);
@@ -809,11 +810,14 @@ static void destruir_lista(t_lista* lista)
   pthread_cond_destroy(&(lista->cond_nuevo_proceso));
 }
 
-static void terminar_hilo_suspendido(t_datos_hilo_suspendido* datos)
+static void terminar_hilo_suspendido(t_datos_hilo_suspendido* datos,
+                                     t_lista* lista)
 {
   pthread_mutex_lock(&(datos->mutex_estado));
+  pthread_mutex_lock(&(lista->mutex_lista));
   pthread_cond_signal(datos->esperar_proceso);
   pthread_cond_signal(&(datos->desbloquear));
+  pthread_mutex_unlock(&(lista->mutex_lista));
   datos->estado = EH_FINALIZANDO;
   pthread_mutex_unlock(&(datos->mutex_estado));
 }
@@ -845,10 +849,11 @@ static void destruir_hilo_des_suspensor(t_datos_hilo_des_suspensor* datos)
 
 static void terminar_hilos_suspendido(t_colas* colas)
 {
+  terminar_hilo_suspendido(colas->datos_suspendido->datos_hilo_suspensor->datos,
+                           &(colas->block));
   terminar_hilo_suspendido(
-      colas->datos_suspendido->datos_hilo_suspensor->datos);
-  terminar_hilo_suspendido(
-      colas->datos_suspendido->datos_hilo_des_suspensor->datos);
+      colas->datos_suspendido->datos_hilo_des_suspensor->datos,
+      &(colas->susp_ready));
   esperar_hilo_suspendido(colas->datos_suspendido->datos_hilo_suspensor->datos);
   esperar_hilo_suspendido(
       colas->datos_suspendido->datos_hilo_des_suspensor->datos);
