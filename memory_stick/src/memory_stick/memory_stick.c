@@ -100,7 +100,8 @@ void cerrar_modulo_error(t_ms_recursos* ms_recursos)
     config_destroy(ms_recursos->config);
   if (ms_recursos->memoria != NULL)
     free(ms_recursos->memoria);
-  if (ms_recursos->mutex_memoria != NULL) {
+  if (ms_recursos->mutex_memoria != NULL)
+  {
     pthread_mutex_destroy(ms_recursos->mutex_memoria);
     free(ms_recursos->mutex_memoria);
   }
@@ -136,7 +137,7 @@ void leer_memoria(t_ms_recursos* ms_recursos, int posicion_inicial,
   logger_info(ms_recursos->logger,
               "Memory stick necesita leer %d bytes, desde %d",
               cantidad_de_bytes, posicion_inicial);
-  //char* bytes_a_devolver = malloc(cantidad_de_bytes);
+  // char* bytes_a_devolver = malloc(cantidad_de_bytes);
   char* bytes_a_devolver = calloc(cantidad_de_bytes + 1, 1);
   pthread_mutex_lock(ms_recursos->mutex_memoria);
   memcpy(bytes_a_devolver, ms_recursos->memoria + posicion_inicial,
