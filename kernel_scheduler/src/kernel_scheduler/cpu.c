@@ -58,6 +58,7 @@ static void manejar_syscall_io_stdin(t_datos_syscall* datos);
 static void manejar_syscall_iniciar_proceso(t_datos_syscall* datos);
 static void manejar_syscall_exit(t_datos_syscall* datos);
 static void manejar_syscall_no_valida(t_datos_syscall* datos);
+static bool enviar_pid(t_datos_syscall* datos);
 static void* manejar_cliente_cpu(void* datos_hilo_cpu_void);
 static void iterator_shutdown(void* value);
 static t_datos_hilo_cpu* inicializar_datos_hilo_cpu(
@@ -426,6 +427,28 @@ static void manejar_syscall_no_valida(t_datos_syscall* datos)
   datos->seguir_operando = false;
 }
 
+static bool enviar_pid(t_datos_syscall* datos)
+{
+  if (datos->motivo_desalojo == MD_SIN_DESALOJO)
+  {
+    return true;
+  }
+
+  if (!enviar_codigo(datos))
+  {
+    logger_info(datos->datos->logger, "CPU %s: Fallo al enviar el código",
+                datos->datos->id);
+    datos->seguir_operando = false;
+    return false;
+  }
+
+  logger_info(datos->datos->logger, "CPU %s: Enviar el código exitoso",
+              datos->datos->id);
+  datos->motivo_desalojo = MD_SIN_DESALOJO;
+
+  return true;
+}
+
 static void* manejar_cliente_cpu(void* datos_hilo_cpu_void)
 {
   t_datos_syscall datos_syscall = {(t_datos_hilo_cpu*)datos_hilo_cpu_void, NULL,
@@ -457,19 +480,9 @@ static void* manejar_cliente_cpu(void* datos_hilo_cpu_void)
       break;
     }
 
-    if (datos_syscall.motivo_desalojo != MD_SIN_DESALOJO)
+    if (!enviar_pid(&datos_syscall))
     {
-      if (!enviar_codigo(&datos_syscall))
-      {
-        logger_info(datos_syscall.datos->logger,
-                    "CPU %s: Fallo al enviar el código",
-                    datos_syscall.datos->id);
-        datos_syscall.seguir_operando = false;
-        break;
-      }
-      logger_info(datos_syscall.datos->logger,
-                  "CPU %s: Enviar el código exitoso", datos_syscall.datos->id);
-      datos_syscall.motivo_desalojo = MD_SIN_DESALOJO;
+      break;
     }
 
     int op_code = recibir_operacion(datos_syscall.datos->socket_fd);
@@ -510,7 +523,10 @@ static void* manejar_cliente_cpu(void* datos_hilo_cpu_void)
       logger_info(datos_syscall.datos->logger,
                   "CPU %s: Actualizando motivo desalojo (proceso prioritario)",
                   datos_syscall.datos->id);
-      datos_syscall.motivo_desalojo = MD_SIN_DESALOJO;
+      if (!enviar_pid(&datos_syscall))
+      {
+        break;
+      }
     }
   }
 
