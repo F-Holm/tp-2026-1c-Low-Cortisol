@@ -26,6 +26,21 @@
 | `make run` | Compila y ejecuta los módulos. |
 | `make memcheck` | Compila y ejecuta los módulos con memcheck. |
 | `make helgrind` | Compila y ejecuta los módulos con helgrind. |
+| `make base` | Compila y ejecuta los módulos. |
+| `make base-memcheck` | Compila y ejecuta los módulos con memcheck. |
+| `make base-helgrind` | Compila y ejecuta los módulos con helgrind. |
+| `make pcp` | Compila y ejecuta los módulos. |
+| `make pcp-memcheck` | Compila y ejecuta los módulos con memcheck. |
+| `make pcp-helgrind` | Compila y ejecuta los módulos con helgrind. |
+| `make mem` | Compila y ejecuta los módulos. |
+| `make mem-memcheck` | Compila y ejecuta los módulos con memcheck. |
+| `make mem-helgrind` | Compila y ejecuta los módulos con helgrind. |
+| `make mem` | Compila y ejecuta los módulos. |
+| `make mem-memcheck` | Compila y ejecuta los módulos con memcheck. |
+| `make mem-helgrind` | Compila y ejecuta los módulos con helgrind. |
+| `make php` | Compila y ejecuta los módulos. |
+| `make php-memcheck` | Compila y ejecuta los módulos con memcheck. |
+| `make php-helgrind` | Compila y ejecuta los módulos con helgrind. |
 | `make kill` | Detiene la ejecución del sistema. |
 
 ---
