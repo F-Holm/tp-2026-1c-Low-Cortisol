@@ -1,7 +1,7 @@
 MODULES = cpu io kernel_memory kernel_scheduler memory_stick swap utils
 SLEEP_TIME = 0.1
 
-.PHONY: all debug release test clean logs format run kill memcheck helgrind $(MODULES)
+.PHONY: all debug release test clean logs format run kill memcheck helgrind base base-memcheck base-helgrind $(MODULES)
 
 all: $(MODULES)
 
@@ -33,12 +33,12 @@ logs:
 format:
 	find . -iname "*.c" -o -iname "*.h" | grep -v "tests/" | xargs clang-format -i --style=file
 
-
 VALGRIND_MEMCHECK = valgrind --tool=memcheck --leak-check=full --show-leak-kinds=all --track-origins=yes --trace-children=yes --errors-for-leak-kinds=all
 VALGRIND_HELGRIND = valgrind --tool=helgrind --history-level=full --trace-children=yes
 VALGRIND_CMD = 
 BUILD_TARGET = all
 
+# --- Modos de ejecución estándar ---
 memcheck: BUILD_TARGET = debug
 memcheck: VALGRIND_CMD = $(VALGRIND_MEMCHECK)
 memcheck: execute
@@ -51,7 +51,7 @@ run: BUILD_TARGET = all
 run: VALGRIND_CMD =
 run: execute
 
-execute: $(BUILD_TARGET)
+execute: logs $(BUILD_TARGET)
 	@mkdir -p ./output
 	@echo "Lanzando sistema con: [$(VALGRIND_CMD)] ..."
 	
@@ -89,13 +89,22 @@ execute: $(BUILD_TARGET)
 	@echo "Revisá la carpeta ./output/ para ver los reportes de Valgrind de cada módulo."
 	@echo "Usa 'make kill' para detener todo."
 
+# --- Modos de ejecución base ---
 base: BUILD_TARGET = all
 base: VALGRIND_CMD =
 base: executebase
 
-executebase: $(BUILD_TARGET)
+base-memcheck: BUILD_TARGET = debug
+base-memcheck: VALGRIND_CMD = $(VALGRIND_MEMCHECK)
+base-memcheck: executebase
+
+base-helgrind: BUILD_TARGET = debug
+base-helgrind: VALGRIND_CMD = $(VALGRIND_HELGRIND)
+base-helgrind: executebase
+
+executebase: logs $(BUILD_TARGET)
 	@mkdir -p ./output
-	@echo "Lanzando sistema con: [$(VALGRIND_CMD)] ..."
+	@echo "Lanzando sistema base con: [$(VALGRIND_CMD)] ..."
 	
 	$(VALGRIND_CMD) ./kernel_memory/bin/kernel_memory ./kernel_memory/base.config > ./output/kernel_memory.log 2>&1 &
 	@sleep $(SLEEP_TIME)
@@ -112,13 +121,10 @@ executebase: $(BUILD_TARGET)
 	$(VALGRIND_CMD) ./io/bin/io ./io/io.config STDOUT > ./output/io_stdout.log 2>&1 &
 	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./cpu/bin/cpu ./cpu/cpu.config CPU-1 > ./output/cpu_1.log 2>&1 &
-	@sleep $(SLEEP_TIME)
 	
-	@echo "Sistema lanzado con éxito. La terminal está libre."
+	@echo "Sistema base lanzado con éxito. La terminal está libre."
 	@echo "Revisá la carpeta ./output/ para ver los reportes de Valgrind de cada módulo."
 	@echo "Usa 'make kill' para detener todo."
-
-
 
 kill:
 	@echo "Cerrando el sistema..."
