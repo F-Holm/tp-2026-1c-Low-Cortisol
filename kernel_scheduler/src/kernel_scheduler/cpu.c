@@ -7,6 +7,7 @@
 
 #include "kernel_scheduler/memory.h"
 #include "kernel_scheduler/misc.h"
+#include "misc.h"
 #include "utils/client.h"
 #include "utils/io.h"
 #include "utils/kernel_scheduler_cpu.h"
@@ -219,9 +220,19 @@ static void gestionar_desalojo_prioritario(t_datos_syscall* datos)
   }
 }
 
+static bool es_rr(t_datos_syscall* datos)
+{
+  if (!datos->datos->colas->ready.cola_multi_nivel)
+  {
+    return datos->datos->colas->ready.colas->algoritmo == AP_RR;
+  }
+  return datos->datos->colas->ready.colas[get_prioridad_pcb(datos->pcb)]
+             .algoritmo == AP_RR;
+}
+
 static void gestionar_fin_quantum(t_datos_syscall* datos)
 {
-  if (datos->motivo_desalojo == MD_SIN_DESALOJO &&
+  if (datos->motivo_desalojo == MD_SIN_DESALOJO && es_rr(datos) &&
       datos->datos->colas->exec.quantum <= time_diff(datos->contador, millis()))
   {
     logger_info(datos->datos->logger, "CPU %s: Desalojando por fin de quantum",
