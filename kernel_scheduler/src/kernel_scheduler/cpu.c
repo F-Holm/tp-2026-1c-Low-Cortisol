@@ -204,7 +204,7 @@ static void gestionar_desalojo_prioritario(t_datos_syscall* datos)
         cambio_a_exec(nueva_pcb, &(datos->datos->colas->exec));
         datos->motivo_desalojo = MD_PROCESO_PRIORITARIO;
         datos->pcb = nueva_pcb;
-        datos->contador = 0;
+        datos->contador = millis();
       }
       else
       {
@@ -222,7 +222,7 @@ static void gestionar_desalojo_prioritario(t_datos_syscall* datos)
 static void gestionar_fin_quantum(t_datos_syscall* datos)
 {
   if (datos->motivo_desalojo == MD_SIN_DESALOJO &&
-      datos->datos->colas->exec.quantum == datos->contador)
+      datos->datos->colas->exec.quantum <= time_diff(datos->contador, millis()))
   {
     logger_info(datos->datos->logger, "CPU %s: Desalojando por fin de quantum",
                 datos->datos->id);
@@ -248,7 +248,7 @@ static void gestionar_pedir_proceso(t_datos_syscall* datos)
   {
     logger_info(datos->datos->logger, "CPU %s: Pidiendo nuevo proceso",
                 datos->datos->id);
-    datos->contador = 0;
+    datos->contador = millis();
     datos->pcb = cambio_sacar_ready_bloqueante(&(datos->datos->colas->ready));
     if (datos->pcb != NULL)
     {
@@ -500,15 +500,14 @@ static void* manejar_cliente_cpu(void* datos_hilo_cpu_void)
     }
     log_syscall(&datos_syscall, op_code);
     funciones_syscalls[op_code - OP_CICLO_CPU_OK](&datos_syscall);
-    datos_syscall.contador++;
     if (op_code >= OP_SYSCALL_MUTEX_CREATE && op_code <= OP_SYSCALL_EXIT)
     {
       restar_contador_syscalls(datos_syscall.datos->colas);
     }
 
     gestionar_cola_bloqueada(&datos_syscall);
-    gestionar_desalojo_prioritario(&datos_syscall);
     gestionar_fin_quantum(&datos_syscall);
+    gestionar_desalojo_prioritario(&datos_syscall);
 
     if (!enviar_desalojo(&datos_syscall))
     {

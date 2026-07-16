@@ -31,7 +31,7 @@ typedef struct
   t_datos_hilo_cpu* datos;
   t_pcb* pcb;
   bool seguir_operando;
-  int contador;
+  unsigned long contador;
   int motivo_desalojo;
 } t_datos_syscall;
 
