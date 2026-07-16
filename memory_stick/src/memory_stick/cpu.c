@@ -224,6 +224,7 @@ void* manejar_cliente_cpu(void* datos_hilo_cpu_void)
           logger_error(
               datos_hilo_cpu->ms_recursos->logger,
               "Cantidad de parametros para escribir memoria invalida.");
+          list_destroy_and_destroy_elements(paquete, free);
           break;
         }
         int posicion_inicial = *(int*)list_get(paquete, 0);
@@ -232,6 +233,7 @@ void* manejar_cliente_cpu(void* datos_hilo_cpu_void)
         escribir_memoria(datos_hilo_cpu->ms_recursos, posicion_inicial,
                          bytes_a_escribir, cantidad_bytes,
                          datos_hilo_cpu->socket_cpu);
+        list_destroy_and_destroy_elements(paquete, free);
         break;
       }
       default:
