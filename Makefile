@@ -225,7 +225,7 @@ executepmp: logs $(BUILD_TARGET)
 	
 	$(VALGRIND_CMD) ./kernel_memory/bin/kernel_memory ./kernel_memory/configs/pmp.config > ./output/kernel_memory.log 2>&1 &
 	@sleep $(SLEEP_TIME)
-	$(VALGRIND_CMD) ./kernel_scheduler/bin/kernel_scheduler ./kernel_scheduler/pmp.config PMP.prc > ./output/kernel_scheduler.log 2>&1 &
+	$(VALGRIND_CMD) ./kernel_scheduler/bin/kernel_scheduler ./kernel_scheduler/configs/pmp.config PMP.prc > ./output/kernel_scheduler.log 2>&1 &
 	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/pmp_16_1.config 16 > ./output/memory_stick_1.log 2>&1 &
 	@sleep $(SLEEP_TIME)
@@ -268,7 +268,7 @@ executephp: logs $(BUILD_TARGET)
 	
 	$(VALGRIND_CMD) ./kernel_memory/bin/kernel_memory ./kernel_memory/configs/mem.config > ./output/kernel_memory.log 2>&1 &
 	@sleep $(SLEEP_TIME)
-	$(VALGRIND_CMD) ./kernel_scheduler/bin/kernel_scheduler ./kernel_scheduler/php.config PHP.prc > ./output/kernel_scheduler.log 2>&1 &
+	$(VALGRIND_CMD) ./kernel_scheduler/bin/kernel_scheduler ./kernel_scheduler/configs/php.config PHP.prc > ./output/kernel_scheduler.log 2>&1 &
 	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/php_16_1.config 16 > ./output/memory_stick_1.log 2>&1 &
 	@sleep $(SLEEP_TIME)
