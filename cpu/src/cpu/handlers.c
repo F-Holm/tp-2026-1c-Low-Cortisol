@@ -64,21 +64,20 @@ bool handler_jnz(t_cpu* cpu, t_contexto* contexto, t_instruccion* instruccion,
 /*             INSTRUCCIONES CON MODIFICACION DE MEMORIA           */
 
 t_bool_extendido handler_mov_in(t_cpu* cpu, t_contexto* contexto,
-                    t_instruccion* instruccion, uint32_t pid)
+                                t_instruccion* instruccion, uint32_t pid)
 {
   uint32_t dir_fisica =
       mmu(cpu, contexto, contexto->registros->SI, sizeof(uint32_t), pid);
 
   if (dir_fisica == DIR_INVALIDA)
     return BE_TRUE;
-  else if(dir_fisica == DIR_INVALIDA-1)
+  else if (dir_fisica == DIR_INVALIDA - 1)
     return BE_ERROR;
-
 
   void* dato_leido = leer_memoria(cpu, dir_fisica, sizeof(uint32_t));
   uint32_t valor = *(uint32_t*)dato_leido;
   free(dato_leido);
-  if(!valor)
+  if (!valor)
     return BE_ERROR;
 
   set_registro(contexto->registros, instruccion->parametros[0], valor);
@@ -90,7 +89,7 @@ t_bool_extendido handler_mov_in(t_cpu* cpu, t_contexto* contexto,
 }
 
 t_bool_extendido handler_mov_out(t_cpu* cpu, t_contexto* contexto,
-                     t_instruccion* instruccion, uint32_t pid)
+                                 t_instruccion* instruccion, uint32_t pid)
 {
   uint32_t valor =
       get_registro(contexto->registros, instruccion->parametros[0]);
@@ -99,10 +98,10 @@ t_bool_extendido handler_mov_out(t_cpu* cpu, t_contexto* contexto,
 
   if (dir_fisica == DIR_INVALIDA)
     return BE_TRUE;
-  else if(dir_fisica == DIR_INVALIDA-1)
+  else if (dir_fisica == DIR_INVALIDA - 1)
     return BE_ERROR;
 
-  if(!escribir_memoria(cpu, dir_fisica, &valor, sizeof(uint32_t)))
+  if (!escribir_memoria(cpu, dir_fisica, &valor, sizeof(uint32_t)))
     return BE_ERROR;
 
   log_info(cpu->logger,
@@ -113,7 +112,7 @@ t_bool_extendido handler_mov_out(t_cpu* cpu, t_contexto* contexto,
 }
 
 t_bool_extendido handler_copy_mem(t_cpu* cpu, t_contexto* contexto,
-                      t_instruccion* instruccion, uint32_t pid)
+                                  t_instruccion* instruccion, uint32_t pid)
 {
   uint32_t cant_bytes =
       get_registro(contexto->registros, instruccion->parametros[0]);
@@ -122,26 +121,26 @@ t_bool_extendido handler_copy_mem(t_cpu* cpu, t_contexto* contexto,
       mmu(cpu, contexto, contexto->registros->SI, sizeof(uint32_t), pid);
   if (direccion_SI == DIR_INVALIDA)
     return BE_TRUE;
-  else if(direccion_SI == DIR_INVALIDA-1)
+  else if (direccion_SI == DIR_INVALIDA - 1)
     return BE_ERROR;
 
   uint32_t direccion_DI =
       mmu(cpu, contexto, contexto->registros->DI, sizeof(uint32_t), pid);
   if (direccion_DI == DIR_INVALIDA)
     return BE_TRUE;
-  else if(direccion_DI == DIR_INVALIDA-1)
+  else if (direccion_DI == DIR_INVALIDA - 1)
     return BE_ERROR;
 
   void* bytes_leidos = leer_memoria(cpu, direccion_SI, cant_bytes);
 
-  if(!bytes_leidos)
+  if (!bytes_leidos)
     return BE_ERROR;
 
   log_info(cpu->logger,
            "PID: %u - Acción: LEER - Dirección Física: %u - Valor: %s", pid,
            direccion_SI, (char*)bytes_leidos);
 
-  if(!escribir_memoria(cpu, direccion_DI, bytes_leidos, cant_bytes))
+  if (!escribir_memoria(cpu, direccion_DI, bytes_leidos, cant_bytes))
     return BE_ERROR;
 
   log_info(cpu->logger,
@@ -155,7 +154,7 @@ t_bool_extendido handler_copy_mem(t_cpu* cpu, t_contexto* contexto,
 /*             SYSCALLS(MANEJADAS POR SCHEDULER)           */
 
 t_bool_extendido handler_mutex_create(t_cpu* cpu, t_contexto* contexto,
-                          t_instruccion* instruccion, uint32_t pid)
+                                      t_instruccion* instruccion, uint32_t pid)
 {
   if (enviar_string(OP_SYSCALL_MUTEX_CREATE, instruccion->parametros[0],
                     cpu->socket_kernel_scheduler))
@@ -172,7 +171,7 @@ t_bool_extendido handler_mutex_create(t_cpu* cpu, t_contexto* contexto,
 }
 
 t_bool_extendido handler_mutex_lock(t_cpu* cpu, t_contexto* contexto,
-                        t_instruccion* instruccion, uint32_t pid)
+                                    t_instruccion* instruccion, uint32_t pid)
 {
   if (enviar_string(OP_SYSCALL_MUTEX_LOCK, instruccion->parametros[0],
                     cpu->socket_kernel_scheduler))
@@ -189,7 +188,7 @@ t_bool_extendido handler_mutex_lock(t_cpu* cpu, t_contexto* contexto,
 }
 
 t_bool_extendido handler_mutex_unlock(t_cpu* cpu, t_contexto* contexto,
-                          t_instruccion* instruccion, uint32_t pid)
+                                      t_instruccion* instruccion, uint32_t pid)
 {
   if (enviar_string(OP_SYSCALL_MUTEX_UNLOCK, instruccion->parametros[0],
                     cpu->socket_kernel_scheduler))
@@ -206,7 +205,7 @@ t_bool_extendido handler_mutex_unlock(t_cpu* cpu, t_contexto* contexto,
 }
 
 t_bool_extendido handler_mem_alloc(t_cpu* cpu, t_contexto* contexto,
-                       t_instruccion* instruccion, uint32_t pid)
+                                   t_instruccion* instruccion, uint32_t pid)
 {
   t_syscall_memory* datos_syscall;
   datos_syscall = malloc(sizeof(t_syscall_memory));
@@ -233,7 +232,7 @@ t_bool_extendido handler_mem_alloc(t_cpu* cpu, t_contexto* contexto,
 }
 
 t_bool_extendido handler_mem_free(t_cpu* cpu, t_contexto* contexto,
-                      t_instruccion* instruccion, uint32_t pid)
+                                  t_instruccion* instruccion, uint32_t pid)
 {
   t_syscall_memory* datos_syscall;
   datos_syscall = malloc(sizeof(t_syscall_memory));
@@ -259,8 +258,8 @@ t_bool_extendido handler_mem_free(t_cpu* cpu, t_contexto* contexto,
   return BE_FALSE;
 }
 
-t_bool_extendido handler_sleep(t_cpu* cpu, t_contexto* contexto, t_instruccion* instruccion,
-                   uint32_t pid)
+t_bool_extendido handler_sleep(t_cpu* cpu, t_contexto* contexto,
+                               t_instruccion* instruccion, uint32_t pid)
 {
   t_peticion_sleep* datos_syscall;
   datos_syscall = malloc(sizeof(t_peticion_sleep));
@@ -285,7 +284,7 @@ t_bool_extendido handler_sleep(t_cpu* cpu, t_contexto* contexto, t_instruccion* 
 }
 
 t_bool_extendido handler_stdout(t_cpu* cpu, t_contexto* contexto,
-                    t_instruccion* instruccion, uint32_t pid)
+                                t_instruccion* instruccion, uint32_t pid)
 {
   t_peticion_stdout* datos_syscall;
   datos_syscall = malloc(sizeof(t_peticion_stdout));
@@ -312,8 +311,8 @@ t_bool_extendido handler_stdout(t_cpu* cpu, t_contexto* contexto,
   return BE_FALSE;
 }
 
-t_bool_extendido handler_stdin(t_cpu* cpu, t_contexto* contexto, t_instruccion* instruccion,
-                   uint32_t pid)
+t_bool_extendido handler_stdin(t_cpu* cpu, t_contexto* contexto,
+                               t_instruccion* instruccion, uint32_t pid)
 {
   t_peticion_stdin* datos_syscall;
   datos_syscall = malloc(sizeof(t_peticion_stdin));
@@ -341,7 +340,7 @@ t_bool_extendido handler_stdin(t_cpu* cpu, t_contexto* contexto, t_instruccion* 
 }
 
 t_bool_extendido handler_init_proc(t_cpu* cpu, t_contexto* contexto,
-                       t_instruccion* instruccion, uint32_t pid)
+                                   t_instruccion* instruccion, uint32_t pid)
 {
   int prioridad = atoi(instruccion->parametros[1]);
 
@@ -364,8 +363,8 @@ t_bool_extendido handler_init_proc(t_cpu* cpu, t_contexto* contexto,
   return BE_FALSE;
 }
 
-t_bool_extendido handler_exit(t_cpu* cpu, t_contexto* contexto, t_instruccion* instruccion,
-                  uint32_t pid)
+t_bool_extendido handler_exit(t_cpu* cpu, t_contexto* contexto,
+                              t_instruccion* instruccion, uint32_t pid)
 {
   if (enviar_string(OP_SYSCALL_EXIT, "PROCESO TERMINADO",
                     cpu->socket_kernel_scheduler))

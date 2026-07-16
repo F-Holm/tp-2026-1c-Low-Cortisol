@@ -59,8 +59,8 @@ char* etapa_fetch(t_cpu* cpu, uint32_t pid, uint32_t pc);
 bool pedir_instruccion_kernel_memory(t_cpu* cpu, uint32_t pid, uint32_t pc);
 char* recibir_instruccion_kernel_memory(t_cpu* cpu);
 t_instruccion* etapa_decode(char* instruccion_KM);
-t_bool_extendido etapa_execute(t_cpu* cpu, t_contexto* contexto, t_instruccion* instruccion,
-                  uint32_t pid);
+t_bool_extendido etapa_execute(t_cpu* cpu, t_contexto* contexto,
+                               t_instruccion* instruccion, uint32_t pid);
 t_bool_extendido check_interrupt(t_cpu* cpu, uint32_t pid);
 bool enviar_contexto_actualizado(t_cpu* cpu, uint32_t pid,
                                  t_registros* contexto_actualizado);

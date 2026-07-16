@@ -123,6 +123,7 @@ void manejo_instrucciones(t_cpu* cpu)
       break;
   }
   list_destroy_and_destroy_elements(contexto->tablaDeSegmentos, free);
+
   free(contexto);
 }
 
@@ -140,10 +141,9 @@ uint32_t recibir_pid_kernel_scheduler(t_cpu* cpu)
     log_info(cpu->logger,
              "## PID recibido: %u - Iniciando ciclo de instrucción", pid);
   }
-  else if(codigo_operacion == 0)
+  else if (codigo_operacion == 0)
   {
-    log_info(cpu->logger,
-            "Scheduler desconectado, cerrarndo modulo");
+    log_info(cpu->logger, "Scheduler desconectado, cerrarndo modulo");
   }
   else
   {
@@ -204,7 +204,10 @@ bool ejecutar_ciclo_instruccion(t_cpu* cpu, uint32_t pid, t_contexto* contexto)
 
     syscall = etapa_execute(cpu, contexto, instruccion, pid);
     if (syscall == BE_ERROR)
+    {
+      destruir_instruccion(instruccion);
       return false;
+    }
 
     if (pc_inicial == contexto->registros->PC)
       contexto->registros->PC++;
@@ -214,20 +217,28 @@ bool ejecutar_ciclo_instruccion(t_cpu* cpu, uint32_t pid, t_contexto* contexto)
       if (!enviar_string(OP_CICLO_CPU_OK, "OK", cpu->socket_kernel_scheduler))
       {
         log_error(cpu->logger, "## Error en la confirmación del fin de ciclo");
+        destruir_instruccion(instruccion);
         return false;
       }
     }
     log_info(cpu->logger, "Scheduler notificado del fin de ciclo");
     interrupt = check_interrupt(cpu, pid);
     if (interrupt == BE_ERROR)
+    {
+      destruir_instruccion(instruccion);
       return false;
+    }
 
     seguir = interrupt;
 
     if (contexto->cambio_segmento == true)
     {
       if (!actualizar_tabla_segmentos(cpu, pid, contexto))
+      {
+        destruir_instruccion(instruccion);
         return false;
+      }
+
       contexto->cambio_segmento = false;
     }
 
@@ -288,8 +299,8 @@ t_instruccion* etapa_decode(char* instruccion_KM)
   return instruccion;
 }
 
-t_bool_extendido etapa_execute(t_cpu* cpu, t_contexto* contexto, t_instruccion* instruccion,
-                  uint32_t pid)
+t_bool_extendido etapa_execute(t_cpu* cpu, t_contexto* contexto,
+                               t_instruccion* instruccion, uint32_t pid)
 {
   t_handler handler = dictionary_get(cpu->handlers, instruccion->nombre);
 
@@ -353,7 +364,7 @@ bool actualizar_tabla_segmentos(t_cpu* cpu, uint32_t pid, t_contexto* contexto)
     return false;
   }
 
-  if(!escuchar_kernel_memory(cpu))
+  if (!escuchar_kernel_memory(cpu))
     return false;
   contexto->tablaDeSegmentos = recibir_tabla_segmentos(cpu, contexto);
   log_info(cpu->logger, "Tabla actualizada correctamente");

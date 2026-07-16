@@ -18,15 +18,15 @@ uint32_t mmu(t_cpu* cpu, t_contexto* contexto, uint32_t dir_logica,
   if (segmento == NULL)
   {
     log_error(cpu->logger, "## Segmento %u no encontrado", num_segmento);
-    return DIR_INVALIDA-1;
+    return DIR_INVALIDA - 1;
   }
 
   if (desplazamiento + tamanio > segmento->size)
   {
-    if(seg_fault_KS(cpu, pid))
+    if (seg_fault_KS(cpu, pid))
       return DIR_INVALIDA;
     else
-      return DIR_INVALIDA-1;
+      return DIR_INVALIDA - 1;
   }
 
   return segmento->base + desplazamiento;
@@ -97,7 +97,7 @@ void* leer_memoria(t_cpu* cpu, uint32_t dir_fisica, uint32_t tamanio)
     else
       bytes_a_leer = tamanio - bytes_leidos;
 
-    if(!solicitar_lectura_MS(cpu, stick, dir_en_stick, bytes_a_leer))
+    if (!solicitar_lectura_MS(cpu, stick, dir_en_stick, bytes_a_leer))
       return NULL;
 
     char* lectura_parcial = confirmacion_letura_MS(cpu, stick);
@@ -138,7 +138,7 @@ char* confirmacion_letura_MS(t_cpu* cpu, t_memory_stick_info* stick)
   int codigo_op = recibir_operacion(stick->socket_MS);
   if (codigo_op == OP_MEMORY_STICK_LEIDO)
   {
-    log_info(cpu->logger, "Lectua realizada");
+    log_info(cpu->logger, "Lectura realizada");
     return recibir_string(stick->socket_MS);
   }
   else
@@ -173,11 +173,12 @@ bool escribir_memoria(t_cpu* cpu, uint32_t dir_fisica, void* datos_a_escribir,
     else
       bytes_a_escribir = tamanio - bytes_escritos;
 
-    if(!solicitar_escritura_MS(cpu, stick, dir_en_stick,
-                           datos_a_escribir + bytes_escritos, bytes_a_escribir))
+    if (!solicitar_escritura_MS(cpu, stick, dir_en_stick,
+                                datos_a_escribir + bytes_escritos,
+                                bytes_a_escribir))
       return false;
 
-    if(!confirmacion_escritura_MS(cpu, stick))
+    if (!confirmacion_escritura_MS(cpu, stick))
       return false;
 
     bytes_escritos += bytes_a_escribir;

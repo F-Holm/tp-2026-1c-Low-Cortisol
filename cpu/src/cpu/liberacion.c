@@ -29,36 +29,26 @@ void destruir_memory_stick(void* value)
 
 void cerrar_modulo(t_cpu* cpu)
 {
-  list_destroy_and_destroy_elements(cpu->memory_sticks, destruir_memory_stick);
+  if (cpu->memory_sticks != NULL)
+    list_destroy_and_destroy_elements(cpu->memory_sticks,
+                                      destruir_memory_stick);
 
   if (cpu->socket_kernel_memory > 0)
-  {
     close(cpu->socket_kernel_memory);
-    cpu->socket_kernel_memory = 0;
-  }
 
   if (cpu->socket_kernel_scheduler > 0)
-  {
     close(cpu->socket_kernel_scheduler);
-    cpu->socket_kernel_scheduler = 0;
-  }
 
   if (cpu->config != NULL)
-  {
     config_destroy(cpu->config);
-    cpu->config = NULL;
-  }
 
   if (cpu->handlers != NULL)
-  {
     dictionary_destroy(cpu->handlers);
-    cpu->handlers = NULL;
-  }
-  
-  log_info(cpu->logger, "MODULO CERRADO");
+
   if (cpu->logger != NULL)
   {
+    log_info(cpu->logger, "MODULO CERRADO");
     log_destroy(cpu->logger);
-    cpu->logger = NULL;
   }
+  free(cpu);
 }
