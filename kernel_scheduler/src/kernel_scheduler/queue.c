@@ -193,7 +193,9 @@ void desbloquear_cola_ready(t_cola_ready* ready)
   pthread_mutex_lock(&(ready->bloquear_salida));
   ready->desalojar_todo = false;
   pthread_mutex_unlock(&(ready->bloquear_salida));
+  pthread_mutex_lock(&(ready->mutex_cola));
   pthread_cond_broadcast(&(ready->salida_desbloqueada));
+  pthread_mutex_unlock(&(ready->mutex_cola));
 }
 
 bool cola_ready_terminada(t_cola_ready* ready)
@@ -209,8 +211,10 @@ void terminar_cola_ready(t_cola_ready* ready)
   pthread_mutex_lock(&(ready->mutex_terminar_cola));
   ready->terminar_cola = true;
   pthread_mutex_unlock(&(ready->mutex_terminar_cola));
+  pthread_mutex_lock(&(ready->mutex_cola));
   pthread_cond_broadcast(&(ready->nuevo_proceso));
   pthread_cond_broadcast(&(ready->salida_desbloqueada));
+  pthread_mutex_unlock(&(ready->mutex_cola));
 }
 
 void esperar_cola_exec_vacia(t_colas* colas)
