@@ -27,7 +27,6 @@ typedef struct
   char* puerto;
   int socket_io;
   int tipo_io;
-  char *input, *output;
   int sleep;
 } t_modulo_io;
 

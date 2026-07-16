@@ -5,7 +5,7 @@ bool io_tipo_stdin(t_modulo_io* sio)
   int size_peticion;
   t_peticion_stdin* peticion_stdin =
       (t_peticion_stdin*)recibir_buffer(&size_peticion, sio->socket_io);
-  char* buffer = malloc(peticion_stdin->tamanio_a_leer);
+  char* buffer;
   log_info(sio->logger, "## PID %d -Inicio de IO", peticion_stdin->pid);
 
   // Solicito el input por teclado
@@ -17,6 +17,7 @@ bool io_tipo_stdin(t_modulo_io* sio)
   {
     log_error(sio->logger, " Error al leer el input del usuario");
     free(peticion_stdin);
+    free(buffer);
     return false;
   }
   else if (strlen(buffer) >= peticion_stdin->tamanio_a_leer)

@@ -31,7 +31,7 @@ int main(int argc, char* argv[])
   }
   // Esperando Instrucciones del Kernel Scheduler
   bool seguir_operando = true;
-  bool operacion;
+  bool operacion = -1;
   while (seguir_operando)
   {
     int op_code;
@@ -69,6 +69,5 @@ int main(int argc, char* argv[])
   log_info(sio.logger, " Cierre de IO");
   // Liberar y Cerrar
   cerrar_todo(&sio);
-  free(sio.input);
   return EXIT_SUCCESS;
 }
