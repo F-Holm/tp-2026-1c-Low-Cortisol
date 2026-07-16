@@ -122,6 +122,8 @@ static void* hilo_desbloquear_cola_ready(void* args);
 static void crear_hilo_desbloquear_cola_ready(t_colas* colas);
 static bool termino_compactacion(t_colas* colas);
 static void compactacion(t_colas* colas);
+static bool avisar_nuevo_proceso(t_colas* colas, char* archivo_instrucciones,
+                                 uint32_t pid);
 
 t_colas* inicializar_colas(int algoritmo, t_list* algoritmos_cmn, int quantum,
                            bool desalojo, int socket_servidor, t_logger* logger,
@@ -1027,8 +1029,7 @@ static t_pcb* cambio_sacar_new(char* archivo_instrucciones, int prioridad,
   list_add(pcb->lista_prioridades, aux);
 
   aumentar_contador_procesos(colas->contador_procesos);
-  if (!avisar_nuevo_proceso(colas->socket_km, archivo_instrucciones, pcb->pid,
-                            colas->socket_servidor, colas->logger))
+  if (!avisar_nuevo_proceso(colas, archivo_instrucciones, pcb->pid))
   {
     log_cambio_estado(colas->logger, pcb->pid, EST_NEW, EST_EXIT);
     cambio_a_exit(pcb, colas, MFP_CIERRE_SISTEMA);
@@ -1822,4 +1823,57 @@ static void compactacion(t_colas* colas)
   {
     logger_info(colas->logger, "## Fin de compactacion");
   }
+}
+
+static bool avisar_nuevo_proceso(t_colas* colas, char* archivo_instrucciones,
+                                 uint32_t pid)
+{
+  t_paquete* paquete = crear_paquete(OP_NUEVO_PROCESO);
+  agregar_string_a_paquete(paquete, archivo_instrucciones);
+  agregar_a_paquete(paquete, &pid, sizeof(uint32_t));
+
+  pthread_mutex_lock(&(colas->socket_km->mutex_socket));
+  bool ret = enviar_paquete(paquete, colas->socket_km->socket_km);
+
+  eliminar_paquete(paquete);
+
+  if (!ret)
+  {
+    cerrar_kernel_scheduler(colas->socket_servidor, colas->logger,
+                            MC_ERROR_ENVIO_KERNEL_MEMORY,
+                            colas->socket_km->socket_km);
+    pthread_mutex_unlock(&(colas->socket_km->mutex_socket));
+    return false;
+  }
+
+  ret = false;
+  bool seguir_operando = true;
+  while (seguir_operando)
+  {
+    int op_code = recibir_operacion(colas->socket_km->socket_km);
+    switch (op_code)
+    {
+      case OP_PROCESO_INICIADO:
+        free(recibir_string(colas->socket_km->socket_km));
+        ret = true;
+        break;
+      case OP_MEMORIA_CORRUPTA:
+        free(recibir_string(colas->socket_km->socket_km));
+        cerrar_kernel_scheduler(colas->socket_servidor, colas->logger,
+                                MC_MEMORIA_CORRUPTA, -1);
+        break;
+      case OP_NUEVO_MEMORY_STICK:
+        free(recibir_string(colas->socket_km->socket_km));
+        crear_hilo_rutina_des_suspension(colas);
+        break;
+      default:
+        free(recibir_string(colas->socket_km->socket_km));
+        cerrar_kernel_scheduler(colas->socket_servidor, colas->logger,
+                                MC_FALLO_CONEXION_KERNEL_MEMORY, -1);
+        break;
+    }
+  }
+
+  pthread_mutex_unlock(&(colas->socket_km->mutex_socket));
+  return ret;
 }
