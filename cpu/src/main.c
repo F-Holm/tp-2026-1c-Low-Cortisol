@@ -40,6 +40,8 @@ int main(int argc, char* argv[])
   else
   {
     log_error(cpu->logger, "## fallo el envio del mensaje al kernel scheduler");
+    cerrar_modulo(cpu);
+    return EXIT_FAILURE;
   }
 
   if (!iniciar_conexion_kmemory(cpu))
@@ -55,8 +57,15 @@ int main(int argc, char* argv[])
   else
   {
     log_error(cpu->logger, "## fallo el envio del mensaje al kernel memory");
+    cerrar_modulo(cpu);
+    return EXIT_FAILURE;
   }
-  recibir_tamanio_maximo_segmento(cpu);
+  log_info(cpu->logger, "Socket KM: %d",cpu->socket_kernel_memory);
+  if (!recibir_tamanio_maximo_segmento(cpu))
+  {
+    cerrar_modulo(cpu);
+    return EXIT_FAILURE;
+  }
 
   // diccionario de intruciones (nombre - funcion)
   cpu->handlers = dictionary_create();
