@@ -1033,15 +1033,9 @@ static void cambio_a_exit(t_pcb* pcb, t_colas* colas, int motivo)
 static t_pcb* cambio_sacar_new(char* archivo_instrucciones, int prioridad,
                                t_colas* colas)
 {
-  t_pcb* pcb = crear_pcb();
+  t_pcb* pcb = crear_pcb(EST_NEW, prioridad);
   logger_info(colas->logger, "## %u Se crea el proceso - Estado: NEW",
               pcb->pid);
-
-  pcb->prioridad = prioridad;
-  pcb->estado = EST_NEW;
-  int* aux = malloc(sizeof(int));
-  *aux = prioridad;
-  list_add(pcb->lista_prioridades, aux);
 
   aumentar_contador_procesos(colas->contador_procesos);
   if (!avisar_nuevo_proceso(colas, archivo_instrucciones, pcb->pid))

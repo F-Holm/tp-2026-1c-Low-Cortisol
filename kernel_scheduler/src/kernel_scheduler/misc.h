@@ -89,7 +89,7 @@ void destruir_kernel_memory(t_socket_kernel_memory* socket_km);
 int insertar_pcb_en_orden(t_list* lista, t_pcb* pcb);
 int get_estado_pcb(t_pcb* pcb);
 int get_prioridad_pcb(t_pcb* pcb);
-t_pcb* crear_pcb(void);
+t_pcb* crear_pcb(int estado, int prioridad);
 void destruir_pcb(t_pcb* pcb);
 bool responder_handshake(int socket_fd, int id_modulo, t_logger* logger);
 unsigned long millis(void);

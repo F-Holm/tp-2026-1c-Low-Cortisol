@@ -78,7 +78,7 @@ int get_prioridad_pcb(t_pcb* pcb)
   return prioridad_pcb;
 }
 
-t_pcb* crear_pcb(void)
+t_pcb* crear_pcb(int estado, int prioridad)
 {
   static uint32_t pid = 0;
   t_pcb* pcb = malloc(sizeof(t_pcb));
@@ -86,8 +86,13 @@ t_pcb* crear_pcb(void)
   pthread_mutex_init(&(pcb->mutex_prioridad), NULL);
   pthread_mutex_init(&(pcb->mutex_estado), NULL);
   pcb->tiempo_bloqueado = 0;
-  pcb->estado = EST_NEW;
+  pcb->estado = estado;
+
   pcb->lista_prioridades = list_create();
+  pcb->prioridad = prioridad;
+  int* aux = malloc(sizeof(int));
+  *aux = prioridad;
+  list_add(pcb->lista_prioridades, aux);
 
   pthread_mutex_lock(&mutex_pid_pcb);
   pcb->pid = pid;
