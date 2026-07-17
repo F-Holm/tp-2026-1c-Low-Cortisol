@@ -97,7 +97,11 @@ static bool inicializar_archivo_swap(t_modulo_swap* datos_swap)
 
   // Asignar tamanio e inicializar el archivo con ceros
   int file_descriptor = fileno(archivo_swap);
-  ftruncate(file_descriptor, datos_swap->tamanio_swap);
+  if(ftruncate(file_descriptor, datos_swap->tamanio_swap) == -1)
+  {
+    fclose(archivo_swap);
+    return false;
+  }
 
   datos_swap->archivo_swap = archivo_swap;
   return true;
@@ -121,5 +125,6 @@ void leer_bloque(FILE* archivo_swap, int num_bloque, int tamanio_bloque,
                  char* contenido_leido)
 {
   buscar_bloque(archivo_swap, num_bloque, tamanio_bloque);
-  fread(contenido_leido, tamanio_bloque, 1, archivo_swap);
+  if(fread(contenido_leido, tamanio_bloque, 1, archivo_swap) != 1)
+    return;
 }
