@@ -327,7 +327,7 @@ t_bool_extendido check_interrupt(t_cpu* cpu, uint32_t pid)
 
   if (codigo == OP_INTERRUPCION)
   {
-    log_info(cpu->logger, "## Interrupción recibida");
+    log_info(cpu->logger, "Interrupción recibida");
     char* interrucpcion_recibida = recibir_string(cpu->socket_kernel_scheduler);
     log_info(cpu->logger, "Razon de la interrupcion: %s",
              interrucpcion_recibida);
@@ -336,9 +336,14 @@ t_bool_extendido check_interrupt(t_cpu* cpu, uint32_t pid)
   }
   else if (codigo == OP_SIN_INTERRUPCION)
   {
-    log_info(cpu->logger, "## Sin interrupción");
+    log_info(cpu->logger, "Sin interrupción");
     free(recibir_string(cpu->socket_kernel_scheduler));
     return BE_TRUE;
+  }
+  else if(codigo == OP_CODE_ERROR)
+  {
+    log_info(cpu->logger, "Kernel Scheduler desconectado");
+    return BE_ERROR;
   }
   log_error(cpu->logger, "## Operacion no reconocida: %d", codigo);
   return BE_ERROR;
