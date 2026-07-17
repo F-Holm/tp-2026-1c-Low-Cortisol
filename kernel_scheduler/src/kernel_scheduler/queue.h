@@ -141,6 +141,7 @@ t_colas* inicializar_colas(int algoritmo, t_list* algoritmos_cmn, int quantum,
                            int suspension_timeout);
 void destruir_colas(t_colas* colas);
 
+bool esta_cola_ready_vacia(t_cola_ready* ready);
 bool esta_cola_ready_bloqueada(t_cola_ready* ready);
 void bloquear_cola_ready(t_cola_ready* ready);
 void desbloquear_cola_ready(t_cola_ready* ready);

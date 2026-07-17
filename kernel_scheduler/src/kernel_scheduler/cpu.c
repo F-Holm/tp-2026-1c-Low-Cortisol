@@ -232,7 +232,8 @@ static bool es_rr(t_datos_syscall* datos)
 
 static void gestionar_fin_quantum(t_datos_syscall* datos)
 {
-  if (datos->motivo_desalojo == MD_SIN_DESALOJO && es_rr(datos) &&
+  if (datos->motivo_desalojo == MD_SIN_DESALOJO &&
+      !esta_cola_ready_vacia(&(datos->datos->colas->ready)) && es_rr(datos) &&
       datos->datos->colas->exec.quantum <= time_diff(datos->contador, millis()))
   {
     logger_info(datos->datos->logger, "CPU %s: Desalojando por fin de quantum",

@@ -174,6 +174,14 @@ void destruir_colas(t_colas* colas)
   free(colas);
 }
 
+bool esta_cola_ready_vacia(t_cola_ready* ready)
+{
+  pthread_mutex_lock(&(ready->mutex_cola));
+  bool cant = ready->cant_procesos_ready;
+  pthread_mutex_unlock(&(ready->mutex_cola));
+  return cant == 0;
+}
+
 bool esta_cola_ready_bloqueada(t_cola_ready* ready)
 {
   pthread_mutex_lock(&(ready->bloquear_salida));
