@@ -3,6 +3,7 @@
 void cerrar_todo(t_modulo_swap* datos_swap, t_config* config)
 {
   close(datos_swap->socket_swap);
+  fclose(datos_swap->archivo_swap);
   logger_destroy(datos_swap->logger);
   config_destroy(config);
 }
