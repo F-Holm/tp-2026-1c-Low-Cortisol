@@ -78,7 +78,7 @@ t_bool_extendido handler_mov_in(t_cpu* cpu, t_contexto* contexto,
   uint32_t valor = *(uint32_t*)dato_leido;
   if (!dato_leido)
     return BE_ERROR;
-  
+
   free(dato_leido);
 
   set_registro(contexto->registros, instruccion->parametros[0], valor);

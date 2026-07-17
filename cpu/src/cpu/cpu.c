@@ -147,10 +147,9 @@ uint32_t recibir_pid_kernel_scheduler(t_cpu* cpu)
     log_info(cpu->logger,
              "## PID recibido: %u - Iniciando ciclo de instrucción", pid);
   }
-  else if(codigo_operacion == 0)
+  else if (codigo_operacion == 0)
   {
-    log_info(cpu->logger,
-            "Scheduler desconectado, cerrarndo modulo");
+    log_info(cpu->logger, "Scheduler desconectado, cerrarndo modulo");
   }
   else
   {
@@ -245,7 +244,7 @@ bool ejecutar_ciclo_instruccion(t_cpu* cpu, uint32_t pid, t_contexto* contexto)
         destruir_instruccion(instruccion);
         return false;
       }
-        
+
       contexto->cambio_segmento = false;
     }
 
@@ -306,8 +305,8 @@ t_instruccion* etapa_decode(char* instruccion_KM)
   return instruccion;
 }
 
-t_bool_extendido etapa_execute(t_cpu* cpu, t_contexto* contexto, t_instruccion* instruccion,
-                  uint32_t pid)
+t_bool_extendido etapa_execute(t_cpu* cpu, t_contexto* contexto,
+                               t_instruccion* instruccion, uint32_t pid)
 {
   t_handler handler = dictionary_get(cpu->handlers, instruccion->nombre);
 
@@ -340,7 +339,7 @@ t_bool_extendido check_interrupt(t_cpu* cpu, uint32_t pid)
     free(recibir_string(cpu->socket_kernel_scheduler));
     return BE_TRUE;
   }
-  else if(codigo == OP_CODE_ERROR)
+  else if (codigo == OP_CODE_ERROR)
   {
     log_info(cpu->logger, "Kernel Scheduler desconectado");
     return BE_ERROR;
@@ -376,7 +375,7 @@ bool actualizar_tabla_segmentos(t_cpu* cpu, uint32_t pid, t_contexto* contexto)
     return false;
   }
 
-  if(!escuchar_kernel_memory(cpu))
+  if (!escuchar_kernel_memory(cpu))
     return false;
   contexto->tablaDeSegmentos = recibir_tabla_segmentos(cpu, contexto);
   log_info(cpu->logger, "Tabla actualizada correctamente");
