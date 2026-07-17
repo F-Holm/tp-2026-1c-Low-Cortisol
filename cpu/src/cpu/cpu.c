@@ -117,13 +117,19 @@ void manejo_instrucciones(t_cpu* cpu)
     if (escuchar_kernel_memory(cpu))
       contexto->tablaDeSegmentos = recibir_tabla_segmentos(cpu, contexto);
     else
+    {
+      free(contexto->registros);
       break;
+    }
 
     if (!ejecutar_ciclo_instruccion(cpu, pid, contexto))
+    {
+      free(contexto->registros);
       break;
+    }
+    free(contexto->registros);
   }
   list_destroy_and_destroy_elements(contexto->tablaDeSegmentos, free);
-
   free(contexto);
 }
 
@@ -141,9 +147,10 @@ uint32_t recibir_pid_kernel_scheduler(t_cpu* cpu)
     log_info(cpu->logger,
              "## PID recibido: %u - Iniciando ciclo de instrucción", pid);
   }
-  else if (codigo_operacion == 0)
+  else if(codigo_operacion == 0)
   {
-    log_info(cpu->logger, "Scheduler desconectado, cerrarndo modulo");
+    log_info(cpu->logger,
+            "Scheduler desconectado, cerrarndo modulo");
   }
   else
   {
@@ -238,7 +245,7 @@ bool ejecutar_ciclo_instruccion(t_cpu* cpu, uint32_t pid, t_contexto* contexto)
         destruir_instruccion(instruccion);
         return false;
       }
-
+        
       contexto->cambio_segmento = false;
     }
 
@@ -299,8 +306,8 @@ t_instruccion* etapa_decode(char* instruccion_KM)
   return instruccion;
 }
 
-t_bool_extendido etapa_execute(t_cpu* cpu, t_contexto* contexto,
-                               t_instruccion* instruccion, uint32_t pid)
+t_bool_extendido etapa_execute(t_cpu* cpu, t_contexto* contexto, t_instruccion* instruccion,
+                  uint32_t pid)
 {
   t_handler handler = dictionary_get(cpu->handlers, instruccion->nombre);
 
@@ -364,7 +371,7 @@ bool actualizar_tabla_segmentos(t_cpu* cpu, uint32_t pid, t_contexto* contexto)
     return false;
   }
 
-  if (!escuchar_kernel_memory(cpu))
+  if(!escuchar_kernel_memory(cpu))
     return false;
   contexto->tablaDeSegmentos = recibir_tabla_segmentos(cpu, contexto);
   log_info(cpu->logger, "Tabla actualizada correctamente");

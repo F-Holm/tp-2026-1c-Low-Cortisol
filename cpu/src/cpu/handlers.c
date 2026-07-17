@@ -76,9 +76,10 @@ t_bool_extendido handler_mov_in(t_cpu* cpu, t_contexto* contexto,
 
   void* dato_leido = leer_memoria(cpu, dir_fisica, sizeof(uint32_t));
   uint32_t valor = *(uint32_t*)dato_leido;
-  free(dato_leido);
-  if (!valor)
+  if (!dato_leido)
     return BE_ERROR;
+  
+  free(dato_leido);
 
   set_registro(contexto->registros, instruccion->parametros[0], valor);
 

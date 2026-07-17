@@ -104,6 +104,7 @@ void* leer_memoria(t_cpu* cpu, uint32_t dir_fisica, uint32_t tamanio)
 
     if (!lectura_parcial)
     {
+      log_error(cpu->logger, "## lectura al MS nula");
       free(lectura_parcial);
       free(resultado);
       return NULL;
