@@ -79,7 +79,7 @@ void liberar_datos_kernel_mem(t_datos_kernel_mem* datos_kernel)
       list_remove(datos_kernel->cpus_conectados, cpu);
       shutdown(cpu->socket_cpu, SHUT_RDWR);
     }*/
-    while(!list_is_empty(datos_kernel->cpus_conectados))
+    while (!list_is_empty(datos_kernel->cpus_conectados))
     {
       t_datos_cpu* cpu = list_remove(datos_kernel->cpus_conectados, 0);
       shutdown(cpu->socket_cpu, SHUT_RDWR);

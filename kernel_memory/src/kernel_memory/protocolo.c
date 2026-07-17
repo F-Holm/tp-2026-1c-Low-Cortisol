@@ -407,27 +407,29 @@ t_segmento* buecar_y_eliminar_segmento(uint32_t id, uint32_t pid,
   return NULL;
 }
 
-void es_hueco_anterior(t_hueco* hueco_aux, t_hueco* hueco_actual,
-                       t_segmento* segmento_aux,
-                       t_memoria_principal* memoria_principal, int indice)
+int es_hueco_anterior(t_hueco* hueco_aux, t_hueco* hueco_actual,
+                      t_segmento* segmento_aux,
+                      t_memoria_principal* memoria_principal, int indice)
 {
   if (hueco_actual->base + hueco_actual->size == segmento_aux->base)
   {
     hueco_aux->base = hueco_actual->base;
     hueco_aux->size = hueco_actual->size + segmento_aux->size;
-    list_remove_and_destroy_element(memoria_principal->huecos, indice, free);
+    return indice;
   }
+  return -1;
 }
 
-void es_hueco_posterior(t_hueco* hueco_aux, t_hueco* hueco_actual,
-                        t_segmento* segmento_aux,
-                        t_memoria_principal* memoria_principal, int indice)
+int es_hueco_posterior(t_hueco* hueco_aux, t_hueco* hueco_actual,
+                       t_segmento* segmento_aux,
+                       t_memoria_principal* memoria_principal, int indice)
 {
   if (hueco_actual->base == segmento_aux->base + segmento_aux->size)
   {
     hueco_aux->size += hueco_actual->size;
-    list_remove_and_destroy_element(memoria_principal->huecos, indice, free);
+    return indice;
   }
+  return -1;
 }
 
 void eliminar_segmento(uint32_t id, uint32_t pid,
@@ -444,6 +446,8 @@ void eliminar_segmento(uint32_t id, uint32_t pid,
   if (segmento_aux == NULL)
   {
     logger_error(logger, "No se encontro segmento");
+    pthread_mutex_unlock(memoria_principal->mutex_memoria_principal);
+    return;
   }
   if (hueco_antes_segmento(segmento_aux->base,
                            segmento_aux->base + segmento_aux->size,
@@ -452,15 +456,28 @@ void eliminar_segmento(uint32_t id, uint32_t pid,
                              segmento_aux->base + segmento_aux->size,
                              memoria_principal->huecos))
   {
+    int indice1 = -1;
+    int indice2 = -1;
     // SEGMENTO EN MEDIO DE HUECOS
     for (int i = 0; i < list_size(memoria_principal->huecos); i++)
     {
       t_hueco* hueco_actual = list_get(memoria_principal->huecos, i);
-      es_hueco_anterior(nuevo_hueco, hueco_actual, segmento_aux,
-                        memoria_principal, i);
-      es_hueco_posterior(nuevo_hueco, hueco_actual, segmento_aux,
-                         memoria_principal, i);
+      indice1 = es_hueco_anterior(nuevo_hueco, hueco_actual, segmento_aux,
+                                  memoria_principal, i);
+      indice2 = es_hueco_posterior(nuevo_hueco, hueco_actual, segmento_aux,
+                                   memoria_principal, i);
     }
+    if (indice1 == -1 || indice2 == -1)
+    {
+      logger_error(logger,
+                   "No se encontraron los huecos adyacentes al segmento");
+      pthread_mutex_unlock(memoria_principal->mutex_memoria_principal);
+      free(segmento_aux);
+      free(nuevo_hueco);
+      return;
+    }
+    list_remove_and_destroy_element(memoria_principal->huecos, indice1, free);
+    list_remove_and_destroy_element(memoria_principal->huecos, indice2, free);
     list_add(memoria_principal->huecos, nuevo_hueco);
     logger_info(logger, "Segmento en medio de huecos");
   }
@@ -468,26 +485,32 @@ void eliminar_segmento(uint32_t id, uint32_t pid,
                                 segmento_aux->base + segmento_aux->size,
                                 memoria_principal->huecos))
   {
+    int indice1 = -1;
     // SEGMENTO DESPUES DE HUECO
     for (int i = 0; i < list_size(memoria_principal->huecos); i++)
     {
       t_hueco* hueco_actual = list_get(memoria_principal->huecos, i);
-      es_hueco_anterior(nuevo_hueco, hueco_actual, segmento_aux,
-                        memoria_principal, i);
+      indice1 = es_hueco_anterior(nuevo_hueco, hueco_actual, segmento_aux,
+                                  memoria_principal, i);
     }
+    list_remove_and_destroy_element(memoria_principal->huecos, indice1, free);
+    list_add(memoria_principal->huecos, nuevo_hueco);
     logger_info(logger, "Segmento despues de hueco");
   }
   else if (hueco_despues_segmento(segmento_aux->base,
                                   segmento_aux->base + segmento_aux->size,
                                   memoria_principal->huecos))
   {
+    int indice2 = -1;
     // SEGMENTO ANTES DE HUECO
     for (int i = 0; i < list_size(memoria_principal->huecos); i++)
     {
       t_hueco* hueco_actual = list_get(memoria_principal->huecos, i);
-      es_hueco_posterior(nuevo_hueco, hueco_actual, segmento_aux,
-                         memoria_principal, i);
+      indice2 = es_hueco_posterior(nuevo_hueco, hueco_actual, segmento_aux,
+                                   memoria_principal, i);
     }
+    list_remove_and_destroy_element(memoria_principal->huecos, indice2, free);
+    list_add(memoria_principal->huecos, nuevo_hueco);
     logger_info(logger, "Segmento antes de hueco");
   }
   else
@@ -498,7 +521,6 @@ void eliminar_segmento(uint32_t id, uint32_t pid,
     logger_info(logger, "Segmento entre dos segmentos");
   }
   pthread_mutex_unlock(memoria_principal->mutex_memoria_principal);
-  free(nuevo_hueco);
   free(segmento_aux);
 }
 
@@ -715,14 +737,24 @@ char* leer_de_sticks(int direccion_fisica, int tamanio,
 
 char* cortar_cadena(int longitud_corte, char* cadena)
 {
-  if (strlen(cadena) > longitud_corte)
+  if (longitud_corte <= 0)
   {
-    char* nueva_cadena = malloc(longitud_corte);
-    strncpy(nueva_cadena, cadena, longitud_corte);
-    nueva_cadena[longitud_corte] = '\0';
-    return nueva_cadena;
+    char* vacia = malloc(1);
+    vacia[0] = '\0';
+    return vacia;
   }
-  return cadena;
+
+  int longitud = strlen(cadena);
+
+  if (longitud_corte > longitud)
+    longitud_corte = longitud;
+
+  char* nueva = malloc(longitud_corte + 1);
+
+  memcpy(nueva, cadena, longitud_corte);
+  nueva[longitud_corte] = '\0';
+
+  return nueva;
 }
 
 int calcular_tamanio_proceso(t_proceso* proceso)
@@ -755,6 +787,10 @@ bool escribir_en_sticks(int pid, int dir_fisica, int tamanio_a_leer,
   {
     int tamanio_sumado = stick_a_escribir_inicial->tamanio_stick - dir_fisica;
     char* cadena_cortada = cortar_cadena(tamanio_sumado, string_escribir);
+    logger_info(logger,
+                "se tubo que cortar la cadena a : %s para poder escribir en el "
+                "stick %d",
+                cadena_cortada, indice);
     int tamanio_cortado = strlen(cadena_cortada);
     agregar_a_paquete(paquete, &dir_fisica, sizeof(int));
     agregar_string_a_paquete(paquete, cadena_cortada);
@@ -782,7 +818,7 @@ bool escribir_en_sticks(int pid, int dir_fisica, int tamanio_a_leer,
     for (int i = indice + 1; tamanio_sumado < tamanio_a_leer; i++)
     {
       t_datos_stick* stick_a_escribir = list_get(sticks_conectados, i);
-      tamanio_sumado = +stick_a_escribir->tamanio_stick;
+      tamanio_sumado += stick_a_escribir->tamanio_stick;
       t_paquete* paquete2 = crear_paquete(OP_MEMORY_STICK_ESCRIBIR);
       agregar_a_paquete(paquete2, 0, sizeof(int));
       char* cadena_cortada = cortar_cadena(stick_a_escribir->tamanio_stick,

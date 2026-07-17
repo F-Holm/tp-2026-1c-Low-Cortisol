@@ -63,7 +63,7 @@ void* escucha_scheduler(void* ptr)
         int a;
         t_syscall_memory* syscall = (t_syscall_memory*)recibir_buffer(
             &a, datos_scheduler->socket_scheduler);
-        eliminar_segmento(syscall->pid, syscall->id_segmento,
+        eliminar_segmento(syscall->id_segmento, syscall->pid,
                           datos_scheduler->memoria_principal,
                           datos_scheduler->logger);
         logger_info(datos_scheduler->logger, "se ha eliminado correctamente");
@@ -280,18 +280,18 @@ void* escucha_cpu(void* ptr)
         t_list* paquete = recibir_paquete(datos_cpu->socket_cpu);
         uint32_t pid = *(uint32_t*)list_get(paquete, 0);
         uint32_t pc = *(uint32_t*)list_get(paquete, 1);
-        list_destroy_and_destroy_elements(paquete, free);
 
         t_proceso* proceso =
             buscar_proceso(datos_cpu->procesos, datos_cpu->mutex_procesos, pid);
         char* instruccion = proceso->instrucciones[pc];
-
         logger_info(datos_cpu->logger,
                     "## PID: %u - Obtener instrucción: %u - Instrucción: %s",
                     pid, pc, instruccion);
         usleep(datos_cpu->instruction_delay * 1000);
         enviar_string(OP_ENVIAR_INSTRUCCION, instruccion,
                       datos_cpu->socket_cpu);
+        list_destroy_and_destroy_elements(paquete, free);
+
         break;
       }
       case OP_PEDIR_CONTEXTO:
