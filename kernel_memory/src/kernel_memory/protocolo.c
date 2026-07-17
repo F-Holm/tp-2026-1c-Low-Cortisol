@@ -227,7 +227,7 @@ static t_hueco algoritmo_seleccionador(
   list_iterator_destroy(iterador);
   if (hueco_elegido.size == -1)
   {
-    logger_error(logger, "No hay huecos disponibles");
+    logger_info(logger, "No hay huecos disponibles");
   }
   return hueco_elegido;
 }
@@ -310,6 +310,7 @@ void crear_segmento(uint32_t id, uint32_t pid, int size,
     // Chequeo de compactación
     if (hueco_elegido.size == -1)
     {
+      logger_info(logger, "Es necesario compactar la memoria");
       notificar_compactacion(socket_scheduler);
       compactar_memoria(socket_scheduler, memoria_principal);
       selector_de_huecos(size, logger, memoria_principal);
@@ -326,13 +327,13 @@ void crear_segmento(uint32_t id, uint32_t pid, int size,
 bool compactar_memoria(int socket_scheduler,
                        t_memoria_principal* memoria_principal)
 {
-  pthread_mutex_lock(memoria_principal->mutex_memoria_principal);
   compactar_segmentos(memoria_principal->segmentos);
   memoria_principal->huecos = compactar_huecos(
       memoria_principal->tamanio_total,
       calcular_base_final_segmento(memoria_principal->segmentos));
   usleep(memoria_principal->compaction_delay * 1000);
-  pthread_mutex_unlock(memoria_principal->mutex_memoria_principal);
+  enviar_string(OP_COMPACTACION_FINALIZADA, "Se finalizo la compactacion",
+                socket_scheduler);
   return true;
 }
 
@@ -370,15 +371,11 @@ void notificar_compactacion(int socket_scheduler)
 {
   enviar_string(OP_COMPACTACION_NECESARIA, "Es necesario compactar la memoria",
                 socket_scheduler);
-  while (true)
+  int operacion = recibir_operacion(socket_scheduler);
+  if (operacion == OP_PUEDE_COMPACTAR)
   {
-    int operacion = recibir_operacion(socket_scheduler);
-    if (operacion == OP_PUEDE_COMPACTAR)
-    {
-      char* mensaje = recibir_string(socket_scheduler);
-      free(mensaje);
-      break;
-    }
+    char* mensaje = recibir_string(socket_scheduler);
+    free(mensaje);
   }
 }
 
@@ -780,19 +777,20 @@ bool escribir_en_sticks(int pid, int dir_fisica, int tamanio_a_leer,
   logger_info(logger, "Empiezo a escribir en el stick %d, offset %d", indice,
               offset_en_stick);
   t_datos_stick* stick_a_escribir_inicial = list_get(sticks_conectados, indice);
-  int tamanio =
-      stick_a_escribir_inicial->tamanio_stick - dir_fisica - tamanio_a_leer;
+  int tamanio = stick_a_escribir_inicial->tamanio_stick - offset_en_stick -
+                tamanio_a_leer;
   t_paquete* paquete = crear_paquete(OP_MEMORY_STICK_ESCRIBIR);
   if (tamanio < 0)
   {
-    int tamanio_sumado = stick_a_escribir_inicial->tamanio_stick - dir_fisica;
+    int tamanio_sumado =
+        stick_a_escribir_inicial->tamanio_stick - offset_en_stick;
     char* cadena_cortada = cortar_cadena(tamanio_sumado, string_escribir);
     logger_info(logger,
                 "se tubo que cortar la cadena a : %s para poder escribir en el "
                 "stick %d",
                 cadena_cortada, indice);
     int tamanio_cortado = strlen(cadena_cortada);
-    agregar_a_paquete(paquete, &dir_fisica, sizeof(int));
+    agregar_a_paquete(paquete, &offset_en_stick, sizeof(int));
     agregar_string_a_paquete(paquete, cadena_cortada);
     agregar_a_paquete(paquete, &tamanio_cortado, sizeof(int));
     if (!enviar_paquete(paquete, stick_a_escribir_inicial->socket_stick))
@@ -820,7 +818,8 @@ bool escribir_en_sticks(int pid, int dir_fisica, int tamanio_a_leer,
       t_datos_stick* stick_a_escribir = list_get(sticks_conectados, i);
       tamanio_sumado += stick_a_escribir->tamanio_stick;
       t_paquete* paquete2 = crear_paquete(OP_MEMORY_STICK_ESCRIBIR);
-      agregar_a_paquete(paquete2, 0, sizeof(int));
+      int cero = 0;
+      agregar_a_paquete(paquete2, &cero, sizeof(int));
       char* cadena_cortada = cortar_cadena(stick_a_escribir->tamanio_stick,
                                            string_escribir + tamanio_sumado);
       int tamanio_cortado2 = strlen(cadena_cortada);
@@ -854,7 +853,7 @@ bool escribir_en_sticks(int pid, int dir_fisica, int tamanio_a_leer,
   else
   {
     int tamanio_string = strlen(string_escribir);
-    agregar_a_paquete(paquete, &dir_fisica, sizeof(int));
+    agregar_a_paquete(paquete, &offset_en_stick, sizeof(int));
     agregar_string_a_paquete(paquete, string_escribir);
     agregar_a_paquete(paquete, &tamanio_string, sizeof(int));
     if (!enviar_paquete(paquete, stick_a_escribir_inicial->socket_stick))
