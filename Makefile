@@ -129,7 +129,7 @@ executebase: logs $(BUILD_TARGET)
 # --- Modos de ejecución base2 ---
 base2: BUILD_TARGET = all
 base2: VALGRIND_CMD =
-base2: executebase
+base2: executebase2
 
 base2-memcheck: BUILD_TARGET = debug
 base2-memcheck: VALGRIND_CMD = $(VALGRIND_MEMCHECK)
@@ -246,7 +246,7 @@ executemem: logs $(BUILD_TARGET)
 # --- Modos de ejecución MEM2 ---
 mem2: BUILD_TARGET = all
 mem2: VALGRIND_CMD =
-mem2: executemem
+mem2: executemem2
 
 mem2-memcheck: BUILD_TARGET = debug
 mem2-memcheck: VALGRIND_CMD = $(VALGRIND_MEMCHECK)
