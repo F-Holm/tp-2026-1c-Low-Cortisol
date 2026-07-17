@@ -1,7 +1,7 @@
 MODULES = cpu io kernel_memory kernel_scheduler memory_stick swap utils
 SLEEP_TIME = 0.1
 
-.PHONY: all debug release test clean logs format run kill memcheck helgrind base base-memcheck base-helgrind pcp pcp-memcheck pcp-helgrind mem mem-memcheck mem-helgrind pmp pmp-memcheck pmp-helgrind php php-memcheck php-helgrind $(MODULES)
+.PHONY: all debug release test clean logs format run kill memcheck helgrind base base-memcheck base-helgrind base2 base2-memcheck base2-helgrind pcp pcp-memcheck pcp-helgrind mem mem-memcheck mem-helgrind mem2 mem2-memcheck mem2-helgrind pmp pmp-memcheck pmp-helgrind php php-memcheck php-helgrind $(MODULES)
 
 all: $(MODULES)
 
@@ -126,6 +126,43 @@ executebase: logs $(BUILD_TARGET)
 	@echo "Revisá la carpeta ./output/ para ver los reportes de Valgrind de cada módulo."
 	@echo "Usa 'make kill' para detener todo."
 
+# --- Modos de ejecución base2 ---
+base2: BUILD_TARGET = all
+base2: VALGRIND_CMD =
+base2: executebase
+
+base2-memcheck: BUILD_TARGET = debug
+base2-memcheck: VALGRIND_CMD = $(VALGRIND_MEMCHECK)
+base2-memcheck: executebase2
+
+base2-helgrind: BUILD_TARGET = debug
+base2-helgrind: VALGRIND_CMD = $(VALGRIND_HELGRIND)
+base2-helgrind: executebase2
+
+executebase2: logs $(BUILD_TARGET)
+	@mkdir -p ./output
+	@echo "Lanzando sistema base con: [$(VALGRIND_CMD)] ..."
+	
+	$(VALGRIND_CMD) ./kernel_memory/bin/kernel_memory ./kernel_memory/configs/base.config > ./output/kernel_memory.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./kernel_scheduler/bin/kernel_scheduler ./kernel_scheduler/configs/base.config MEMORIA_PRE_0.prc > ./output/kernel_scheduler.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/base_256.config 256 > ./output/memory_stick_1.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./swap/bin/swap ./swap/swap.config > ./output/swap.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./io/bin/io ./io/io.config SLEEP > ./output/io_sleep.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./io/bin/io ./io/io.config STDIN < ./pseudocodigo/entradas_io_stdin.txt > ./output/io_stdin.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./io/bin/io ./io/io.config STDOUT > ./output/io_stdout.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./cpu/bin/cpu ./cpu/cpu.config CPU-1 > ./output/cpu_1.log 2>&1 &
+	
+	@echo "Sistema base lanzado con éxito. La terminal está libre."
+	@echo "Revisá la carpeta ./output/ para ver los reportes de Valgrind de cada módulo."
+	@echo "Usa 'make kill' para detener todo."
+
 # --- Modos de ejecución PCP ---
 pcp: BUILD_TARGET = all
 pcp: VALGRIND_CMD =
@@ -180,7 +217,50 @@ executemem: logs $(BUILD_TARGET)
 	@mkdir -p ./output
 	@echo "Lanzando sistema base con: [$(VALGRIND_CMD)] ..."
 	
-	$(VALGRIND_CMD) ./kernel_memory/bin/kernel_memory ./kernel_memory/configs/mem.config > ./output/kernel_memory.log 2>&1 &
+	$(VALGRIND_CMD) ./kernel_memory/bin/kernel_memory ./kernel_memory/configs/mem_best.config > ./output/kernel_memory.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./kernel_scheduler/bin/kernel_scheduler ./kernel_scheduler/configs/mem.config PLANI_MEM.prc > ./output/kernel_scheduler.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/mem_16.config 16 > ./output/memory_stick_1.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/mem_32.config 32 > ./output/memory_stick_2.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/mem_64.config 64 > ./output/memory_stick_3.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/mem_128.config 128 > ./output/memory_stick_4.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./swap/bin/swap ./swap/swap.config > ./output/swap.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./io/bin/io ./io/io.config SLEEP > ./output/io_sleep.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./io/bin/io ./io/io.config STDIN < ./pseudocodigo/entradas_io_stdin.txt > ./output/io_stdin.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./io/bin/io ./io/io.config STDOUT > ./output/io_stdout.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./cpu/bin/cpu ./cpu/cpu.config CPU-1 > ./output/cpu_1.log 2>&1 &
+	
+	@echo "Sistema base lanzado con éxito. La terminal está libre."
+	@echo "Revisá la carpeta ./output/ para ver los reportes de Valgrind de cada módulo."
+	@echo "Usa 'make kill' para detener todo."
+
+# --- Modos de ejecución MEM2 ---
+mem2: BUILD_TARGET = all
+mem2: VALGRIND_CMD =
+mem2: executemem
+
+mem2-memcheck: BUILD_TARGET = debug
+mem2-memcheck: VALGRIND_CMD = $(VALGRIND_MEMCHECK)
+mem2-memcheck: executemem2
+
+mem2-helgrind: BUILD_TARGET = debug
+mem2-helgrind: VALGRIND_CMD = $(VALGRIND_HELGRIND)
+mem2-helgrind: executemem2
+
+executemem2: logs $(BUILD_TARGET)
+	@mkdir -p ./output
+	@echo "Lanzando sistema base con: [$(VALGRIND_CMD)] ..."
+	
+	$(VALGRIND_CMD) ./kernel_memory/bin/kernel_memory ./kernel_memory/configs/mem_worst.config > ./output/kernel_memory.log 2>&1 &
 	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./kernel_scheduler/bin/kernel_scheduler ./kernel_scheduler/configs/mem.config PLANI_MEM.prc > ./output/kernel_scheduler.log 2>&1 &
 	@sleep $(SLEEP_TIME)

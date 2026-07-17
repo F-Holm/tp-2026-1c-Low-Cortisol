@@ -29,15 +29,18 @@
 | `make base` | Compila y ejecuta los módulos. |
 | `make base-memcheck` | Compila y ejecuta los módulos con memcheck. |
 | `make base-helgrind` | Compila y ejecuta los módulos con helgrind. |
+| `make base2` | Compila y ejecuta los módulos. |
+| `make base2-memcheck` | Compila y ejecuta los módulos con memcheck. |
+| `make base2-helgrind` | Compila y ejecuta los módulos con helgrind. |
 | `make pcp` | Compila y ejecuta los módulos. |
 | `make pcp-memcheck` | Compila y ejecuta los módulos con memcheck. |
 | `make pcp-helgrind` | Compila y ejecuta los módulos con helgrind. |
 | `make mem` | Compila y ejecuta los módulos. |
 | `make mem-memcheck` | Compila y ejecuta los módulos con memcheck. |
 | `make mem-helgrind` | Compila y ejecuta los módulos con helgrind. |
-| `make mem` | Compila y ejecuta los módulos. |
-| `make mem-memcheck` | Compila y ejecuta los módulos con memcheck. |
-| `make mem-helgrind` | Compila y ejecuta los módulos con helgrind. |
+| `make mem2` | Compila y ejecuta los módulos. |
+| `make mem2-memcheck` | Compila y ejecuta los módulos con memcheck. |
+| `make mem2-helgrind` | Compila y ejecuta los módulos con helgrind. |
 | `make pmp` | Compila y ejecuta los módulos. |
 | `make pmp-memcheck` | Compila y ejecuta los módulos con memcheck. |
 | `make pmp-helgrind` | Compila y ejecuta los módulos con helgrind. |
