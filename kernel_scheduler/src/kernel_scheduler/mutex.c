@@ -197,6 +197,7 @@ static int mutex_lock(t_mutex* mutex, t_pcb* pcb)
     {
       reemplazar_prioridad(mutex->proceso_actual, mutex->prioridad_siguiente,
                            prioridad_pcb, mutex->colas);
+      mutex->prioridad_siguiente = prioridad_pcb;
     }
     cambio_exec_block(pcb, mutex->colas);
   }

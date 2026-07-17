@@ -256,6 +256,11 @@ bool puedo_suspender(t_pcb* pcb, int suspension_timeout)
 
 void actualizar_prioridad(t_pcb* pcb, t_colas* colas)
 {
+  if (!colas->ready.cola_multi_nivel)
+  {
+    return;
+  }
+
   pthread_mutex_lock(&(pcb->mutex_estado));
   if (pcb->estado == EST_READY)
   {
