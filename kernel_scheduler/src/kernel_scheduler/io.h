@@ -55,7 +55,7 @@ typedef struct
 
 t_io* crear_estructuras_io(void);
 bool atender_nuevo_io(t_io io[3], int socket_fd, t_colas* colas,
-                      bool prioridad_activa);
+                      bool prioridad_activa, int socket_server);
 bool procesar_nuevo_io(void* peticion, t_io* io, t_pcb* pcb);
 void cerrar_io(t_io* io);
 

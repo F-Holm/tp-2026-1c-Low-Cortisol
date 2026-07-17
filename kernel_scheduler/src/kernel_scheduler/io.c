@@ -51,7 +51,7 @@ t_io* crear_estructuras_io(void)
 }
 
 bool atender_nuevo_io(t_io io[3], int socket_fd, t_colas* colas,
-                      bool prioridad_activa)
+                      bool prioridad_activa, int socket_server)
 {
   if (!responder_handshake(socket_fd, MID_KERNEL_SCHEDULER, colas->logger))
     return false;
@@ -70,6 +70,7 @@ bool atender_nuevo_io(t_io io[3], int socket_fd, t_colas* colas,
   // Preparo el t_io para crear el hilo
   io[tipo_io].socket_io = socket_fd;
   io[tipo_io].proceso_actual = NULL;
+  io[tipo_io].socket_server = socket_server;
   pthread_mutex_init(&(io[tipo_io].mutex_fin), NULL);
   pthread_cond_init(&(io[tipo_io].nuevo_proceso), NULL);
   io[tipo_io].colas = colas;
