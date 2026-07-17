@@ -1494,7 +1494,7 @@ static void des_suspender_proceso(t_colas* colas,
   pthread_mutex_unlock(&(datos->datos->mutex_estado));
   pthread_mutex_lock(&(proceso->mutex_estado));
 
-  bool exitoso;
+  bool exitoso = false;
   if (proceso->estado == EST_BLOCK)
   {
     exitoso = cambio_susp_ready_ready_sin_mutex(proceso, colas);
