@@ -70,7 +70,7 @@ t_bool_extendido handler_mov_in(t_cpu* cpu, t_contexto* contexto,
       mmu(cpu, contexto, contexto->registros->SI, sizeof(uint32_t), pid);
 
   if (dir_fisica == DIR_INVALIDA)
-    return BE_TRUE;
+    return BE_FALSE;
   else if (dir_fisica == DIR_INVALIDA - 1)
     return BE_ERROR;
 
@@ -98,7 +98,7 @@ t_bool_extendido handler_mov_out(t_cpu* cpu, t_contexto* contexto,
       mmu(cpu, contexto, contexto->registros->DI, sizeof(uint32_t), pid);
 
   if (dir_fisica == DIR_INVALIDA)
-    return BE_TRUE;
+    return BE_FALSE;
   else if (dir_fisica == DIR_INVALIDA - 1)
     return BE_ERROR;
 
@@ -121,7 +121,7 @@ t_bool_extendido handler_copy_mem(t_cpu* cpu, t_contexto* contexto,
   uint32_t direccion_SI =
       mmu(cpu, contexto, contexto->registros->SI, sizeof(uint32_t), pid);
   if (direccion_SI == DIR_INVALIDA)
-    return BE_TRUE;
+    return BE_FALSE;
   else if (direccion_SI == DIR_INVALIDA - 1)
     return BE_ERROR;
 
