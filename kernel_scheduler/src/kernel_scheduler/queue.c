@@ -1684,7 +1684,7 @@ static int recibir_espacio(t_colas* colas)
       espacio = *aux;
       free(aux);
       logger_info(colas->logger, "Espacio disponible: %d", espacio);
-      break;
+      return espacio;
     case OP_NUEVO_MEMORY_STICK:
       free(recibir_string(colas->socket_km->socket_km));
       crear_hilo_rutina_des_suspension(colas);

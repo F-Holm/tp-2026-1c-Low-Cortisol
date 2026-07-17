@@ -79,7 +79,7 @@ bool escuchar_kernel_memory(t_cpu* cpu)
         if (!conectar_memory_stick(cpu))
           return false;
         break;
-      
+
       case OP_CODE_ERROR:
         log_error(cpu->logger, "## Kernel Memory desconectado");
         return false;

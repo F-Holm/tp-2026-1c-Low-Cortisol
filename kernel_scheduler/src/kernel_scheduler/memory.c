@@ -11,6 +11,7 @@ bool allocate_memory(t_syscall_memory* mem_alloc, t_colas* colas)
   pthread_mutex_lock(&(colas->socket_km->mutex_socket));
   if (!hay_espacio(mem_alloc, colas))
   {
+    logger_info(colas->logger, "No Hay espacio suficiente");
     pthread_mutex_unlock(&(colas->socket_km->mutex_socket));
     return false;
   }
