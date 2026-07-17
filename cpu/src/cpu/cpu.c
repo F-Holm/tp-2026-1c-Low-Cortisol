@@ -79,6 +79,10 @@ bool escuchar_kernel_memory(t_cpu* cpu)
         if (!conectar_memory_stick(cpu))
           return false;
         break;
+      
+      case OP_CODE_ERROR:
+        log_error(cpu->logger, "## Kernel Memory desconectado");
+        return false;
 
       default:
         log_error(cpu->logger, "## Codigo de operacion no reconocido: %d",
@@ -149,7 +153,7 @@ uint32_t recibir_pid_kernel_scheduler(t_cpu* cpu)
   }
   else if (codigo_operacion == 0)
   {
-    log_info(cpu->logger, "Scheduler desconectado, cerrarndo modulo");
+    log_info(cpu->logger, "Scheduler desconectado, cerrando modulo");
   }
   else
   {
