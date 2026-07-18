@@ -57,6 +57,8 @@ execute: logs $(BUILD_TARGET)
 	
 	$(VALGRIND_CMD) ./kernel_memory/bin/kernel_memory ./kernel_memory/kernel_memory.config > ./output/kernel_memory.log 2>&1 &
 	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./swap/bin/swap ./swap/swap.config > ./output/swap.log 2>&1 &
+	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./kernel_scheduler/bin/kernel_scheduler ./kernel_scheduler/kernel_scheduler.config proceso_inicial.asm > ./output/kernel_scheduler.log 2>&1 &
 	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/memory_stick.config 1000 > ./output/memory_stick_1.log 2>&1 &
@@ -64,8 +66,6 @@ execute: logs $(BUILD_TARGET)
 	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/memory_stick.config 2000 > ./output/memory_stick_2.log 2>&1 &
 	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/memory_stick.config 3000 > ./output/memory_stick_3.log 2>&1 &
-	@sleep $(SLEEP_TIME)
-	$(VALGRIND_CMD) ./swap/bin/swap ./swap/swap.config > ./output/swap.log 2>&1 &
 	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./io/bin/io ./io/io.config SLEEP > ./output/io_sleep.log 2>&1 &
 	@sleep $(SLEEP_TIME)
@@ -108,11 +108,11 @@ executebase: logs $(BUILD_TARGET)
 	
 	$(VALGRIND_CMD) ./kernel_memory/bin/kernel_memory ./kernel_memory/configs/base.config > ./output/kernel_memory.log 2>&1 &
 	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./swap/bin/swap ./swap/swap.config > ./output/swap.log 2>&1 &
+	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./kernel_scheduler/bin/kernel_scheduler ./kernel_scheduler/configs/base.config PLANI_PRE_0.prc > ./output/kernel_scheduler.log 2>&1 &
 	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/base_256.config 256 > ./output/memory_stick_1.log 2>&1 &
-	@sleep $(SLEEP_TIME)
-	$(VALGRIND_CMD) ./swap/bin/swap ./swap/swap.config > ./output/swap.log 2>&1 &
 	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./io/bin/io ./io/io.config SLEEP > ./output/io_sleep.log 2>&1 &
 	@sleep $(SLEEP_TIME)
@@ -145,11 +145,11 @@ executebase2: logs $(BUILD_TARGET)
 	
 	$(VALGRIND_CMD) ./kernel_memory/bin/kernel_memory ./kernel_memory/configs/base.config > ./output/kernel_memory.log 2>&1 &
 	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./swap/bin/swap ./swap/swap.config > ./output/swap.log 2>&1 &
+	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./kernel_scheduler/bin/kernel_scheduler ./kernel_scheduler/configs/base.config MEMORIA_PRE_0.prc > ./output/kernel_scheduler.log 2>&1 &
 	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/base_256.config 256 > ./output/memory_stick_1.log 2>&1 &
-	@sleep $(SLEEP_TIME)
-	$(VALGRIND_CMD) ./swap/bin/swap ./swap/swap.config > ./output/swap.log 2>&1 &
 	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./io/bin/io ./io/io.config SLEEP > ./output/io_sleep.log 2>&1 &
 	@sleep $(SLEEP_TIME)
@@ -182,11 +182,11 @@ executepcp: logs $(BUILD_TARGET)
 	
 	$(VALGRIND_CMD) ./kernel_memory/bin/kernel_memory ./kernel_memory/configs/pcp.config > ./output/kernel_memory.log 2>&1 &
 	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./swap/bin/swap ./swap/swap.config > ./output/swap.log 2>&1 &
+	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./kernel_scheduler/bin/kernel_scheduler ./kernel_scheduler/configs/pcp.config PCP.prc > ./output/kernel_scheduler.log 2>&1 &
 	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/pcp_256.config 256 > ./output/memory_stick_1.log 2>&1 &
-	@sleep $(SLEEP_TIME)
-	$(VALGRIND_CMD) ./swap/bin/swap ./swap/swap.config > ./output/swap.log 2>&1 &
 	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./io/bin/io ./io/io.config SLEEP > ./output/io_sleep.log 2>&1 &
 	@sleep $(SLEEP_TIME)
@@ -219,6 +219,8 @@ executemem: logs $(BUILD_TARGET)
 	
 	$(VALGRIND_CMD) ./kernel_memory/bin/kernel_memory ./kernel_memory/configs/mem_best.config > ./output/kernel_memory.log 2>&1 &
 	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./swap/bin/swap ./swap/swap.config > ./output/swap.log 2>&1 &
+	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./kernel_scheduler/bin/kernel_scheduler ./kernel_scheduler/configs/mem.config PLANI_MEM.prc > ./output/kernel_scheduler.log 2>&1 &
 	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/mem_16.config 16 > ./output/memory_stick_1.log 2>&1 &
@@ -228,8 +230,6 @@ executemem: logs $(BUILD_TARGET)
 	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/mem_64.config 64 > ./output/memory_stick_3.log 2>&1 &
 	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/mem_128.config 128 > ./output/memory_stick_4.log 2>&1 &
-	@sleep $(SLEEP_TIME)
-	$(VALGRIND_CMD) ./swap/bin/swap ./swap/swap.config > ./output/swap.log 2>&1 &
 	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./io/bin/io ./io/io.config SLEEP > ./output/io_sleep.log 2>&1 &
 	@sleep $(SLEEP_TIME)
@@ -262,6 +262,8 @@ executemem2: logs $(BUILD_TARGET)
 	
 	$(VALGRIND_CMD) ./kernel_memory/bin/kernel_memory ./kernel_memory/configs/mem_worst.config > ./output/kernel_memory.log 2>&1 &
 	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./swap/bin/swap ./swap/swap.config > ./output/swap.log 2>&1 &
+	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./kernel_scheduler/bin/kernel_scheduler ./kernel_scheduler/configs/mem.config PLANI_MEM.prc > ./output/kernel_scheduler.log 2>&1 &
 	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/mem_16.config 16 > ./output/memory_stick_1.log 2>&1 &
@@ -271,8 +273,6 @@ executemem2: logs $(BUILD_TARGET)
 	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/mem_64.config 64 > ./output/memory_stick_3.log 2>&1 &
 	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/mem_128.config 128 > ./output/memory_stick_4.log 2>&1 &
-	@sleep $(SLEEP_TIME)
-	$(VALGRIND_CMD) ./swap/bin/swap ./swap/swap.config > ./output/swap.log 2>&1 &
 	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./io/bin/io ./io/io.config SLEEP > ./output/io_sleep.log 2>&1 &
 	@sleep $(SLEEP_TIME)
@@ -305,6 +305,8 @@ executepmp: logs $(BUILD_TARGET)
 	
 	$(VALGRIND_CMD) ./kernel_memory/bin/kernel_memory ./kernel_memory/configs/pmp.config > ./output/kernel_memory.log 2>&1 &
 	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./swap/bin/swap ./swap/swap.config > ./output/swap.log 2>&1 &
+	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./kernel_scheduler/bin/kernel_scheduler ./kernel_scheduler/configs/pmp.config PMP.prc > ./output/kernel_scheduler.log 2>&1 &
 	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/pmp_16_1.config 16 > ./output/memory_stick_1.log 2>&1 &
@@ -314,8 +316,6 @@ executepmp: logs $(BUILD_TARGET)
 	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/pmp_32.config 32 > ./output/memory_stick_3.log 2>&1 &
 	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/pmp_64.config 64 > ./output/memory_stick_4.log 2>&1 &
-	@sleep $(SLEEP_TIME)
-	$(VALGRIND_CMD) ./swap/bin/swap ./swap/swap.config > ./output/swap.log 2>&1 &
 	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./io/bin/io ./io/io.config SLEEP > ./output/io_sleep.log 2>&1 &
 	@sleep $(SLEEP_TIME)
@@ -348,13 +348,13 @@ executephp: logs $(BUILD_TARGET)
 	
 	$(VALGRIND_CMD) ./kernel_memory/bin/kernel_memory ./kernel_memory/configs/php.config > ./output/kernel_memory.log 2>&1 &
 	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./swap/bin/swap ./swap/swap.config > ./output/swap.log 2>&1 &
+	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./kernel_scheduler/bin/kernel_scheduler ./kernel_scheduler/configs/php.config PHP.prc > ./output/kernel_scheduler.log 2>&1 &
 	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/php_16_1.config 16 > ./output/memory_stick_1.log 2>&1 &
 	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/php_16_2.config 16 > ./output/memory_stick_2.log 2>&1 &
-	@sleep $(SLEEP_TIME)
-	$(VALGRIND_CMD) ./swap/bin/swap ./swap/swap.config > ./output/swap.log 2>&1 &
 	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./io/bin/io ./io/io.config SLEEP > ./output/io_sleep.log 2>&1 &
 	@sleep $(SLEEP_TIME)
