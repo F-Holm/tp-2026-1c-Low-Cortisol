@@ -165,12 +165,83 @@ void suspender_proceso(t_proceso* proceso_a_suspender,
 
 // DES-SUSPENDER PROCESO
 
+static bool puede_des_suspender(uint32_t pid,
+                                t_datos_scheduler* datos_scheduler)
+{
+  int tamanio_proceso = 0;
+  t_list* bloques = datos_scheduler->datos_swap->lista_bloques;
+  for (int i = 0; i < list_size(bloques); i++)
+  {
+    t_datos_bloque* bloque = list_get(bloques, i);
+    if (bloque->pid == pid && bloque->num_bloque_del_segmento == 0)
+    {
+      tamanio_proceso += bloque->tamanio_segmento;
+    }
+  }
+  pthread_mutex_lock(
+      datos_scheduler->memoria_principal->mutex_memoria_principal);
+  int espacio_libre = calcular_espacio_libre(
+      datos_scheduler->memoria_principal->huecos,
+      datos_scheduler->memoria_principal->mutex_memoria_principal,
+      datos_scheduler->logger);
+  pthread_mutex_unlock(
+      datos_scheduler->memoria_principal->mutex_memoria_principal);
+  logger_info(
+      datos_scheduler->logger,
+      "PID %u: tamanio requerido para des-suspender %d, espacio libre %d", pid,
+      tamanio_proceso, espacio_libre);
+  return tamanio_proceso <= espacio_libre;
+}
+
+static bool regenerar_segmento(uint32_t id, uint32_t pid, int size,
+                               t_memoria_principal* memoria_principal,
+                               int socket_scheduler, t_logger* logger)
+{
+  // Chequeo de cantidad de memoria disponible
+  pthread_mutex_lock(memoria_principal->mutex_memoria_principal);
+  if (calcular_espacio_libre(memoria_principal->huecos,
+                             memoria_principal->mutex_memoria_principal,
+                             logger) < size)
+  {
+    logger_info(logger, "No hay espacio suficiente para regenerar el segmento");
+    enviar_string(OP_DES_SUSPENSION_NO_EXITOSA, "No hay memoria suficiente",
+                  socket_scheduler);
+    pthread_mutex_unlock(memoria_principal->mutex_memoria_principal);
+    return false;
+  }
+  else
+  {
+    logger_info(logger, "Regenerando segmento con id %u, pid %u y tamaño %d",
+                id, pid, size);
+    t_hueco hueco_elegido = selector_de_huecos(size, logger, memoria_principal);
+
+    // Chequeo de compactación
+    if (hueco_elegido.size == -1)
+    {
+      logger_error(logger, "## No se pudo asignar ningun hueco.");
+      enviar_string(OP_DES_SUSPENSION_NO_EXITOSA,
+                    "No se pudieron asignar huecos.", socket_scheduler);
+      return false;
+    }
+    actualizar_lista_segmentos(memoria_principal, hueco_elegido, size, pid, id);
+    pthread_mutex_unlock(memoria_principal->mutex_memoria_principal);
+    logger_info(logger, "## PID: %u - Segmento Regenerado %u - Tamaño: %d", pid,
+                id, size);
+    return true;
+  }
+}
+
 static char* leer_bloque_en_swap(int num_bloque, t_datos_swap* swap)
 {
   enviar_buffer(OP_LEER_DISCO, &num_bloque, sizeof(int), swap->socket_swap);
   int a;
   char* contenido_leido = (char*)recibir_buffer(&a, swap->socket_swap);
-  return contenido_leido;
+  //Agrega el \0 por si el bloque estaba lleno y no tenia 0 al final
+  char* contenido_terminado = malloc(a + 1);
+  memcpy(contenido_terminado, contenido_leido, a);
+  contenido_terminado[a] = '\0';
+  free(contenido_leido);
+  return contenido_terminado;
 }
 
 static int quitar_bloque_lista_swap(int num_bloque, t_datos_swap* datos_swap,
@@ -208,6 +279,14 @@ void des_suspender_proceso(uint32_t pid, t_datos_scheduler* datos_scheduler)
 {
   int tamanio_bloque = datos_scheduler->datos_swap->tamanio_bloque;
   bool proceso_encontrado = false;
+  if (!puede_des_suspender(pid, datos_scheduler))
+  {
+    logger_info(datos_scheduler->logger,
+                "No se pudo suspender porque el proceso no cabe en la memoria");
+    enviar_string(OP_DES_SUSPENSION_NO_EXITOSA, "El proceso no cabe en memoria",
+                  datos_scheduler->socket_scheduler);
+    return;
+  }
   t_list_iterator* iterador =
       list_iterator_create(datos_scheduler->datos_swap->lista_bloques);
   while (list_iterator_has_next(iterador))
@@ -219,10 +298,17 @@ void des_suspender_proceso(uint32_t pid, t_datos_scheduler* datos_scheduler)
        * orden por la logica de la funcion seleccionar_bloque_libre */
       proceso_encontrado = true;
       if (bloque->num_bloque_del_segmento == 0)
-        crear_segmento(bloque->num_segmento, pid, bloque->tamanio_segmento,
-                       datos_scheduler->memoria_principal,
-                       datos_scheduler->socket_scheduler,
-                       datos_scheduler->logger);
+      {
+        bool regeneracion_exitosa = regenerar_segmento(
+            bloque->num_segmento, pid, bloque->tamanio_segmento,
+            datos_scheduler->memoria_principal,
+            datos_scheduler->socket_scheduler, datos_scheduler->logger);
+        if (!regeneracion_exitosa)
+        {
+          list_iterator_destroy(iterador);
+          return;
+        }
+      }
       char* contenido =
           leer_bloque_en_swap(bloque->num_bloque, datos_scheduler->datos_swap);
       int direccion_a_escribir = calcular_direccion_con_offset(

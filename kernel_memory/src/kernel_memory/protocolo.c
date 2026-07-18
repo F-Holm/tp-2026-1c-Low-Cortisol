@@ -277,7 +277,7 @@ static void actualizar_tabla_huecos(t_memoria_principal* memoria_principal,
   list_iterator_destroy(iterador);
 }
 
-static t_hueco selector_de_huecos(uint32_t tamanio, t_logger* logger,
+t_hueco selector_de_huecos(uint32_t tamanio, t_logger* logger,
                                   t_memoria_principal* memoria)
 {
   t_hueco hueco_elegido = {-1, -1};
@@ -297,7 +297,7 @@ static t_hueco selector_de_huecos(uint32_t tamanio, t_logger* logger,
   return hueco_elegido;
 }
 
-static void actualizar_lista_segmentos(t_memoria_principal* memoria_principal,
+void actualizar_lista_segmentos(t_memoria_principal* memoria_principal,
                                        t_hueco hueco_elegido, int tamanio,
                                        uint32_t pid, uint32_t id)
 {
