@@ -127,6 +127,7 @@ bool solicitar_lectura_MS(t_cpu* cpu, t_memory_stick_info* stick,
   if (!enviar_paquete(paquete, stick->socket_MS))
   {
     log_error(cpu->logger, "## Error en el envio de la lectura al MS");
+    avisar_bsod(cpu);
     return false;
   }
   log_info(cpu->logger, "Lectura solicitada correctamente al MS");
@@ -146,6 +147,8 @@ char* confirmacion_letura_MS(t_cpu* cpu, t_memory_stick_info* stick)
   {
     log_error(cpu->logger,
               "## No se recibi la respuesta de lectura correctamente");
+
+    avisar_bsod(cpu);
     return NULL;
   }
 }
@@ -198,6 +201,7 @@ bool solicitar_escritura_MS(t_cpu* cpu, t_memory_stick_info* stick,
   if (!enviar_paquete(paquete, stick->socket_MS))
   {
     log_error(cpu->logger, "## Error en el envio de la escritura al MS");
+    avisar_bsod(cpu);
     eliminar_paquete(paquete);
     return false;
   }
@@ -214,6 +218,12 @@ bool confirmacion_escritura_MS(t_cpu* cpu, t_memory_stick_info* stick)
   {
     log_info(cpu->logger, "Escritura realizada");
     return true;
+  }
+  else if (codigo_op == OP_CODE_ERROR)
+  {
+    log_error(cpu->logger, "## MS desconectado");
+    avisar_bsod(cpu);
+    return false;
   }
   log_error(cpu->logger,
             "No se recibió la respuesta de escritura correctamente");

@@ -158,3 +158,10 @@ bool handshake_memory_stick(t_cpu* cpu, int nuevo_socket)
 
   return true;
 }
+
+void avisar_bsod(t_cpu* cpu)
+{
+  if (!enviar_string(OP_STICK_DESCONECTADO, "MS desconectado",
+                     cpu->socket_kernel_memory))
+    log_info(cpu->logger, "Kernel Memory desconectado");
+}
