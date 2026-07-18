@@ -42,7 +42,8 @@ typedef enum
 {
   BE_FALSE,
   BE_TRUE,
-  BE_ERROR
+  BE_ERROR,
+  BE_SIN_TABLA
 } t_bool_extendido;
 
 bool recibir_tamanio_maximo_segmento(t_cpu* cpu);

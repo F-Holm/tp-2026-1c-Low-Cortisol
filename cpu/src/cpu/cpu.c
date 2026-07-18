@@ -239,9 +239,7 @@ bool ejecutar_ciclo_instruccion(t_cpu* cpu, uint32_t pid, t_contexto* contexto)
       return false;
     }
 
-    seguir = interrupt;
-
-    if (contexto->cambio_segmento == true)
+    if (contexto->cambio_segmento && interrupt != BE_SIN_TABLA)
     {
       if (!actualizar_tabla_segmentos(cpu, pid, contexto))
       {
@@ -252,6 +250,13 @@ bool ejecutar_ciclo_instruccion(t_cpu* cpu, uint32_t pid, t_contexto* contexto)
       contexto->cambio_segmento = false;
     }
 
+    seguir = interrupt;
+
+    if (interrupt == BE_SIN_TABLA)
+    {
+      contexto->cambio_segmento = false;
+      seguir = false;
+    }
     destruir_instruccion(instruccion);
   }
   return enviar_contexto_actualizado(cpu, pid, contexto->registros);
@@ -332,8 +337,13 @@ t_bool_extendido check_interrupt(t_cpu* cpu, uint32_t pid)
   {
     log_info(cpu->logger, "Interrupción recibida");
     char* interrucpcion_recibida = recibir_string(cpu->socket_kernel_scheduler);
-    log_info(cpu->logger, "Razon de la interrupcion: %s",
+    log_info(cpu->logger, "Razon de la interrupcion: %s ",
              interrucpcion_recibida);
+
+    if ((strcmp(interrucpcion_recibida,
+                "no hay memoria suficiente para esa instrucción")) == 0)
+      return BE_SIN_TABLA;
+
     free(interrucpcion_recibida);
     return BE_FALSE;
   }
