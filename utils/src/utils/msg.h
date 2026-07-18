@@ -88,7 +88,8 @@ typedef enum
   OP_LEER_DISCO,
   OP_DISCO_ESCRITO,
   OP_DISCO_LEIDO,
-  OP_PROCESO_INICIADO
+  OP_PROCESO_INICIADO,
+  OP_STICK_DESCONECTADO
 } t_op_code;
 
 typedef struct
