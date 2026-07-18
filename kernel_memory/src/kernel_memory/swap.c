@@ -73,6 +73,12 @@ void eliminar_segmentos_del_proceso(t_list* segmentos_a_eliminar, uint32_t pid,
 void suspender_proceso(t_proceso* proceso_a_suspender,
                        t_datos_scheduler* datos_scheduler)
 {
+  if (proceso_a_suspender == NULL) {
+    logger_error(datos_scheduler->logger,
+              "suspender_proceso recibió un proceso NULL");
+    return;
+  }
+  
   int tamanio_bloque = datos_scheduler->datos_swap->tamanio_bloque;
   bool proceso_suspendido = false;
   t_list* segmentos_a_eliminar = list_create();

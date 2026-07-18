@@ -228,6 +228,8 @@ void* escucha_scheduler(void* ptr)
             (uint32_t*)recibir_buffer(&a, datos_scheduler->socket_scheduler);
         t_proceso* proceso_a_suspender = buscar_proceso(
             datos_scheduler->procesos, datos_scheduler->mutex_procesos, *pid);
+        logger_info(datos_scheduler->logger, "PID recibido: %u", *pid);
+        
         suspender_proceso(proceso_a_suspender, datos_scheduler);
         free(pid);
         break;
@@ -246,7 +248,7 @@ void* escucha_scheduler(void* ptr)
       case OP_CIERRE_KERNEL_SCHEDULER:
       {
         logger_info(datos_scheduler->logger,
-                    "Llego una solicitud de cerrar comunicaciones");
+                    "Llego una solicitud de cerrar comunicaciones");  
         conexion_estable = false;
         break;
       }
