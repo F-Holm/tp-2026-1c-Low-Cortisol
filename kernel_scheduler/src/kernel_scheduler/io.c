@@ -133,7 +133,9 @@ void cerrar_io(t_io* io)
       io[i].cerrar_hilo = true;
       pthread_mutex_unlock(&(io[i].mutex_fin));
       shutdown(io[i].socket_io, SHUT_RDWR);
+      pthread_mutex_lock(&(io[i].lista_io->mutex_lista_io));
       pthread_cond_signal(&(io[i].nuevo_proceso));
+      pthread_mutex_unlock(&(io[i].lista_io->mutex_lista_io));
       pthread_join(io[i].hilo_io, NULL);
       close(io[i].socket_io);
       destruir_io(&(io[i]));
