@@ -269,6 +269,10 @@ void* escucha_scheduler(void* ptr)
   logger_info(datos_scheduler->logger, "Cierre de escucha del scheduler");
   enviar_string(OP_MEMORIA_CORRUPTA, "Cierre de kernel",
                 datos_scheduler->socket_scheduler);
+  pthread_mutex_lock(datos_scheduler->mutex_hilos_activos);
+  (*datos_scheduler->hilos_activos)--;
+  pthread_cond_signal(datos_scheduler->cond_hilos_activos);
+  pthread_mutex_unlock(datos_scheduler->mutex_hilos_activos);
   liberar_datos_scheduler(datos_scheduler);
   return NULL;
 }
@@ -391,6 +395,10 @@ void* escucha_cpu(void* ptr)
     }
   }
   cerrar_cpu(datos_cpu);
+  pthread_mutex_lock(datos_cpu->mutex_hilos_activos);
+  (*datos_cpu->hilos_activos)--;
+  pthread_cond_signal(datos_cpu->cond_hilos_activos);
+  pthread_mutex_unlock(datos_cpu->mutex_hilos_activos);
   return NULL;
 }
 

@@ -278,7 +278,7 @@ static void actualizar_tabla_huecos(t_memoria_principal* memoria_principal,
 }
 
 t_hueco selector_de_huecos(uint32_t tamanio, t_logger* logger,
-                                  t_memoria_principal* memoria)
+                           t_memoria_principal* memoria)
 {
   t_hueco hueco_elegido = {-1, -1};
   if (memoria->allocation_strategy == BEST)
@@ -298,8 +298,8 @@ t_hueco selector_de_huecos(uint32_t tamanio, t_logger* logger,
 }
 
 void actualizar_lista_segmentos(t_memoria_principal* memoria_principal,
-                                       t_hueco hueco_elegido, int tamanio,
-                                       uint32_t pid, uint32_t id)
+                                t_hueco hueco_elegido, int tamanio,
+                                uint32_t pid, uint32_t id)
 {
   t_segmento* segmento = malloc(sizeof(t_segmento));
   segmento->base = hueco_elegido.base;

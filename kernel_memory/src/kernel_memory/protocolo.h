@@ -72,7 +72,7 @@ bool escribir_en_sticks(int pid, int dir_fisica, int tamanio_a_leer,
                         int socket_scheduler);
 t_segmento* buscar_segmento(t_memoria_principal* memoria_principal,
                             uint32_t pid, uint32_t num_segmento);
-                            t_hueco selector_de_huecos(uint32_t tamanio, t_logger* logger,
+t_hueco selector_de_huecos(uint32_t tamanio, t_logger* logger,
                            t_memoria_principal* memoria);
 void actualizar_lista_segmentos(t_memoria_principal* memoria_principal,
                                 t_hueco hueco_elegido, int tamanio,

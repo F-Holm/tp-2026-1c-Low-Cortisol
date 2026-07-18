@@ -25,7 +25,13 @@ bool handshake(t_datos_kernel_mem* datos_kernel_memory, int client_socket)
           datos_kernel_memory->memoria_principal,
           datos_kernel_memory->sticks_conectados,
           datos_kernel_memory->mutex_lista_sockets,
-          datos_kernel_memory->datos_swap, datos_kernel_memory->logger);
+          datos_kernel_memory->datos_swap, datos_kernel_memory->logger,
+          &datos_kernel_memory->hilos_activos,
+          datos_kernel_memory->mutex_hilos_activos,
+          datos_kernel_memory->cond_hilos_activos);
+      pthread_mutex_lock(datos_kernel_memory->mutex_hilos_activos);
+      datos_kernel_memory->hilos_activos++;
+      pthread_mutex_unlock(datos_kernel_memory->mutex_hilos_activos);
       datos_kernel_memory->socket_scheduler = client_socket;
       empezar_escucha_scheduler(datos_scheduler);
     }
@@ -45,7 +51,10 @@ bool handshake(t_datos_kernel_mem* datos_kernel_memory, int client_socket)
           client_socket, datos_kernel_memory->procesos,
           datos_kernel_memory->mutex_procesos,
           datos_kernel_memory->instruction_delay,
-          datos_kernel_memory->memoria_principal, datos_kernel_memory->logger);
+          datos_kernel_memory->memoria_principal, datos_kernel_memory->logger,
+          &datos_kernel_memory->hilos_activos,
+          datos_kernel_memory->mutex_hilos_activos,
+          datos_kernel_memory->cond_hilos_activos);
       inicializar_correcto = recibir_id_cpu(datos_cpu);
       enviar_buffer(OP_TAMANIO_MAX_SEG, &datos_kernel_memory->segment_max_size,
                     sizeof(int), datos_cpu->socket_cpu);
@@ -55,7 +64,9 @@ bool handshake(t_datos_kernel_mem* datos_kernel_memory, int client_socket)
         enviar_sticks_conectadas(datos_kernel_memory->sticks_conectados,
                                  datos_kernel_memory->mutex_lista_sockets,
                                  datos_cpu);
-
+        pthread_mutex_lock(datos_kernel_memory->mutex_hilos_activos);
+        datos_kernel_memory->hilos_activos++;
+        pthread_mutex_unlock(datos_kernel_memory->mutex_hilos_activos);
         empezar_escucha_cpu(datos_cpu);
       }
       else
