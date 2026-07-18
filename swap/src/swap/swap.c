@@ -68,7 +68,7 @@ bool iniciar_conexion(t_modulo_swap* datos_swap, t_config* config)
     cerrar_todo(datos_swap, config);
     return false;
   }
-  logger_info(datos_swap->logger, "## Handshake exitoso con Kernel Memory");
+  logger_info(datos_swap->logger, "Handshake exitoso con Kernel Memory");
 
   // Envio a memory el tamaño del swap y el tamaño de bloque
   t_envio_a_km* envio_km = malloc(sizeof(t_envio_a_km));

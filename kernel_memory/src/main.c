@@ -32,7 +32,7 @@ int main(int argc, char* argv[])
       socket_kernel_memory, scripts_basepath, instruction_delay,
       compaction_delay, segment_max_size, allocation_strategy, logger);
 
-  logger_info(logger, "## Kernel Memory Iniciado ");
+  logger_info(logger, "Kernel Memory Iniciado ");
   bool conexion_estable = true;
   while (conexion_estable)
   {

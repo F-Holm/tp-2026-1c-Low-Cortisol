@@ -92,6 +92,11 @@ void* escucha_scheduler(void* ptr)
           list_destroy_and_destroy_elements(paquete_stdin, free);
           break;
         }
+        logger_info(datos_scheduler->logger,
+                    "## PID: %u - Escritura - "
+                    "Dir. Fisica: %u - Tamaño: %d",
+                    peticion_stdout->pid, dir_fisica,
+                    peticion_stdout->tamanio_a_escribir);
         if (!escribir_en_sticks(
                 peticion_stdin->pid, dir_fisica, peticion_stdin->tamanio_a_leer,
                 string_escribir, datos_scheduler->sticks_conectados,
@@ -116,16 +121,15 @@ void* escucha_scheduler(void* ptr)
         int size;
         t_peticion_stdout* peticion_stdout = (t_peticion_stdout*)recibir_buffer(
             &size, datos_scheduler->socket_scheduler);
-        logger_info(datos_scheduler->logger,
-                    "## PID: %u - Petición de lectura de STDOUT - "
-                    "Dirección lógica: %u - Tamaño a leer: %d",
-                    peticion_stdout->pid, peticion_stdout->direccion_logica,
-                    peticion_stdout->tamanio_a_escribir);
         int dir_fisica = traducir_direccion_logica(
             peticion_stdout->pid, peticion_stdout->direccion_logica,
             peticion_stdout->tamanio_a_escribir,
             datos_scheduler->memoria_principal, datos_scheduler->logger);
-
+        logger_info(datos_scheduler->logger,
+                    "## PID: %u - Lectura - "
+                    "Dir. Fisica: %u - Tamaño: %d",
+                    peticion_stdout->pid, dir_fisica,
+                    peticion_stdout->tamanio_a_escribir);
         if (dir_fisica == -1)
         {
           enviar_string(OP_RESPUESTA_STDOUT, "Segmentation Fault",
@@ -309,7 +313,7 @@ void* escucha_cpu(void* ptr)
           free(pid);
           break;
         }
-        logger_info(datos_cpu->logger, "## PID: %d - Obtener registro", *pid);
+        logger_info(datos_cpu->logger, "PID: %d - Obtener registro", *pid);
         logger_info(datos_cpu->logger, "delay de la instruccion %d",
                     datos_cpu->instruction_delay);
         usleep(datos_cpu->instruction_delay * 1000);

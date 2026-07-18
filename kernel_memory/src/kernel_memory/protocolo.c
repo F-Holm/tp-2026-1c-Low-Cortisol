@@ -55,7 +55,7 @@ bool recibir_puerto_escucha_stick(t_datos_stick* datos_stick)
   if (recibir_operacion(datos_stick->socket_stick) == OP_PUERTO)
   {
     char* puerto = recibir_string(datos_stick->socket_stick);
-    logger_info(datos_stick->logger, "## Puerto de Memory Stick recibido %s",
+    logger_info(datos_stick->logger, "Puerto de Memory Stick recibido %s",
                 puerto);
     datos_stick->puerto_stick = atoi(puerto);
     free(puerto);

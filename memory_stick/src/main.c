@@ -42,7 +42,7 @@ int main(int argc, char* argv[])
     {
       case OP_MEMORY_STICK_LEER:
       {
-        logger_info(ms_recursos.logger, "## Recibiendo instrucción de lectura");
+        logger_info(ms_recursos.logger, "Recibiendo instrucción de lectura");
         t_list* paquete = recibir_paquete(ms_recursos.socket_km);
         if (list_size(paquete) != 2)
         {
@@ -55,7 +55,7 @@ int main(int argc, char* argv[])
         int cantidad_bytes = *(int*)list_get(paquete, 1);
         leer_memoria(&ms_recursos, posicion_inicial, cantidad_bytes,
                      ms_recursos.socket_km);
-        logger_info(ms_recursos.logger, "## Lectura  de %d bytes",
+        logger_info(ms_recursos.logger, "## Lectura de %d bytes",
                     cantidad_bytes);
         list_destroy_and_destroy_elements(paquete, free);
         break;
@@ -63,7 +63,7 @@ int main(int argc, char* argv[])
       case OP_MEMORY_STICK_ESCRIBIR:
       {
         logger_info(ms_recursos.logger,
-                    "## Recibiendo instrucción de escritura");
+                    "Recibiendo instrucción de escritura");
         t_list* paquete = recibir_paquete(ms_recursos.socket_km);
         if (list_size(paquete) != 3)
         {
@@ -82,7 +82,7 @@ int main(int argc, char* argv[])
                     cantidad_bytes, posicion_inicial);
         escribir_memoria(&ms_recursos, posicion_inicial, bytes_a_escribir,
                          cantidad_bytes, ms_recursos.socket_km);
-        logger_info(ms_recursos.logger, "## Escritura de %d bytes realizada",
+        logger_info(ms_recursos.logger, "## Escritura de %d bytes",
                     cantidad_bytes);
         list_destroy_and_destroy_elements(paquete, free);
         break;

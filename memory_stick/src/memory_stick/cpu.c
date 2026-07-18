@@ -15,7 +15,7 @@ int create_server_cpu(t_logger* logger)
     logger_error(logger, "## Error en la creación del servidor para las CPU");
     return -1;
   }
-  logger_info(logger, "## Creación del servidor para las CPU exitosa");
+  logger_info(logger, "Creación del servidor para las CPU exitosa");
   return ret;
 }
 
@@ -85,7 +85,7 @@ bool handshake_cpu(int socket_cpu, t_logger* logger)
     logger_error(logger, "## Error en el envio del Handshake con CPU");
     return false;
   }
-  logger_info(logger, "## Handshake exitoso con CPU");
+  logger_info(logger, "Handshake exitoso con CPU");
   return true;
 }
 
@@ -157,7 +157,7 @@ void* hilo_escucha_cpu(void* datos_hilo_escucha_void)
     if (socket_cpu <= 0)
       break;
 
-    logger_info(datos_hilo_escucha->logger, "## Conexión exitosa con CPU");
+    logger_info(datos_hilo_escucha->logger, "Conexión exitosa con CPU");
 
     if (!atender_nueva_cpu(datos_hilo_escucha, socket_cpu, lista_sockets,
                            &mutex_lista_sockets, &cond_fin_hilo_escucha,
@@ -165,7 +165,7 @@ void* hilo_escucha_cpu(void* datos_hilo_escucha_void)
       close(socket_cpu);
   }
 
-  logger_info(datos_hilo_escucha->logger, "## Cerrando servidor");
+  logger_info(datos_hilo_escucha->logger, "Cerrando servidor");
   cerrar_hilo_escucha(lista_sockets, &mutex_lista_sockets,
                       &cond_fin_hilo_escucha, datos_hilo_escucha);
   return NULL;
@@ -195,7 +195,7 @@ void* manejar_cliente_cpu(void* datos_hilo_cpu_void)
       case OP_MEMORY_STICK_LEER:
       {
         logger_info(datos_hilo_cpu->ms_recursos->logger,
-                    "## Recibiendo instrucción de lectura de parte de la cpu");
+                    "Recibiendo instrucción de lectura de parte de la cpu");
         t_list* paquete = recibir_paquete(datos_hilo_cpu->socket_cpu);
         if (list_size(paquete) != 2)
         {
@@ -206,7 +206,7 @@ void* manejar_cliente_cpu(void* datos_hilo_cpu_void)
         int posicion_inicial = *(int*)list_get(paquete, 0);
         int cantidad_bytes = *(int*)list_get(paquete, 1);
         logger_info(datos_hilo_cpu->ms_recursos->logger,
-                    "## Lectura de %d bytes, desde %d por parte de la cpu",
+                    "Lectura de %d bytes, desde %d por parte de la cpu",
                     cantidad_bytes, posicion_inicial);
         list_destroy_and_destroy_elements(paquete, free);
         leer_memoria(datos_hilo_cpu->ms_recursos, posicion_inicial,
@@ -217,7 +217,7 @@ void* manejar_cliente_cpu(void* datos_hilo_cpu_void)
       {
         logger_info(
             datos_hilo_cpu->ms_recursos->logger,
-            "## Recibiendo instrucción de escritura de parte de la cpu");
+            "Recibiendo instrucción de escritura de parte de la cpu");
         t_list* paquete = recibir_paquete(datos_hilo_cpu->socket_cpu);
         if (list_size(paquete) != 3)
         {

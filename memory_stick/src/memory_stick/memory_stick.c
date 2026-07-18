@@ -15,7 +15,7 @@ bool conseguir_y_enviar_puerto(int socket_km, int socket_server_cpu,
                  "## Error en el envio del puerto del servidor para CPU");
     return false;
   }
-  logger_info(logger, "## Envio del puerto del servidor para CPU exitoso");
+  logger_info(logger, "Envio del puerto del servidor para CPU exitoso");
   return true;
 }
 
@@ -158,7 +158,7 @@ void escribir_memoria(t_ms_recursos* ms_recursos, int posicion_inicial,
   memcpy(ms_recursos->memoria + posicion_inicial, bytes_a_escribir,
          cantidad_de_bytes);
   pthread_mutex_unlock(ms_recursos->mutex_memoria);
-  logger_info(ms_recursos->logger, "## Escritura de %d bytes",
+  logger_info(ms_recursos->logger, "Se escribieron %d bytes",
               cantidad_de_bytes);
   usleep(ms_recursos->memory_delay * 1000);
   enviar_string(OP_MEMORY_STICK_ESCRITO, "Escritura Exitosa", socket_destino);

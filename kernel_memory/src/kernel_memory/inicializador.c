@@ -175,8 +175,8 @@ bool inicializar_ip_stick(t_datos_stick* datos_stick, int client_socket)
     strcpy(datos_stick->ip_memory_stick, ip_traducida);
     return true;
   }
-  logger_info(datos_stick->logger,
-              "## NO SE HA PODIDO CONSEGUIR LA IP DE MEMORY_STICK");
+  logger_error(datos_stick->logger,
+              "## No se ha podido conseguir la ip de memory_stick");
   return false;
 }
 

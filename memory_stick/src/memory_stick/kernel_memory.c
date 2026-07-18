@@ -20,7 +20,7 @@ bool handshake_km(int socket_km, t_logger* logger)
                  "## Error en la recepción del Handshake con Kernel Memory");
     return false;
   }
-  logger_info(logger, "## Handshake exitoso con Kernel Memory");
+  logger_info(logger, "Handshake exitoso con Kernel Memory");
   return true;
 }
 
@@ -31,7 +31,7 @@ bool enviar_tamanio(int socket_km, char* tamanio, t_logger* logger)
     logger_error(logger, "## Error en el envio de tamaño");
     return false;
   }
-  logger_info(logger, "## Envio de tamaño exitoso");
+  logger_info(logger, "Envio de tamaño exitoso");
   return true;
 }
 
@@ -58,7 +58,7 @@ int conectar_km(char* ip, char* puerto, t_logger* logger)
     logger_error(logger, "## Error de conexión con Kernel Memory");
     return -1;
   }
-  logger_info(logger, "## Conectado a Kernel Memory");
+  logger_info(logger, "Conectado a Kernel Memory");
   return socket_km;
 }
 
