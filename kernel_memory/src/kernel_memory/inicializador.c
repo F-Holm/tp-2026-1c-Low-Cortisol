@@ -24,6 +24,11 @@ t_datos_kernel_mem* inicializar_datos_kernel_memory(
   datos_kernel->mutex_lista_sockets = malloc(sizeof(pthread_mutex_t));
   pthread_mutex_init(datos_kernel->mutex_procesos, NULL);
   pthread_mutex_init(datos_kernel->mutex_lista_sockets, NULL);
+  datos_kernel->hilos_activos = 0;
+  datos_kernel->mutex_hilos_activos = malloc(sizeof(pthread_mutex_t));
+  datos_kernel->cond_hilos_activos = malloc(sizeof(pthread_cond_t));
+  pthread_mutex_init(datos_kernel->mutex_hilos_activos, NULL);
+  pthread_cond_init(datos_kernel->cond_hilos_activos, NULL);
   return datos_kernel;
 }
 
@@ -31,7 +36,9 @@ t_datos_scheduler* inicializar_datos_scheduler(
     int socket_kernel_memory, int socket_scheduler, t_list* procesos,
     char* scripts_basepath, pthread_mutex_t* mutex_procesos,
     t_memoria_principal* memoria_principal, t_list* sticks_conectadas,
-    pthread_mutex_t* mutex_sticks, t_datos_swap* datos_swap, t_logger* logger)
+    pthread_mutex_t* mutex_sticks, t_datos_swap* datos_swap, t_logger* logger,
+    int* hilos_activos, pthread_mutex_t* mutex_hilos_activos,
+    pthread_cond_t* cond_hilos_activos)
 {
   t_datos_scheduler* datos_scheduler = malloc(sizeof(t_datos_scheduler));
   datos_scheduler->socket_kernel_memory = socket_kernel_memory;
@@ -44,6 +51,9 @@ t_datos_scheduler* inicializar_datos_scheduler(
   datos_scheduler->mutex_lista_sockets = mutex_sticks;
   datos_scheduler->memoria_principal = memoria_principal;
   datos_scheduler->datos_swap = datos_swap;
+  datos_scheduler->hilos_activos = hilos_activos;
+  datos_scheduler->mutex_hilos_activos = mutex_hilos_activos;
+  datos_scheduler->cond_hilos_activos = cond_hilos_activos;
   return datos_scheduler;
 }
 
@@ -51,7 +61,9 @@ t_datos_cpu* inicializar_datos_cpu(int socket_cpu, t_list* procesos,
                                    pthread_mutex_t* mutex_procesos,
                                    int instruction_delay,
                                    t_memoria_principal* memoria_principal,
-                                   t_logger* logger)
+                                   t_logger* logger, int* hilos_activos,
+                                   pthread_mutex_t* mutex_hilos_activos,
+                                   pthread_cond_t* cond_hilos_activos)
 {
   t_datos_cpu* datos_cpu = malloc(sizeof(t_datos_cpu));
   datos_cpu->socket_cpu = socket_cpu;
@@ -61,6 +73,9 @@ t_datos_cpu* inicializar_datos_cpu(int socket_cpu, t_list* procesos,
   datos_cpu->logger = logger;
   datos_cpu->id = -1;
   datos_cpu->memoria_principal = memoria_principal;
+  datos_cpu->hilos_activos = hilos_activos;
+  datos_cpu->mutex_hilos_activos = mutex_hilos_activos;
+  datos_cpu->cond_hilos_activos = cond_hilos_activos;
   return datos_cpu;
 }
 

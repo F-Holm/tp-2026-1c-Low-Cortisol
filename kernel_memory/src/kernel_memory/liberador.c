@@ -52,12 +52,36 @@ void liberar_datos_kernel_mem(t_datos_kernel_mem* datos_kernel)
               "Liberando datos de kernel memory y finalizando programa.");
   if (datos_kernel == NULL)
     return;
+  if (datos_kernel->cpus_conectados != NULL)
+  {
+    for (int i = 0; i < list_size(datos_kernel->cpus_conectados); i++)
+    {
+      t_datos_cpu* cpu = list_get(datos_kernel->cpus_conectados, i);
+      shutdown(cpu->socket_cpu, SHUT_RDWR);
+    }
+  }
+  if (datos_kernel->socket_scheduler != -1)
+  {
+    shutdown(datos_kernel->socket_scheduler, SHUT_RDWR);
+  }
+  pthread_mutex_lock(datos_kernel->mutex_hilos_activos);
+  while (datos_kernel->hilos_activos > 0)
+  {
+    pthread_cond_wait(datos_kernel->cond_hilos_activos,
+                      datos_kernel->mutex_hilos_activos);
+  }
+  pthread_mutex_unlock(datos_kernel->mutex_hilos_activos);
 
   // Liberar mutex
   pthread_mutex_destroy(datos_kernel->mutex_lista_sockets);
   pthread_mutex_destroy(datos_kernel->mutex_procesos);
   free(datos_kernel->mutex_lista_sockets);
   free(datos_kernel->mutex_procesos);
+
+  pthread_mutex_destroy(datos_kernel->mutex_hilos_activos);
+  pthread_cond_destroy(datos_kernel->cond_hilos_activos);
+  free(datos_kernel->mutex_hilos_activos);
+  free(datos_kernel->cond_hilos_activos);
   // Liberar listas (solo la estructura, no los elementos)
   if (datos_kernel->sticks_conectados != NULL)
   {

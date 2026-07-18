@@ -50,6 +50,9 @@ typedef struct
   t_datos_swap* datos_swap;
   pthread_mutex_t* mutex_procesos;
   pthread_mutex_t* mutex_lista_sockets;
+  int hilos_activos;
+  pthread_mutex_t* mutex_hilos_activos;
+  pthread_cond_t* cond_hilos_activos;
 } t_datos_kernel_mem;
 
 typedef struct
@@ -64,6 +67,9 @@ typedef struct
   pthread_mutex_t* mutex_lista_sockets;
   t_memoria_principal* memoria_principal;
   t_datos_swap* datos_swap;
+  int* hilos_activos;
+  pthread_mutex_t* mutex_hilos_activos;
+  pthread_cond_t* cond_hilos_activos;
 } t_datos_scheduler;
 
 typedef struct
@@ -75,6 +81,9 @@ typedef struct
   t_list* procesos;
   pthread_mutex_t* mutex_procesos;
   t_memoria_principal* memoria_principal;
+  int* hilos_activos;
+  pthread_mutex_t* mutex_hilos_activos;
+  pthread_cond_t* cond_hilos_activos;
 } t_datos_cpu;
 
 typedef struct
