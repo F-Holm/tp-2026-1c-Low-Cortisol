@@ -1336,9 +1336,7 @@ static bool cambio_susp_ready_ready_sin_mutex(t_pcb* pcb, t_colas* colas)
 
   if (!avisar_proceso_des_suspendido(pcb, colas))
   {
-    logger_info(colas->logger,
-                "No es posible des-suspender el proceso %u sin disparar una "
-                "compactación",
+    logger_info(colas->logger, "No es posible des-suspender el proceso %u",
                 pcb->pid);
     return false;
   }
