@@ -193,17 +193,17 @@ t_memoria_principal* aniadir_memoria_total(
   memoria_principal->tamanio_total += memoria_total;
 
   t_hueco* hueco_contiguo = NULL;
-  t_list_iterator* it = list_iterator_create(memoria_principal->huecos);
-  while (list_iterator_has_next(it))
+  t_list_iterator* iterador = list_iterator_create(memoria_principal->huecos);
+  while (list_iterator_has_next(iterador))
   {
-    t_hueco* h = list_iterator_next(it);
+    t_hueco* h = list_iterator_next(iterador);
     if (h->base + h->size == base_nueva)
     {
       hueco_contiguo = h;
       break;
     }
   }
-  list_iterator_destroy(it);
+  list_iterator_destroy(iterador);
 
   if (hueco_contiguo != NULL)
   {
