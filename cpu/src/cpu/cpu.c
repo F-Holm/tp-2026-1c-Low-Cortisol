@@ -342,8 +342,10 @@ t_bool_extendido check_interrupt(t_cpu* cpu, uint32_t pid)
 
     if ((strcmp(interrucpcion_recibida,
                 "no hay memoria suficiente para esa instrucción")) == 0)
+    {
+      free(interrucpcion_recibida);
       return BE_SIN_TABLA;
-
+    }
     free(interrucpcion_recibida);
     return BE_FALSE;
   }
