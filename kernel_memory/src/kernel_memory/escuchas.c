@@ -92,11 +92,11 @@ void* escucha_scheduler(void* ptr)
           list_destroy_and_destroy_elements(paquete_stdin, free);
           break;
         }
-        /*logger_info(datos_scheduler->logger,
+        logger_info(datos_scheduler->logger,
                     "## PID: %u - Escritura - "
                     "Dir. Fisica: %u - Tamaño: %d",
-                    peticion_stdout->pid, dir_fisica,
-                    peticion_stdout->tamanio_a_escribir);*/
+                    peticion_stdin->pid, dir_fisica,
+                    peticion_stdin->tamanio_a_leer);
         if (!escribir_en_sticks(
                 peticion_stdin->pid, dir_fisica, peticion_stdin->tamanio_a_leer,
                 string_escribir, datos_scheduler->sticks_conectados,
