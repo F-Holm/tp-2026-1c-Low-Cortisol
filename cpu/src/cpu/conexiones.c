@@ -102,7 +102,7 @@ bool conectar_memory_stick(t_cpu* cpu)
     return false;
   }
 
-  log_info(cpu->logger, "## Conectandose a memory stick con ip %s y puerto %s",
+  log_info(cpu->logger, "Conectandose a memory stick con ip %s y puerto %s",
            ip_stick, puerto_stick);
 
   if (!handshake_memory_stick(cpu, nuevo_socket))
@@ -154,7 +154,7 @@ bool handshake_memory_stick(t_cpu* cpu, int nuevo_socket)
     close(nuevo_socket);
     return false;
   }
-  log_info(cpu->logger, "## Handshake exitoso con Memory stick");
+  log_info(cpu->logger, "Handshake exitoso con Memory stick");
 
   return true;
 }

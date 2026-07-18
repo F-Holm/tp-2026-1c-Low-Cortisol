@@ -149,7 +149,7 @@ uint32_t recibir_pid_kernel_scheduler(t_cpu* cpu)
     free(buffer);
 
     log_info(cpu->logger,
-             "## PID recibido: %u - Iniciando ciclo de instrucción", pid);
+             "PID recibido: %u - Iniciando ciclo de instrucción", pid);
   }
   else if (codigo_operacion == 0)
   {
@@ -335,7 +335,7 @@ t_bool_extendido check_interrupt(t_cpu* cpu, uint32_t pid)
 
   if (codigo == OP_INTERRUPCION)
   {
-    log_info(cpu->logger, "Interrupción recibida");
+    log_info(cpu->logger, "## Interrupción recibida");
     char* interrucpcion_recibida = recibir_string(cpu->socket_kernel_scheduler);
     log_info(cpu->logger, "Razon de la interrupcion: %s ",
              interrucpcion_recibida);
