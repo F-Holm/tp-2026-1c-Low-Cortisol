@@ -243,7 +243,8 @@ static int mutex_unlock(t_mutex* mutex, t_pcb* pcb)
         mutex->prioridad_siguiente =
             get_prioridad_pcb(list_get(mutex->lista, 0));
       }
-      insertar_prioridad(pcb, mutex->prioridad_siguiente, mutex->colas->logger);
+      insertar_prioridad(mutex->proceso_actual, mutex->prioridad_siguiente,
+                         mutex->colas->logger);
     }
     log_mutex_tomado(mutex->colas->logger, mutex->proceso_actual->pid,
                      mutex->id);
