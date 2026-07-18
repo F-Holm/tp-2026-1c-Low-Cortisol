@@ -243,6 +243,12 @@ static void actualizar_tabla_huecos(t_memoria_principal* memoria_principal,
     {
       hueco_actual->size -= tamanio;
       hueco_actual->base += tamanio;
+      if (hueco_actual->size == 0)
+      {
+        list_iterator_remove(iterador);
+        free(hueco_actual);
+      }
+      break;
     }
   }
   list_iterator_destroy(iterador);
