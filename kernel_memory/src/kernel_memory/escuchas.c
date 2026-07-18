@@ -424,3 +424,29 @@ void empezar_escucha_cpu(t_datos_cpu* datos_cpu)
   pthread_create(&hilo_escucha, NULL, escucha_cpu, datos_cpu);
   pthread_detach(hilo_escucha);
 }
+
+void* testear_sticks(void* a)
+{
+  t_datos_kernel_mem* datos = (t_datos_kernel_mem*)a;
+  while (true)
+  {
+    usleep(100000);
+    for (int i = 0; i < list_size(datos->sticks_conectados); i++)
+    {
+      usleep(100000);
+      t_datos_stick* stick = list_get(datos->sticks_conectados, i);
+      if (!enviar_string(999, "mem corrupta", stick->socket_stick))
+      {
+        enviar_string(OP_MEMORIA_CORRUPTA, "mem corr", datos->socket_scheduler);
+        return NULL;
+      }
+    }
+  }
+}
+
+void empezar(t_datos_kernel_mem* datos)
+{
+  pthread_t hilo_escucha;
+  pthread_create(&hilo_escucha, NULL, testear_sticks, datos);
+  pthread_detach(hilo_escucha);
+}
