@@ -410,31 +410,6 @@ t_segmento* buecar_y_eliminar_segmento(uint32_t id, uint32_t pid,
   return NULL;
 }
 
-int es_hueco_anterior(t_hueco* hueco_aux, t_hueco* hueco_actual,
-                      t_segmento* segmento_aux,
-                      t_memoria_principal* memoria_principal, int indice)
-{
-  if (hueco_actual->base + hueco_actual->size == segmento_aux->base)
-  {
-    hueco_aux->base = hueco_actual->base;
-    hueco_aux->size = hueco_actual->size + segmento_aux->size;
-    return indice;
-  }
-  return -1;
-}
-
-int es_hueco_posterior(t_hueco* hueco_aux, t_hueco* hueco_actual,
-                       t_segmento* segmento_aux,
-                       t_memoria_principal* memoria_principal, int indice)
-{
-  if (hueco_actual->base == segmento_aux->base + segmento_aux->size)
-  {
-    hueco_aux->size += hueco_actual->size;
-    return indice;
-  }
-  return -1;
-}
-
 void eliminar_segmento(uint32_t id, uint32_t pid,
                        t_memoria_principal* memoria_principal, t_logger* logger)
 {
@@ -465,10 +440,17 @@ void eliminar_segmento(uint32_t id, uint32_t pid,
     for (int i = 0; i < list_size(memoria_principal->huecos); i++)
     {
       t_hueco* hueco_actual = list_get(memoria_principal->huecos, i);
-      indice1 = es_hueco_anterior(nuevo_hueco, hueco_actual, segmento_aux,
-                                  memoria_principal, i);
-      indice2 = es_hueco_posterior(nuevo_hueco, hueco_actual, segmento_aux,
-                                   memoria_principal, i);
+      if (hueco_actual->base + hueco_actual->size == segmento_aux->base)
+      {
+        hueco_actual->base = hueco_actual->base;
+        hueco_actual->size = hueco_actual->size + segmento_aux->size;
+        indice1 = i;
+      }
+      if (hueco_actual->base == segmento_aux->base + segmento_aux->size)
+      {
+        hueco_actual->size += hueco_actual->size;
+        indice2 = i;
+      }
     }
     if (indice1 == -1 || indice2 == -1)
     {
@@ -493,8 +475,12 @@ void eliminar_segmento(uint32_t id, uint32_t pid,
     for (int i = 0; i < list_size(memoria_principal->huecos); i++)
     {
       t_hueco* hueco_actual = list_get(memoria_principal->huecos, i);
-      indice1 = es_hueco_anterior(nuevo_hueco, hueco_actual, segmento_aux,
-                                  memoria_principal, i);
+      if (hueco_actual->base + hueco_actual->size == segmento_aux->base)
+      {
+        hueco_actual->base = hueco_actual->base;
+        hueco_actual->size = hueco_actual->size + segmento_aux->size;
+        indice1 = i;
+      }
     }
     list_remove_and_destroy_element(memoria_principal->huecos, indice1, free);
     list_add(memoria_principal->huecos, nuevo_hueco);
@@ -509,8 +495,11 @@ void eliminar_segmento(uint32_t id, uint32_t pid,
     for (int i = 0; i < list_size(memoria_principal->huecos); i++)
     {
       t_hueco* hueco_actual = list_get(memoria_principal->huecos, i);
-      indice2 = es_hueco_posterior(nuevo_hueco, hueco_actual, segmento_aux,
-                                   memoria_principal, i);
+      if (hueco_actual->base == segmento_aux->base + segmento_aux->size)
+      {
+        hueco_actual->size += hueco_actual->size;
+        indice2 = i;
+      }
     }
     list_remove_and_destroy_element(memoria_principal->huecos, indice2, free);
     list_add(memoria_principal->huecos, nuevo_hueco);
