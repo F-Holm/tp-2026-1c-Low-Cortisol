@@ -148,8 +148,8 @@ uint32_t recibir_pid_kernel_scheduler(t_cpu* cpu)
     pid = *(uint32_t*)buffer;
     free(buffer);
 
-    log_info(cpu->logger,
-             "PID recibido: %u - Iniciando ciclo de instrucción", pid);
+    log_info(cpu->logger, "PID recibido: %u - Iniciando ciclo de instrucción",
+             pid);
   }
   else if (codigo_operacion == 0)
   {
