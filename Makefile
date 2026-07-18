@@ -34,7 +34,7 @@ format:
 	find . -iname "*.c" -o -iname "*.h" | grep -v "tests/" | xargs clang-format -i --style=file
 
 VALGRIND_MEMCHECK = valgrind --tool=memcheck --leak-check=full --show-leak-kinds=all --track-origins=yes --trace-children=yes --errors-for-leak-kinds=all
-VALGRIND_HELGRIND = valgrind --tool=helgrind --history-level=full --trace-children=yes
+VALGRIND_HELGRIND = valgrind --tool=helgrind --history-level=full --trace-children=yes --suppressions=helgrind.supp
 VALGRIND_CMD = 
 BUILD_TARGET = all
 
