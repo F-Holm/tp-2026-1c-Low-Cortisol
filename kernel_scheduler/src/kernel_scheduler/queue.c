@@ -1429,17 +1429,11 @@ static t_pcb* obtener_proceso_bloqueado(t_colas* colas,
   {
     proceso = list_get(colas->block.lista, 0);
   }
-
+  pthread_mutex_unlock(&(colas->block.mutex_lista));
   if (proceso == NULL)
   {
     datos->datos->estado = EH_ESPERANDO_PROCESO;
   }
-  else if (pthread_mutex_trylock(&(proceso->mutex_estado)) != 0)
-  {
-    proceso = NULL;
-  }
-
-  pthread_mutex_unlock(&(colas->block.mutex_lista));
   return proceso;
 }
 
@@ -1447,7 +1441,7 @@ static void suspender_proceso(t_colas* colas, t_datos_hilo_suspensor* datos,
                               t_pcb* proceso)
 {
   pthread_mutex_unlock(&(datos->datos->mutex_estado));
-
+  pthread_mutex_lock(&(proceso->mutex_estado));
   unsigned long tiempo_sleep = millis() - proceso->tiempo_bloqueado;
 
   if (tiempo_sleep >= datos->suspension_timeout)
@@ -1495,17 +1489,11 @@ static t_pcb* obtener_proceso_susp_ready(t_colas* colas,
   {
     proceso = list_get(colas->susp_ready.lista, 0);
   }
-
+  pthread_mutex_unlock(&(colas->susp_ready.mutex_lista));
   if (proceso == NULL)
   {
     datos->datos->estado = EH_ESPERANDO_PROCESO;
   }
-  else if (pthread_mutex_trylock(&(proceso->mutex_estado)) != 0)
-  {
-    proceso = NULL;
-  }
-
-  pthread_mutex_unlock(&(colas->susp_ready.mutex_lista));
   return proceso;
 }
 
@@ -1514,6 +1502,7 @@ static void des_suspender_proceso(t_colas* colas,
                                   t_pcb* proceso)
 {
   pthread_mutex_unlock(&(datos->datos->mutex_estado));
+  pthread_mutex_lock(&(proceso->mutex_estado));
 
   bool exitoso = false;
   if (proceso->estado == EST_SUSP_READY)
