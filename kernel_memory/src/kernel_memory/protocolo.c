@@ -792,9 +792,9 @@ bool escribir_en_sticks(int pid, int dir_fisica, int tamanio_a_leer,
     if (stick_actual == NULL)
     {
       logger_error(logger,
-                  "No hay mas sticks disponibles para completar la escritura "
-                  "(PID: %d, Dir. Fisica: %d)",
-                  pid, dir_fisica);
+                   "No hay mas sticks disponibles para completar la escritura "
+                   "(PID: %d, Dir. Fisica: %d)",
+                   pid, dir_fisica);
       enviar_string(OP_MEMORIA_CORRUPTA, "Stick no disponible",
                     socket_scheduler);
       ok = false;
@@ -802,7 +802,8 @@ bool escribir_en_sticks(int pid, int dir_fisica, int tamanio_a_leer,
     }
 
     int espacio_disponible = stick_actual->tamanio_stick - offset_actual;
-    int a_escribir = restante < espacio_disponible ? restante : espacio_disponible;
+    int a_escribir =
+        restante < espacio_disponible ? restante : espacio_disponible;
 
     logger_info(logger, "Empiezo a escribir en el stick %d, offset %d", i,
                 offset_actual);
@@ -815,7 +816,7 @@ bool escribir_en_sticks(int pid, int dir_fisica, int tamanio_a_leer,
     if (!enviar_paquete(paquete, stick_actual->socket_stick))
     {
       logger_error(logger, "Error al enviar paquete de escritura al stick %d",
-                  i);
+                   i);
       enviar_string(OP_MEMORIA_CORRUPTA, "Stick no disponible",
                     socket_scheduler);
       eliminar_paquete(paquete);
@@ -827,7 +828,8 @@ bool escribir_en_sticks(int pid, int dir_fisica, int tamanio_a_leer,
     logger_info(logger, "##PID: %d - Escritura - Dir. Fisica: %d - Tamaño: %d",
                 pid, dir_fisica, a_escribir);
 
-    if (recibir_operacion(stick_actual->socket_stick) == OP_MEMORY_STICK_ESCRITO)
+    if (recibir_operacion(stick_actual->socket_stick) ==
+        OP_MEMORY_STICK_ESCRITO)
     {
       char* buffer = recibir_string(stick_actual->socket_stick);
       free(buffer);
@@ -835,7 +837,8 @@ bool escribir_en_sticks(int pid, int dir_fisica, int tamanio_a_leer,
 
     puntero_buffer += a_escribir;
     restante -= a_escribir;
-    offset_actual = 0; /* a partir del segundo stick siempre se escribe desde el inicio */
+    offset_actual =
+        0; /* a partir del segundo stick siempre se escribe desde el inicio */
   }
 
   pthread_mutex_unlock(mutex_lista_sockets);

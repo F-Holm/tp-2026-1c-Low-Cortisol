@@ -80,7 +80,7 @@ void* escucha_scheduler(void* ptr)
             recibir_paquete(datos_scheduler->socket_scheduler);
         t_peticion_stdin* peticion_stdin =
             (t_peticion_stdin*)list_get(paquete_stdin, 0);
-        char* string_escribir = (char*)list_get(paquete_stdin, 1);
+        char* buffer_escribir = (char*)list_get(paquete_stdin, 1);
         int dir_fisica = traducir_direccion_logica(
             peticion_stdin->pid, peticion_stdin->direccion_logica,
             peticion_stdin->tamanio_a_leer, datos_scheduler->memoria_principal,
@@ -98,22 +98,15 @@ void* escucha_scheduler(void* ptr)
                     peticion_stdin->pid, dir_fisica,
                     peticion_stdin->tamanio_a_leer);
 
-        int tamanio_pedido = peticion_stdin->tamanio_a_leer; 
+        int tamanio_pedido = peticion_stdin->tamanio_a_leer;
         char* buffer_seguro = calloc(tamanio_pedido, sizeof(char));
-        int tamanio_real = strlen(string_escribir) + 1; 
-        int a_copiar = tamanio_real < tamanio_pedido ? tamanio_real : tamanio_pedido;
-        if (tamanio_real != tamanio_pedido)
-        {
-          logger_warning(datos_scheduler->logger,
-                         "PID %u: el string recibido (%d bytes) no coincide "
-                         "con el tamanio esperado (%d bytes), se rellena con ceros",
-                         peticion_stdin->pid, tamanio_real, tamanio_pedido);
-        }
-        memcpy(buffer_seguro, string_escribir, a_copiar);
+
+        size_t bytes_validos = strnlen(buffer_escribir, tamanio_pedido);
+        memcpy(buffer_seguro, buffer_escribir, bytes_validos);
 
         if (!escribir_en_sticks(
-                peticion_stdin->pid, dir_fisica, tamanio_pedido,
-                buffer_seguro, datos_scheduler->sticks_conectados,
+                peticion_stdin->pid, dir_fisica, tamanio_pedido, buffer_seguro,
+                datos_scheduler->sticks_conectados,
                 datos_scheduler->mutex_lista_sockets, datos_scheduler->logger,
                 datos_scheduler->socket_scheduler))
         {

@@ -54,6 +54,20 @@ static void escribir_bloque_en_swap(int num_bloque, char* contenido,
   enviar_paquete(paquete, swap->socket_swap);
   eliminar_paquete(paquete);
   free(buffer_auxiliar);
+
+  int operacion = recibir_operacion(swap->socket_swap);
+  if (operacion == OP_DISCO_ESCRITO)
+  {
+    char* ack = recibir_string(swap->socket_swap);
+    free(ack);
+  }
+  else
+  {
+    logger_error(
+        swap->logger,
+        "Respuesta inesperada del modulo swap al escribir el bloque %d",
+        num_bloque);
+  }
 }
 
 void eliminar_segmentos_del_proceso(t_list* segmentos_a_eliminar, uint32_t pid,
@@ -234,6 +248,16 @@ static bool regenerar_segmento(uint32_t id, uint32_t pid, int size,
 static char* leer_bloque_en_swap(int num_bloque, t_datos_swap* swap)
 {
   enviar_buffer(OP_LEER_DISCO, &num_bloque, sizeof(int), swap->socket_swap);
+
+  int operacion = recibir_operacion(swap->socket_swap);
+  if (operacion != OP_DISCO_LEIDO)
+  {
+    logger_error(swap->logger,
+                 "Respuesta inesperada del modulo swap al leer el bloque %d",
+                 num_bloque);
+    return NULL;
+  }
+
   int a;
   char* contenido_leido = (char*)recibir_buffer(&a, swap->socket_swap);
   return contenido_leido;
@@ -317,9 +341,16 @@ void des_suspender_proceso(uint32_t pid, t_datos_scheduler* datos_scheduler)
         list_iterator_destroy(iterador);
         return;
       }
+      int offset_del_bloque = bloque->num_bloque_del_segmento * tamanio_bloque;
+      int bytes_reales =
+          (bloque->tamanio_segmento - offset_del_bloque) < tamanio_bloque
+              ? (bloque->tamanio_segmento - offset_del_bloque)
+              : tamanio_bloque;
+
       int direccion_a_escribir = calcular_direccion_con_offset(
           tamanio_bloque, datos_scheduler->memoria_principal, pid, bloque);
-      escribir_en_sticks(pid, direccion_a_escribir, tamanio_bloque, contenido,
+
+      escribir_en_sticks(pid, direccion_a_escribir, bytes_reales, contenido,
                          datos_scheduler->sticks_conectados,
                          datos_scheduler->mutex_lista_sockets,
                          datos_scheduler->logger,
