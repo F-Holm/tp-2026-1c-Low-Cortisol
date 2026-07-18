@@ -306,6 +306,17 @@ void des_suspender_proceso(uint32_t pid, t_datos_scheduler* datos_scheduler)
       }
       char* contenido =
           leer_bloque_en_swap(bloque->num_bloque, datos_scheduler->datos_swap);
+      if (contenido == NULL)
+      {
+        logger_error(datos_scheduler->logger,
+                     "No se pudo leer el bloque %d desde swap para el PID %d",
+                     bloque->num_bloque, pid);
+        enviar_string(OP_DES_SUSPENSION_NO_EXITOSA,
+                      "Error al leer bloque de swap",
+                      datos_scheduler->socket_scheduler);
+        list_iterator_destroy(iterador);
+        return;
+      }
       int direccion_a_escribir = calcular_direccion_con_offset(
           tamanio_bloque, datos_scheduler->memoria_principal, pid, bloque);
       escribir_en_sticks(pid, direccion_a_escribir, tamanio_bloque, contenido,
