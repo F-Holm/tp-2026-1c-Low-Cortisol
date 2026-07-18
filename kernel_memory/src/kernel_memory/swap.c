@@ -236,12 +236,7 @@ static char* leer_bloque_en_swap(int num_bloque, t_datos_swap* swap)
   enviar_buffer(OP_LEER_DISCO, &num_bloque, sizeof(int), swap->socket_swap);
   int a;
   char* contenido_leido = (char*)recibir_buffer(&a, swap->socket_swap);
-  //Agrega el \0 por si el bloque estaba lleno y no tenia 0 al final
-  char* contenido_terminado = malloc(a + 1);
-  memcpy(contenido_terminado, contenido_leido, a);
-  contenido_terminado[a] = '\0';
-  free(contenido_leido);
-  return contenido_terminado;
+  return contenido_leido;
 }
 
 static int quitar_bloque_lista_swap(int num_bloque, t_datos_swap* datos_swap,
