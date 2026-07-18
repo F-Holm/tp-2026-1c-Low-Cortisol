@@ -97,17 +97,33 @@ void* escucha_scheduler(void* ptr)
                     "Dir. Fisica: %u - Tamaño: %d",
                     peticion_stdin->pid, dir_fisica,
                     peticion_stdin->tamanio_a_leer);
+
+        int tamanio_pedido = peticion_stdin->tamanio_a_leer; 
+        char* buffer_seguro = calloc(tamanio_pedido, sizeof(char));
+        int tamanio_real = strlen(string_escribir) + 1; 
+        int a_copiar = tamanio_real < tamanio_pedido ? tamanio_real : tamanio_pedido;
+        if (tamanio_real != tamanio_pedido)
+        {
+          logger_warning(datos_scheduler->logger,
+                         "PID %u: el string recibido (%d bytes) no coincide "
+                         "con el tamanio esperado (%d bytes), se rellena con ceros",
+                         peticion_stdin->pid, tamanio_real, tamanio_pedido);
+        }
+        memcpy(buffer_seguro, string_escribir, a_copiar);
+
         if (!escribir_en_sticks(
-                peticion_stdin->pid, dir_fisica, peticion_stdin->tamanio_a_leer,
-                string_escribir, datos_scheduler->sticks_conectados,
+                peticion_stdin->pid, dir_fisica, tamanio_pedido,
+                buffer_seguro, datos_scheduler->sticks_conectados,
                 datos_scheduler->mutex_lista_sockets, datos_scheduler->logger,
                 datos_scheduler->socket_scheduler))
         {
           logger_error(datos_scheduler->logger, "Error al escribir en sticks");
           conexion_estable = false;
+          free(buffer_seguro);
           list_destroy_and_destroy_elements(paquete_stdin, free);
           break;
         }
+        free(buffer_seguro);
         enviar_string(OP_RESPUESTA_STDIN, "Memoria Escrita",
                       datos_scheduler->socket_scheduler);
         logger_info(datos_scheduler->logger, "Peticion STDIN finalizada");

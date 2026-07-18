@@ -64,7 +64,6 @@ char* leer_de_sticks(int direccion_fisica, int tamanio,
                      t_logger* logger, int socket);
 int encontrar_stick(int direccion_fisica, t_list* sticks_conectados,
                     pthread_mutex_t* mutex_sticks, int* offset_en_stick);
-char* cortar_cadena(int longitud_corte, char* cadena);
 int calcular_tamanio_proceso(t_proceso* proceso);
 bool escribir_en_sticks(int pid, int dir_fisica, int tamanio_a_leer,
                         char* string_escribir, t_list* sticks_conectados,
