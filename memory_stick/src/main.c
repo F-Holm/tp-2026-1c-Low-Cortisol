@@ -40,9 +40,6 @@ int main(int argc, char* argv[])
     int op_code = recibir_operacion(ms_recursos.socket_km);
     switch (op_code)
     {
-      case 999:
-      free(recibir_string(ms_recursos.socket_km));
-      break;
       case OP_MEMORY_STICK_LEER:
       {
         logger_info(ms_recursos.logger, "Recibiendo instrucción de lectura");
