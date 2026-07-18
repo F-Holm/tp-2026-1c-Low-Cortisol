@@ -342,7 +342,7 @@ void crear_segmento(uint32_t id, uint32_t pid, int size,
       logger_info(logger, "Es necesario compactar la memoria");
       notificar_compactacion(socket_scheduler);
       compactar_memoria(socket_scheduler, memoria_principal);
-      selector_de_huecos(size, logger, memoria_principal);
+      hueco_elegido = selector_de_huecos(size, logger, memoria_principal);
     }
     actualizar_lista_segmentos(memoria_principal, hueco_elegido, size, pid, id);
     pthread_mutex_unlock(memoria_principal->mutex_memoria_principal);

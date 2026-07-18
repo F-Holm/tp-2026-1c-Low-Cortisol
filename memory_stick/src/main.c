@@ -62,8 +62,7 @@ int main(int argc, char* argv[])
       }
       case OP_MEMORY_STICK_ESCRIBIR:
       {
-        logger_info(ms_recursos.logger,
-                    "Recibiendo instrucción de escritura");
+        logger_info(ms_recursos.logger, "Recibiendo instrucción de escritura");
         t_list* paquete = recibir_paquete(ms_recursos.socket_km);
         if (list_size(paquete) != 3)
         {

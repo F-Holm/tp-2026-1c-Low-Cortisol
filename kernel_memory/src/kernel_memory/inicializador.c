@@ -176,7 +176,7 @@ bool inicializar_ip_stick(t_datos_stick* datos_stick, int client_socket)
     return true;
   }
   logger_error(datos_stick->logger,
-              "## No se ha podido conseguir la ip de memory_stick");
+               "## No se ha podido conseguir la ip de memory_stick");
   return false;
 }
 

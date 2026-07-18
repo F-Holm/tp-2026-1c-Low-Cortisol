@@ -215,9 +215,8 @@ void* manejar_cliente_cpu(void* datos_hilo_cpu_void)
       }
       case OP_MEMORY_STICK_ESCRIBIR:
       {
-        logger_info(
-            datos_hilo_cpu->ms_recursos->logger,
-            "Recibiendo instrucción de escritura de parte de la cpu");
+        logger_info(datos_hilo_cpu->ms_recursos->logger,
+                    "Recibiendo instrucción de escritura de parte de la cpu");
         t_list* paquete = recibir_paquete(datos_hilo_cpu->socket_cpu);
         if (list_size(paquete) != 3)
         {
