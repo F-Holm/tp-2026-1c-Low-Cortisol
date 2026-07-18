@@ -1270,6 +1270,16 @@ static void cambio_block_susp_block_sin_mutex(t_pcb* pcb, t_colas* colas)
 
   cambio_sacar_block(pcb, &(colas->block));
   cambio_a_susp_block(pcb, &(colas->susp_block));
+
+  pthread_mutex_lock(&(colas->mutex_compactacion_activa));
+  pthread_mutex_lock(&(colas->mutex_des_suspension_activa));
+  if (!colas->compactacion_activa && !colas->des_suspension_activa)
+  {
+    desbloquear_hilo_suspendido(
+        colas->datos_suspendido->datos_hilo_des_suspensor->datos);
+  }
+  pthread_mutex_unlock(&(colas->mutex_des_suspension_activa));
+  pthread_mutex_unlock(&(colas->mutex_compactacion_activa));
 }
 
 static void cambio_susp_block_susp_ready_sin_mutex(t_pcb* pcb, t_colas* colas)
