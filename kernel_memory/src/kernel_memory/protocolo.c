@@ -188,12 +188,35 @@ t_proceso* buscar_proceso(t_list* lista_procesos,
 t_memoria_principal* aniadir_memoria_total(
     t_memoria_principal* memoria_principal, int memoria_total)
 {
-  t_hueco* hueco_nuevo = malloc(sizeof(t_hueco));
   pthread_mutex_lock(memoria_principal->mutex_memoria_principal);
-  hueco_nuevo->base = memoria_principal->tamanio_total;
+  int base_nueva = memoria_principal->tamanio_total;
   memoria_principal->tamanio_total += memoria_total;
-  hueco_nuevo->size = memoria_total;
-  list_add(memoria_principal->huecos, hueco_nuevo);
+
+  t_hueco* hueco_contiguo = NULL;
+  t_list_iterator* it = list_iterator_create(memoria_principal->huecos);
+  while (list_iterator_has_next(it))
+  {
+    t_hueco* h = list_iterator_next(it);
+    if (h->base + h->size == base_nueva)
+    {
+      hueco_contiguo = h;
+      break;
+    }
+  }
+  list_iterator_destroy(it);
+
+  if (hueco_contiguo != NULL)
+  {
+    hueco_contiguo->size += memoria_total;
+  }
+  else
+  {
+    t_hueco* hueco_nuevo = malloc(sizeof(t_hueco));
+    hueco_nuevo->base = base_nueva;
+    hueco_nuevo->size = memoria_total;
+    list_add(memoria_principal->huecos, hueco_nuevo);
+  }
+
   pthread_mutex_unlock(memoria_principal->mutex_memoria_principal);
   return memoria_principal;
 }
