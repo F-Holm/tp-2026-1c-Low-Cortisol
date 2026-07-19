@@ -57,13 +57,11 @@ t_datos_scheduler* inicializar_datos_scheduler(
   return datos_scheduler;
 }
 
-t_datos_cpu* inicializar_datos_cpu(int socket_cpu, t_list* procesos,
-                                   pthread_mutex_t* mutex_procesos,
-                                   int instruction_delay,
-                                   t_memoria_principal* memoria_principal,
-                                   t_logger* logger, int* hilos_activos,
-                                   pthread_mutex_t* mutex_hilos_activos,
-                                   pthread_cond_t* cond_hilos_activos)
+t_datos_cpu* inicializar_datos_cpu(
+    int socket_cpu, t_list* procesos, pthread_mutex_t* mutex_procesos,
+    int instruction_delay, t_memoria_principal* memoria_principal,
+    t_logger* logger, int* hilos_activos, pthread_mutex_t* mutex_hilos_activos,
+    pthread_cond_t* cond_hilos_activos, int socket_scheduler)
 {
   t_datos_cpu* datos_cpu = malloc(sizeof(t_datos_cpu));
   datos_cpu->socket_cpu = socket_cpu;
@@ -76,6 +74,7 @@ t_datos_cpu* inicializar_datos_cpu(int socket_cpu, t_list* procesos,
   datos_cpu->hilos_activos = hilos_activos;
   datos_cpu->mutex_hilos_activos = mutex_hilos_activos;
   datos_cpu->cond_hilos_activos = cond_hilos_activos;
+  datos_cpu->socket_scheduler = socket_scheduler;
   return datos_cpu;
 }
 

@@ -61,7 +61,7 @@ int traducir_direccion_logica(uint32_t pid, uint32_t direccion_logica,
                               t_logger* logger);
 char* leer_de_sticks(int direccion_fisica, int tamanio,
                      t_list* sticks_conectados, pthread_mutex_t* mutex_sticks,
-                     t_logger* logger, int socket);
+                     t_logger* logger, int socket_scheduler);
 int encontrar_stick(int direccion_fisica, t_list* sticks_conectados,
                     pthread_mutex_t* mutex_sticks, int* offset_en_stick);
 int calcular_tamanio_proceso(t_proceso* proceso);

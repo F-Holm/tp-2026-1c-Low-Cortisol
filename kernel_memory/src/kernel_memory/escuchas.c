@@ -395,9 +395,14 @@ void* escucha_cpu(void* ptr)
         free(pid);
         break;
       }
+      case OP_STICK_DESCONECTADO:
+        logger_info(
+            datos_cpu->logger,
+            "Avisando al Kernel Scheduler que la memoria está corrupta");
+        enviar_string(OP_MEMORIA_CORRUPTA, "Memoria corrupta",
+                      datos_cpu->socket_scheduler);
+        shutdown(datos_cpu->socket_scheduler, SHUT_RDWR);
       case OP_CODE_ERROR:
-        conexion_estable = false;
-        break;
       default:
         conexion_estable = false;
         break;

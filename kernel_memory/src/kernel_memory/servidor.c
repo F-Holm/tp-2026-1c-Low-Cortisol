@@ -2,6 +2,7 @@
 
 bool handshake(t_datos_kernel_mem* datos_kernel_memory, int client_socket)
 {
+  static int socket_scheduler = -1;
   logger_info(datos_kernel_memory->logger, "Se ha aceptado a un cliente!");
   logger_info(datos_kernel_memory->logger, "Servidor a la espera de handshake");
   int identificador = recibir_handshake(client_socket);
@@ -34,11 +35,20 @@ bool handshake(t_datos_kernel_mem* datos_kernel_memory, int client_socket)
       pthread_mutex_unlock(datos_kernel_memory->mutex_hilos_activos);
       datos_kernel_memory->socket_scheduler = client_socket;
       empezar_escucha_scheduler(datos_scheduler);
+      socket_scheduler = client_socket;
     }
     break;
 
     case MID_CPU:
     {
+      if (socket_scheduler == -1)
+      {
+        logger_info(datos_kernel_memory->logger,
+                    "Kernel Scheduler no conectado, conexión rechazada: %i",
+                    client_socket);
+        close(client_socket);
+        break;
+      }
       if (!enviar_handshake(MID_KERNEL_MEMORY, client_socket))
       {
         enviar_handshake_error(datos_kernel_memory->logger, client_socket,
@@ -54,7 +64,7 @@ bool handshake(t_datos_kernel_mem* datos_kernel_memory, int client_socket)
           datos_kernel_memory->memoria_principal, datos_kernel_memory->logger,
           &datos_kernel_memory->hilos_activos,
           datos_kernel_memory->mutex_hilos_activos,
-          datos_kernel_memory->cond_hilos_activos);
+          datos_kernel_memory->cond_hilos_activos, socket_scheduler);
       inicializar_correcto = recibir_id_cpu(datos_cpu);
       enviar_buffer(OP_TAMANIO_MAX_SEG, &datos_kernel_memory->segment_max_size,
                     sizeof(int), datos_cpu->socket_cpu);

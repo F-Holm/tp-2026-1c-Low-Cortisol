@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 
+#include "cpu/conexiones.h"
 #include "cpu/cpu.h"
 #include "cpu/liberacion.h"
 #include "cpu/registros.h"

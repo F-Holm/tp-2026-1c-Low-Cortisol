@@ -76,6 +76,7 @@ typedef struct
 {
   int id;
   int socket_cpu;
+  int socket_scheduler;
   t_logger* logger;
   int instruction_delay;
   t_list* procesos;

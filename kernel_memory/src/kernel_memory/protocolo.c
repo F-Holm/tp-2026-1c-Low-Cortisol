@@ -690,7 +690,7 @@ int encontrar_stick(int direccion_fisica, t_list* sticks_conectados,
 
 char* leer_de_sticks(int direccion_fisica, int tamanio,
                      t_list* sticks_conectados, pthread_mutex_t* mutex_sticks,
-                     t_logger* logger, int socket)
+                     t_logger* logger, int socket_scheduler)
 {
   char* resultado = malloc(tamanio);
   int bytes_leidos = 0;
@@ -725,7 +725,8 @@ char* leer_de_sticks(int direccion_fisica, int tamanio,
     {
       logger_error(logger, "Error al enviar paquete de lectura al stick %d",
                    indice);
-      enviar_string(OP_MEMORIA_CORRUPTA, "Stick no disponible", socket);
+      enviar_string(OP_MEMORIA_CORRUPTA, "Stick no disponible",
+                    socket_scheduler);
       free(resultado);
       pthread_mutex_unlock(mutex_sticks);
       return NULL;
@@ -737,6 +738,11 @@ char* leer_de_sticks(int direccion_fisica, int tamanio,
     int stick_socket =
         ((t_datos_stick*)list_get(sticks_conectados, indice))->socket_stick;
     int op = recibir_operacion(stick_socket);
+    if (op == 0)
+    {
+      enviar_string(OP_MEMORIA_CORRUPTA, "Stick no disponible",
+                    socket_scheduler);
+    }
     if (op != OP_MEMORY_STICK_LEIDO)
     {
       logger_error(logger, "Opcode de respuesta erroneo del stick %d", indice);
@@ -833,6 +839,11 @@ bool escribir_en_sticks(int pid, int dir_fisica, int tamanio_a_leer,
     {
       char* buffer = recibir_string(stick_actual->socket_stick);
       free(buffer);
+    }
+    else
+    {
+      enviar_string(OP_MEMORIA_CORRUPTA, "Stick no disponible",
+                    socket_scheduler);
     }
 
     puntero_buffer += a_escribir;
