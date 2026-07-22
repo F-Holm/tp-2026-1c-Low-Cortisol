@@ -52,6 +52,9 @@ void inicializar_colas_mutex(t_kernel_scheduler_recursos* recursos)
   inicializar_mutex_shutdown();
   recursos->socket_km_mutex =
       inicializar_socket_kernel_memory(recursos->socket_kernel_memory);
+  recursos->datos_hilo_verificar_conexion =
+      iniciar_hilo_verificar_conexion_kernel_memory(
+          recursos->socket_server, recursos->logger, recursos->socket_km_mutex);
   recursos->lista_mutex = inicializar_lista_mutex();
   recursos->colas = inicializar_colas(
       recursos->config_vars.algoritmo_planificacion,
@@ -85,6 +88,8 @@ void cerrar_modulo(t_kernel_scheduler_recursos* recursos)
   destruir_lista_mutex(recursos->lista_mutex);
   vaciar_colas(recursos->colas);
   destruir_colas(recursos->colas);
+  destruir_hilo_verificar_conexion_kernel_memory(
+      recursos->datos_hilo_verificar_conexion);
   destruir_kernel_memory(recursos->socket_km_mutex);
   close(recursos->socket_kernel_memory);
   close(recursos->socket_server);

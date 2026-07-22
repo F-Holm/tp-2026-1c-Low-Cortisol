@@ -265,6 +265,9 @@ void* escucha_scheduler(void* ptr)
         conexion_estable = false;
         break;
       }
+      case OP_KERNEL_MEMORY_FUNCIONANDO:
+        free(recibir_string(datos_scheduler->socket_scheduler));
+        break;
       case OP_CODE_ERROR:
         conexion_estable = false;
         break;

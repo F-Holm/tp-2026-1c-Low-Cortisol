@@ -43,6 +43,7 @@ typedef struct
   t_lista_mutex* lista_mutex;
   t_colas* colas;
   t_socket_kernel_memory* socket_km_mutex;
+  t_datos_hilo_verificar_conexion* datos_hilo_verificar_conexion;
 } t_kernel_scheduler_recursos;
 
 bool iniciar_modulo(t_kernel_scheduler_recursos* recursos,
