@@ -1,7 +1,7 @@
 #!/bin/bash
 
 SESSION_NAME="low_cortisol"
-COLUMNAS=4
+COLUMNAS=3
 FILAS=3
 
 if ! command -v tmux &> /dev/null; then
@@ -35,4 +35,5 @@ for fila_pane in "${filas_panes[@]}"; do
     done
 done
 
+tmux select-pane -t "$SESSION_NAME.0"
 tmux attach-session -t "$SESSION_NAME"
