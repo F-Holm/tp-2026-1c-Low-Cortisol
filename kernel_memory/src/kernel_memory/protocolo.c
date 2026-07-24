@@ -172,17 +172,20 @@ t_proceso* buscar_proceso(t_list* lista_procesos,
                           pthread_mutex_t* mutex_procesos, uint32_t pid)
 {
   pthread_mutex_lock(mutex_procesos);
-  for (int i = 0; i < list_size(lista_procesos); i++)
+  t_list_iterator* iterador = list_iterator_create(lista_procesos);
+  t_proceso* proceso_encontrado = NULL;
+  while (list_iterator_has_next(iterador))
   {
-    t_proceso* proceso = list_get(lista_procesos, i);
+    t_proceso* proceso = list_iterator_next(iterador);
     if (proceso->pid == pid)
     {
-      pthread_mutex_unlock(mutex_procesos);
-      return proceso;
+      proceso_encontrado = proceso;
+      break; 
     }
   }
+  list_iterator_destroy(iterador);
   pthread_mutex_unlock(mutex_procesos);
-  return NULL;
+  return proceso_encontrado;
 }
 
 t_memoria_principal* aniadir_memoria_total(
@@ -369,16 +372,21 @@ bool compactar_memoria(int socket_scheduler,
 
 void compactar_segmentos(t_list* segmentos)
 {
-  for (int i = 0; i < list_size(segmentos) - 1; i++)
-  {
-    t_segmento* segmento_actual = list_get(segmentos, i);
-    t_segmento* siguiente_segmento = list_get(segmentos, i + 1);
-    if (i == 0)
-    {
-      segmento_actual->base = 0;
+t_list_iterator* iterador = list_iterator_create(segmentos);
+
+if (list_iterator_has_next(iterador)) {
+    t_segmento* segmento_actual = list_iterator_next(iterador);
+    segmento_actual->base = 0;
+
+    while (list_iterator_has_next(iterador)) {
+        t_segmento* siguiente_segmento = list_iterator_next(iterador);
+        
+        siguiente_segmento->base = segmento_actual->base + segmento_actual->size;
+        
+        segmento_actual = siguiente_segmento;
     }
-    siguiente_segmento->base = segmento_actual->base + segmento_actual->size;
-  }
+}
+list_iterator_destroy(iterador);
 }
 
 int calcular_base_final_segmento(t_list* segmentos)
@@ -417,20 +425,29 @@ t_segmento* buecar_y_eliminar_segmento(uint32_t id, uint32_t pid,
 
   logger_info(logger, "recorriendo lista de segmentos de tamanio %d:",
               list_size(memoria_principal->segmentos));
-  for (int i = 0; i < list_size(memoria_principal->segmentos); i++)
+
+  t_list_iterator* iterador = list_iterator_create(memoria_principal->segmentos);
+  t_segmento* segmento_encontrado = NULL;
+
+  while (list_iterator_has_next(iterador))
   {
-    t_segmento* segmento_actual = list_get(memoria_principal->segmentos, i);
+    t_segmento* segmento_actual = list_iterator_next(iterador);
     if (segmento_actual->id == id && segmento_actual->pid == pid)
     {
-      t_segmento* segmento = list_remove(memoria_principal->segmentos, i);
+      list_iterator_remove(iterador);
+      segmento_encontrado = segmento_actual;  
       logger_info(logger, "se ha eliminado el segmento con ID: %d, PID: %d",
-                  segmento->id, segmento->pid);
-      pthread_mutex_unlock(memoria_principal->mutex_memoria_principal);
-      return segmento;
+                  segmento_encontrado->id, segmento_encontrado->pid);   
+      break; 
     }
   }
+  list_iterator_destroy(iterador);
   pthread_mutex_unlock(memoria_principal->mutex_memoria_principal);
-  logger_error(logger, "ha ocurrido un error con la eliminacion del segmento");
+  if (segmento_encontrado != NULL)
+  {
+    return segmento_encontrado;
+  }
+  logger_error(logger, "ha ocurrido un error con la eliminacion del segmento (no encontrado)");
   return NULL;
 }
 
@@ -465,9 +482,11 @@ void eliminar_segmento(uint32_t id, uint32_t pid,
     int indice1 = -1;
     int indice2 = -1;
     // SEGMENTO EN MEDIO DE HUECOS
-    for (int i = 0; i < list_size(memoria_principal->huecos); i++)
+    t_list_iterator* iterator = list_iterator_create(memoria_principal->huecos);
+    int i = 0;
+    while (list_iterator_has_next(iterator))
     {
-      t_hueco* hueco_actual = list_get(memoria_principal->huecos, i);
+      t_hueco* hueco_actual = list_iterator_next(iterator);
       if (hueco_actual->base + hueco_actual->size == segmento_aux->base)
       {
         nuevo_hueco->base = hueco_actual->base;
@@ -479,7 +498,10 @@ void eliminar_segmento(uint32_t id, uint32_t pid,
         nuevo_hueco->size += hueco_actual->size;
         indice2 = i;
       }
+      i++;
     }
+    list_iterator_destroy(iterator);
+
     if (indice1 == -1 || indice2 == -1)
     {
       logger_error(logger,
@@ -506,16 +528,21 @@ void eliminar_segmento(uint32_t id, uint32_t pid,
   {
     int indice1 = -1;
     // SEGMENTO DESPUES DE HUECO
-    for (int i = 0; i < list_size(memoria_principal->huecos); i++)
+    t_list_iterator* iterator = list_iterator_create(memoria_principal->huecos);
+    int i = 0;
+    while (list_iterator_has_next(iterator))
     {
-      t_hueco* hueco_actual = list_get(memoria_principal->huecos, i);
+      t_hueco* hueco_actual = list_iterator_next(iterator);
       if (hueco_actual->base + hueco_actual->size == segmento_aux->base)
       {
         nuevo_hueco->base = hueco_actual->base;
         nuevo_hueco->size = hueco_actual->size + segmento_aux->size;
         indice1 = i;
       }
+      i++;
     }
+    list_iterator_destroy(iterator);
+
     list_remove_and_destroy_element(memoria_principal->huecos, indice1, free);
     list_add(memoria_principal->huecos, nuevo_hueco);
     logger_info(logger, "Segmento despues de hueco");
@@ -524,16 +551,21 @@ void eliminar_segmento(uint32_t id, uint32_t pid,
   {
     int indice2 = -1;
     // SEGMENTO ANTES DE HUECO
-    for (int i = 0; i < list_size(memoria_principal->huecos); i++)
+    t_list_iterator* iterator = list_iterator_create(memoria_principal->huecos);
+    int i = 0;
+    while (list_iterator_has_next(iterator))
     {
-      t_hueco* hueco_actual = list_get(memoria_principal->huecos, i);
+      t_hueco* hueco_actual = list_iterator_next(iterator);
       if (hueco_actual->base == segmento_aux->base + segmento_aux->size)
       {
         nuevo_hueco->base = segmento_aux->base;
         nuevo_hueco->size = hueco_actual->size + segmento_aux->size;
         indice2 = i;
       }
+      i++;
     }
+    list_iterator_destroy(iterator);
+
     list_remove_and_destroy_element(memoria_principal->huecos, indice2, free);
     list_add(memoria_principal->huecos, nuevo_hueco);
     logger_info(logger, "Segmento antes de hueco");
@@ -551,29 +583,38 @@ void eliminar_segmento(uint32_t id, uint32_t pid,
 
 bool hueco_antes_segmento(int base_segmento, int final_segmento, t_list* huecos)
 {
-  for (int i = 0; i < list_size(huecos); i++)
+  t_list_iterator* iterador = list_iterator_create(huecos);
+  bool encontrado = false;
+
+  while (list_iterator_has_next(iterador))
   {
-    t_hueco* hueco_actual = list_get(huecos, i);
+    t_hueco* hueco_actual = list_iterator_next(iterador);
+    
     if ((hueco_actual->base + hueco_actual->size) == base_segmento)
     {
-      return true;
+      encontrado = true;
+      break;
     }
   }
-  return false;
+  list_iterator_destroy(iterador);
+  return encontrado;
 }
-
 bool hueco_despues_segmento(int base_segmento, int final_segmento,
                             t_list* huecos)
 {
-  for (int i = 0; i < list_size(huecos); i++)
+  t_list_iterator* iterador = list_iterator_create(huecos);
+  bool encontrado = false;
+  while (list_iterator_has_next(iterador))
   {
-    t_hueco* hueco_actual = list_get(huecos, i);
+    t_hueco* hueco_actual = list_iterator_next(iterador);
     if (hueco_actual->base == final_segmento)
     {
-      return true;
+      encontrado = true;
+      break;
     }
   }
-  return false;
+  list_iterator_destroy(iterador);
+  return encontrado;
 }
 
 t_list* filtrar_segmentos_proceso(int pid,
@@ -600,12 +641,14 @@ t_list* filtrar_segmentos_proceso(int pid,
 void agregar_segmentos_a_paquete(t_list* segmentos,
                                  t_paquete* tabla_segmentos_proceso)
 {
-  for (int i = 0; i < list_size(segmentos); i++)
+  t_list_iterator* iterador = list_iterator_create(segmentos);
+  while (list_iterator_has_next(iterador))
   {
-    t_segmento* segmento_actual = list_get(segmentos, i);
+    t_segmento* segmento_actual = list_iterator_next(iterador);
     agregar_a_paquete(tabla_segmentos_proceso, segmento_actual,
                       sizeof(t_segmento));
   }
+  list_iterator_destroy(iterador);
 }
 
 t_segmento* buscar_segmento(t_memoria_principal* memoria_principal,
@@ -768,11 +811,15 @@ char* leer_de_sticks(int direccion_fisica, int tamanio,
 int calcular_tamanio_proceso(t_proceso* proceso)
 {
   int tamanio = 0;
-  for (int i = 0; i < list_size(proceso->segmentos); i++)
+  t_list_iterator* iterador = list_iterator_create(proceso->segmentos);
+
+  while (list_iterator_has_next(iterador))
   {
-    t_segmento* segmento_aux = list_get(proceso->segmentos, i);
+    t_segmento* segmento_aux = list_iterator_next(iterador);
     tamanio += segmento_aux->size;
   }
+
+  list_iterator_destroy(iterador);
   return tamanio;
 }
 

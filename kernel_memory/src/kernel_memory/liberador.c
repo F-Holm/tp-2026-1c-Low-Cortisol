@@ -119,16 +119,17 @@ void liberar_datos_kernel_mem(t_datos_kernel_mem* datos_kernel)
   {
     liberar_memoria_principal(datos_kernel->memoria_principal);
   }
-  if (datos_kernel->procesos != NULL)
+ if (datos_kernel->procesos != NULL)
   {
-    for (int i = 0; i < list_size(datos_kernel->procesos); i++)
+    t_list_iterator* iterador = list_iterator_create(datos_kernel->procesos);
+    while (list_iterator_has_next(iterador))
     {
-      t_proceso* p = list_get(datos_kernel->procesos, i);
+      t_proceso* p = list_iterator_next(iterador);
       liberar_proceso(p);
     }
+    list_iterator_destroy(iterador);
     list_destroy(datos_kernel->procesos);
   }
-  // Cerrar socket principal
   if (datos_kernel->socket_kernel_memory > 0)
   {
     terminar_comunicacion(datos_kernel->socket_kernel_memory);
