@@ -46,6 +46,8 @@ t_io* crear_estructuras_io(void)
   for (int i = 0; i < 3; i++)
   {
     io[i].socket_io = -1;
+    pthread_mutex_init(&(io[i].mutex_fin), NULL);
+    pthread_cond_init(&(io[i].nuevo_proceso), NULL);
   }
   return io;
 }
@@ -71,8 +73,6 @@ bool atender_nuevo_io(t_io io[3], int socket_fd, t_colas* colas,
   io[tipo_io].socket_io = socket_fd;
   io[tipo_io].proceso_actual = NULL;
   io[tipo_io].socket_server = socket_server;
-  pthread_mutex_init(&(io[tipo_io].mutex_fin), NULL);
-  pthread_cond_init(&(io[tipo_io].nuevo_proceso), NULL);
   io[tipo_io].colas = colas;
   io[tipo_io].logger = colas->logger;
   io[tipo_io].socket_km = colas->socket_km;

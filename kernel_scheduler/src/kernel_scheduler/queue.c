@@ -289,7 +289,7 @@ void cambio_a_exec(t_pcb* pcb, t_lista_execute* exec)
     pthread_mutex_unlock(&(pcb->mutex_prioridad));
     if (prioridad_mas_baja != NULL)
     {
-      pthread_mutex_unlock(&(exec->prioridad_mas_baja->mutex_prioridad));
+      pthread_mutex_unlock(&(prioridad_mas_baja->mutex_prioridad));
     }
   }
   list_add(exec->lista, pcb);
