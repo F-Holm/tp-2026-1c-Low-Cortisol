@@ -1,8 +1,8 @@
 MODULES = cpu io kernel_memory kernel_scheduler memory_stick swap utils
 SLEEP_TIME = 0.1
-ESPERA_CPUS = 80
+ESPERA_CPUS = 40
 
-.PHONY: all debug release test clean logs format run kill memcheck helgrind base base-memcheck base-helgrind base2 base2-memcheck base2-helgrind pcp pcp-memcheck pcp-helgrind mem mem-memcheck mem-helgrind mem2 mem2-memcheck mem2-helgrind pmp pmp-memcheck pmp-helgrind php php-memcheck php-helgrind $(MODULES)
+.PHONY: all debug release test clean logs format run kill memcheck helgrind base base-memcheck base-helgrind base2 base2-memcheck base2-helgrind pcp pcp-memcheck pcp-helgrind mem mem-memcheck mem-helgrind mem2 mem2-memcheck mem2-helgrind pmp pmp-memcheck pmp-helgrind php php-memcheck php-helgrind  es31 es31-mecheck es31-helgrind$(MODULES)
 
 all: $(MODULES)
 
@@ -392,13 +392,13 @@ executees31: logs $(BUILD_TARGET)
 	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./kernel_scheduler/bin/kernel_scheduler ./kernel_scheduler/configs/ES3_1.config ES3_1.prc > ./output/kernel_scheduler.log 2>&1 &
 	@sleep $(SLEEP_TIME)
-	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/ES3_16_1.config 2048 > ./output/memory_stick_1.log 2>&1 &
+	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/ES3_1.config 2048 > ./output/memory_stick_1.log 2>&1 &
 	@sleep $(SLEEP_TIME)
-	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/ES3_16_2.config 2048 > ./output/memory_stick_2.log 2>&1 &
+	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/ES3_1.config 2048 > ./output/memory_stick_2.log 2>&1 &
 	@sleep $(SLEEP_TIME)
-	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/ES3_16_1.config 2048 > ./output/memory_stick_3.log 2>&1 &
+	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/ES3_1.config 2048 > ./output/memory_stick_3.log 2>&1 &
 	@sleep $(SLEEP_TIME)
-	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/ES3_16_2.config 2048 > ./output/memory_stick_4.log 2>&1 &
+	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/ES3_1.config 2048 > ./output/memory_stick_4.log 2>&1 &
 	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./io/bin/io ./io/io.config SLEEP > ./output/io_sleep.log 2>&1 &
 	@sleep $(SLEEP_TIME)
