@@ -115,6 +115,9 @@ static bool retirar_de_la_lista(t_colas* colas);
 static void rutina_des_suspension(t_colas* colas);
 static int recibir_espacio(t_colas* colas);
 static int recibir_tamanio(t_colas* colas);
+static int recibir_tamanio_sin_logger(t_colas* colas);
+static int tamanio_proceso_sin_mutex_ni_logger(t_colas* colas, uint32_t pid);
+static int tamanio_proceso_sin_logger(t_colas* colas, uint32_t pid);
 static void* hilo_rutina_des_suspension(void* datos_des_suspension);
 static bool esta_des_suspendiendo_set(t_colas* colas, bool nuevo_estado);
 static bool esta_compactando_set(t_colas* colas, bool nuevo_estado);
@@ -538,6 +541,19 @@ int tamanio_proceso_sin_mutex(t_colas* colas, uint32_t pid)
 
   return recibir_tamanio(colas);
 }
+static int tamanio_proceso_sin_mutex_ni_logger(t_colas* colas, uint32_t pid)
+{
+  if (!(enviar_buffer(OP_PEDIR_TAMANIO_PROCESO, &pid, sizeof(uint32_t),
+                      colas->socket_km->socket_km)))
+  {
+    cerrar_kernel_scheduler(colas->socket_servidor, colas->logger,
+                            MC_ERROR_ENVIO_KERNEL_MEMORY,
+                            colas->socket_km->socket_km);
+    return -1;
+  }
+
+  return recibir_tamanio_sin_logger(colas);
+}
 
 int tamanio_proceso(t_colas* colas, uint32_t pid)
 {
@@ -547,6 +563,13 @@ int tamanio_proceso(t_colas* colas, uint32_t pid)
   return espacio;
 }
 
+static int tamanio_proceso_sin_logger(t_colas* colas, uint32_t pid)
+{
+  pthread_mutex_lock(&(colas->socket_km->mutex_socket));
+  int espacio = tamanio_proceso_sin_mutex_ni_logger(colas, pid);
+  pthread_mutex_unlock(&(colas->socket_km->mutex_socket));
+  return espacio;
+}
 // usar para memoria liberada, nuevo stick o fin de compactación
 void crear_hilo_rutina_des_suspension(t_colas* colas)
 {
@@ -1430,15 +1453,23 @@ static t_pcb* obtener_proceso_bloqueado(t_colas* colas,
 {
   pthread_mutex_lock(&(colas->block.mutex_lista));
   t_pcb* proceso = NULL;
-  if (!list_is_empty(colas->block.lista))
+  int tamanio_en_memoria = -1;
+  t_list_iterator* iterador = list_iterator_create(colas->block.lista);
+  while (list_iterator_has_next(iterador))
   {
-    proceso = list_get(colas->block.lista, 0);
+    proceso = list_iterator_next(iterador);
+    tamanio_en_memoria = tamanio_proceso_sin_logger(colas, proceso->pid);
+    if (tamanio_en_memoria > 0)
+    {
+      break;
+    }
   }
   pthread_mutex_unlock(&(colas->block.mutex_lista));
   if (proceso == NULL)
   {
     datos->datos->estado = EH_ESPERANDO_PROCESO;
   }
+  list_iterator_destroy(iterador);
   return proceso;
 }
 
@@ -1729,6 +1760,35 @@ static int recibir_tamanio(t_colas* colas)
       espacio = *aux;
       free(aux);
       logger_info(colas->logger, "Tamaño proceso: %d", espacio);
+      return espacio;
+      break;
+    case OP_NUEVO_MEMORY_STICK:
+      free(recibir_string(colas->socket_km->socket_km));
+      crear_hilo_rutina_des_suspension(colas);
+      return recibir_tamanio(colas);
+      break;
+    case OP_MEMORIA_CORRUPTA:
+      cerrar_kernel_scheduler(colas->socket_servidor, colas->logger,
+                              MC_MEMORIA_CORRUPTA, -1);
+      break;
+    default:
+      cerrar_kernel_scheduler(colas->socket_servidor, colas->logger,
+                              MC_FALLO_CONEXION_KERNEL_MEMORY, -1);
+      break;
+  }
+  return -1;
+}
+static int recibir_tamanio_sin_logger(t_colas* colas)
+{
+  int op_code = recibir_operacion(colas->socket_km->socket_km);
+
+  switch (op_code)
+  {
+    case OP_TAMANIO_PROCESO:
+      int espacio;
+      int* aux = recibir_buffer(&espacio, colas->socket_km->socket_km);
+      espacio = *aux;
+      free(aux);
       return espacio;
       break;
     case OP_NUEVO_MEMORY_STICK:

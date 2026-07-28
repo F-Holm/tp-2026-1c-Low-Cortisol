@@ -80,6 +80,7 @@ int main(int argc, char* argv[])
     }
   }
   // Liberar y Cerrar
+  logger_info(datos_swap.logger, "Cerrando Swap");
   cerrar_todo(&datos_swap, config);
   return EXIT_SUCCESS;
 }
