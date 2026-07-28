@@ -1463,6 +1463,10 @@ static t_pcb* obtener_proceso_bloqueado(t_colas* colas,
     {
       break;
     }
+    else
+    {
+      proceso = NULL;
+    }
   }
   pthread_mutex_unlock(&(colas->block.mutex_lista));
   if (proceso == NULL)
