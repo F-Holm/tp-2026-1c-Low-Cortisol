@@ -182,7 +182,8 @@ void* escucha_scheduler(void* ptr)
           pthread_mutex_unlock(datos_scheduler->mutex_procesos);
           logger_info(datos_scheduler->logger, "Proceso con PID %u terminado",
                       *pid);
-          t_list_iterator* iterador_segmentos = list_iterator_create(proceso_a_terminar->segmentos);
+          t_list_iterator* iterador_segmentos =
+              list_iterator_create(proceso_a_terminar->segmentos);
           while (list_iterator_has_next(iterador_segmentos))
           {
             t_segmento* segmento = list_iterator_next(iterador_segmentos);

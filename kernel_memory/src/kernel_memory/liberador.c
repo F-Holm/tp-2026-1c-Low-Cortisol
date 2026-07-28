@@ -119,7 +119,7 @@ void liberar_datos_kernel_mem(t_datos_kernel_mem* datos_kernel)
   {
     liberar_memoria_principal(datos_kernel->memoria_principal);
   }
- if (datos_kernel->procesos != NULL)
+  if (datos_kernel->procesos != NULL)
   {
     t_list_iterator* iterador = list_iterator_create(datos_kernel->procesos);
     while (list_iterator_has_next(iterador))

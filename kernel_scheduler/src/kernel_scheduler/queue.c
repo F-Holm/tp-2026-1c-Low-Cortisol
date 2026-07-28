@@ -276,20 +276,21 @@ void cambio_a_exec(t_pcb* pcb, t_lista_execute* exec)
   if (exec->desalojo)
   {
     t_pcb* prioridad_mas_baja = exec->prioridad_mas_baja;
+
+    int valor_prio_baja = -1;
+
     if (prioridad_mas_baja != NULL)
     {
-      pthread_mutex_lock(&(exec->prioridad_mas_baja->mutex_prioridad));
+      pthread_mutex_lock(&(prioridad_mas_baja->mutex_prioridad));
+      valor_prio_baja = prioridad_mas_baja->prioridad;
+      pthread_mutex_unlock(&(prioridad_mas_baja->mutex_prioridad));
     }
     pthread_mutex_lock(&(pcb->mutex_prioridad));
-    if (exec->prioridad_mas_baja == NULL ||
-        exec->prioridad_mas_baja->prioridad >= pcb->prioridad)
+    int valor_prio_pcb = pcb->prioridad;
+    pthread_mutex_unlock(&(pcb->mutex_prioridad));
+    if (prioridad_mas_baja == NULL || valor_prio_baja >= valor_prio_pcb)
     {
       exec->prioridad_mas_baja = pcb;
-    }
-    pthread_mutex_unlock(&(pcb->mutex_prioridad));
-    if (prioridad_mas_baja != NULL)
-    {
-      pthread_mutex_unlock(&(prioridad_mas_baja->mutex_prioridad));
     }
   }
   list_add(exec->lista, pcb);
@@ -951,14 +952,19 @@ static void update_priordad_mas_baja_exec(t_lista_execute* exec)
     }
     else
     {
-      pthread_mutex_lock(&(exec->prioridad_mas_baja->mutex_prioridad));
+      t_pcb* actual_mas_baja = exec->prioridad_mas_baja;
+      pthread_mutex_lock(&(actual_mas_baja->mutex_prioridad));
+      int prioridad_actual = actual_mas_baja->prioridad;
+      pthread_mutex_unlock(&(actual_mas_baja->mutex_prioridad));
+
       pthread_mutex_lock(&(pcb->mutex_prioridad));
-      if (exec->prioridad_mas_baja->prioridad > pcb->prioridad)
+      int prioriad_iterador = pcb->prioridad;
+      pthread_mutex_unlock(&(pcb->mutex_prioridad));
+
+      if (prioridad_actual > prioriad_iterador)
       {
         exec->prioridad_mas_baja = pcb;
       }
-      pthread_mutex_unlock(&(pcb->mutex_prioridad));
-      pthread_mutex_unlock(&(exec->prioridad_mas_baja->mutex_prioridad));
     }
   }
   list_iterator_destroy(iterator_lista);
@@ -1239,6 +1245,7 @@ static bool avisar_proceso_suspendido(t_pcb* pcb, t_colas* colas)
   if (!enviar_buffer(OP_SUSPENDER_PROCESO, &(pcb->pid), sizeof(uint32_t),
                      colas->socket_km->socket_km))
   {
+    pthread_mutex_unlock(&(colas->socket_km->mutex_socket));
     cerrar_kernel_scheduler(colas->socket_servidor, colas->logger,
                             MC_ERROR_ENVIO_KERNEL_MEMORY,
                             colas->socket_km->socket_km);

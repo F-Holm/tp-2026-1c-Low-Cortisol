@@ -180,7 +180,7 @@ t_proceso* buscar_proceso(t_list* lista_procesos,
     if (proceso->pid == pid)
     {
       proceso_encontrado = proceso;
-      break; 
+      break;
     }
   }
   list_iterator_destroy(iterador);
@@ -372,21 +372,23 @@ bool compactar_memoria(int socket_scheduler,
 
 void compactar_segmentos(t_list* segmentos)
 {
-t_list_iterator* iterador = list_iterator_create(segmentos);
+  t_list_iterator* iterador = list_iterator_create(segmentos);
 
-if (list_iterator_has_next(iterador)) {
+  if (list_iterator_has_next(iterador))
+  {
     t_segmento* segmento_actual = list_iterator_next(iterador);
     segmento_actual->base = 0;
 
-    while (list_iterator_has_next(iterador)) {
-        t_segmento* siguiente_segmento = list_iterator_next(iterador);
-        
-        siguiente_segmento->base = segmento_actual->base + segmento_actual->size;
-        
-        segmento_actual = siguiente_segmento;
+    while (list_iterator_has_next(iterador))
+    {
+      t_segmento* siguiente_segmento = list_iterator_next(iterador);
+
+      siguiente_segmento->base = segmento_actual->base + segmento_actual->size;
+
+      segmento_actual = siguiente_segmento;
     }
-}
-list_iterator_destroy(iterador);
+  }
+  list_iterator_destroy(iterador);
 }
 
 int calcular_base_final_segmento(t_list* segmentos)
@@ -426,7 +428,8 @@ t_segmento* buecar_y_eliminar_segmento(uint32_t id, uint32_t pid,
   logger_info(logger, "recorriendo lista de segmentos de tamanio %d:",
               list_size(memoria_principal->segmentos));
 
-  t_list_iterator* iterador = list_iterator_create(memoria_principal->segmentos);
+  t_list_iterator* iterador =
+      list_iterator_create(memoria_principal->segmentos);
   t_segmento* segmento_encontrado = NULL;
 
   while (list_iterator_has_next(iterador))
@@ -435,10 +438,10 @@ t_segmento* buecar_y_eliminar_segmento(uint32_t id, uint32_t pid,
     if (segmento_actual->id == id && segmento_actual->pid == pid)
     {
       list_iterator_remove(iterador);
-      segmento_encontrado = segmento_actual;  
+      segmento_encontrado = segmento_actual;
       logger_info(logger, "se ha eliminado el segmento con ID: %d, PID: %d",
-                  segmento_encontrado->id, segmento_encontrado->pid);   
-      break; 
+                  segmento_encontrado->id, segmento_encontrado->pid);
+      break;
     }
   }
   list_iterator_destroy(iterador);
@@ -447,7 +450,9 @@ t_segmento* buecar_y_eliminar_segmento(uint32_t id, uint32_t pid,
   {
     return segmento_encontrado;
   }
-  logger_error(logger, "ha ocurrido un error con la eliminacion del segmento (no encontrado)");
+  logger_error(
+      logger,
+      "ha ocurrido un error con la eliminacion del segmento (no encontrado)");
   return NULL;
 }
 
@@ -589,7 +594,7 @@ bool hueco_antes_segmento(int base_segmento, int final_segmento, t_list* huecos)
   while (list_iterator_has_next(iterador))
   {
     t_hueco* hueco_actual = list_iterator_next(iterador);
-    
+
     if ((hueco_actual->base + hueco_actual->size) == base_segmento)
     {
       encontrado = true;
