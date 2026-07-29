@@ -16,7 +16,7 @@ static bool mayorPrioridadQue(void* p1, void* p2);
 static void insertar_prioridad(t_pcb* pcb, int prioridad, t_logger* logger);
 static void reemplazar_prioridad(t_pcb* pcb, int prioridad_vieja,
                                  int prioridad_nueva, t_colas* colas);
-static void eliminar_prioridad(t_pcb* pcb, int prioridad, t_logger* logger);
+static bool eliminar_prioridad(t_pcb* pcb, int prioridad, t_logger* logger);
 static int mutex_lock(t_mutex* mutex, t_pcb* pcb);
 static int mutex_unlock(t_mutex* mutex, t_pcb* pcb);
 static void destroy_mutex(t_mutex* mutex);
@@ -163,19 +163,21 @@ static void reemplazar_prioridad(t_pcb* pcb, int prioridad_vieja,
   }
 }
 
-static void eliminar_prioridad(t_pcb* pcb, int prioridad, t_logger* logger)
+static bool eliminar_prioridad(t_pcb* pcb, int prioridad, t_logger* logger)
 {
   pthread_mutex_lock(&(pcb->mutex_prioridad));
   eliminar_prioridad_lista(pcb->lista_prioridades, prioridad);
 
   int nueva_prioridad = *(int*)list_get(pcb->lista_prioridades, 0);
-  if (pcb->prioridad != nueva_prioridad)
+  bool prioridad_actualizada = pcb->prioridad != nueva_prioridad;
+  if (prioridad_actualizada)
   {
     log_cambio_de_prioridad(logger, pcb->pid, pcb->prioridad, nueva_prioridad);
     pcb->prioridad = nueva_prioridad;
   }
-
   pthread_mutex_unlock(&(pcb->mutex_prioridad));
+
+  return prioridad_actualizada;
 }
 
 static int mutex_lock(t_mutex* mutex, t_pcb* pcb)
@@ -198,6 +200,7 @@ static int mutex_lock(t_mutex* mutex, t_pcb* pcb)
       reemplazar_prioridad(mutex->proceso_actual, mutex->prioridad_siguiente,
                            prioridad_pcb, mutex->colas);
       mutex->prioridad_siguiente = prioridad_pcb;
+      update_priordad_mas_baja_exec(&(mutex->colas->exec));
     }
     cambio_exec_block(pcb, mutex->colas);
   }
@@ -219,9 +222,10 @@ static int mutex_unlock(t_mutex* mutex, t_pcb* pcb)
     pthread_mutex_unlock(&(mutex->mutex));
     return RM_PROCESO_NO_TIENE_MUTEX_BLOQUEADO;
   }
-  if (mutex->prioridad_activa)
+  if (mutex->prioridad_activa &&
+      eliminar_prioridad(pcb, mutex->prioridad_siguiente, mutex->colas->logger))
   {
-    eliminar_prioridad(pcb, mutex->prioridad_siguiente, mutex->colas->logger);
+    update_priordad_mas_baja_exec(&(mutex->colas->exec));
   }
   log_mutex_liberado(mutex->colas->logger, pcb->pid, mutex->id);
   if (mutex->estado == 0)

@@ -41,6 +41,7 @@ static void log_desalojo_cola_prioritaria(t_logger* logger,
                                           int prioridad_nuevo);
 static void gestionar_cola_bloqueada(t_datos_syscall* datos);
 static void log_desalojo_fin_quantum(t_logger* logger, uint32_t pid);
+static bool es_proceso_menos_prioritario(t_datos_syscall* datos, int prioridad);
 static void gestionar_desalojo_prioritario(t_datos_syscall* datos);
 static void gestionar_fin_quantum(t_datos_syscall* datos);
 static bool enviar_desalojo(t_datos_syscall* datos);
@@ -178,46 +179,60 @@ static void log_desalojo_fin_quantum(t_logger* logger, uint32_t pid)
   logger_info(logger, "## %u - Desalojado por fin de quantum", pid);
 }
 
+static bool es_proceso_menos_prioritario(t_datos_syscall* datos, int prioridad)
+{
+  pthread_mutex_lock(&(datos->datos->colas->exec.mutex_lista));
+  bool ret = prioridad >= datos->datos->colas->exec.prioridad_mas_baja;
+  pthread_mutex_unlock(&(datos->datos->colas->exec.mutex_lista));
+  return ret;
+}
+
 static void gestionar_desalojo_prioritario(t_datos_syscall* datos)
 {
-  if (datos->motivo_desalojo == MD_SIN_DESALOJO &&
-      datos->datos->colas->exec.desalojo)
+  if (datos->motivo_desalojo != MD_SIN_DESALOJO ||
+      !datos->datos->colas->exec.desalojo || datos->pcb == NULL)
   {
-    int prioridad_desalojado = get_prioridad_pcb(datos->pcb);
-    pthread_mutex_lock(&(datos->datos->colas->ready.mutex_cola));
-    int prioridad_nuevo = datos->datos->colas->ready.mayor_prioridad;
-    if (prioridad_desalojado > prioridad_nuevo)
-    {
-      logger_info(datos->datos->logger,
-                  "CPU %s: Desalojando proceso por cola prioritaria",
-                  datos->datos->id);
-      t_pcb* nueva_pcb =
-          cambio_sacar_ready_siguiente_sin_mutex(&(datos->datos->colas->ready));
-      pthread_mutex_unlock(&(datos->datos->colas->ready.mutex_cola));
-
-      if (nueva_pcb != NULL)
-      {
-        log_desalojo_cola_prioritaria(datos->datos->logger, datos->pcb->pid,
-                                      prioridad_desalojado, nueva_pcb->pid,
-                                      prioridad_nuevo);
-        cambio_exec_ready(datos->pcb, datos->datos->colas);
-        cambio_ready_exec(nueva_pcb, datos->datos->colas);
-        cambio_a_exec(nueva_pcb, &(datos->datos->colas->exec));
-        datos->motivo_desalojo = MD_PROCESO_PRIORITARIO;
-        datos->pcb = nueva_pcb;
-        datos->contador = millis();
-      }
-      else
-      {
-        logger_error(datos->datos->logger,
-                     "Error en el desalojo por prioridad");
-      }
-    }
-    else
-    {
-      pthread_mutex_unlock(&(datos->datos->colas->ready.mutex_cola));
-    }
+    return;
   }
+
+  int prioridad_desalojado = get_prioridad_pcb(datos->pcb);
+
+  if (!es_proceso_menos_prioritario(datos, prioridad_desalojado))
+  {
+    return;
+  }
+
+  pthread_mutex_lock(&(datos->datos->colas->ready.mutex_cola));
+  int prioridad_nuevo = datos->datos->colas->ready.mayor_prioridad;
+
+  if (prioridad_desalojado <= prioridad_nuevo)
+  {
+    pthread_mutex_unlock(&(datos->datos->colas->ready.mutex_cola));
+    return;
+  }
+
+  logger_info(datos->datos->logger,
+              "CPU %s: Desalojando proceso por cola prioritaria",
+              datos->datos->id);
+  t_pcb* nueva_pcb =
+      cambio_sacar_ready_siguiente_sin_mutex(&(datos->datos->colas->ready));
+  pthread_mutex_unlock(&(datos->datos->colas->ready.mutex_cola));
+
+  if (nueva_pcb == NULL)
+  {
+    logger_error(datos->datos->logger, "Error en el desalojo por prioridad");
+    return;
+  }
+
+  log_desalojo_cola_prioritaria(datos->datos->logger, datos->pcb->pid,
+                                prioridad_desalojado, nueva_pcb->pid,
+                                prioridad_nuevo);
+  cambio_exec_ready(datos->pcb, datos->datos->colas);
+  cambio_ready_exec(nueva_pcb, datos->datos->colas);
+  cambio_a_exec(nueva_pcb, &(datos->datos->colas->exec));
+  datos->motivo_desalojo = MD_PROCESO_PRIORITARIO;
+  datos->pcb = nueva_pcb;
+  datos->contador = millis();
 }
 
 static bool es_rr(t_datos_syscall* datos)

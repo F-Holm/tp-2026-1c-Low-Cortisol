@@ -47,6 +47,9 @@
 | `make php` | Compila y ejecuta la Prueba Herencia de Prioridades. |
 | `make php-memcheck` | Compila y ejecuta la Prueba Herencia de Prioridades con memcheck. |
 | `make php-helgrind` | Compila y ejecuta la Prueba Herencia de Prioridades con helgrind. |
+| `make es31` | Compila y ejecuta la Prueba de Estabilidad 1. |
+| `make es31-memcheck` | Compila y ejecuta la Prueba de Estabilidad 1 con memcheck. |
+| `make es31-helgrind` | Compila y ejecuta la Prueba de Estabilidad 1 con helgrind. |
 | `make kill` | Detiene la ejecución del sistema. |
 
 ---

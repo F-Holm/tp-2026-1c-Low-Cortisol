@@ -70,7 +70,7 @@ typedef struct
   t_list* lista;
   pthread_mutex_t mutex_lista;
   pthread_cond_t cola_vacia;
-  t_pcb* prioridad_mas_baja;
+  int prioridad_mas_baja;
   int quantum;      // = 0 si no es RR
   bool desalojo;    // Si el desalojo está habilitado
 } t_lista_execute;  // Como algunos valores no cambian nunca (quantum y
@@ -148,6 +148,7 @@ void desbloquear_cola_ready(t_cola_ready* ready);
 bool cola_ready_terminada(t_cola_ready* ready);
 void terminar_cola_ready(t_cola_ready* ready);
 
+void update_priordad_mas_baja_exec(t_lista_execute* exec);
 void esperar_cola_exec_vacia(t_colas* colas);
 void esperar_cola_exec_vacia_con_syscalls(t_colas* colas);
 
