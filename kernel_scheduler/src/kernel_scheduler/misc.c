@@ -137,6 +137,8 @@ void destruir_pcb(t_pcb* pcb)
 {
   pthread_mutex_destroy(&(pcb->mutex_prioridad));
   pthread_mutex_destroy(&(pcb->mutex_estado));
+  pthread_mutex_destroy(&(pcb->mutex_instancias_activas));
+  pthread_cond_destroy(&(pcb->no_hay_instancias_activas));
   list_destroy_and_destroy_elements(pcb->lista_prioridades, free);
   free(pcb);
 }
