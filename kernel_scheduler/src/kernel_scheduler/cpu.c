@@ -189,11 +189,15 @@ static bool es_proceso_menos_prioritario(t_datos_syscall* datos, int prioridad)
 
 static void gestionar_desalojo_prioritario(t_datos_syscall* datos)
 {
+  if (datos->motivo_desalojo != MD_SIN_DESALOJO ||
+      !datos->datos->colas->exec.desalojo || datos->pcb == NULL)
+  {
+    return;
+  }
+
   int prioridad_desalojado = get_prioridad_pcb(datos->pcb);
 
-  if (datos->motivo_desalojo != MD_SIN_DESALOJO ||
-      !datos->datos->colas->exec.desalojo ||
-      !es_proceso_menos_prioritario(datos, prioridad_desalojado))
+  if (!es_proceso_menos_prioritario(datos, prioridad_desalojado))
   {
     return;
   }
