@@ -58,7 +58,6 @@ static bool gestionar_estado_pcb(t_logger* logger, t_pcb* pcb,
 static void set_tiempo_bloqueado(t_pcb* pcb, unsigned long tiempo);
 static bool check_prioridad_valida(t_pcb* pcb, t_cola_ready* ready,
                                    t_logger* logger);
-static void update_priordad_mas_baja_exec(t_lista_execute* exec);
 static void cambio_a_ready(t_pcb* pcb, t_cola_ready* ready);
 static void cambio_a_block(t_pcb* pcb, t_lista* block);
 static void cambio_a_susp_block(t_pcb* pcb, t_lista* susp_block);
@@ -229,6 +228,26 @@ void terminar_cola_ready(t_cola_ready* ready)
   pthread_mutex_unlock(&(ready->mutex_cola));
 }
 
+void update_priordad_mas_baja_exec(t_lista_execute* exec)
+{
+  pthread_mutex_lock(&(exec->mutex_lista));
+  exec->prioridad_mas_baja = 0;
+  t_list_iterator* iterator_lista = list_iterator_create(exec->lista);
+  while (list_iterator_has_next(iterator_lista))
+  {
+    t_pcb* pcb = list_iterator_next(iterator_lista);
+
+    int prioriad_iterador = get_prioridad_pcb(pcb);
+
+    if (exec->prioridad_mas_baja < prioriad_iterador)
+    {
+      exec->prioridad_mas_baja = prioriad_iterador;
+    }
+  }
+  list_iterator_destroy(iterator_lista);
+  pthread_mutex_unlock(&(exec->mutex_lista));
+}
+
 void esperar_cola_exec_vacia(t_colas* colas)
 {
   pthread_mutex_lock(&(colas->exec.mutex_lista));
@@ -278,22 +297,10 @@ void cambio_a_exec(t_pcb* pcb, t_lista_execute* exec)
   pthread_mutex_lock(&(exec->mutex_lista));
   if (exec->desalojo)
   {
-    t_pcb* prioridad_mas_baja = exec->prioridad_mas_baja;
-
-    int valor_prio_baja = -1;
-
-    if (prioridad_mas_baja != NULL)
+    int prioridad_pcb = get_prioridad_pcb(pcb);
+    if (exec->prioridad_mas_baja < prioridad_pcb)
     {
-      pthread_mutex_lock(&(prioridad_mas_baja->mutex_prioridad));
-      valor_prio_baja = prioridad_mas_baja->prioridad;
-      pthread_mutex_unlock(&(prioridad_mas_baja->mutex_prioridad));
-    }
-    pthread_mutex_lock(&(pcb->mutex_prioridad));
-    int valor_prio_pcb = pcb->prioridad;
-    pthread_mutex_unlock(&(pcb->mutex_prioridad));
-    if (prioridad_mas_baja == NULL || valor_prio_baja >= valor_prio_pcb)
-    {
-      exec->prioridad_mas_baja = pcb;
+      exec->prioridad_mas_baja = prioridad_pcb;
     }
   }
   list_add(exec->lista, pcb);
@@ -747,7 +754,7 @@ static void inicializar_lista_exec(t_lista_execute* lista, int quantum,
   lista->lista = list_create();
   pthread_mutex_init(&(lista->mutex_lista), NULL);
   pthread_cond_init(&(lista->cola_vacia), NULL);
-  lista->prioridad_mas_baja = NULL;
+  lista->prioridad_mas_baja = 0;
   lista->quantum = quantum;
   lista->desalojo = desalojo;
 }
@@ -961,39 +968,6 @@ static bool check_prioridad_valida(t_pcb* pcb, t_cola_ready* ready,
          get_prioridad_pcb(pcb) < ready->cantidad_colas;
 }
 
-static void update_priordad_mas_baja_exec(t_lista_execute* exec)
-{
-  pthread_mutex_lock(&(exec->mutex_lista));
-  exec->prioridad_mas_baja = NULL;
-  t_list_iterator* iterator_lista = list_iterator_create(exec->lista);
-  while (list_iterator_has_next(iterator_lista))
-  {
-    t_pcb* pcb = list_iterator_next(iterator_lista);
-    if (exec->prioridad_mas_baja == NULL)
-    {
-      exec->prioridad_mas_baja = pcb;
-    }
-    else
-    {
-      t_pcb* actual_mas_baja = exec->prioridad_mas_baja;
-      pthread_mutex_lock(&(actual_mas_baja->mutex_prioridad));
-      int prioridad_actual = actual_mas_baja->prioridad;
-      pthread_mutex_unlock(&(actual_mas_baja->mutex_prioridad));
-
-      pthread_mutex_lock(&(pcb->mutex_prioridad));
-      int prioriad_iterador = pcb->prioridad;
-      pthread_mutex_unlock(&(pcb->mutex_prioridad));
-
-      if (prioridad_actual > prioriad_iterador)
-      {
-        exec->prioridad_mas_baja = pcb;
-      }
-    }
-  }
-  list_iterator_destroy(iterator_lista);
-  pthread_mutex_unlock(&(exec->mutex_lista));
-}
-
 static void cambio_a_ready(t_pcb* pcb, t_cola_ready* ready)
 {
   pthread_mutex_lock(&(ready->mutex_cola));
@@ -1134,7 +1108,6 @@ static void cambio_sacar_exec(t_pcb* pcb, t_lista_execute* exec,
 {
   pthread_mutex_lock(&(exec->mutex_lista));
   list_remove_element(exec->lista, pcb);
-  bool actualizar_elemento = pcb == exec->prioridad_mas_baja;
   if (list_size(exec->lista) == 0)
   {
     pthread_cond_signal(&(exec->cola_vacia));
@@ -1146,7 +1119,7 @@ static void cambio_sacar_exec(t_pcb* pcb, t_lista_execute* exec,
   }
   pthread_mutex_unlock(&(contador_syscalls->mutex_contador));
   pthread_mutex_unlock(&(exec->mutex_lista));
-  if (exec->desalojo && actualizar_elemento)
+  if (exec->desalojo)
   {
     update_priordad_mas_baja_exec(exec);
   }
