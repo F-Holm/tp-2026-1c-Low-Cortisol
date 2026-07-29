@@ -85,6 +85,9 @@ t_pcb* crear_pcb(int estado, int prioridad)
 
   pthread_mutex_init(&(pcb->mutex_prioridad), NULL);
   pthread_mutex_init(&(pcb->mutex_estado), NULL);
+  pthread_mutex_init(&(pcb->mutex_instancias_activas), NULL);
+  pthread_cond_init(&(pcb->no_hay_instancias_activas), NULL);
+  pcb->instancias_activas = 0;
   pcb->tiempo_bloqueado = 0;
   pcb->estado = estado;
 
@@ -99,6 +102,35 @@ t_pcb* crear_pcb(int estado, int prioridad)
   pid++;
   pthread_mutex_unlock(&mutex_pid_pcb);
   return pcb;
+}
+
+void incrementar_instancias_activas_pcb(t_pcb* pcb)
+{
+  pthread_mutex_lock(&(pcb->mutex_instancias_activas));
+  pcb->instancias_activas++;
+  pthread_mutex_unlock(&(pcb->mutex_instancias_activas));
+}
+
+void disminuir_instancias_activas_pcb(t_pcb* pcb)
+{
+  pthread_mutex_lock(&(pcb->mutex_instancias_activas));
+  pcb->instancias_activas--;
+  if (pcb->instancias_activas == 0)
+  {
+    pthread_cond_signal(&(pcb->no_hay_instancias_activas));
+  }
+  pthread_mutex_unlock(&(pcb->mutex_instancias_activas));
+}
+
+void esperar_0_instancias_activas_pcb(t_pcb* pcb)
+{
+  pthread_mutex_lock(&(pcb->mutex_instancias_activas));
+  while (pcb->instancias_activas != 0)
+  {
+    pthread_cond_wait(&(pcb->no_hay_instancias_activas),
+                      &(pcb->mutex_instancias_activas));
+  }
+  pthread_mutex_unlock(&(pcb->mutex_instancias_activas));
 }
 
 void destruir_pcb(t_pcb* pcb)

@@ -1032,6 +1032,8 @@ static void log_cambio_a_exit(t_logger* logger, uint32_t pid, int motivo)
 
 static void cambio_a_exit(t_pcb* pcb, t_colas* colas, int motivo)
 {
+  esperar_0_instancias_activas_pcb(pcb);
+
   if (motivo != MFP_CIERRE_SISTEMA && motivo != MFP_PRIORIDAD_NO_VALIDA)
   {
     bool ejecutar_rutina_des_suspender = tamanio_proceso(colas, pcb->pid) > 0;
@@ -1434,6 +1436,7 @@ static t_pcb* obtener_proceso_bloqueado(t_colas* colas,
     tamanio_en_memoria = tamanio_proceso_sin_logger(colas, proceso->pid);
     if (tamanio_en_memoria > 0)
     {
+      incrementar_instancias_activas_pcb(proceso);
       break;
     }
     else
@@ -1456,18 +1459,18 @@ static void suspender_proceso(t_colas* colas, t_datos_hilo_suspensor* datos,
   pthread_mutex_unlock(&(datos->datos->mutex_estado));
   pthread_mutex_lock(&(proceso->mutex_estado));
   unsigned long tiempo_sleep = millis() - proceso->tiempo_bloqueado;
+  bool hay_que_suspender = tiempo_sleep >= datos->suspension_timeout;
 
-  if (tiempo_sleep >= datos->suspension_timeout)
+  if (hay_que_suspender && proceso->estado == EST_BLOCK)
   {
-    if (proceso->estado == EST_BLOCK)
-    {
-      cambio_block_susp_block_sin_mutex(proceso, colas);
-    }
-    pthread_mutex_unlock(&(proceso->mutex_estado));
+    cambio_block_susp_block_sin_mutex(proceso, colas);
   }
-  else
+
+  pthread_mutex_unlock(&(proceso->mutex_estado));
+  disminuir_instancias_activas_pcb(proceso);
+
+  if (!hay_que_suspender)
   {
-    pthread_mutex_unlock(&(proceso->mutex_estado));
     usleep(tiempo_sleep > 500 ? 500 : tiempo_sleep * 1000);
   }
 
@@ -1501,6 +1504,7 @@ static t_pcb* obtener_proceso_susp_ready(t_colas* colas,
   if (!list_is_empty(colas->susp_ready.lista))
   {
     proceso = list_get(colas->susp_ready.lista, 0);
+    incrementar_instancias_activas_pcb(proceso);
   }
   pthread_mutex_unlock(&(colas->susp_ready.mutex_lista));
   if (proceso == NULL)
@@ -1524,6 +1528,7 @@ static void des_suspender_proceso(t_colas* colas,
   }
 
   pthread_mutex_unlock(&(proceso->mutex_estado));
+  disminuir_instancias_activas_pcb(proceso);
 
   if (!exitoso)
   {

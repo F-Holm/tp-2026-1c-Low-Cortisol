@@ -39,6 +39,9 @@ typedef struct
   unsigned long tiempo_bloqueado;
   int estado;
   pthread_mutex_t mutex_estado;
+  int instancias_activas;
+  pthread_mutex_t mutex_instancias_activas;
+  pthread_cond_t no_hay_instancias_activas;
 } t_pcb;
 
 typedef struct
@@ -90,6 +93,9 @@ int insertar_pcb_en_orden(t_list* lista, t_pcb* pcb);
 int get_estado_pcb(t_pcb* pcb);
 int get_prioridad_pcb(t_pcb* pcb);
 t_pcb* crear_pcb(int estado, int prioridad);
+void incrementar_instancias_activas_pcb(t_pcb* pcb);
+void disminuir_instancias_activas_pcb(t_pcb* pcb);
+void esperar_0_instancias_activas_pcb(t_pcb* pcb);
 void destruir_pcb(t_pcb* pcb);
 bool responder_handshake(int socket_fd, int id_modulo, t_logger* logger);
 unsigned long millis(void);
