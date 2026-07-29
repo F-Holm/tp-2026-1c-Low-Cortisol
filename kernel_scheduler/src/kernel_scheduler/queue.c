@@ -1243,10 +1243,10 @@ static bool avisar_proceso_suspendido(t_pcb* pcb, t_colas* colas)
   if (!enviar_buffer(OP_SUSPENDER_PROCESO, &(pcb->pid), sizeof(uint32_t),
                      colas->socket_km->socket_km))
   {
-    pthread_mutex_unlock(&(colas->socket_km->mutex_socket));
     cerrar_kernel_scheduler(colas->socket_servidor, colas->logger,
                             MC_ERROR_ENVIO_KERNEL_MEMORY,
                             colas->socket_km->socket_km);
+    pthread_mutex_unlock(&(colas->socket_km->mutex_socket));
     return false;
   }
 
