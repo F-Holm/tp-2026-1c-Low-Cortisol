@@ -548,19 +548,6 @@ int tamanio_proceso_sin_mutex(t_colas* colas, uint32_t pid)
 
   return recibir_tamanio(colas);
 }
-static int tamanio_proceso_sin_mutex_ni_logger(t_colas* colas, uint32_t pid)
-{
-  if (!(enviar_buffer(OP_PEDIR_TAMANIO_PROCESO, &pid, sizeof(uint32_t),
-                      colas->socket_km->socket_km)))
-  {
-    cerrar_kernel_scheduler(colas->socket_servidor, colas->logger,
-                            MC_ERROR_ENVIO_KERNEL_MEMORY,
-                            colas->socket_km->socket_km);
-    return -1;
-  }
-
-  return recibir_tamanio_sin_logger(colas);
-}
 
 int tamanio_proceso(t_colas* colas, uint32_t pid)
 {
@@ -570,13 +557,6 @@ int tamanio_proceso(t_colas* colas, uint32_t pid)
   return espacio;
 }
 
-static int tamanio_proceso_sin_logger(t_colas* colas, uint32_t pid)
-{
-  pthread_mutex_lock(&(colas->socket_km->mutex_socket));
-  int espacio = tamanio_proceso_sin_mutex_ni_logger(colas, pid);
-  pthread_mutex_unlock(&(colas->socket_km->mutex_socket));
-  return espacio;
-}
 // usar para memoria liberada, nuevo stick o fin de compactación
 void crear_hilo_rutina_des_suspension(t_colas* colas)
 {
@@ -1760,6 +1740,7 @@ static int recibir_tamanio(t_colas* colas)
   }
   return -1;
 }
+
 static int recibir_tamanio_sin_logger(t_colas* colas)
 {
   int op_code = recibir_operacion(colas->socket_km->socket_km);
@@ -1788,6 +1769,28 @@ static int recibir_tamanio_sin_logger(t_colas* colas)
       break;
   }
   return -1;
+}
+
+static int tamanio_proceso_sin_mutex_ni_logger(t_colas* colas, uint32_t pid)
+{
+  if (!(enviar_buffer(OP_PEDIR_TAMANIO_PROCESO, &pid, sizeof(uint32_t),
+                      colas->socket_km->socket_km)))
+  {
+    cerrar_kernel_scheduler(colas->socket_servidor, colas->logger,
+                            MC_ERROR_ENVIO_KERNEL_MEMORY,
+                            colas->socket_km->socket_km);
+    return -1;
+  }
+
+  return recibir_tamanio_sin_logger(colas);
+}
+
+static int tamanio_proceso_sin_logger(t_colas* colas, uint32_t pid)
+{
+  pthread_mutex_lock(&(colas->socket_km->mutex_socket));
+  int espacio = tamanio_proceso_sin_mutex_ni_logger(colas, pid);
+  pthread_mutex_unlock(&(colas->socket_km->mutex_socket));
+  return espacio;
 }
 
 static void* hilo_rutina_des_suspension(void* datos_des_suspension)
