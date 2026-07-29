@@ -2,7 +2,7 @@ MODULES = cpu io kernel_memory kernel_scheduler memory_stick swap utils
 SLEEP_TIME = 0.1
 ESPERA_CPUS = 40
 
-.PHONY: all debug release test clean logs format run kill memcheck helgrind base base-memcheck base-helgrind base2 base2-memcheck base2-helgrind pcp pcp-memcheck pcp-helgrind mem mem-memcheck mem-helgrind mem2 mem2-memcheck mem2-helgrind pmp pmp-memcheck pmp-helgrind php php-memcheck php-helgrind  es31 es31-mecheck es31-helgrind$(MODULES)
+.PHONY: all debug release test clean logs format run kill memcheck helgrind base base-memcheck base-helgrind base2 base2-memcheck base2-helgrind pcp pcp-memcheck pcp-helgrind mem mem-memcheck mem-helgrind mem2 mem2-memcheck mem2-helgrind pmp pmp-memcheck pmp-helgrind php php-memcheck php-helgrind es31 es31-mecheck es31-helgrind $(MODULES)
 
 all: $(MODULES)
 
