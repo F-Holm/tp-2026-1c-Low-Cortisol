@@ -212,7 +212,6 @@ void cerrar_kernel_scheduler(int socket_servidor, t_logger* logger,
 {
   static bool shutdown_activado = false;
   pthread_mutex_lock(&mutex_shutdown);
-  logger_info(logger, "Motivo de Cierre: %d | ", motivo_cierre);
   if (!shutdown_activado)
   {
     avisar_cierre_kernel_memory(motivo_cierre, socket_km, logger);
@@ -248,16 +247,10 @@ static void comprobar_motivo_cierre(int* motivo_cierre, int socket_km)
     return;
   }
 
-  printf("SOCKET=%d", socket_km);
-  fflush(stdout);
-
   bool seguir_operando = true;
   while (seguir_operando)
   {
-    int op_code = recibir_operacion(socket_km);
-    printf("OP_CODE=%d", op_code);
-    fflush(stdout);
-    switch (op_code)
+    switch (recibir_operacion(socket_km))
     {
       case OP_CODE_ERROR:
         *motivo_cierre = MC_FALLO_CONEXION_KERNEL_MEMORY;
