@@ -164,4 +164,6 @@ void avisar_bsod(t_cpu* cpu)
   if (!enviar_string(OP_STICK_DESCONECTADO, "MS desconectado",
                      cpu->socket_kernel_memory))
     log_info(cpu->logger, "Kernel Memory desconectado");
+  else
+    log_info(cpu->logger, "Kernel Memory notificado de BSOD");
 }
