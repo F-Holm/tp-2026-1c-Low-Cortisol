@@ -744,6 +744,7 @@ static void inicializar_lista(t_lista* lista)
   lista->lista = list_create();
   pthread_mutex_init(&(lista->mutex_lista), NULL);
   pthread_cond_init(&(lista->cond_nuevo_proceso), NULL);
+  lista->nuevo_proceso = false;
 }
 
 static t_datos_hilo_suspendido* inicializar_datos_hilo_suspendido(
@@ -978,10 +979,8 @@ static void cambio_a_block(t_pcb* pcb, t_lista* block)
 {
   set_tiempo_bloqueado(pcb, millis());
   pthread_mutex_lock(&(block->mutex_lista));
-  if (list_size(block->lista) == 0)
-  {
-    pthread_cond_signal(&(block->cond_nuevo_proceso));
-  }
+  block->nuevo_proceso = true;
+  pthread_cond_signal(&(block->cond_nuevo_proceso));
   list_add(block->lista, pcb);
   pthread_mutex_unlock(&(block->mutex_lista));
 }
@@ -1424,11 +1423,12 @@ static t_pcb* obtener_proceso_bloqueado(t_colas* colas,
       proceso = NULL;
     }
   }
-  pthread_mutex_unlock(&(colas->block.mutex_lista));
   if (proceso == NULL)
   {
+    colas->block.nuevo_proceso = false;
     datos->datos->estado = EH_ESPERANDO_PROCESO;
   }
+  pthread_mutex_unlock(&(colas->block.mutex_lista));
   list_iterator_destroy(iterador);
   return proceso;
 }
@@ -1462,7 +1462,7 @@ static void esperar_proceso_bloqueado(t_colas* colas,
 {
   pthread_mutex_unlock(&(datos->datos->mutex_estado));
   pthread_mutex_lock(&(colas->block.mutex_lista));
-  if (list_is_empty(colas->block.lista))
+  if (!colas->block.nuevo_proceso)
   {
     pthread_cond_wait(datos->datos->esperar_proceso,
                       &(colas->block.mutex_lista));

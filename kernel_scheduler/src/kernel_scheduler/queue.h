@@ -40,6 +40,7 @@ typedef struct
   t_list* lista;
   pthread_mutex_t mutex_lista;
   pthread_cond_t cond_nuevo_proceso;
+  bool nuevo_proceso;
 } t_lista;
 
 typedef struct
