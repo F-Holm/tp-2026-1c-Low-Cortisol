@@ -403,8 +403,12 @@ void* escucha_cpu(void* ptr)
         logger_info(
             datos_cpu->logger,
             "Avisando al Kernel Scheduler que la memoria está corrupta");
-        enviar_string(OP_MEMORIA_CORRUPTA, "Memoria corrupta",
-                      datos_cpu->socket_scheduler);
+        if (!enviar_string(OP_MEMORIA_CORRUPTA, "Memoria corrupta",
+                           datos_cpu->socket_scheduler))
+        {
+          logger_error(datos_cpu->logger,
+                       "No se pudo enviar el BSOD al Kernel Scheduler");
+        }
         shutdown(datos_cpu->socket_scheduler, SHUT_RDWR);
       case OP_CODE_ERROR:
       default:
