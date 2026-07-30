@@ -260,11 +260,11 @@ static void comprobar_motivo_cierre(int* motivo_cierre, int socket_km)
     switch (op_code)
     {
       case OP_CODE_ERROR:
-        *motivo_cierre = MC_MEMORIA_CORRUPTA;
+        *motivo_cierre = MC_FALLO_CONEXION_KERNEL_MEMORY;
         seguir_operando = false;
         break;
       case OP_MEMORIA_CORRUPTA:
-        *motivo_cierre = MC_FALLO_CONEXION_KERNEL_MEMORY;
+        *motivo_cierre = MC_MEMORIA_CORRUPTA;
         seguir_operando = false;
         break;
       default:
