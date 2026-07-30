@@ -6,18 +6,19 @@
 #include "cpu/cpu.h"
 #include "utils/registros.h"
 
-typedef bool (*t_handler)(t_cpu*, t_contexto*, t_instruccion*, uint32_t);
+typedef t_bool_extendido (*t_handler)(t_cpu*, t_contexto*, t_instruccion*,
+                                      uint32_t);
 
-bool handler_noop(t_cpu* cpu, t_contexto* contexto, t_instruccion* instruccion,
-                  uint32_t pid);
-bool handler_set(t_cpu* cpu, t_contexto* contexto, t_instruccion* instruccion,
-                 uint32_t pid);
-bool handler_sum(t_cpu* cpu, t_contexto* contexto, t_instruccion* instruccion,
-                 uint32_t pid);
-bool handler_sub(t_cpu* cpu, t_contexto* contexto, t_instruccion* instruccion,
-                 uint32_t pid);
-bool handler_jnz(t_cpu* cpu, t_contexto* contexto, t_instruccion* instruccion,
-                 uint32_t pid);
+t_bool_extendido handler_noop(t_cpu* cpu, t_contexto* contexto,
+                              t_instruccion* instruccion, uint32_t pid);
+t_bool_extendido handler_set(t_cpu* cpu, t_contexto* contexto,
+                             t_instruccion* instruccion, uint32_t pid);
+t_bool_extendido handler_sum(t_cpu* cpu, t_contexto* contexto,
+                             t_instruccion* instruccion, uint32_t pid);
+t_bool_extendido handler_sub(t_cpu* cpu, t_contexto* contexto,
+                             t_instruccion* instruccion, uint32_t pid);
+t_bool_extendido handler_jnz(t_cpu* cpu, t_contexto* contexto,
+                             t_instruccion* instruccion, uint32_t pid);
 t_bool_extendido handler_mov_in(t_cpu* cpu, t_contexto* contexto,
                                 t_instruccion* instruccion, uint32_t pid);
 t_bool_extendido handler_mov_out(t_cpu* cpu, t_contexto* contexto,

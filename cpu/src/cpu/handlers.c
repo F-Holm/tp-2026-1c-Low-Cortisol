@@ -11,14 +11,14 @@
 
 /*             INSTRUCCIONES BASICAS MANEJADAS POR CPU           */
 
-bool handler_noop(t_cpu* cpu, t_contexto* contexto, t_instruccion* instruccion,
-                  uint32_t pid)
+t_bool_extendido handler_noop(t_cpu* cpu, t_contexto* contexto,
+                              t_instruccion* instruccion, uint32_t pid)
 {
   return true;
 }
 
-bool handler_set(t_cpu* cpu, t_contexto* contexto, t_instruccion* instruccion,
-                 uint32_t pid)
+t_bool_extendido handler_set(t_cpu* cpu, t_contexto* contexto,
+                             t_instruccion* instruccion, uint32_t pid)
 {
   char* registro = instruccion->parametros[0];
   uint32_t valor = atoi(instruccion->parametros[1]);
@@ -26,8 +26,8 @@ bool handler_set(t_cpu* cpu, t_contexto* contexto, t_instruccion* instruccion,
   return true;
 }
 
-bool handler_sum(t_cpu* cpu, t_contexto* contexto, t_instruccion* instruccion,
-                 uint32_t pid)
+t_bool_extendido handler_sum(t_cpu* cpu, t_contexto* contexto,
+                             t_instruccion* instruccion, uint32_t pid)
 {
   char* registro_destino = instruccion->parametros[0];
   uint32_t resultado =
@@ -38,8 +38,8 @@ bool handler_sum(t_cpu* cpu, t_contexto* contexto, t_instruccion* instruccion,
   return true;
 }
 
-bool handler_sub(t_cpu* cpu, t_contexto* contexto, t_instruccion* instruccion,
-                 uint32_t pid)
+t_bool_extendido handler_sub(t_cpu* cpu, t_contexto* contexto,
+                             t_instruccion* instruccion, uint32_t pid)
 {
   char* registro_destino = instruccion->parametros[0];
   uint32_t resultado =
@@ -50,8 +50,8 @@ bool handler_sub(t_cpu* cpu, t_contexto* contexto, t_instruccion* instruccion,
   return true;
 }
 
-bool handler_jnz(t_cpu* cpu, t_contexto* contexto, t_instruccion* instruccion,
-                 uint32_t pid)
+t_bool_extendido handler_jnz(t_cpu* cpu, t_contexto* contexto,
+                             t_instruccion* instruccion, uint32_t pid)
 {
   uint32_t valor_registro =
       get_registro(contexto->registros, instruccion->parametros[0]);
