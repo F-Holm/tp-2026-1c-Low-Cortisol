@@ -4,7 +4,7 @@ void cerrar_todo(t_modulo_swap* datos_swap, t_config* config)
 {
   close(datos_swap->socket_swap);
   fclose(datos_swap->archivo_swap);
-  logger_destroy(datos_swap->logger);
+  log_destroy(datos_swap->logger);
   config_destroy(config);
 }
 
@@ -18,8 +18,8 @@ bool inicializar_configuracion(t_modulo_swap* datos_swap, t_config* config)
   datos_swap->puerto = config_get_string_value(config, "KERNEL_MEMORY_PUERTO");
   datos_swap->tamanio_swap = config_get_int_value(config, "SWAP_FILE_SIZE");
   datos_swap->tamanio_bloque = config_get_int_value(config, "BLOCK_SIZE");
-  datos_swap->logger = logger_create("swap.log", "SWAP", true,
-                                     log_level_from_string(log_levelstr));
+  datos_swap->logger =
+      log_create("swap.log", "SWAP", true, log_level_from_string(log_levelstr));
   if (datos_swap->logger == NULL)
   {
     config_destroy(config);
@@ -29,7 +29,7 @@ bool inicializar_configuracion(t_modulo_swap* datos_swap, t_config* config)
       config_get_string_value(config, "SWAP_FILE_PATH");
   if (!inicializar_archivo_swap(datos_swap))
   {
-    logger_error(datos_swap->logger, "## Error al inicializar el archivo SWAP");
+    log_error(datos_swap->logger, "## Error al inicializar el archivo SWAP");
     cerrar_todo(datos_swap, config);
     return false;
   }
@@ -44,18 +44,17 @@ bool iniciar_conexion(t_modulo_swap* datos_swap, t_config* config)
 
   if (datos_swap->socket_swap == -1)
   {
-    logger_error(datos_swap->logger, "#ERROR DE CONEXION");
+    log_error(datos_swap->logger, "#ERROR DE CONEXION");
     cerrar_todo(datos_swap, config);
     return false;
   }
-  logger_info(datos_swap->logger, "## Conectado a Kernel Memory");
+  log_info(datos_swap->logger, "## Conectado a Kernel Memory");
 
   // Handshake con Kernel Scheduler
   bool envio_correcto = enviar_handshake(MID_SWAP, datos_swap->socket_swap);
   if (!envio_correcto)
   {
-    logger_error(datos_swap->logger,
-                 "## Error en el Handshake con Kernel Memory");
+    log_error(datos_swap->logger, "## Error en el Handshake con Kernel Memory");
     cerrar_todo(datos_swap, config);
     return false;
   }
@@ -63,12 +62,11 @@ bool iniciar_conexion(t_modulo_swap* datos_swap, t_config* config)
   int recepcion_correcta = recibir_handshake(datos_swap->socket_swap);
   if (recepcion_correcta != MID_KERNEL_MEMORY)
   {
-    logger_error(datos_swap->logger,
-                 "## Error en el Handshake con Kernel Memory");
+    log_error(datos_swap->logger, "## Error en el Handshake con Kernel Memory");
     cerrar_todo(datos_swap, config);
     return false;
   }
-  logger_info(datos_swap->logger, "Handshake exitoso con Kernel Memory");
+  log_info(datos_swap->logger, "Handshake exitoso con Kernel Memory");
 
   // Envio a memory el tamaño del swap y el tamaño de bloque
   t_envio_a_km* envio_km = malloc(sizeof(t_envio_a_km));
@@ -80,7 +78,7 @@ bool iniciar_conexion(t_modulo_swap* datos_swap, t_config* config)
 
   if (!envio_correcto)
   {
-    logger_error(datos_swap->logger, "## Error al enviar el paquete de SWAP");
+    log_error(datos_swap->logger, "## Error al enviar el paquete de SWAP");
     cerrar_todo(datos_swap, config);
     return false;
   }

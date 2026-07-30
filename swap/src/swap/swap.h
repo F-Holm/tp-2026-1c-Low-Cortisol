@@ -16,13 +16,12 @@
 #include <unistd.h>
 
 #include "utils/client.h"
-#include "utils/logger.h"
 #include "utils/msg.h"
 #include "utils/swap_km.h"
 
 typedef struct
 {
-  t_logger* logger;
+  t_log* logger;
   char* ip;
   char* puerto;
   int socket_swap;
