@@ -212,7 +212,7 @@ void cerrar_kernel_scheduler(int socket_servidor, t_logger* logger,
 {
   static bool shutdown_activado = false;
   pthread_mutex_lock(&mutex_shutdown);
-  logger_info("Motivo de Cierre: %d | ", motivo_cierre);
+  logger_info(logger, "Motivo de Cierre: %d | ", motivo_cierre);
   if (!shutdown_activado)
   {
     avisar_cierre_kernel_memory(motivo_cierre, socket_km, logger);
