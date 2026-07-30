@@ -631,7 +631,7 @@ t_list* filtrar_segmentos_proceso(int pid,
   pthread_mutex_lock(memoria_principal->mutex_memoria_principal);
   for (int i = 0; i < list_size(memoria_principal->segmentos); i++)
   {
-    logger_info(logger, "Filtrando segmento");
+    // logger_info(logger, "Filtrando segmento");
     t_segmento* segmento_actual = list_get(memoria_principal->segmentos, i);
     if (segmento_actual->pid == pid)
     {
