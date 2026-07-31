@@ -44,12 +44,27 @@
 | `make pmp` | Compila y ejecuta la Prueba Planificación Mediano Plazo. |
 | `make pmp-memcheck` | Compila y ejecuta la Prueba Planificación Mediano Plazo con memcheck. |
 | `make pmp-helgrind` | Compila y ejecuta la Prueba Planificación Mediano Plazo con helgrind. |
+| `make pmp2` | Compila y ejecuta la Prueba Planificación Mediano Plazo (más determinística). |
+| `make pmp2-memcheck` | Compila y ejecuta la Prueba Planificación Mediano Plazo (más determinística) con memcheck. |
+| `make pmp2-helgrind` | Compila y ejecuta la Prueba Planificación Mediano Plazo (más determinística) con helgrind. |
 | `make php` | Compila y ejecuta la Prueba Herencia de Prioridades. |
 | `make php-memcheck` | Compila y ejecuta la Prueba Herencia de Prioridades con memcheck. |
 | `make php-helgrind` | Compila y ejecuta la Prueba Herencia de Prioridades con helgrind. |
+| `make php2` | Compila y ejecuta la Prueba Herencia de Prioridades v2. |
+| `make php2-memcheck` | Compila y ejecuta la Prueba Herencia de Prioridades v2 con memcheck. |
+| `make php2-helgrind` | Compila y ejecuta la Prueba Herencia de Prioridades v2 con helgrind. |
 | `make es31` | Compila y ejecuta la Prueba de Estabilidad 1. |
 | `make es31-memcheck` | Compila y ejecuta la Prueba de Estabilidad 1 con memcheck. |
 | `make es31-helgrind` | Compila y ejecuta la Prueba de Estabilidad 1 con helgrind. |
+| `make es31` | Compila y ejecuta la Prueba de Estabilidad 2. |
+| `make es31-memcheck` | Compila y ejecuta la Prueba de Estabilidad 2 con memcheck. |
+| `make es31-helgrind` | Compila y ejecuta la Prueba de Estabilidad 2 con helgrind. |
+| `make es31` | Compila y ejecuta la Prueba de Estabilidad 3. |
+| `make es31-memcheck` | Compila y ejecuta la Prueba de Estabilidad 3 con memcheck. |
+| `make es31-helgrind` | Compila y ejecuta la Prueba de Estabilidad 3 con helgrind. |
+| `make es31` | Compila y ejecuta la Prueba de Estabilidad 4. |
+| `make es31-memcheck` | Compila y ejecuta la Prueba de Estabilidad 4 con memcheck. |
+| `make es31-helgrind` | Compila y ejecuta la Prueba de Estabilidad 4 con helgrind. |
 | `make kill` | Detiene la ejecución del sistema. |
 
 ---

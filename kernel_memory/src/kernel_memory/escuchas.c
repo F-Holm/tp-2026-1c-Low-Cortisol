@@ -184,7 +184,8 @@ void* escucha_scheduler(void* ptr)
           pthread_mutex_unlock(datos_scheduler->mutex_procesos);
           logger_info(datos_scheduler->logger, "Proceso con PID %u terminado",
                       *pid);
-          t_list_iterator* iterador_segmentos = list_iterator_create(lista_segmentos);
+          t_list_iterator* iterador_segmentos =
+              list_iterator_create(lista_segmentos);
           while (list_iterator_has_next(iterador_segmentos))
           {
             t_segmento* segmento = list_iterator_next(iterador_segmentos);
@@ -229,7 +230,8 @@ void* escucha_scheduler(void* ptr)
             (uint32_t*)recibir_buffer(&a, datos_scheduler->socket_scheduler);
         t_proceso* proceso = buscar_proceso(
             datos_scheduler->procesos, datos_scheduler->mutex_procesos, *pid);
-        int tamanio = calcular_tamanio_proceso(proceso, datos_scheduler->memoria_principal);
+        int tamanio = calcular_tamanio_proceso(
+            proceso, datos_scheduler->memoria_principal);
         enviar_buffer(OP_TAMANIO_PROCESO, &tamanio, sizeof(int),
                       datos_scheduler->socket_scheduler);
         free(pid);

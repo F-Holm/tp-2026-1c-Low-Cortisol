@@ -2,7 +2,7 @@ MODULES = cpu io kernel_memory kernel_scheduler memory_stick swap utils
 SLEEP_TIME = 0.1
 ESPERA_CPUS = 40
 
-.PHONY: all debug release test clean logs format run kill memcheck helgrind base base-memcheck base-helgrind base2 base2-memcheck base2-helgrind pcp pcp-memcheck pcp-helgrind mem mem-memcheck mem-helgrind mem2 mem2-memcheck mem2-helgrind pmp pmp-memcheck pmp-helgrind php php-memcheck php-helgrind es31 es31-mecheck es31-helgrind $(MODULES)
+.PHONY: all debug release test clean logs format run kill memcheck helgrind base base-memcheck base-helgrind base2 base2-memcheck base2-helgrind pcp pcp-memcheck pcp-helgrind mem mem-memcheck mem-helgrind mem2 mem2-memcheck mem2-helgrind pmp pmp-memcheck pmp-helgrind pmp2 pmp2-memcheck pmp2-helgrind php php-memcheck php-helgrind php2 php2-memcheck php2-helgrind es31 es31-mecheck es31-helgrind es32 es32-mecheck es32-helgrind es33 es33-mecheck es33-helgrind es34 es34-mecheck es34-helgrind $(MODULES)
 
 all: $(MODULES)
 
@@ -113,7 +113,7 @@ executebase: logs $(BUILD_TARGET)
 	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./kernel_scheduler/bin/kernel_scheduler ./kernel_scheduler/configs/base.config PLANI_PRE_0.prc > ./output/kernel_scheduler.log 2>&1 &
 	@sleep $(SLEEP_TIME)
-	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/base_256.config 256 > ./output/memory_stick_1.log 2>&1 &
+	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/1500.config 256 > ./output/memory_stick_1.log 2>&1 &
 	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./io/bin/io ./io/io.config SLEEP > ./output/io_sleep.log 2>&1 &
 	@sleep $(SLEEP_TIME)
@@ -150,7 +150,7 @@ executebase2: logs $(BUILD_TARGET)
 	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./kernel_scheduler/bin/kernel_scheduler ./kernel_scheduler/configs/base.config MEMORIA_PRE_0.prc > ./output/kernel_scheduler.log 2>&1 &
 	@sleep $(SLEEP_TIME)
-	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/base_256.config 256 > ./output/memory_stick_1.log 2>&1 &
+	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/1500.config 256 > ./output/memory_stick_1.log 2>&1 &
 	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./io/bin/io ./io/io.config SLEEP > ./output/io_sleep.log 2>&1 &
 	@sleep $(SLEEP_TIME)
@@ -187,7 +187,7 @@ executepcp: logs $(BUILD_TARGET)
 	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./kernel_scheduler/bin/kernel_scheduler ./kernel_scheduler/configs/pcp.config PCP.prc > ./output/kernel_scheduler.log 2>&1 &
 	@sleep $(SLEEP_TIME)
-	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/pcp_256.config 256 > ./output/memory_stick_1.log 2>&1 &
+	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/1500.config 256 > ./output/memory_stick_1.log 2>&1 &
 	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./io/bin/io ./io/io.config SLEEP > ./output/io_sleep.log 2>&1 &
 	@sleep $(SLEEP_TIME)
@@ -224,13 +224,13 @@ executemem: logs $(BUILD_TARGET)
 	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./kernel_scheduler/bin/kernel_scheduler ./kernel_scheduler/configs/mem.config PLANI_MEM.prc > ./output/kernel_scheduler.log 2>&1 &
 	@sleep $(SLEEP_TIME)
-	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/mem_16.config 16 > ./output/memory_stick_1.log 2>&1 &
+	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/1500.config 16 > ./output/memory_stick_1.log 2>&1 &
 	@sleep $(SLEEP_TIME)
-	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/mem_32.config 32 > ./output/memory_stick_2.log 2>&1 &
+	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/1500.config 32 > ./output/memory_stick_2.log 2>&1 &
 	@sleep $(SLEEP_TIME)
-	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/mem_64.config 64 > ./output/memory_stick_3.log 2>&1 &
+	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/1500.config 64 > ./output/memory_stick_3.log 2>&1 &
 	@sleep $(SLEEP_TIME)
-	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/mem_128.config 128 > ./output/memory_stick_4.log 2>&1 &
+	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/1500.config 128 > ./output/memory_stick_4.log 2>&1 &
 	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./io/bin/io ./io/io.config SLEEP > ./output/io_sleep.log 2>&1 &
 	@sleep $(SLEEP_TIME)
@@ -267,13 +267,13 @@ executemem2: logs $(BUILD_TARGET)
 	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./kernel_scheduler/bin/kernel_scheduler ./kernel_scheduler/configs/mem.config PLANI_MEM.prc > ./output/kernel_scheduler.log 2>&1 &
 	@sleep $(SLEEP_TIME)
-	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/mem_16.config 16 > ./output/memory_stick_1.log 2>&1 &
+	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/1500.config 16 > ./output/memory_stick_1.log 2>&1 &
 	@sleep $(SLEEP_TIME)
-	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/mem_32.config 32 > ./output/memory_stick_2.log 2>&1 &
+	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/1500.config 32 > ./output/memory_stick_2.log 2>&1 &
 	@sleep $(SLEEP_TIME)
-	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/mem_64.config 64 > ./output/memory_stick_3.log 2>&1 &
+	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/1500.config 64 > ./output/memory_stick_3.log 2>&1 &
 	@sleep $(SLEEP_TIME)
-	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/mem_128.config 128 > ./output/memory_stick_4.log 2>&1 &
+	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/1500.config 128 > ./output/memory_stick_4.log 2>&1 &
 	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./io/bin/io ./io/io.config SLEEP > ./output/io_sleep.log 2>&1 &
 	@sleep $(SLEEP_TIME)
@@ -310,13 +310,13 @@ executepmp: logs $(BUILD_TARGET)
 	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./kernel_scheduler/bin/kernel_scheduler ./kernel_scheduler/configs/pmp.config PMP.prc > ./output/kernel_scheduler.log 2>&1 &
 	@sleep $(SLEEP_TIME)
-	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/pmp_16_1.config 16 > ./output/memory_stick_1.log 2>&1 &
+	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/1500.config 16 > ./output/memory_stick_1.log 2>&1 &
 	@sleep $(SLEEP_TIME)
-	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/pmp_16_2.config 16 > ./output/memory_stick_2.log 2>&1 &
+	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/1500.config 16 > ./output/memory_stick_2.log 2>&1 &
 	@sleep $(SLEEP_TIME)
-	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/pmp_32.config 32 > ./output/memory_stick_3.log 2>&1 &
+	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/1500.config 32 > ./output/memory_stick_3.log 2>&1 &
 	@sleep $(SLEEP_TIME)
-	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/pmp_64.config 64 > ./output/memory_stick_4.log 2>&1 &
+	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/1500.config 64 > ./output/memory_stick_4.log 2>&1 &
 	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./io/bin/io ./io/io.config SLEEP > ./output/io_sleep.log 2>&1 &
 	@sleep $(SLEEP_TIME)
@@ -330,6 +330,7 @@ executepmp: logs $(BUILD_TARGET)
 	@echo "Revisá la carpeta ./output/ para ver los reportes de Valgrind de cada módulo."
 	@echo "Usa 'make kill' para detener todo."
 
+# --- Modos de ejecución PMP2 ---
 pmp2: BUILD_TARGET = all
 pmp2: VALGRIND_CMD =
 pmp2: executepmp2
@@ -352,13 +353,13 @@ executepmp2: logs $(BUILD_TARGET)
 	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./kernel_scheduler/bin/kernel_scheduler ./kernel_scheduler/configs/pmp.config PMP_v2.prc > ./output/kernel_scheduler.log 2>&1 &
 	@sleep $(SLEEP_TIME)
-	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/pmp_16_1.config 16 > ./output/memory_stick_1.log 2>&1 &
+	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/1000.config 16 > ./output/memory_stick_1.log 2>&1 &
 	@sleep $(SLEEP_TIME)
-	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/pmp_16_2.config 16 > ./output/memory_stick_2.log 2>&1 &
+	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/1000.config 16 > ./output/memory_stick_2.log 2>&1 &
 	@sleep $(SLEEP_TIME)
-	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/pmp_32.config 32 > ./output/memory_stick_3.log 2>&1 &
+	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/1000.config 32 > ./output/memory_stick_3.log 2>&1 &
 	@sleep $(SLEEP_TIME)
-	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/pmp_64.config 64 > ./output/memory_stick_4.log 2>&1 &
+	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/1000.config 64 > ./output/memory_stick_4.log 2>&1 &
 	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./io/bin/io ./io/io.config SLEEP > ./output/io_sleep.log 2>&1 &
 	@sleep $(SLEEP_TIME)
@@ -371,8 +372,6 @@ executepmp2: logs $(BUILD_TARGET)
 	@echo "Sistema base lanzado con éxito. La terminal está libre."
 	@echo "Revisá la carpeta ./output/ para ver los reportes de Valgrind de cada módulo."
 	@echo "Usa 'make kill' para detener todo."
-
-
 
 # --- Modos de ejecución PHP ---
 php: BUILD_TARGET = all
@@ -397,9 +396,9 @@ executephp: logs $(BUILD_TARGET)
 	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./kernel_scheduler/bin/kernel_scheduler ./kernel_scheduler/configs/php.config PHP.prc > ./output/kernel_scheduler.log 2>&1 &
 	@sleep $(SLEEP_TIME)
-	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/php_16_1.config 16 > ./output/memory_stick_1.log 2>&1 &
+	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/1500.config 16 > ./output/memory_stick_1.log 2>&1 &
 	@sleep $(SLEEP_TIME)
-	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/php_16_2.config 16 > ./output/memory_stick_2.log 2>&1 &
+	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/1500.config 16 > ./output/memory_stick_2.log 2>&1 &
 	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./io/bin/io ./io/io.config SLEEP > ./output/io_sleep.log 2>&1 &
 	@sleep $(SLEEP_TIME)
@@ -413,7 +412,46 @@ executephp: logs $(BUILD_TARGET)
 	@echo "Revisá la carpeta ./output/ para ver los reportes de Valgrind de cada módulo."
 	@echo "Usa 'make kill' para detener todo."
 
-# --- Modos de ejecución ES3 ---
+# --- Modos de ejecución PHP2 ---
+php2: BUILD_TARGET = all
+php2: VALGRIND_CMD =
+php2: executephp2
+
+php2-memcheck: BUILD_TARGET = debug
+php2-memcheck: VALGRIND_CMD = $(VALGRIND_MEMCHECK)
+php2-memcheck: executephp2
+
+php2-helgrind: BUILD_TARGET = debug
+php2-helgrind: VALGRIND_CMD = $(VALGRIND_HELGRIND)
+php2-helgrind: executephp2
+
+executephp2: logs $(BUILD_TARGET)
+	@mkdir -p ./output
+	@echo "Lanzando sistema base con: [$(VALGRIND_CMD)] ..."
+	
+	$(VALGRIND_CMD) ./kernel_memory/bin/kernel_memory ./kernel_memory/configs/php.config > ./output/kernel_memory.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./swap/bin/swap ./swap/swap.config > ./output/swap.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./kernel_scheduler/bin/kernel_scheduler ./kernel_scheduler/configs/php.config PHP_v2.prc > ./output/kernel_scheduler.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/1500.config 16 > ./output/memory_stick_1.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/1500.config 16 > ./output/memory_stick_2.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./io/bin/io ./io/io.config SLEEP > ./output/io_sleep.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./io/bin/io ./io/io.config STDIN < ./pseudocodigo/entradas_io_stdin.txt > ./output/io_stdin.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./io/bin/io ./io/io.config STDOUT > ./output/io_stdout.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./cpu/bin/cpu ./cpu/cpu.config CPU-1 > ./output/cpu_1.log 2>&1 &
+	
+	@echo "Sistema base lanzado con éxito. La terminal está libre."
+	@echo "Revisá la carpeta ./output/ para ver los reportes de Valgrind de cada módulo."
+	@echo "Usa 'make kill' para detener todo."
+
+# --- Modos de ejecución ES3_1 ---
 es31: BUILD_TARGET = all
 es31: VALGRIND_CMD =
 es31: executees31
@@ -430,19 +468,19 @@ executees31: logs $(BUILD_TARGET)
 	@mkdir -p ./output
 	@echo "Lanzando sistema base con: [$(VALGRIND_CMD)] ..."
 	
-	$(VALGRIND_CMD) ./kernel_memory/bin/kernel_memory ./kernel_memory/configs/ES3_1.config > ./output/kernel_memory.log 2>&1 &
+	$(VALGRIND_CMD) ./kernel_memory/bin/kernel_memory ./kernel_memory/configs/ES3.config > ./output/kernel_memory.log 2>&1 &
 	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./swap/bin/swap ./swap/swap.config > ./output/swap.log 2>&1 &
 	@sleep $(SLEEP_TIME)
-	$(VALGRIND_CMD) ./kernel_scheduler/bin/kernel_scheduler ./kernel_scheduler/configs/ES3_1.config ES3_1.prc > ./output/kernel_scheduler.log 2>&1 &
+	$(VALGRIND_CMD) ./kernel_scheduler/bin/kernel_scheduler ./kernel_scheduler/configs/ES3.config ES3_1.prc > ./output/kernel_scheduler.log 2>&1 &
 	@sleep $(SLEEP_TIME)
-	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/ES3_1.config 2048 > ./output/memory_stick_1.log 2>&1 &
+	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/150.config 2048 > ./output/memory_stick_1.log 2>&1 &
 	@sleep $(SLEEP_TIME)
-	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/ES3_1.config 2048 > ./output/memory_stick_2.log 2>&1 &
+	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/150.config 2048 > ./output/memory_stick_2.log 2>&1 &
 	@sleep $(SLEEP_TIME)
-	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/ES3_1.config 2048 > ./output/memory_stick_3.log 2>&1 &
+	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/150.config 2048 > ./output/memory_stick_3.log 2>&1 &
 	@sleep $(SLEEP_TIME)
-	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/ES3_1.config 2048 > ./output/memory_stick_4.log 2>&1 &
+	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/150.config 2048 > ./output/memory_stick_4.log 2>&1 &
 	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./io/bin/io ./io/io.config SLEEP > ./output/io_sleep.log 2>&1 &
 	@sleep $(SLEEP_TIME)
@@ -457,9 +495,153 @@ executees31: logs $(BUILD_TARGET)
 	$(VALGRIND_CMD) ./cpu/bin/cpu ./cpu/cpu.config CPU-3 > ./output/cpu_3.log 2>&1 &
 	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./cpu/bin/cpu ./cpu/cpu.config CPU-4 > ./output/cpu_4.log 2>&1 &
-
-
 	
+	@echo "Sistema base lanzado con éxito. La terminal está libre."
+	@echo "Revisá la carpeta ./output/ para ver los reportes de Valgrind de cada módulo."
+	@echo "Usa 'make kill' para detener todo."
+
+# --- Modos de ejecución ES3_2 ---
+es32: BUILD_TARGET = all
+es32: VALGRIND_CMD =
+es32: executees32
+
+es32-memcheck: BUILD_TARGET = debug
+es32-memcheck: VALGRIND_CMD = $(VALGRIND_MEMCHECK)
+es32-memcheck: executees32
+
+es32-helgrind: BUILD_TARGET = debug
+es32-helgrind: VALGRIND_CMD = $(VALGRIND_HELGRIND)
+es32-helgrind: executees32
+
+executees32: logs $(BUILD_TARGET)
+	@mkdir -p ./output
+	@echo "Lanzando sistema base con: [$(VALGRIND_CMD)] ..."
+	
+	$(VALGRIND_CMD) ./kernel_memory/bin/kernel_memory ./kernel_memory/configs/ES3.config > ./output/kernel_memory.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./swap/bin/swap ./swap/swap.config > ./output/swap.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./kernel_scheduler/bin/kernel_scheduler ./kernel_scheduler/configs/ES3.config ES3_2.prc > ./output/kernel_scheduler.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/150.config 2048 > ./output/memory_stick_1.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/150.config 2048 > ./output/memory_stick_2.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/150.config 2048 > ./output/memory_stick_3.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/150.config 2048 > ./output/memory_stick_4.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./io/bin/io ./io/io.config SLEEP > ./output/io_sleep.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./io/bin/io ./io/io.config STDIN < ./pseudocodigo/entradas_io_stdin.txt > ./output/io_stdin.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./io/bin/io ./io/io.config STDOUT > ./output/io_stdout.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./cpu/bin/cpu ./cpu/cpu.config CPU-1 > ./output/cpu_1.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./cpu/bin/cpu ./cpu/cpu.config CPU-2 > ./output/cpu_2.log 2>&1 &
+	@sleep $(ESPERA_CPUS)
+	$(VALGRIND_CMD) ./cpu/bin/cpu ./cpu/cpu.config CPU-3 > ./output/cpu_3.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./cpu/bin/cpu ./cpu/cpu.config CPU-4 > ./output/cpu_4.log 2>&1 &
+	
+	@echo "Sistema base lanzado con éxito. La terminal está libre."
+	@echo "Revisá la carpeta ./output/ para ver los reportes de Valgrind de cada módulo."
+	@echo "Usa 'make kill' para detener todo."
+
+# --- Modos de ejecución ES3_3 ---
+es33: BUILD_TARGET = all
+es33: VALGRIND_CMD =
+es33: executees33
+
+es33-memcheck: BUILD_TARGET = debug
+es33-memcheck: VALGRIND_CMD = $(VALGRIND_MEMCHECK)
+es33-memcheck: executees33
+
+es33-helgrind: BUILD_TARGET = debug
+es33-helgrind: VALGRIND_CMD = $(VALGRIND_HELGRIND)
+es33-helgrind: executees33
+
+executees33: logs $(BUILD_TARGET)
+	@mkdir -p ./output
+	@echo "Lanzando sistema base con: [$(VALGRIND_CMD)] ..."
+	
+	$(VALGRIND_CMD) ./kernel_memory/bin/kernel_memory ./kernel_memory/configs/ES3.config > ./output/kernel_memory.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./swap/bin/swap ./swap/swap.config > ./output/swap.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./kernel_scheduler/bin/kernel_scheduler ./kernel_scheduler/configs/ES3.config ES3_3.prc > ./output/kernel_scheduler.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/150.config 2048 > ./output/memory_stick_1.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/150.config 2048 > ./output/memory_stick_2.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/150.config 2048 > ./output/memory_stick_3.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/150.config 2048 > ./output/memory_stick_4.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./io/bin/io ./io/io.config SLEEP > ./output/io_sleep.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./io/bin/io ./io/io.config STDIN < ./pseudocodigo/entradas_io_stdin.txt > ./output/io_stdin.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./io/bin/io ./io/io.config STDOUT > ./output/io_stdout.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./cpu/bin/cpu ./cpu/cpu.config CPU-1 > ./output/cpu_1.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./cpu/bin/cpu ./cpu/cpu.config CPU-2 > ./output/cpu_2.log 2>&1 &
+	@sleep $(ESPERA_CPUS)
+	$(VALGRIND_CMD) ./cpu/bin/cpu ./cpu/cpu.config CPU-3 > ./output/cpu_3.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./cpu/bin/cpu ./cpu/cpu.config CPU-4 > ./output/cpu_4.log 2>&1 &
+	
+	@echo "Sistema base lanzado con éxito. La terminal está libre."
+	@echo "Revisá la carpeta ./output/ para ver los reportes de Valgrind de cada módulo."
+	@echo "Usa 'make kill' para detener todo."
+
+# --- Modos de ejecución ES3_4 ---
+es34: BUILD_TARGET = all
+es34: VALGRIND_CMD =
+es34: executees34
+
+es34-memcheck: BUILD_TARGET = debug
+es34-memcheck: VALGRIND_CMD = $(VALGRIND_MEMCHECK)
+es34-memcheck: executees34
+
+es34-helgrind: BUILD_TARGET = debug
+es34-helgrind: VALGRIND_CMD = $(VALGRIND_HELGRIND)
+es34-helgrind: executees34
+
+executees34: logs $(BUILD_TARGET)
+	@mkdir -p ./output
+	@echo "Lanzando sistema base con: [$(VALGRIND_CMD)] ..."
+	
+	$(VALGRIND_CMD) ./kernel_memory/bin/kernel_memory ./kernel_memory/configs/ES3.config > ./output/kernel_memory.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./swap/bin/swap ./swap/swap.config > ./output/swap.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./kernel_scheduler/bin/kernel_scheduler ./kernel_scheduler/configs/ES3.config ES3_4.prc > ./output/kernel_scheduler.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/150.config 2048 > ./output/memory_stick_1.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/150.config 2048 > ./output/memory_stick_2.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/150.config 2048 > ./output/memory_stick_3.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/150.config 2048 > ./output/memory_stick_4.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./io/bin/io ./io/io.config SLEEP > ./output/io_sleep.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./io/bin/io ./io/io.config STDIN < ./pseudocodigo/entradas_io_stdin.txt > ./output/io_stdin.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./io/bin/io ./io/io.config STDOUT > ./output/io_stdout.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./cpu/bin/cpu ./cpu/cpu.config CPU-1 > ./output/cpu_1.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./cpu/bin/cpu ./cpu/cpu.config CPU-2 > ./output/cpu_2.log 2>&1 &
+	@sleep $(ESPERA_CPUS)
+	$(VALGRIND_CMD) ./cpu/bin/cpu ./cpu/cpu.config CPU-3 > ./output/cpu_3.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./cpu/bin/cpu ./cpu/cpu.config CPU-4 > ./output/cpu_4.log 2>&1 &
 	
 	@echo "Sistema base lanzado con éxito. La terminal está libre."
 	@echo "Revisá la carpeta ./output/ para ver los reportes de Valgrind de cada módulo."

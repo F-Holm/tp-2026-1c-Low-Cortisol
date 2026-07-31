@@ -980,7 +980,6 @@ static void cambio_a_block(t_pcb* pcb, t_lista* block)
   set_tiempo_bloqueado(pcb, millis());
   pthread_mutex_lock(&(block->mutex_lista));
   block->nuevo_proceso = true;
-  fflush(stdout);
   pthread_cond_signal(&(block->cond_nuevo_proceso));
   list_add(block->lista, pcb);
   pthread_mutex_unlock(&(block->mutex_lista));
@@ -1286,6 +1285,7 @@ static bool avisar_proceso_des_suspendido(t_pcb* pcb, t_colas* colas)
     cerrar_kernel_scheduler(colas->socket_servidor, colas->logger,
                             MC_ERROR_ENVIO_KERNEL_MEMORY,
                             colas->socket_km->socket_km);
+    pthread_mutex_unlock(&(colas->socket_km->mutex_socket));
     return false;
   }
 

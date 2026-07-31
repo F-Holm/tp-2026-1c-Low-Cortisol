@@ -813,7 +813,8 @@ char* leer_de_sticks(int direccion_fisica, int tamanio,
   return resultado;
 }
 
-int calcular_tamanio_proceso(t_proceso* proceso, t_memoria_principal* memoria_principal)
+int calcular_tamanio_proceso(t_proceso* proceso,
+                             t_memoria_principal* memoria_principal)
 {
   int tamanio = 0;
   t_list_iterator* iterador =
