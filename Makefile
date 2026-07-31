@@ -330,6 +330,49 @@ executepmp: logs $(BUILD_TARGET)
 	@echo "Revisá la carpeta ./output/ para ver los reportes de Valgrind de cada módulo."
 	@echo "Usa 'make kill' para detener todo."
 
+pmp2: BUILD_TARGET = all
+pmp2: VALGRIND_CMD =
+pmp2: executepmp2
+
+pmp2-memcheck: BUILD_TARGET = debug
+pmp2-memcheck: VALGRIND_CMD = $(VALGRIND_MEMCHECK)
+pmp2-memcheck: executepmp2
+
+pmp2-helgrind: BUILD_TARGET = debug
+pmp2-helgrind: VALGRIND_CMD = $(VALGRIND_HELGRIND)
+pmp2-helgrind: executepmp2
+
+executepmp2: logs $(BUILD_TARGET)
+	@mkdir -p ./output
+	@echo "Lanzando sistema base con: [$(VALGRIND_CMD)] ..."
+	
+	$(VALGRIND_CMD) ./kernel_memory/bin/kernel_memory ./kernel_memory/configs/pmp.config > ./output/kernel_memory.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./swap/bin/swap ./swap/swap.config > ./output/swap.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./kernel_scheduler/bin/kernel_scheduler ./kernel_scheduler/configs/pmp.config PMP_v2.prc > ./output/kernel_scheduler.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/pmp_16_1.config 16 > ./output/memory_stick_1.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/pmp_16_2.config 16 > ./output/memory_stick_2.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/pmp_32.config 32 > ./output/memory_stick_3.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/pmp_64.config 64 > ./output/memory_stick_4.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./io/bin/io ./io/io.config SLEEP > ./output/io_sleep.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./io/bin/io ./io/io.config STDIN < ./pseudocodigo/entradas_io_stdin.txt > ./output/io_stdin.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./io/bin/io ./io/io.config STDOUT > ./output/io_stdout.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./cpu/bin/cpu ./cpu/cpu.config CPU-1 > ./output/cpu_1.log 2>&1 &
+	
+	@echo "Sistema base lanzado con éxito. La terminal está libre."
+	@echo "Revisá la carpeta ./output/ para ver los reportes de Valgrind de cada módulo."
+	@echo "Usa 'make kill' para detener todo."
+
+
 # --- Modos de ejecución PHP ---
 php: BUILD_TARGET = all
 php: VALGRIND_CMD =
