@@ -14,7 +14,7 @@
 t_bool_extendido handler_noop(t_cpu* cpu, t_contexto* contexto,
                               t_instruccion* instruccion, uint32_t pid)
 {
-  return true;
+  return BE_TRUE;
 }
 
 t_bool_extendido handler_set(t_cpu* cpu, t_contexto* contexto,
@@ -23,7 +23,7 @@ t_bool_extendido handler_set(t_cpu* cpu, t_contexto* contexto,
   char* registro = instruccion->parametros[0];
   uint32_t valor = atoi(instruccion->parametros[1]);
   set_registro(contexto->registros, registro, valor);
-  return true;
+  return BE_TRUE;
 }
 
 t_bool_extendido handler_sum(t_cpu* cpu, t_contexto* contexto,
@@ -35,7 +35,7 @@ t_bool_extendido handler_sum(t_cpu* cpu, t_contexto* contexto,
       get_registro(contexto->registros, instruccion->parametros[1]);
 
   set_registro(contexto->registros, registro_destino, resultado);
-  return true;
+  return BE_TRUE;
 }
 
 t_bool_extendido handler_sub(t_cpu* cpu, t_contexto* contexto,
@@ -47,7 +47,7 @@ t_bool_extendido handler_sub(t_cpu* cpu, t_contexto* contexto,
       get_registro(contexto->registros, instruccion->parametros[1]);
 
   set_registro(contexto->registros, registro_destino, resultado);
-  return true;
+  return BE_TRUE;
 }
 
 t_bool_extendido handler_jnz(t_cpu* cpu, t_contexto* contexto,
@@ -58,7 +58,7 @@ t_bool_extendido handler_jnz(t_cpu* cpu, t_contexto* contexto,
   if (valor_registro != 0)
     set_registro(contexto->registros, "PC", atoi(instruccion->parametros[1]));
 
-  return true;
+  return BE_TRUE;
 }
 
 /*             INSTRUCCIONES CON MODIFICACION DE MEMORIA           */
@@ -228,7 +228,7 @@ t_bool_extendido handler_mem_alloc(t_cpu* cpu, t_contexto* contexto,
     free(datos_syscall);
     return BE_ERROR;
   }
-  contexto->cambio_segmento = true;
+  contexto->cambio_segmento = BE_TRUE;
   return BE_FALSE;
 }
 
@@ -255,7 +255,7 @@ t_bool_extendido handler_mem_free(t_cpu* cpu, t_contexto* contexto,
     free(datos_syscall);
     return BE_ERROR;
   }
-  contexto->cambio_segmento = true;
+  contexto->cambio_segmento = BE_TRUE;
   return BE_FALSE;
 }
 
