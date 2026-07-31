@@ -813,17 +813,21 @@ char* leer_de_sticks(int direccion_fisica, int tamanio,
   return resultado;
 }
 
-int calcular_tamanio_proceso(t_proceso* proceso)
+int calcular_tamanio_proceso(t_proceso* proceso, t_memoria_principal* memoria_principal)
 {
   int tamanio = 0;
-  t_list_iterator* iterador = list_iterator_create(proceso->segmentos);
-
+  t_list_iterator* iterador =
+      list_iterator_create(memoria_principal->segmentos);
+  pthread_mutex_lock(memoria_principal->mutex_memoria_principal);
   while (list_iterator_has_next(iterador))
   {
     t_segmento* segmento_aux = list_iterator_next(iterador);
-    tamanio += segmento_aux->size;
+    if (segmento_aux->pid == proceso->pid)
+    {
+      tamanio += segmento_aux->size;
+    }
   }
-
+  pthread_mutex_unlock(memoria_principal->mutex_memoria_principal);
   list_iterator_destroy(iterador);
   return tamanio;
 }
