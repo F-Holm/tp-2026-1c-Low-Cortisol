@@ -980,6 +980,7 @@ static void cambio_a_block(t_pcb* pcb, t_lista* block)
   set_tiempo_bloqueado(pcb, millis());
   pthread_mutex_lock(&(block->mutex_lista));
   block->nuevo_proceso = true;
+  fflush(stdout);
   pthread_cond_signal(&(block->cond_nuevo_proceso));
   list_add(block->lista, pcb);
   pthread_mutex_unlock(&(block->mutex_lista));
@@ -1440,7 +1441,6 @@ static void suspender_proceso(t_colas* colas, t_datos_hilo_suspensor* datos,
   pthread_mutex_lock(&(proceso->mutex_estado));
   unsigned long tiempo_sleep = millis() - proceso->tiempo_bloqueado;
   bool hay_que_suspender = tiempo_sleep >= datos->suspension_timeout;
-
   if (hay_que_suspender && proceso->estado == EST_BLOCK)
   {
     cambio_block_susp_block_sin_mutex(proceso, colas);

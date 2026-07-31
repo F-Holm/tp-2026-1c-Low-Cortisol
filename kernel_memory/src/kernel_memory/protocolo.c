@@ -813,15 +813,19 @@ char* leer_de_sticks(int direccion_fisica, int tamanio,
   return resultado;
 }
 
-int calcular_tamanio_proceso(t_proceso* proceso)
+int calcular_tamanio_proceso(t_proceso* proceso, t_datos_scheduler* datos)
 {
   int tamanio = 0;
-  t_list_iterator* iterador = list_iterator_create(proceso->segmentos);
+  t_list_iterator* iterador =
+      list_iterator_create(datos->memoria_principal->segmentos);
 
   while (list_iterator_has_next(iterador))
   {
     t_segmento* segmento_aux = list_iterator_next(iterador);
-    tamanio += segmento_aux->size;
+    if (segmento_aux->pid == proceso->pid)
+    {
+      tamanio += segmento_aux->size;
+    }
   }
 
   list_iterator_destroy(iterador);
