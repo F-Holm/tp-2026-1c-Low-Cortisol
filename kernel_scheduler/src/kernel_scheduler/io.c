@@ -133,12 +133,16 @@ void cerrar_io(t_io* io)
       if (!io[i].cerrar_hilo)
       {
         io[i].cerrar_hilo = true;
+        pthread_mutex_unlock(&(io[i].mutex_fin));
+        pthread_mutex_lock(&(io[i].lista_io->mutex_lista_io));
+        pthread_cond_signal(&(io[i].nuevo_proceso));
+        pthread_mutex_unlock(&(io[i].lista_io->mutex_lista_io));
       }
-      pthread_mutex_unlock(&(io[i].mutex_fin));
+      else
+      {
+        pthread_mutex_unlock(&(io[i].mutex_fin));
+      }
       shutdown(io[i].socket_io, SHUT_RDWR);
-      pthread_mutex_lock(&(io[i].lista_io->mutex_lista_io));
-      pthread_cond_signal(&(io[i].nuevo_proceso));
-      pthread_mutex_unlock(&(io[i].lista_io->mutex_lista_io));
       pthread_join(io[i].hilo_io, NULL);
       close(io[i].socket_io);
       destruir_io(&(io[i]));
@@ -315,6 +319,13 @@ static void liberar_peticion(void* peticion, t_io* io)
 
 static void cerrar_hilo_io(t_io* io)
 {
+  bool chequear_io = chequeo_cerrar_hilo(io);
+  if (!chequear_io)
+  {
+    pthread_mutex_lock(&(io->mutex_fin));
+    io->cerrar_hilo = true;
+    pthread_mutex_unlock(&(io->mutex_fin));
+  }
   pthread_mutex_lock(&(io->lista_io->mutex_lista_io));
   while (!list_is_empty(io->lista_io->lista_io))
   {
@@ -324,13 +335,6 @@ static void cerrar_hilo_io(t_io* io)
   pthread_mutex_unlock(&(io->lista_io->mutex_lista_io));
   pthread_mutex_destroy(&(io->lista_io->mutex_lista_io));
   list_destroy(io->lista_io->lista_io);
-  bool chequear_io = chequeo_cerrar_hilo(io);
-  if (!chequear_io)
-  {
-    pthread_mutex_lock(&(io->mutex_fin));
-    io->cerrar_hilo = true;
-    pthread_mutex_unlock(&(io->mutex_fin));
-  }
   free(io->lista_io);
 }
 
