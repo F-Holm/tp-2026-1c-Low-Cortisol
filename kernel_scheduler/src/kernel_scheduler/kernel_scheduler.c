@@ -126,9 +126,9 @@ static t_config* iniciar_config(char* archivo_config,
     while (array_str[i] != NULL)
     {
       int* algoritmo = malloc(sizeof(int));
-      if (strcmp(array_str[i], ALGORITMOS_PLANIFICACION[AP_FIFO]))
+      if (strcmp(array_str[i], ALGORITMOS_PLANIFICACION[AP_FIFO]) == 0)
         *algoritmo = AP_FIFO;
-      else if (strcmp(array_str[i], ALGORITMOS_PLANIFICACION[AP_RR]))
+      else if (strcmp(array_str[i], ALGORITMOS_PLANIFICACION[AP_RR]) == 0)
         *algoritmo = AP_RR;
       list_add(config_vars->algoritmos_cmn, algoritmo);
       i++;
