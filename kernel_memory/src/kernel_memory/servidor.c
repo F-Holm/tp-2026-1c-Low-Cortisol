@@ -3,8 +3,13 @@
 bool handshake(t_datos_kernel_mem* datos_kernel_memory, int client_socket)
 {
   static int socket_scheduler = -1;
-  logger_info(datos_kernel_memory->logger, "Se ha aceptado a un cliente!");
-  logger_info(datos_kernel_memory->logger, "Servidor a la espera de handshake");
+  if (client_socket != -1)
+  {
+    logger_info(datos_kernel_memory->logger, "Se ha aceptado a un cliente!");
+    logger_info(datos_kernel_memory->logger,
+                "Servidor a la espera de handshake");
+  }
+
   int identificador = recibir_handshake(client_socket);
   switch (identificador)
   {
