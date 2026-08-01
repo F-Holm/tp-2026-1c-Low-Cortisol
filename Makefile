@@ -2,7 +2,7 @@ MODULES = cpu io kernel_memory kernel_scheduler memory_stick swap utils
 SLEEP_TIME = 0.1
 ESPERA_CPUS = 40
 
-.PHONY: all debug release test clean logs format run kill memcheck helgrind base base-memcheck base-helgrind base2 base2-memcheck base2-helgrind pcp pcp-memcheck pcp-helgrind mem mem-memcheck mem-helgrind mem2 mem2-memcheck mem2-helgrind pmp pmp-memcheck pmp-helgrind pmp2 pmp2-memcheck pmp2-helgrind php php-memcheck php-helgrind php2 php2-memcheck php2-helgrind es31 es31-mecheck es31-helgrind es32 es32-mecheck es32-helgrind es33 es33-mecheck es33-helgrind es34 es34-mecheck es34-helgrind $(MODULES)
+.PHONY: all debug release test clean logs format run kill memcheck helgrind base base-memcheck base-helgrind base2 base2-memcheck base2-helgrind pcp pcp-memcheck pcp-helgrind mem mem-memcheck mem-helgrind mem2 mem2-memcheck mem2-helgrind pmp pmp-memcheck pmp-helgrind pmpdet pmpdet-memcheck pmpdet-helgrind pmp2 pmp2-memcheck pmp2-helgrind pmpdet2 pmpdet2-memcheck pmpdet2-helgrind php php-memcheck php-helgrind php2 php2-memcheck php2-helgrind es31 es31-mecheck es31-helgrind es32 es32-mecheck es32-helgrind es33 es33-mecheck es33-helgrind es34 es34-mecheck es34-helgrind $(MODULES)
 
 all: $(MODULES)
 
@@ -330,6 +330,49 @@ executepmp: logs $(BUILD_TARGET)
 	@echo "Revisá la carpeta ./output/ para ver los reportes de Valgrind de cada módulo."
 	@echo "Usa 'make kill' para detener todo."
 
+# --- Modos de ejecución PMP-DET ---
+pmpdet: BUILD_TARGET = all
+pmpdet: VALGRIND_CMD =
+pmpdet: executepmpdet
+
+pmpdet-memcheck: BUILD_TARGET = debug
+pmpdet-memcheck: VALGRIND_CMD = $(VALGRIND_MEMCHECK)
+pmpdet-memcheck: executepmpdet
+
+pmpdet-helgrind: BUILD_TARGET = debug
+pmpdet-helgrind: VALGRIND_CMD = $(VALGRIND_HELGRIND)
+pmpdet-helgrind: executepmpdet
+
+executepmpdet: logs $(BUILD_TARGET)
+	@mkdir -p ./output
+	@echo "Lanzando sistema base con: [$(VALGRIND_CMD)] ..."
+	
+	$(VALGRIND_CMD) ./kernel_memory/bin/kernel_memory ./kernel_memory/configs/pmp-det.config > ./output/kernel_memory.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./swap/bin/swap ./swap/swap.config > ./output/swap.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./kernel_scheduler/bin/kernel_scheduler ./kernel_scheduler/configs/pmp.config PMP.prc > ./output/kernel_scheduler.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/1500.config 16 > ./output/memory_stick_1.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/1500.config 16 > ./output/memory_stick_2.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/1500.config 32 > ./output/memory_stick_3.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/1500.config 64 > ./output/memory_stick_4.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./io/bin/io ./io/io.config SLEEP > ./output/io_sleep.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./io/bin/io ./io/io.config STDIN < ./pseudocodigo/entradas_io_stdin.txt > ./output/io_stdin.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./io/bin/io ./io/io.config STDOUT > ./output/io_stdout.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./cpu/bin/cpu ./cpu/cpu.config CPU-1 > ./output/cpu_1.log 2>&1 &
+	
+	@echo "Sistema base lanzado con éxito. La terminal está libre."
+	@echo "Revisá la carpeta ./output/ para ver los reportes de Valgrind de cada módulo."
+	@echo "Usa 'make kill' para detener todo."
+
 # --- Modos de ejecución PMP2 ---
 pmp2: BUILD_TARGET = all
 pmp2: VALGRIND_CMD =
@@ -348,6 +391,49 @@ executepmp2: logs $(BUILD_TARGET)
 	@echo "Lanzando sistema base con: [$(VALGRIND_CMD)] ..."
 	
 	$(VALGRIND_CMD) ./kernel_memory/bin/kernel_memory ./kernel_memory/configs/pmp.config > ./output/kernel_memory.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./swap/bin/swap ./swap/swap.config > ./output/swap.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./kernel_scheduler/bin/kernel_scheduler ./kernel_scheduler/configs/pmp.config PMP_v2.prc > ./output/kernel_scheduler.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/1000.config 16 > ./output/memory_stick_1.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/1000.config 16 > ./output/memory_stick_2.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/1000.config 32 > ./output/memory_stick_3.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./memory_stick/bin/memory_stick ./memory_stick/configs/1000.config 64 > ./output/memory_stick_4.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./io/bin/io ./io/io.config SLEEP > ./output/io_sleep.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./io/bin/io ./io/io.config STDIN < ./pseudocodigo/entradas_io_stdin.txt > ./output/io_stdin.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./io/bin/io ./io/io.config STDOUT > ./output/io_stdout.log 2>&1 &
+	@sleep $(SLEEP_TIME)
+	$(VALGRIND_CMD) ./cpu/bin/cpu ./cpu/cpu.config CPU-1 > ./output/cpu_1.log 2>&1 &
+	
+	@echo "Sistema base lanzado con éxito. La terminal está libre."
+	@echo "Revisá la carpeta ./output/ para ver los reportes de Valgrind de cada módulo."
+	@echo "Usa 'make kill' para detener todo."
+
+# --- Modos de ejecución PMP2-DET ---
+pmpdet2: BUILD_TARGET = all
+pmpdet2: VALGRIND_CMD =
+pmpdet2: executepmpdet2
+
+pmpdet2-memcheck: BUILD_TARGET = debug
+pmpdet2-memcheck: VALGRIND_CMD = $(VALGRIND_MEMCHECK)
+pmpdet2-memcheck: executepmpdet2
+
+pmpdet2-helgrind: BUILD_TARGET = debug
+pmpdet2-helgrind: VALGRIND_CMD = $(VALGRIND_HELGRIND)
+pmpdet2-helgrind: executepmpdet2
+
+executepmpdet2: logs $(BUILD_TARGET)
+	@mkdir -p ./output
+	@echo "Lanzando sistema base con: [$(VALGRIND_CMD)] ..."
+	
+	$(VALGRIND_CMD) ./kernel_memory/bin/kernel_memory ./kernel_memory/configs/pmp-det.config > ./output/kernel_memory.log 2>&1 &
 	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./swap/bin/swap ./swap/swap.config > ./output/swap.log 2>&1 &
 	@sleep $(SLEEP_TIME)

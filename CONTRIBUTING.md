@@ -44,9 +44,15 @@
 | `make pmp` | Compila y ejecuta la Prueba Planificación Mediano Plazo. |
 | `make pmp-memcheck` | Compila y ejecuta la Prueba Planificación Mediano Plazo con memcheck. |
 | `make pmp-helgrind` | Compila y ejecuta la Prueba Planificación Mediano Plazo con helgrind. |
-| `make pmp2` | Compila y ejecuta la Prueba Planificación Mediano Plazo (más determinística). |
-| `make pmp2-memcheck` | Compila y ejecuta la Prueba Planificación Mediano Plazo (más determinística) con memcheck. |
-| `make pmp2-helgrind` | Compila y ejecuta la Prueba Planificación Mediano Plazo (más determinística) con helgrind. |
+| `make pmpdet` | Compila y ejecuta la Prueba Planificación Mediano Plazo (configuración más deterministica). |
+| `make pmpdet-memcheck` | Compila y ejecuta la Prueba Planificación Mediano Plazo (configuración más deterministica) con memcheck. |
+| `make pmpdet-helgrind` | Compila y ejecuta la Prueba Planificación Mediano Plazo (configuración más deterministica) con helgrind. |
+| `make pmp2` | Compila y ejecuta la Prueba Planificación Mediano Plazo v2. |
+| `make pmp2-memcheck` | Compila y ejecuta la Prueba Planificación Mediano Plazo v2 con memcheck. |
+| `make pmp2-helgrind` | Compila y ejecuta la Prueba Planificación Mediano Plazo v2 con helgrind. |
+| `make pmpdet2` | Compila y ejecuta la Prueba Planificación Mediano Plazo v2 (configuración más deterministica). |
+| `make pmpdet2-memcheck` | Compila y ejecuta la Prueba Planificación Mediano Plazo v2 (configuración más deterministica) con memcheck. |
+| `make pmpdet2-helgrind` | Compila y ejecuta la Prueba Planificación Mediano Plazo v2 (configuración más deterministica) con helgrind. |
 | `make php` | Compila y ejecuta la Prueba Herencia de Prioridades. |
 | `make php-memcheck` | Compila y ejecuta la Prueba Herencia de Prioridades con memcheck. |
 | `make php-helgrind` | Compila y ejecuta la Prueba Herencia de Prioridades con helgrind. |
