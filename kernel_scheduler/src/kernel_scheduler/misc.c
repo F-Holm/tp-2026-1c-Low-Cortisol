@@ -90,6 +90,7 @@ t_pcb* crear_pcb(int estado, int prioridad)
   pcb->instancias_activas = 0;
   pcb->tiempo_bloqueado = 0;
   pcb->estado = estado;
+  pcb->mutex_bloqueante = NULL;
 
   pcb->lista_prioridades = list_create();
   pcb->prioridad = prioridad;
@@ -141,6 +142,21 @@ void destruir_pcb(t_pcb* pcb)
   pthread_cond_destroy(&(pcb->no_hay_instancias_activas));
   list_destroy_and_destroy_elements(pcb->lista_prioridades, free);
   free(pcb);
+}
+
+void set_mutex_bloqueante(t_pcb* pcb, void* mutex)
+{
+  pthread_mutex_lock(&(pcb->mutex_prioridad));
+  pcb->mutex_bloqueante = mutex;
+  pthread_mutex_unlock(&(pcb->mutex_prioridad));
+}
+
+void* get_mutex_bloqueante(t_pcb* pcb)
+{
+  pthread_mutex_lock(&(pcb->mutex_prioridad));
+  void* mutex = pcb->mutex_bloqueante;
+  pthread_mutex_unlock(&(pcb->mutex_prioridad));
+  return mutex;
 }
 
 bool responder_handshake(int socket_fd, int id_modulo, t_logger* logger)

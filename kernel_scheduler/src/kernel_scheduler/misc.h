@@ -42,6 +42,7 @@ typedef struct
   int instancias_activas;
   pthread_mutex_t mutex_instancias_activas;
   pthread_cond_t no_hay_instancias_activas;
+  void* mutex_bloqueante;
 } t_pcb;
 
 typedef struct
@@ -97,6 +98,8 @@ void incrementar_instancias_activas_pcb(t_pcb* pcb);
 void disminuir_instancias_activas_pcb(t_pcb* pcb);
 void esperar_0_instancias_activas_pcb(t_pcb* pcb);
 void destruir_pcb(t_pcb* pcb);
+void set_mutex_bloqueante(t_pcb* pcb, void* mutex);
+void* get_mutex_bloqueante(t_pcb* pcb);
 bool responder_handshake(int socket_fd, int id_modulo, t_logger* logger);
 unsigned long millis(void);
 unsigned long time_diff(unsigned long time_1, unsigned long time_2);
