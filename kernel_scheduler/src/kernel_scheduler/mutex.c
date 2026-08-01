@@ -195,6 +195,12 @@ static void propagar_prioridad_transitiva(t_pcb* pcb, int prioridad_nueva,
 
   pthread_mutex_lock(&(mutex_esperado->mutex));
 
+  if (!mutex_esperado->prioridad_activa)
+  {
+    pthread_mutex_unlock(&(mutex_esperado->mutex));
+    return;
+  }
+
   if (!eliminar_pcb_lista(mutex_esperado->lista, pcb))
   {
     pthread_mutex_unlock(&(mutex_esperado->mutex));
@@ -204,7 +210,7 @@ static void propagar_prioridad_transitiva(t_pcb* pcb, int prioridad_nueva,
   bool ahora_es_el_mas_prioritario =
       insertar_pcb_en_orden(mutex_esperado->lista, pcb) == 0;
 
-  if (mutex_esperado->prioridad_activa && ahora_es_el_mas_prioritario &&
+  if (ahora_es_el_mas_prioritario &&
       prioridad_nueva != mutex_esperado->prioridad_siguiente)
   {
     int prioridad_siguiente_anterior = mutex_esperado->prioridad_siguiente;
