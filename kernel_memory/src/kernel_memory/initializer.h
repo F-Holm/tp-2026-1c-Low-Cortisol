@@ -32,7 +32,7 @@ t_cpu_data* init_cpu_data(int socket_cpu, t_list* processes,
 t_stick_data* init_stick_data(int socket_stick, t_log* logger,
                               int socket_scheduler);
 t_swap_data* init_swap_data(int socket_swap, t_log* logger);
-t_process* init_process(u_int32_t pid, char* path_relativo,
+t_process* init_process(u_int32_t pid, char* relative_path,
                         char* scripts_basepath, t_log* logger);
 bool resolve_stick_ip(t_stick_data* stick_data, int client_socket);
 t_main_memory* init_main_memory(int total_size,

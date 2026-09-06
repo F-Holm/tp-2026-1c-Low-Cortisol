@@ -139,19 +139,19 @@ int count_instructions(FILE* f)
   return counter;
 }
 
-t_process* init_process(u_int32_t pid, char* path_relativo,
+t_process* init_process(u_int32_t pid, char* relative_path,
                         char* scripts_basepath, t_log* logger)
 {
   t_process* process = malloc(sizeof(t_process));
   process->pid = pid;
-  process->instructions_path = path_relativo;
+  process->instructions_path = relative_path;
   process->segments = list_create();
   memset(&process->registers, 0,
-         sizeof(t_registers));  // zero all campos de registers en 0
+         sizeof(t_registers));  // zero all register fields
 
-  int length = strlen(scripts_basepath) + strlen(path_relativo) + 2;
+  int length = strlen(scripts_basepath) + strlen(relative_path) + 2;
   char* full_path = malloc(length);
-  snprintf(full_path, length, "%s/%s", scripts_basepath, path_relativo);
+  snprintf(full_path, length, "%s/%s", scripts_basepath, relative_path);
   FILE* f = fopen(full_path, "r");
   if (f == NULL)
   {
@@ -183,10 +183,10 @@ bool resolve_stick_ip(t_stick_data* stick_data, int client_socket)
   if (getpeername(client_socket, &addr, &addr_len) == 0)
   {
     // Cast to unsigned char to read the individual bytes
-    unsigned char* datos = (unsigned char*)addr.sa_data;
+    unsigned char* bytes = (unsigned char*)addr.sa_data;
     // Write to the buffer in IP format
-    // bytes 2,3,4,5 are the IP in the estructura genérica sockaddr
-    sprintf(resolved_ip, "%d.%d.%d.%d", datos[2], datos[3], datos[4], datos[5]);
+    // bytes 2,3,4,5 are the IP in the generic sockaddr struct
+    sprintf(resolved_ip, "%d.%d.%d.%d", bytes[2], bytes[3], bytes[4], bytes[5]);
     strcpy(stick_data->ip_memory_stick, resolved_ip);
     return true;
   }

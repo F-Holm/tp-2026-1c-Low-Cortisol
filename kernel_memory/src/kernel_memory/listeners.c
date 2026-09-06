@@ -11,11 +11,11 @@ void* listen_scheduler(void* ptr)
       case OP_NEW_PROCESS:
       {
         t_list* packet = receive_packet(scheduler_data->socket_scheduler);
-        char* path_relativo = list_get(packet, 0);
+        char* relative_path = list_get(packet, 0);
         u_int32_t* pid = list_get(packet, 1);
 
         t_process* process =
-            init_process(*pid, path_relativo, scheduler_data->scripts_basepath,
+            init_process(*pid, relative_path, scheduler_data->scripts_basepath,
                          scheduler_data->logger);
 
         list_add_mtx(scheduler_data->processes, scheduler_data->processes_mutex,
@@ -38,10 +38,10 @@ void* listen_scheduler(void* ptr)
         {
           log_info(scheduler_data->logger,
                    "The MEM_ALLOC syscall failed because the requested size is "
-                   "larger than the max segment sizeño "
-                   "solicitado es mayor al sizeño máximo de segment");
+                   "larger than the max segment "
+                   "size than the max segment size");
           send_string(OP_SEGMENT_SIZE_EXCEEDED,
-                      "Tamaño solicitado es mayor al sizeño máximo de segment",
+                      "Requested size is larger than the max segment size",
                       scheduler_data->socket_scheduler);
         }
         else
@@ -72,11 +72,10 @@ void* listen_scheduler(void* ptr)
       {
         log_info(scheduler_data->logger,
                  "Received a syscall: PETICION_IO_STDIN");
-        t_list* paquete_stdin =
-            receive_packet(scheduler_data->socket_scheduler);
+        t_list* stdin_packet = receive_packet(scheduler_data->socket_scheduler);
         t_stdin_request* peticion_stdin =
-            (t_stdin_request*)list_get(paquete_stdin, 0);
-        char* write_buffer = (char*)list_get(paquete_stdin, 1);
+            (t_stdin_request*)list_get(stdin_packet, 0);
+        char* write_buffer = (char*)list_get(stdin_packet, 1);
         int physical_address = translate_logical_address(
             peticion_stdin->pid, peticion_stdin->logical_address,
             peticion_stdin->bytes_to_read, scheduler_data->main_memory,
@@ -85,12 +84,12 @@ void* listen_scheduler(void* ptr)
         {
           send_string(OP_STDIN_RESPONSE, "Segmentation Fault",
                       scheduler_data->socket_scheduler);
-          list_destroy_and_destroy_elements(paquete_stdin, free);
+          list_destroy_and_destroy_elements(stdin_packet, free);
           break;
         }
         log_info(scheduler_data->logger,
                  "## PID: %u - Write - "
-                 "Phys. Addr: %u - Tamaño: %d",
+                 "Phys. Addr: %u - Size: %d",
                  peticion_stdin->pid, physical_address,
                  peticion_stdin->bytes_to_read);
 
@@ -109,14 +108,14 @@ void* listen_scheduler(void* ptr)
           log_error(scheduler_data->logger, "Error writing to sticks");
           connection_alive = false;
           free(safe_buffer);
-          list_destroy_and_destroy_elements(paquete_stdin, free);
+          list_destroy_and_destroy_elements(stdin_packet, free);
           break;
         }
         free(safe_buffer);
         send_string(OP_STDIN_RESPONSE, "Memory written",
                     scheduler_data->socket_scheduler);
         log_info(scheduler_data->logger, "STDIN request finished");
-        list_destroy_and_destroy_elements(paquete_stdin, free);
+        list_destroy_and_destroy_elements(stdin_packet, free);
         break;
       }
       case OP_IO_STDOUT_REQUEST:
@@ -132,7 +131,7 @@ void* listen_scheduler(void* ptr)
             scheduler_data->logger);
         log_info(scheduler_data->logger,
                  "## PID: %u - Read - "
-                 "Phys. Addr: %u - Tamaño: %d",
+                 "Phys. Addr: %u - Size: %d",
                  peticion_stdout->pid, physical_address,
                  peticion_stdout->bytes_to_write);
         if (physical_address == -1)
@@ -298,8 +297,8 @@ void* listen_cpu(void* ptr)
             find_process(cpu_data->processes, cpu_data->processes_mutex, pid);
         char* instruction = process->instructions[pc];
         log_info(cpu_data->logger,
-                 "## PID: %u - Get instructionón: %u - Instrucción: %s", pid,
-                 pc, instruction);
+                 "## PID: %u - Get instruction: %u - Instruction: %s", pid, pc,
+                 instruction);
         usleep(cpu_data->instruction_delay * 1000);
         send_string(OP_SEND_INSTRUCTION, instruction, cpu_data->socket_cpu);
         list_destroy_and_destroy_elements(packet, free);
@@ -318,7 +317,7 @@ void* listen_cpu(void* ptr)
           free(pid);
           break;
         }
-        log_info(cpu_data->logger, "PID: %d - Obtener registers", *pid);
+        log_info(cpu_data->logger, "PID: %d - Get registers", *pid);
         log_info(cpu_data->logger, "instruction delay %d",
                  cpu_data->instruction_delay);
         usleep(cpu_data->instruction_delay * 1000);
@@ -385,7 +384,7 @@ void* listen_cpu(void* ptr)
       }
       case OP_STICK_DISCONNECTED:
         log_info(cpu_data->logger,
-                 "Notifying the Kernel Scheduler that memory is corruptedá "
+                 "Notifying the Kernel Scheduler that memory is corrupted "
                  "corrupta");
         if (!send_string(OP_MEMORY_CORRUPTED, "Corrupted memory",
                          cpu_data->socket_scheduler))
@@ -410,14 +409,14 @@ void* listen_cpu(void* ptr)
 
 void start_scheduler_listener(t_scheduler_data* scheduler_data)
 {
-  pthread_t hilo_escucha;
-  pthread_create(&hilo_escucha, NULL, listen_scheduler, scheduler_data);
-  pthread_detach(hilo_escucha);
+  pthread_t thread_escucha;
+  pthread_create(&thread_escucha, NULL, listen_scheduler, scheduler_data);
+  pthread_detach(thread_escucha);
 }
 
 void start_cpu_listener(t_cpu_data* cpu_data)
 {
-  pthread_t hilo_escucha;
-  pthread_create(&hilo_escucha, NULL, listen_cpu, cpu_data);
-  pthread_detach(hilo_escucha);
+  pthread_t thread_escucha;
+  pthread_create(&thread_escucha, NULL, listen_cpu, cpu_data);
+  pthread_detach(thread_escucha);
 }

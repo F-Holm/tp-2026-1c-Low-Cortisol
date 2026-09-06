@@ -20,7 +20,7 @@ void send_connected_sticks(t_list* connected_sticks,
 void send_cpu_connection(t_stick_data* stick_data, t_list* connected_cpus);
 void add_cpu_connection(t_kernel_memory_data* kernel_data,
                         t_cpu_data* cpu_data);
-void list_add_mtx(t_list* lista, pthread_mutex_t* mutex, void* elemento);
+void list_add_mtx(t_list* list, pthread_mutex_t* mutex, void* element);
 t_process* find_process(t_list* process_list, pthread_mutex_t* processes_mutex,
                         uint32_t pid);
 int compute_total_memory(t_list* connected_sticks,

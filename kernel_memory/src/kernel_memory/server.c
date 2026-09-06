@@ -21,7 +21,7 @@ bool handshake(t_kernel_memory_data* kernel_data, int client_socket)
         return false;
       }
       log_info(kernel_data->logger,
-               "## Kernel Scheduler Conectado - FD del socket: %i",
+               "## Kernel Scheduler Connected - FD of the socket: %i",
                client_socket);
       t_scheduler_data* scheduler_data = init_scheduler_data(
           kernel_data->socket_kernel_memory, client_socket,

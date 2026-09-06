@@ -16,7 +16,7 @@ static int find_free_block(t_swap_data* swap_data)
 
 static int add_block_to_swap(t_segment* segment, int counter,
                              t_swap_data* swap_data, t_log* logger)
-/*retorna el number de block agregado o -1 si no se pudo agregar*/
+/* returns the added block number, or -1 if it could not be added */
 {
   int free_block_number = find_free_block(swap_data);
   if (free_block_number != -1)
@@ -34,7 +34,7 @@ static int add_block_to_swap(t_segment* segment, int counter,
   }
   else
   {
-    log_info(logger, "Cannot add the segment to swap: no free blocks.");
+    log_info(logger, "Cannot add the segment to swap: not free blocks.");
   }
   return free_block_number;
 }
@@ -51,8 +51,8 @@ static void write_block_to_swap(int block_number, char* content, int byte_count,
   destroy_packet(packet);
   free(aux_buffer);
 
-  int operacion = receive_op_code(swap->socket_swap);
-  if (operacion == OP_DISK_WRITE_DONE)
+  int op_code = receive_op_code(swap->socket_swap);
+  if (op_code == OP_DISK_WRITE_DONE)
   {
     char* ack = receive_string(swap->socket_swap);
     free(ack);
@@ -124,7 +124,7 @@ void suspend_process(t_process* process_to_suspend,
         else
         {
           log_info(scheduler_data->logger,
-                   "Could not suspend process PID %d: no free blocks "
+                   "Could not suspend process PID %d: not free blocks "
                    "in swap.",
                    process_to_suspend->pid);
           send_string(OP_SUSPENSION_FAILED,
@@ -168,7 +168,7 @@ void suspend_process(t_process* process_to_suspend,
   }
 }
 
-// DES-SUSPEND PROCESS
+// RESUME PROCESS
 
 static bool can_resume(uint32_t pid, t_scheduler_data* scheduler_data)
 {
@@ -197,24 +197,24 @@ static bool regenerate_segment(uint32_t id, uint32_t pid, int size,
                                t_main_memory* main_memory, int socket_scheduler,
                                t_log* logger)
 {
-  // Chequeo de count de memory disponible
+  // Chequeo of count of memory available
   pthread_mutex_lock(main_memory->main_memory_mutex);
   if (compute_free_space(main_memory->holes, main_memory->main_memory_mutex,
                          logger) < size)
   {
     log_info(logger, "Not enough space to regenerate the segment");
-    send_string(OP_RESUME_SUSPENSION_FAILED, "No hay memory suficiente",
+    send_string(OP_RESUME_SUSPENSION_FAILED, "There are not memory enough",
                 socket_scheduler);
     pthread_mutex_unlock(main_memory->main_memory_mutex);
     return false;
   }
   else
   {
-    log_info(logger, "Regenerating segment with id %u, pid %u and sizeño %d",
-             id, pid, size);
+    log_info(logger, "Regenerating segment with id %u, pid %u and size %d", id,
+             pid, size);
     t_hole chosen_hole = select_hole(size, logger, main_memory);
 
-    // Chequeo de compactación
+    // Chequeo of compaction
     if (chosen_hole.size == -1)
     {
       log_error(logger, "## Could not allocate any hole.");
@@ -224,8 +224,8 @@ static bool regenerate_segment(uint32_t id, uint32_t pid, int size,
     }
     update_segment_list(main_memory, chosen_hole, size, pid, id);
     pthread_mutex_unlock(main_memory->main_memory_mutex);
-    log_info(logger, "## PID: %u - Segment regenerated %u - Tamaño: %d", pid,
-             id, size);
+    log_info(logger, "## PID: %u - Segment regenerated %u - Size: %d", pid, id,
+             size);
     return true;
   }
 }
@@ -234,8 +234,8 @@ static char* read_block_from_swap(int block_number, t_swap_data* swap)
 {
   send_buffer(OP_DISK_READ, &block_number, sizeof(int), swap->socket_swap);
 
-  int operacion = receive_op_code(swap->socket_swap);
-  if (operacion != OP_DISK_READ_DONE)
+  int op_code = receive_op_code(swap->socket_swap);
+  if (op_code != OP_DISK_READ_DONE)
   {
     log_error(swap->logger,
               "Unexpected response from the swap module while reading block %d",
@@ -250,14 +250,14 @@ static char* read_block_from_swap(int block_number, t_swap_data* swap)
 
 static int remove_block_from_swap(int block_number, t_swap_data* swap_data,
                                   t_log* logger)
-/*retorna el number de block eliminado o -1 si no se pudo eliminar*/
+/* returns the removed block number, or -1 if it could not be removed */
 {
   t_block_data* block_to_remove = list_get(swap_data->block_list, block_number);
   if (block_to_remove == NULL)
   {
     log_info(logger,
              "Could not remove swap block number %d because "
-             "there is no such block.",
+             "there is not such block.",
              block_number);
     return -1;
   }
