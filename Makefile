@@ -70,7 +70,7 @@ execute: logs $(BUILD_TARGET)
 	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./io/bin/io ./io/io.config SLEEP > ./output/io_sleep.log 2>&1 &
 	@sleep $(SLEEP_TIME)
-	$(VALGRIND_CMD) ./io/bin/io ./io/io.config STDIN < ./pseudocodigo/entradas_io_stdin.txt > ./output/io_stdin.log 2>&1 &
+	$(VALGRIND_CMD) ./io/bin/io ./io/io.config STDIN < ./tests/pseudocodigo/entradas_io_stdin.txt > ./output/io_stdin.log 2>&1 &
 	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./io/bin/io ./io/io.config STDOUT > ./output/io_stdout.log 2>&1 &
 	@sleep $(SLEEP_TIME)
@@ -117,7 +117,7 @@ executebase: logs $(BUILD_TARGET)
 	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./io/bin/io ./io/io.config SLEEP > ./output/io_sleep.log 2>&1 &
 	@sleep $(SLEEP_TIME)
-	$(VALGRIND_CMD) ./io/bin/io ./io/io.config STDIN < ./pseudocodigo/entradas_io_stdin.txt > ./output/io_stdin.log 2>&1 &
+	$(VALGRIND_CMD) ./io/bin/io ./io/io.config STDIN < ./tests/pseudocodigo/entradas_io_stdin.txt > ./output/io_stdin.log 2>&1 &
 	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./io/bin/io ./io/io.config STDOUT > ./output/io_stdout.log 2>&1 &
 	@sleep $(SLEEP_TIME)
@@ -154,7 +154,7 @@ executebase2: logs $(BUILD_TARGET)
 	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./io/bin/io ./io/io.config SLEEP > ./output/io_sleep.log 2>&1 &
 	@sleep $(SLEEP_TIME)
-	$(VALGRIND_CMD) ./io/bin/io ./io/io.config STDIN < ./pseudocodigo/entradas_io_stdin.txt > ./output/io_stdin.log 2>&1 &
+	$(VALGRIND_CMD) ./io/bin/io ./io/io.config STDIN < ./tests/pseudocodigo/entradas_io_stdin.txt > ./output/io_stdin.log 2>&1 &
 	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./io/bin/io ./io/io.config STDOUT > ./output/io_stdout.log 2>&1 &
 	@sleep $(SLEEP_TIME)
@@ -191,7 +191,7 @@ executepcp: logs $(BUILD_TARGET)
 	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./io/bin/io ./io/io.config SLEEP > ./output/io_sleep.log 2>&1 &
 	@sleep $(SLEEP_TIME)
-	$(VALGRIND_CMD) ./io/bin/io ./io/io.config STDIN < ./pseudocodigo/entradas_io_stdin.txt > ./output/io_stdin.log 2>&1 &
+	$(VALGRIND_CMD) ./io/bin/io ./io/io.config STDIN < ./tests/pseudocodigo/entradas_io_stdin.txt > ./output/io_stdin.log 2>&1 &
 	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./io/bin/io ./io/io.config STDOUT > ./output/io_stdout.log 2>&1 &
 	@sleep $(SLEEP_TIME)
@@ -234,7 +234,7 @@ executemem: logs $(BUILD_TARGET)
 	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./io/bin/io ./io/io.config SLEEP > ./output/io_sleep.log 2>&1 &
 	@sleep $(SLEEP_TIME)
-	$(VALGRIND_CMD) ./io/bin/io ./io/io.config STDIN < ./pseudocodigo/entradas_io_stdin.txt > ./output/io_stdin.log 2>&1 &
+	$(VALGRIND_CMD) ./io/bin/io ./io/io.config STDIN < ./tests/pseudocodigo/entradas_io_stdin.txt > ./output/io_stdin.log 2>&1 &
 	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./io/bin/io ./io/io.config STDOUT > ./output/io_stdout.log 2>&1 &
 	@sleep $(SLEEP_TIME)
@@ -277,7 +277,7 @@ executemem2: logs $(BUILD_TARGET)
 	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./io/bin/io ./io/io.config SLEEP > ./output/io_sleep.log 2>&1 &
 	@sleep $(SLEEP_TIME)
-	$(VALGRIND_CMD) ./io/bin/io ./io/io.config STDIN < ./pseudocodigo/entradas_io_stdin.txt > ./output/io_stdin.log 2>&1 &
+	$(VALGRIND_CMD) ./io/bin/io ./io/io.config STDIN < ./tests/pseudocodigo/entradas_io_stdin.txt > ./output/io_stdin.log 2>&1 &
 	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./io/bin/io ./io/io.config STDOUT > ./output/io_stdout.log 2>&1 &
 	@sleep $(SLEEP_TIME)
@@ -320,7 +320,7 @@ executepmp: logs $(BUILD_TARGET)
 	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./io/bin/io ./io/io.config SLEEP > ./output/io_sleep.log 2>&1 &
 	@sleep $(SLEEP_TIME)
-	$(VALGRIND_CMD) ./io/bin/io ./io/io.config STDIN < ./pseudocodigo/entradas_io_stdin.txt > ./output/io_stdin.log 2>&1 &
+	$(VALGRIND_CMD) ./io/bin/io ./io/io.config STDIN < ./tests/pseudocodigo/entradas_io_stdin.txt > ./output/io_stdin.log 2>&1 &
 	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./io/bin/io ./io/io.config STDOUT > ./output/io_stdout.log 2>&1 &
 	@sleep $(SLEEP_TIME)
@@ -363,7 +363,7 @@ executepmpdet: logs $(BUILD_TARGET)
 	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./io/bin/io ./io/io.config SLEEP > ./output/io_sleep.log 2>&1 &
 	@sleep $(SLEEP_TIME)
-	$(VALGRIND_CMD) ./io/bin/io ./io/io.config STDIN < ./pseudocodigo/entradas_io_stdin.txt > ./output/io_stdin.log 2>&1 &
+	$(VALGRIND_CMD) ./io/bin/io ./io/io.config STDIN < ./tests/pseudocodigo/entradas_io_stdin.txt > ./output/io_stdin.log 2>&1 &
 	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./io/bin/io ./io/io.config STDOUT > ./output/io_stdout.log 2>&1 &
 	@sleep $(SLEEP_TIME)
@@ -406,7 +406,7 @@ executepmp2: logs $(BUILD_TARGET)
 	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./io/bin/io ./io/io.config SLEEP > ./output/io_sleep.log 2>&1 &
 	@sleep $(SLEEP_TIME)
-	$(VALGRIND_CMD) ./io/bin/io ./io/io.config STDIN < ./pseudocodigo/entradas_io_stdin.txt > ./output/io_stdin.log 2>&1 &
+	$(VALGRIND_CMD) ./io/bin/io ./io/io.config STDIN < ./tests/pseudocodigo/entradas_io_stdin.txt > ./output/io_stdin.log 2>&1 &
 	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./io/bin/io ./io/io.config STDOUT > ./output/io_stdout.log 2>&1 &
 	@sleep $(SLEEP_TIME)
@@ -449,7 +449,7 @@ executepmpdet2: logs $(BUILD_TARGET)
 	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./io/bin/io ./io/io.config SLEEP > ./output/io_sleep.log 2>&1 &
 	@sleep $(SLEEP_TIME)
-	$(VALGRIND_CMD) ./io/bin/io ./io/io.config STDIN < ./pseudocodigo/entradas_io_stdin.txt > ./output/io_stdin.log 2>&1 &
+	$(VALGRIND_CMD) ./io/bin/io ./io/io.config STDIN < ./tests/pseudocodigo/entradas_io_stdin.txt > ./output/io_stdin.log 2>&1 &
 	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./io/bin/io ./io/io.config STDOUT > ./output/io_stdout.log 2>&1 &
 	@sleep $(SLEEP_TIME)
@@ -488,7 +488,7 @@ executephp: logs $(BUILD_TARGET)
 	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./io/bin/io ./io/io.config SLEEP > ./output/io_sleep.log 2>&1 &
 	@sleep $(SLEEP_TIME)
-	$(VALGRIND_CMD) ./io/bin/io ./io/io.config STDIN < ./pseudocodigo/entradas_io_stdin.txt > ./output/io_stdin.log 2>&1 &
+	$(VALGRIND_CMD) ./io/bin/io ./io/io.config STDIN < ./tests/pseudocodigo/entradas_io_stdin.txt > ./output/io_stdin.log 2>&1 &
 	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./io/bin/io ./io/io.config STDOUT > ./output/io_stdout.log 2>&1 &
 	@sleep $(SLEEP_TIME)
@@ -527,7 +527,7 @@ executephp2: logs $(BUILD_TARGET)
 	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./io/bin/io ./io/io.config SLEEP > ./output/io_sleep.log 2>&1 &
 	@sleep $(SLEEP_TIME)
-	$(VALGRIND_CMD) ./io/bin/io ./io/io.config STDIN < ./pseudocodigo/entradas_io_stdin.txt > ./output/io_stdin.log 2>&1 &
+	$(VALGRIND_CMD) ./io/bin/io ./io/io.config STDIN < ./tests/pseudocodigo/entradas_io_stdin.txt > ./output/io_stdin.log 2>&1 &
 	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./io/bin/io ./io/io.config STDOUT > ./output/io_stdout.log 2>&1 &
 	@sleep $(SLEEP_TIME)
@@ -570,7 +570,7 @@ executees31: logs $(BUILD_TARGET)
 	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./io/bin/io ./io/io.config SLEEP > ./output/io_sleep.log 2>&1 &
 	@sleep $(SLEEP_TIME)
-	$(VALGRIND_CMD) ./io/bin/io ./io/io.config STDIN < ./pseudocodigo/entradas_io_stdin.txt > ./output/io_stdin.log 2>&1 &
+	$(VALGRIND_CMD) ./io/bin/io ./io/io.config STDIN < ./tests/pseudocodigo/entradas_io_stdin.txt > ./output/io_stdin.log 2>&1 &
 	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./io/bin/io ./io/io.config STDOUT > ./output/io_stdout.log 2>&1 &
 	@sleep $(SLEEP_TIME)
@@ -619,7 +619,7 @@ executees32: logs $(BUILD_TARGET)
 	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./io/bin/io ./io/io.config SLEEP > ./output/io_sleep.log 2>&1 &
 	@sleep $(SLEEP_TIME)
-	$(VALGRIND_CMD) ./io/bin/io ./io/io.config STDIN < ./pseudocodigo/entradas_io_stdin.txt > ./output/io_stdin.log 2>&1 &
+	$(VALGRIND_CMD) ./io/bin/io ./io/io.config STDIN < ./tests/pseudocodigo/entradas_io_stdin.txt > ./output/io_stdin.log 2>&1 &
 	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./io/bin/io ./io/io.config STDOUT > ./output/io_stdout.log 2>&1 &
 	@sleep $(SLEEP_TIME)
@@ -668,7 +668,7 @@ executees33: logs $(BUILD_TARGET)
 	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./io/bin/io ./io/io.config SLEEP > ./output/io_sleep.log 2>&1 &
 	@sleep $(SLEEP_TIME)
-	$(VALGRIND_CMD) ./io/bin/io ./io/io.config STDIN < ./pseudocodigo/entradas_io_stdin.txt > ./output/io_stdin.log 2>&1 &
+	$(VALGRIND_CMD) ./io/bin/io ./io/io.config STDIN < ./tests/pseudocodigo/entradas_io_stdin.txt > ./output/io_stdin.log 2>&1 &
 	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./io/bin/io ./io/io.config STDOUT > ./output/io_stdout.log 2>&1 &
 	@sleep $(SLEEP_TIME)
@@ -717,7 +717,7 @@ executees34: logs $(BUILD_TARGET)
 	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./io/bin/io ./io/io.config SLEEP > ./output/io_sleep.log 2>&1 &
 	@sleep $(SLEEP_TIME)
-	$(VALGRIND_CMD) ./io/bin/io ./io/io.config STDIN < ./pseudocodigo/entradas_io_stdin.txt > ./output/io_stdin.log 2>&1 &
+	$(VALGRIND_CMD) ./io/bin/io ./io/io.config STDIN < ./tests/pseudocodigo/entradas_io_stdin.txt > ./output/io_stdin.log 2>&1 &
 	@sleep $(SLEEP_TIME)
 	$(VALGRIND_CMD) ./io/bin/io ./io/io.config STDOUT > ./output/io_stdout.log 2>&1 &
 	@sleep $(SLEEP_TIME)
