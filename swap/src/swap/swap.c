@@ -1,128 +1,123 @@
 #include "swap/swap.h"
 
-void cerrar_todo(t_modulo_swap* datos_swap, t_config* config)
+void close_swap(t_swap* swap, t_config* config)
 {
-  close(datos_swap->socket_swap);
-  fclose(datos_swap->archivo_swap);
-  log_destroy(datos_swap->logger);
+  close(swap->socket_swap);
+  fclose(swap->swap_file);
+  log_destroy(swap->logger);
   config_destroy(config);
 }
 
-static bool inicializar_archivo_swap(t_modulo_swap* datos_swap);
+static bool init_swap_file(t_swap* swap);
 
-bool inicializar_configuracion(t_modulo_swap* datos_swap, t_config* config)
+bool init_config(t_swap* swap, t_config* config)
 {
-  char* log_levelstr = config_get_string_value(config, "LOG_LEVEL");
+  char* log_level_str = config_get_string_value(config, "LOG_LEVEL");
 
-  datos_swap->ip = config_get_string_value(config, "KERNEL_MEMORY_IP");
-  datos_swap->puerto = config_get_string_value(config, "KERNEL_MEMORY_PORT");
-  datos_swap->tamanio_swap = config_get_int_value(config, "SWAP_FILE_SIZE");
-  datos_swap->tamanio_bloque = config_get_int_value(config, "BLOCK_SIZE");
-  datos_swap->logger = log_create("swap.log", "SWAP", true,
-                                  log_level_from_string(log_levelstr), false);
-  if (datos_swap->logger == NULL)
+  swap->ip = config_get_string_value(config, "KERNEL_MEMORY_IP");
+  swap->port = config_get_string_value(config, "KERNEL_MEMORY_PORT");
+  swap->swap_size = config_get_int_value(config, "SWAP_FILE_SIZE");
+  swap->block_size = config_get_int_value(config, "BLOCK_SIZE");
+  swap->logger = log_create("swap.log", "SWAP", true,
+                            log_level_from_string(log_level_str), false);
+  if (swap->logger == NULL)
   {
     config_destroy(config);
     return false;
   }
-  datos_swap->swap_file_path =
-      config_get_string_value(config, "SWAP_FILE_PATH");
-  if (!inicializar_archivo_swap(datos_swap))
+  swap->swap_file_path = config_get_string_value(config, "SWAP_FILE_PATH");
+  if (!init_swap_file(swap))
   {
-    log_error(datos_swap->logger, "## Error al inicializar el archivo SWAP");
-    cerrar_todo(datos_swap, config);
+    log_error(swap->logger, "## Error initializing the SWAP file");
+    close_swap(swap, config);
     return false;
   }
 
   return true;
 }
 
-bool iniciar_conexion(t_modulo_swap* datos_swap, t_config* config)
+bool connect_to_kernel_memory(t_swap* swap, t_config* config)
 {
-  datos_swap->socket_swap = create_connection(
-      datos_swap->ip, datos_swap->puerto);  // Establezco conexión
+  swap->socket_swap = create_connection(swap->ip, swap->port);
 
-  if (datos_swap->socket_swap == -1)
+  if (swap->socket_swap == -1)
   {
-    log_error(datos_swap->logger, "#ERROR DE CONEXION");
-    cerrar_todo(datos_swap, config);
+    log_error(swap->logger, "#CONNECTION ERROR");
+    close_swap(swap, config);
     return false;
   }
-  log_info(datos_swap->logger, "## Conectado a Kernel Memory");
+  log_info(swap->logger, "## Connected to Kernel Memory");
 
-  // Handshake con Kernel Scheduler
-  bool envio_correcto = send_handshake(MID_SWAP, datos_swap->socket_swap);
-  if (!envio_correcto)
+  bool sent_ok = send_handshake(MID_SWAP, swap->socket_swap);
+  if (!sent_ok)
   {
-    log_error(datos_swap->logger, "## Error en el Handshake con Kernel Memory");
-    cerrar_todo(datos_swap, config);
+    log_error(swap->logger, "## Handshake error with Kernel Memory");
+    close_swap(swap, config);
     return false;
   }
 
-  int recepcion_correcta = receive_handshake(datos_swap->socket_swap);
-  if (recepcion_correcta != MID_KERNEL_MEMORY)
+  int received_id = receive_handshake(swap->socket_swap);
+  if (received_id != MID_KERNEL_MEMORY)
   {
-    log_error(datos_swap->logger, "## Error en el Handshake con Kernel Memory");
-    cerrar_todo(datos_swap, config);
+    log_error(swap->logger, "## Handshake error with Kernel Memory");
+    close_swap(swap, config);
     return false;
   }
-  log_info(datos_swap->logger, "Handshake exitoso con Kernel Memory");
+  log_info(swap->logger, "Handshake successful with Kernel Memory");
 
-  // Envio a memory el tamaño del swap y el tamaño de bloque
-  t_swap_config* envio_km = malloc(sizeof(t_swap_config));
-  int size_envio = sizeof(t_swap_config);
-  envio_km->swap_size = datos_swap->tamanio_swap;
-  envio_km->block_size = datos_swap->tamanio_bloque;
-  envio_correcto = send_buffer(OP_INFO_SWAP, (void*)envio_km, size_envio,
-                               datos_swap->socket_swap);
+  // Send the swap size and block size to kernel memory.
+  t_swap_config* km_config = malloc(sizeof(t_swap_config));
+  int config_size = sizeof(t_swap_config);
+  km_config->swap_size = swap->swap_size;
+  km_config->block_size = swap->block_size;
+  sent_ok = send_buffer(OP_INFO_SWAP, (void*)km_config, config_size,
+                        swap->socket_swap);
 
-  if (!envio_correcto)
+  if (!sent_ok)
   {
-    log_error(datos_swap->logger, "## Error al enviar el packet de SWAP");
-    cerrar_todo(datos_swap, config);
+    log_error(swap->logger, "## Error sending the SWAP packet");
+    close_swap(swap, config);
     return false;
   }
-  free(envio_km);
+  free(km_config);
 
   return true;
 }
 
-static bool inicializar_archivo_swap(t_modulo_swap* datos_swap)
+static bool init_swap_file(t_swap* swap)
 {
-  FILE* archivo_swap = fopen(datos_swap->swap_file_path, "wb+");
-  if (archivo_swap == NULL)
+  FILE* swap_file = fopen(swap->swap_file_path, "wb+");
+  if (swap_file == NULL)
     return false;
 
-  // Asignar tamanio e inicializar el archivo con ceros
-  int file_descriptor = fileno(archivo_swap);
-  if (ftruncate(file_descriptor, datos_swap->tamanio_swap) == -1)
+  // Set the file size and fill it with zeros.
+  int file_descriptor = fileno(swap_file);
+  if (ftruncate(file_descriptor, swap->swap_size) == -1)
   {
-    fclose(archivo_swap);
+    fclose(swap_file);
     return false;
   }
 
-  datos_swap->archivo_swap = archivo_swap;
+  swap->swap_file = swap_file;
   return true;
 }
 
-static void buscar_bloque(FILE* archivo_swap, int num_bloque,
-                          int tamanio_bloque)
+static void seek_block(FILE* swap_file, int block_number, int block_size)
 {
-  fseek(archivo_swap, num_bloque * tamanio_bloque, 0);
+  fseek(swap_file, block_number * block_size, 0);
 }
 
-void escribir_bloque(FILE* archivo_swap, int num_bloque, int tamanio_bloque,
-                     char* contenido_a_escribir)
+void write_block(FILE* swap_file, int block_number, int block_size,
+                 char* content)
 {
-  buscar_bloque(archivo_swap, num_bloque, tamanio_bloque);
-  fwrite(contenido_a_escribir, tamanio_bloque, 1, archivo_swap);
-  fflush(archivo_swap);
+  seek_block(swap_file, block_number, block_size);
+  fwrite(content, block_size, 1, swap_file);
+  fflush(swap_file);
 }
 
-void leer_bloque(FILE* archivo_swap, int num_bloque, int tamanio_bloque,
-                 char* contenido_leido)
+void read_block(FILE* swap_file, int block_number, int block_size, char* content)
 {
-  buscar_bloque(archivo_swap, num_bloque, tamanio_bloque);
-  if (fread(contenido_leido, tamanio_bloque, 1, archivo_swap) != 1)
+  seek_block(swap_file, block_number, block_size);
+  if (fread(content, block_size, 1, swap_file) != 1)
     return;
 }

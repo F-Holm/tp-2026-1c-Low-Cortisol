@@ -21,18 +21,18 @@ typedef struct
 {
   t_log* logger;
   char* ip;
-  char* puerto;
+  char* port;
   int socket_swap;
-  int tamanio_swap;
-  int tamanio_bloque;
+  int swap_size;
+  int block_size;
   char* swap_file_path;
-  FILE* archivo_swap;
-} t_modulo_swap;
+  FILE* swap_file;
+} t_swap;
 
-void cerrar_todo(t_modulo_swap* modulo_swap, t_config* config);
-bool iniciar_conexion(t_modulo_swap* modulo_swap, t_config* config);
-bool inicializar_configuracion(t_modulo_swap* modulo_swap, t_config* config);
-void escribir_bloque(FILE* archivo_swap, int num_bloque, int tamanio_bloque,
-                     char* contenido_a_escribir);
-void leer_bloque(FILE* archivo_swap, int num_bloque, int tamanio_bloque,
-                 char* contenido_leido);
+void close_swap(t_swap* swap, t_config* config);
+bool connect_to_kernel_memory(t_swap* swap, t_config* config);
+bool init_config(t_swap* swap, t_config* config);
+void write_block(FILE* swap_file, int block_number, int block_size,
+                 char* content);
+void read_block(FILE* swap_file, int block_number, int block_size,
+                char* content);

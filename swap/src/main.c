@@ -9,7 +9,7 @@
 
 int main(int argc, char* argv[])
 {
-  t_modulo_swap datos_swap;
+  t_swap datos_swap;
 
   if (argc != 2)
     return EXIT_FAILURE;
@@ -18,12 +18,12 @@ int main(int argc, char* argv[])
   if (config == NULL)
     return EXIT_FAILURE;
 
-  if (!inicializar_configuracion(&datos_swap, config))
+  if (!init_config(&datos_swap, config))
   {
     return EXIT_FAILURE;
   }
 
-  if (!iniciar_conexion(&datos_swap, config))
+  if (!connect_to_kernel_memory(&datos_swap, config))
   {
     return EXIT_FAILURE;
   }
@@ -44,8 +44,8 @@ int main(int argc, char* argv[])
         }
         int numero_bloque = *(int*)list_get(packet, 0);
         char* contenido_a_escribir = (char*)list_get(packet, 1);
-        escribir_bloque(datos_swap.archivo_swap, numero_bloque,
-                        datos_swap.tamanio_bloque, contenido_a_escribir);
+        write_block(datos_swap.swap_file, numero_bloque,
+                        datos_swap.block_size, contenido_a_escribir);
         send_string(OP_DISK_WRITE_DONE, "", datos_swap.socket_swap);
         list_destroy_and_destroy_elements(packet, free);
         log_info(datos_swap.logger, "## Escritura de bloque: <%d>",
@@ -61,11 +61,11 @@ int main(int argc, char* argv[])
                     "Error al recibir el numero del bloque a leer.");
           break;
         }
-        char* contenido_leido = malloc(datos_swap.tamanio_bloque);
-        leer_bloque(datos_swap.archivo_swap, *num_bloque,
-                    datos_swap.tamanio_bloque, contenido_leido);
+        char* contenido_leido = malloc(datos_swap.block_size);
+        read_block(datos_swap.swap_file, *num_bloque,
+                    datos_swap.block_size, contenido_leido);
         send_buffer(OP_DISK_READ_DONE, contenido_leido,
-                    datos_swap.tamanio_bloque, datos_swap.socket_swap);
+                    datos_swap.block_size, datos_swap.socket_swap);
         log_info(datos_swap.logger, "## Lectura de bloque: <%d>", *num_bloque);
         free(num_bloque);
         free(contenido_leido);
@@ -78,6 +78,6 @@ int main(int argc, char* argv[])
   }
   // Liberar y Cerrar
   log_info(datos_swap.logger, "Cerrando Swap");
-  cerrar_todo(&datos_swap, config);
+  close_swap(&datos_swap, config);
   return EXIT_SUCCESS;
 }
