@@ -9,75 +9,71 @@
 
 int main(int argc, char* argv[])
 {
-  t_swap datos_swap;
+  t_swap swap;
 
   if (argc != 2)
     return EXIT_FAILURE;
-  char* archivo_config = argv[1];
-  t_config* config = config_create(archivo_config);
+  char* config_path = argv[1];
+  t_config* config = config_create(config_path);
   if (config == NULL)
     return EXIT_FAILURE;
 
-  if (!init_config(&datos_swap, config))
+  if (!init_config(&swap, config))
   {
     return EXIT_FAILURE;
   }
 
-  if (!connect_to_kernel_memory(&datos_swap, config))
+  if (!connect_to_kernel_memory(&swap, config))
   {
     return EXIT_FAILURE;
   }
-  // Esperando Instrucciones del Kernel Memory
-  bool seguir_operando = true;
-  while (seguir_operando)
+  // Waiting for instructions from Kernel Memory.
+  bool keep_running = true;
+  while (keep_running)
   {
-    int op_code = receive_op_code(datos_swap.socket_swap);
+    int op_code = receive_op_code(swap.socket_swap);
     switch (op_code)
     {
       case OP_DISK_WRITE:
-        t_list* packet = receive_packet(datos_swap.socket_swap);
+        t_list* packet = receive_packet(swap.socket_swap);
         if (list_size(packet) != 2)
         {
-          log_error(datos_swap.logger,
-                    "Cantidad de parametros para escribir en disco invalida.");
+          log_error(swap.logger,
+                    "Invalid number of parameters to write to disk.");
           break;
         }
-        int numero_bloque = *(int*)list_get(packet, 0);
-        char* contenido_a_escribir = (char*)list_get(packet, 1);
-        write_block(datos_swap.swap_file, numero_bloque,
-                        datos_swap.block_size, contenido_a_escribir);
-        send_string(OP_DISK_WRITE_DONE, "", datos_swap.socket_swap);
+        int block_number = *(int*)list_get(packet, 0);
+        char* content = (char*)list_get(packet, 1);
+        write_block(swap.swap_file, block_number, swap.block_size, content);
+        send_string(OP_DISK_WRITE_DONE, "", swap.socket_swap);
         list_destroy_and_destroy_elements(packet, free);
-        log_info(datos_swap.logger, "## Escritura de bloque: <%d>",
-                 numero_bloque);
+        log_info(swap.logger, "## Block write: <%d>", block_number);
         break;
 
       case OP_DISK_READ:
         int a;
-        int* num_bloque = (int*)receive_buffer(&a, datos_swap.socket_swap);
-        if (num_bloque == NULL)
+        int* block_number_ptr = (int*)receive_buffer(&a, swap.socket_swap);
+        if (block_number_ptr == NULL)
         {
-          log_error(datos_swap.logger,
-                    "Error al recibir el numero del bloque a leer.");
+          log_error(swap.logger, "Error receiving the block number to read.");
           break;
         }
-        char* contenido_leido = malloc(datos_swap.block_size);
-        read_block(datos_swap.swap_file, *num_bloque,
-                    datos_swap.block_size, contenido_leido);
-        send_buffer(OP_DISK_READ_DONE, contenido_leido,
-                    datos_swap.block_size, datos_swap.socket_swap);
-        log_info(datos_swap.logger, "## Lectura de bloque: <%d>", *num_bloque);
-        free(num_bloque);
-        free(contenido_leido);
+        char* content_read = malloc(swap.block_size);
+        read_block(swap.swap_file, *block_number_ptr, swap.block_size,
+                   content_read);
+        send_buffer(OP_DISK_READ_DONE, content_read, swap.block_size,
+                    swap.socket_swap);
+        log_info(swap.logger, "## Block read: <%d>", *block_number_ptr);
+        free(block_number_ptr);
+        free(content_read);
         break;
 
       default:
-        seguir_operando = false;
+        keep_running = false;
         break;
     }
   }
-  // Liberar y Cerrar
-  log_info(datos_swap.logger, "Cerrando Swap");
-  close_swap(&datos_swap, config);
+  log_info(swap.logger, "Closing Swap");
+  close_swap(&swap, config);
   return EXIT_SUCCESS;
 }

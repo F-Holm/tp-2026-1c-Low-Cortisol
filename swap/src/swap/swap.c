@@ -115,7 +115,8 @@ void write_block(FILE* swap_file, int block_number, int block_size,
   fflush(swap_file);
 }
 
-void read_block(FILE* swap_file, int block_number, int block_size, char* content)
+void read_block(FILE* swap_file, int block_number, int block_size,
+                char* content)
 {
   seek_block(swap_file, block_number, block_size);
   if (fread(content, block_size, 1, swap_file) != 1)
