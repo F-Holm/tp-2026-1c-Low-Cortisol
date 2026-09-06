@@ -3,7 +3,7 @@
 
 #include "cpu/connections.h"
 #include "cpu/cpu.h"
-#include "cpu/inicializador.h"
+#include "cpu/initializer.h"
 #include "cpu/liberacion.h"
 #include "utils/config.h"
 #include "utils/log.h"
@@ -15,13 +15,13 @@ int main(int argc, char* argv[])
   cpu = malloc(sizeof(t_cpu));
 
   // verifica recibir correctamente los argumentos
-  if (!verificar_argumentos(argc, argv))
+  if (!check_arguments(argc, argv))
     return EXIT_FAILURE;
 
-  char* path_config = argv[1];
+  char* config_path = argv[1];
   cpu->id = argv[2];
 
-  if (!iniciar_modulo(cpu, path_config))
+  if (!init_module(cpu, config_path))
   {
     cerrar_modulo(cpu);
     return EXIT_FAILURE;
@@ -69,7 +69,7 @@ int main(int argc, char* argv[])
 
   // diccionario de intruciones (nombre - funcion)
   cpu->handlers = dictionary_create();
-  iniciar_diccionario(cpu->handlers);
+  register_handlers(cpu->handlers);
 
   run_instruction_loop(cpu);
 

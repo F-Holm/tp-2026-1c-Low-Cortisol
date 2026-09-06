@@ -1,4 +1,4 @@
-#include "cpu/inicializador.h"
+#include "cpu/initializer.h"
 
 #include <stdio.h>
 
@@ -6,20 +6,19 @@
 #include "cpu/handlers.h"
 #include "utils/log.h"
 
-bool verificar_argumentos(int argc, char** argv)
+bool check_arguments(int argc, char** argv)
 {
   if (argc < 3)
   {
-    printf("Uso: %s [config] [id]\n", argv[0]);
+    printf("Usage: %s [config] [id]\n", argv[0]);
     return false;
   }
   return true;
 }
 
-bool iniciar_modulo(t_cpu* cpu, char* path_config)
+bool init_module(t_cpu* cpu, char* config_path)
 {
-  // CONFIG Y LOGS
-  cpu->config = config_create(path_config);
+  cpu->config = config_create(config_path);
 
   t_log_level log_level =
       log_level_from_string(config_get_string_value(cpu->config, "LOG_LEVEL"));
@@ -28,24 +27,24 @@ bool iniciar_modulo(t_cpu* cpu, char* path_config)
 
   if (cpu->config == NULL)
   {
-    log_error(cpu->logger, "## No se pudo cargar el config");
+    log_error(cpu->logger, "## Could not load the config");
     return false;
   }
 
   if (cpu->logger == NULL)
   {
-    log_error(cpu->logger, "## No se pudo cargar el logger");
+    log_error(cpu->logger, "## Could not load the logger");
     return false;
   }
 
-  log_info(cpu->logger, "Iniciando CPU %s", cpu->id);
-  log_info(cpu->logger, "cpu->configcargado correctamente");
+  log_info(cpu->logger, "Starting CPU %s", cpu->id);
+  log_info(cpu->logger, "config loaded successfully");
 
   cpu->memory_sticks = list_create();
   return true;
 }
 
-void iniciar_diccionario(t_dictionary* handlers)
+void register_handlers(t_dictionary* handlers)
 {
   dictionary_put(handlers, "NOOP", (void*)handler_noop);
   dictionary_put(handlers, "SET", (void*)handler_set);
