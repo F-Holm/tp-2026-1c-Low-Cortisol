@@ -3,7 +3,7 @@
 t_datos_kernel_mem* inicializar_datos_kernel_memory(
     int socket_kernel_memory, char* scripts_basepath, int instruction_delay,
     int compaction_delay, int segment_max_size,
-    t_allocation_strategy allocation_strategy, t_logger* logger)
+    t_allocation_strategy allocation_strategy, t_log* logger)
 {
   t_datos_kernel_mem* datos_kernel = malloc(sizeof(t_datos_kernel_mem));
   datos_kernel->socket_kernel_memory = socket_kernel_memory;
@@ -36,7 +36,7 @@ t_datos_scheduler* inicializar_datos_scheduler(
     int socket_kernel_memory, int socket_scheduler, t_list* procesos,
     char* scripts_basepath, pthread_mutex_t* mutex_procesos,
     t_memoria_principal* memoria_principal, t_list* sticks_conectadas,
-    pthread_mutex_t* mutex_sticks, t_datos_swap* datos_swap, t_logger* logger,
+    pthread_mutex_t* mutex_sticks, t_datos_swap* datos_swap, t_log* logger,
     int* hilos_activos, pthread_mutex_t* mutex_hilos_activos,
     pthread_cond_t* cond_hilos_activos)
 {
@@ -60,7 +60,7 @@ t_datos_scheduler* inicializar_datos_scheduler(
 t_datos_cpu* inicializar_datos_cpu(
     int socket_cpu, t_list* procesos, pthread_mutex_t* mutex_procesos,
     int instruction_delay, t_memoria_principal* memoria_principal,
-    t_logger* logger, int* hilos_activos, pthread_mutex_t* mutex_hilos_activos,
+    t_log* logger, int* hilos_activos, pthread_mutex_t* mutex_hilos_activos,
     pthread_cond_t* cond_hilos_activos, int socket_scheduler)
 {
   t_datos_cpu* datos_cpu = malloc(sizeof(t_datos_cpu));
@@ -78,7 +78,7 @@ t_datos_cpu* inicializar_datos_cpu(
   return datos_cpu;
 }
 
-t_datos_stick* inicializar_datos_stick(int socket_stick, t_logger* logger,
+t_datos_stick* inicializar_datos_stick(int socket_stick, t_log* logger,
                                        int socket_scheduler)
 {
   t_datos_stick* datos_stick = malloc(sizeof(t_datos_stick));
@@ -105,7 +105,7 @@ static void inicializar_lista_bloques(t_datos_swap* datos_swap)
   }
 }
 
-t_datos_swap* inicializar_datos_swap(int socket_swap, t_logger* logger)
+t_datos_swap* inicializar_datos_swap(int socket_swap, t_log* logger)
 {
   t_datos_swap* datos_swap = malloc(sizeof(t_datos_swap));
   datos_swap->socket_swap = socket_swap;
@@ -113,7 +113,7 @@ t_datos_swap* inicializar_datos_swap(int socket_swap, t_logger* logger)
   int op = recibir_operacion(socket_swap);
   if (op != OP_INFO_SWAP)
   {
-    logger_error(logger, "Opcode inesperado al recibir info de swap");
+    log_error(logger, "Opcode inesperado al recibir info de swap");
     free(datos_swap);
     return NULL;
   }
@@ -138,7 +138,7 @@ int cantidad_instrucciones(FILE* f)
 }
 
 t_proceso* inicializar_proceso(u_int32_t pid, char* path_relativo,
-                               char* scripts_basepath, t_logger* logger)
+                               char* scripts_basepath, t_log* logger)
 {
   t_proceso* proceso = malloc(sizeof(t_proceso));
   proceso->pid = pid;
@@ -153,8 +153,8 @@ t_proceso* inicializar_proceso(u_int32_t pid, char* path_relativo,
   FILE* f = fopen(path_completo, "r");
   if (f == NULL)
   {
-    logger_error(logger, "## PID: %u - No se pudo abrir el archivo: %s", pid,
-                 path_completo);
+    log_error(logger, "## PID: %u - No se pudo abrir el archivo: %s", pid,
+              path_completo);
     free(path_completo);
     free(proceso);
     return NULL;
@@ -189,8 +189,8 @@ bool inicializar_ip_stick(t_datos_stick* datos_stick, int client_socket)
     strcpy(datos_stick->ip_memory_stick, ip_traducida);
     return true;
   }
-  logger_error(datos_stick->logger,
-               "## No se ha podido conseguir la ip de memory_stick");
+  log_error(datos_stick->logger,
+            "## No se ha podido conseguir la ip de memory_stick");
   return false;
 }
 

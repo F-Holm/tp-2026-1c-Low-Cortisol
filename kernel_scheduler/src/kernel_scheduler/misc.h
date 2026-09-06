@@ -7,7 +7,6 @@
 
 #include "utils/collections/list.h"
 #include "utils/log.h"
-#include "utils/logger.h"
 
 typedef enum
 {
@@ -55,7 +54,7 @@ typedef struct
   int cantidad_procesos_activos;
   pthread_mutex_t mutex_contador;
   int socket_servidor;
-  t_logger* logger;
+  t_log* logger;
   t_socket_kernel_memory* socket_km;
 } t_contador_procesos;
 
@@ -83,7 +82,7 @@ void inicializar_mutex_shutdown(void);
 void destruir_mutex_pid_pcb(void);
 void destruir_mutex_shutdown(void);
 
-void cerrar_kernel_scheduler(int socket_servidor, t_logger* logger,
+void cerrar_kernel_scheduler(int socket_servidor, t_log* logger,
                              int motivo_cierre, int socket_km);
 
 t_socket_kernel_memory* inicializar_socket_kernel_memory(int socket_km);
@@ -99,11 +98,11 @@ void esperar_0_instancias_activas_pcb(t_pcb* pcb);
 void destruir_pcb(t_pcb* pcb);
 void set_mutex_bloqueante(t_pcb* pcb, void* mutex);
 void* get_mutex_bloqueante(t_pcb* pcb);
-bool responder_handshake(int socket_fd, int id_modulo, t_logger* logger);
+bool responder_handshake(int socket_fd, int id_modulo, t_log* logger);
 unsigned long millis(void);
 unsigned long time_diff(unsigned long time_1, unsigned long time_2);
 t_contador_procesos* inicializar_contador_procesos(
-    int socket_servidor, t_logger* logger, t_socket_kernel_memory* socket_km);
+    int socket_servidor, t_log* logger, t_socket_kernel_memory* socket_km);
 void aumentar_contador_procesos(t_contador_procesos* contador);
 void disminuir_contador_procesos(t_contador_procesos* contador);
 void destruir_contador_procesos(t_contador_procesos* contador);

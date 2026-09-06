@@ -6,9 +6,9 @@
 
 #include "kernel_memory/estructuras.h"
 #include "utils/config.h"
-#include "utils/logger.h"
+#include "utils/log.h"
 
-t_logger* iniciar_logger(t_config* config);
+t_log* iniciar_logger(t_config* config);
 t_config* iniciar_config(char* path);
 void terminar_comunicacion(int socket_cliente);
 char* iniciar_basepath(t_config* config);

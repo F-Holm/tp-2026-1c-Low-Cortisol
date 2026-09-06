@@ -14,10 +14,10 @@ const char* const MOTIVOS_CIERE[4] = {
     "Error en la conexión con Kernel Memory", "Error desconocido"};
 
 static bool es_mas_prioritario(void* pcb1, void* pcb2);
-static void log_shutdown(t_logger* logger, int motivo_cierre);
+static void log_shutdown(t_log* logger, int motivo_cierre);
 static void comprobar_motivo_cierre(int* motivo_cierre, int socket_km);
 static void avisar_cierre_kernel_memory(int motivo_cierre, int socket_km,
-                                        t_logger* logger);
+                                        t_log* logger);
 
 static pthread_mutex_t mutex_pid_pcb;
 static pthread_mutex_t mutex_shutdown;
@@ -159,12 +159,12 @@ void* get_mutex_bloqueante(t_pcb* pcb)
   return mutex;
 }
 
-bool responder_handshake(int socket_fd, int id_modulo, t_logger* logger)
+bool responder_handshake(int socket_fd, int id_modulo, t_log* logger)
 {
   if (!enviar_handshake(id_modulo, socket_fd))
   {
-    logger_error(logger, "## Error en el envio del Handshake con %s",
-                 HANDSHAKE_MSG[id_modulo]);
+    log_error(logger, "## Error en el envio del Handshake con %s",
+              HANDSHAKE_MSG[id_modulo]);
     return false;
   }
   return true;
@@ -183,7 +183,7 @@ unsigned long time_diff(unsigned long time_1, unsigned long time_2)
 }
 
 t_contador_procesos* inicializar_contador_procesos(
-    int socket_servidor, t_logger* logger, t_socket_kernel_memory* socket_km)
+    int socket_servidor, t_log* logger, t_socket_kernel_memory* socket_km)
 {
   t_contador_procesos* contador = malloc(sizeof(t_contador_procesos));
   contador->cantidad_procesos_activos = 0;
@@ -223,7 +223,7 @@ void destruir_contador_procesos(t_contador_procesos* contador)
   free(contador);
 }
 
-void cerrar_kernel_scheduler(int socket_servidor, t_logger* logger,
+void cerrar_kernel_scheduler(int socket_servidor, t_log* logger,
                              int motivo_cierre, int socket_km)
 {
   static bool shutdown_activado = false;
@@ -244,15 +244,15 @@ static bool es_mas_prioritario(void* pcb1, void* pcb2)
   return get_prioridad_pcb((t_pcb*)pcb1) <= get_prioridad_pcb((t_pcb*)pcb2);
 }
 
-static void log_shutdown(t_logger* logger, int motivo_cierre)
+static void log_shutdown(t_log* logger, int motivo_cierre)
 {
   if (motivo_cierre == MC_SIN_PROCESOS)
   {
-    logger_info(logger, "## %s", MOTIVOS_CIERE[motivo_cierre]);
+    log_info(logger, "## %s", MOTIVOS_CIERE[motivo_cierre]);
   }
   else
   {
-    logger_error(logger, "## %s", MOTIVOS_CIERE[motivo_cierre]);
+    log_error(logger, "## %s", MOTIVOS_CIERE[motivo_cierre]);
   }
 }
 
@@ -284,12 +284,12 @@ static void comprobar_motivo_cierre(int* motivo_cierre, int socket_km)
 }
 
 static void avisar_cierre_kernel_memory(int motivo_cierre, int socket_km,
-                                        t_logger* logger)
+                                        t_log* logger)
 {
   if (motivo_cierre == MC_SIN_PROCESOS)
   {
-    logger_info(logger,
-                "Avisando al Kernel Memory del cierre del Kernel Scheduler");
+    log_info(logger,
+             "Avisando al Kernel Memory del cierre del Kernel Scheduler");
     enviar_string(OP_CIERRE_KERNEL_SCHEDULER,
                   "No hay más procesos para ejecutar", socket_km);
   }

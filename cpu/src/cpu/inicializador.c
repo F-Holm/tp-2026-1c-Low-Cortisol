@@ -24,7 +24,7 @@ bool iniciar_modulo(t_cpu* cpu, char* path_config)
   t_log_level log_level =
       log_level_from_string(config_get_string_value(cpu->config, "LOG_LEVEL"));
 
-  cpu->logger = log_create("cpu.log", cpu->id, true, log_level);
+  cpu->logger = log_create("cpu.log", cpu->id, true, log_level, false);
 
   if (cpu->config == NULL)
   {

@@ -4,9 +4,9 @@
 #include <stdint.h>
 #include <string.h>
 
-static void log_mutex_tomado(t_logger* logger, uint32_t pid, char* id_mutex);
-static void log_mutex_liberado(t_logger* logger, uint32_t pid, char* id_mutex);
-static void log_cambio_de_prioridad(t_logger* logger, uint32_t pid,
+static void log_mutex_tomado(t_log* logger, uint32_t pid, char* id_mutex);
+static void log_mutex_liberado(t_log* logger, uint32_t pid, char* id_mutex);
+static void log_cambio_de_prioridad(t_log* logger, uint32_t pid,
                                     int prioridad_anterior,
                                     int prioridad_nueva);
 static void destroy_mutex_iterator(void* mutex);
@@ -14,12 +14,12 @@ static t_mutex* crear_mutex(char* id, bool prioridad_activa, t_colas* colas);
 static void eliminar_prioridad_lista(t_list* lista, int prioridad);
 static bool eliminar_pcb_lista(t_list* lista, t_pcb* pcb);
 static bool mayorPrioridadQue(void* p1, void* p2);
-static void insertar_prioridad(t_pcb* pcb, int prioridad, t_logger* logger);
+static void insertar_prioridad(t_pcb* pcb, int prioridad, t_log* logger);
 static void reemplazar_prioridad(t_pcb* pcb, int prioridad_vieja,
                                  int prioridad_nueva, t_colas* colas);
 static void propagar_prioridad_transitiva(t_pcb* pcb, int prioridad_nueva,
                                           t_colas* colas);
-static bool eliminar_prioridad(t_pcb* pcb, int prioridad, t_logger* logger);
+static bool eliminar_prioridad(t_pcb* pcb, int prioridad, t_log* logger);
 static int mutex_lock(t_mutex* mutex, t_pcb* pcb);
 static int mutex_unlock(t_mutex* mutex, t_pcb* pcb);
 static void destroy_mutex(t_mutex* mutex);
@@ -71,21 +71,21 @@ int lista_mutex_unlock(t_lista_mutex* lista_mutex, char* id, t_pcb* pcb)
   return mutex == NULL ? RM_NOMBRE_MUTEX_NO_EXISTE : mutex_unlock(mutex, pcb);
 }
 
-static void log_mutex_tomado(t_logger* logger, uint32_t pid, char* id_mutex)
+static void log_mutex_tomado(t_log* logger, uint32_t pid, char* id_mutex)
 {
-  logger_info(logger, "## %u Toma el Mutex %s", pid, id_mutex);
+  log_info(logger, "## %u Toma el Mutex %s", pid, id_mutex);
 }
 
-static void log_mutex_liberado(t_logger* logger, uint32_t pid, char* id_mutex)
+static void log_mutex_liberado(t_log* logger, uint32_t pid, char* id_mutex)
 {
-  logger_info(logger, "## %u Libera el Mutex %s", pid, id_mutex);
+  log_info(logger, "## %u Libera el Mutex %s", pid, id_mutex);
 }
 
-static void log_cambio_de_prioridad(t_logger* logger, uint32_t pid,
+static void log_cambio_de_prioridad(t_log* logger, uint32_t pid,
                                     int prioridad_anterior, int prioridad_nueva)
 {
-  logger_info(logger, "## %u Cambio de prioridad: %d - %d", pid,
-              prioridad_anterior, prioridad_nueva);
+  log_info(logger, "## %u Cambio de prioridad: %d - %d", pid,
+           prioridad_anterior, prioridad_nueva);
 }
 
 static void destroy_mutex_iterator(void* mutex)
@@ -129,7 +129,7 @@ static bool mayorPrioridadQue(void* p1, void* p2)
   return *(int*)p1 < *(int*)p2;
 }
 
-static void insertar_prioridad(t_pcb* pcb, int prioridad, t_logger* logger)
+static void insertar_prioridad(t_pcb* pcb, int prioridad, t_log* logger)
 {
   int* aux = malloc(sizeof(int));
   *aux = prioridad;
@@ -222,7 +222,7 @@ static void propagar_prioridad_transitiva(t_pcb* pcb, int prioridad_nueva,
   pthread_mutex_unlock(&(mutex_esperado->mutex));
 }
 
-static bool eliminar_prioridad(t_pcb* pcb, int prioridad, t_logger* logger)
+static bool eliminar_prioridad(t_pcb* pcb, int prioridad, t_log* logger)
 {
   pthread_mutex_lock(&(pcb->mutex_prioridad));
   eliminar_prioridad_lista(pcb->lista_prioridades, prioridad);

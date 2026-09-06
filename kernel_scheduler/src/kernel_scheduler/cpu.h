@@ -8,7 +8,6 @@
 #include "kernel_scheduler/queue.h"
 #include "utils/collections/list.h"
 #include "utils/log.h"
-#include "utils/logger.h"
 
 typedef struct
 {
@@ -17,7 +16,7 @@ typedef struct
   pthread_mutex_t* mutex_lista_sockets;
   pthread_cond_t* cond_fin;
   char* id;
-  t_logger* logger;
+  t_log* logger;
   t_lista_mutex* lista_mutex;
   t_colas* colas;
   t_io* estructuras_io;
@@ -57,7 +56,7 @@ extern const char* const SYSCALLS_STR[10];
 
 bool atender_nueva_cpu(int socket_cpu, t_list* lista_sockets_cpu,
                        pthread_mutex_t* mutex_lista_sockets_cpu,
-                       pthread_cond_t* cond_fin_cpu, t_logger* logger,
+                       pthread_cond_t* cond_fin_cpu, t_log* logger,
                        t_lista_mutex* lista_mutex, t_colas* colas,
                        t_io* estructuras_io, t_socket_kernel_memory* socket_km,
                        int socket_servidor);

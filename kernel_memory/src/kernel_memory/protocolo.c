@@ -12,16 +12,16 @@ bool recibir_id_cpu(t_datos_cpu* datos_cpu)
   if (recibir_operacion(datos_cpu->socket_cpu) == OP_ID_CPU)
   {
     char* id_cpu = recibir_string(datos_cpu->socket_cpu);
-    logger_info(datos_cpu->logger, "## CPU %s Conectada", id_cpu);
+    log_info(datos_cpu->logger, "## CPU %s Conectada", id_cpu);
     datos_cpu->id = atoi(id_cpu);
     free(id_cpu);
     return true;
   }
   else
   {
-    logger_info(datos_cpu->logger,
-                "No se pudo realizar la conexion con el CPU ya que no se "
-                "envio la operacion de ID");
+    log_info(datos_cpu->logger,
+             "No se pudo realizar la conexion con el CPU ya que no se "
+             "envio la operacion de ID");
     terminar_comunicacion(datos_cpu->socket_cpu);
     return false;
   }
@@ -33,17 +33,17 @@ bool recibir_tamanio_stick(t_datos_stick* datos_stick)
   if (recibir_operacion(datos_stick->socket_stick) == OP_TAMANIO_MEMORIA)
   {
     char* tamanio = recibir_string(datos_stick->socket_stick);
-    logger_info(datos_stick->logger, "## Memory Stick de %s bytes Conectada",
-                tamanio);
+    log_info(datos_stick->logger, "## Memory Stick de %s bytes Conectada",
+             tamanio);
     datos_stick->tamanio_stick = atoi(tamanio);
     free(tamanio);
     return true;
   }
   else
   {
-    logger_info(datos_stick->logger,
-                "No se pudo realizar la conexion con la stick ya que no se "
-                "envio la operacion de tamaño");
+    log_info(datos_stick->logger,
+             "No se pudo realizar la conexion con la stick ya que no se "
+             "envio la operacion de tamaño");
     terminar_comunicacion(datos_stick->socket_stick);
     return false;
   }
@@ -55,17 +55,16 @@ bool recibir_puerto_escucha_stick(t_datos_stick* datos_stick)
   if (recibir_operacion(datos_stick->socket_stick) == OP_PUERTO)
   {
     char* puerto = recibir_string(datos_stick->socket_stick);
-    logger_info(datos_stick->logger, "Puerto de Memory Stick recibido %s",
-                puerto);
+    log_info(datos_stick->logger, "Puerto de Memory Stick recibido %s", puerto);
     datos_stick->puerto_stick = atoi(puerto);
     free(puerto);
     return true;
   }
   else
   {
-    logger_info(datos_stick->logger,
-                "No se pudo realizar la conexion con la stick ya que no se "
-                "envio la operacion puerto");
+    log_info(datos_stick->logger,
+             "No se pudo realizar la conexion con la stick ya que no se "
+             "envio la operacion puerto");
     terminar_comunicacion(datos_stick->socket_stick);
     return false;
   }
@@ -153,10 +152,10 @@ int calcular_memoria_total(t_list* sticks_conectados,
 }
 
 int calcular_espacio_libre(t_list* huecos, pthread_mutex_t* mutex_huecos,
-                           t_logger* logger)
+                           t_log* logger)
 {
   int total = 0;
-  logger_info(logger, "Calculando huecos...");
+  log_info(logger, "Calculando huecos...");
   t_list_iterator* iterador = list_iterator_create(huecos);
   while (list_iterator_has_next(iterador))
   {
@@ -164,7 +163,7 @@ int calcular_espacio_libre(t_list* huecos, pthread_mutex_t* mutex_huecos,
     total += hueco_actual->size;
   }
   list_iterator_destroy(iterador);
-  logger_info(logger, "hay %d espacio libre", total);
+  log_info(logger, "hay %d espacio libre", total);
   return total;
 }
 
@@ -225,7 +224,7 @@ t_memoria_principal* aniadir_memoria_total(
 }
 
 static t_hueco algoritmo_seleccionador(
-    uint32_t tamanio, t_list* huecos_actuales, t_logger* logger,
+    uint32_t tamanio, t_list* huecos_actuales, t_log* logger,
     t_allocation_strategy allocation_strategy)
 {
   t_hueco hueco_elegido = {-1, -1};
@@ -253,7 +252,7 @@ static t_hueco algoritmo_seleccionador(
   list_iterator_destroy(iterador);
   if (hueco_elegido.size == -1)
   {
-    logger_info(logger, "No hay huecos disponibles");
+    log_info(logger, "No hay huecos disponibles");
   }
   return hueco_elegido;
 }
@@ -280,7 +279,7 @@ static void actualizar_tabla_huecos(t_memoria_principal* memoria_principal,
   list_iterator_destroy(iterador);
 }
 
-t_hueco selector_de_huecos(uint32_t tamanio, t_logger* logger,
+t_hueco selector_de_huecos(uint32_t tamanio, t_log* logger,
                            t_memoria_principal* memoria)
 {
   t_hueco hueco_elegido = {-1, -1};
@@ -292,8 +291,7 @@ t_hueco selector_de_huecos(uint32_t tamanio, t_logger* logger,
         algoritmo_seleccionador(tamanio, memoria->huecos, logger, WORST);
   else
   {
-    logger_error(logger,
-                 "La opción de selección de huecos elegida no es válida.");
+    log_error(logger, "La opción de selección de huecos elegida no es válida.");
     return hueco_elegido;
   }
   actualizar_tabla_huecos(memoria, hueco_elegido, tamanio);
@@ -314,7 +312,7 @@ void actualizar_lista_segmentos(t_memoria_principal* memoria_principal,
 
 void crear_segmento(uint32_t id, uint32_t pid, int size,
                     t_memoria_principal* memoria_principal,
-                    int socket_scheduler, t_logger* logger)
+                    int socket_scheduler, t_log* logger)
 {
   // Chequeo de segmentation fault
   if (size > memoria_principal->tamanio_maximo_segmento)
@@ -328,21 +326,21 @@ void crear_segmento(uint32_t id, uint32_t pid, int size,
                              memoria_principal->mutex_memoria_principal,
                              logger) < size)
   {
-    logger_info(logger, "No hay espacio suficiente para crear el segmento");
+    log_info(logger, "No hay espacio suficiente para crear el segmento");
     enviar_string(OP_MEMORIA_INSUFICIENTE, "No hay memoria suficiente",
                   socket_scheduler);
     pthread_mutex_unlock(memoria_principal->mutex_memoria_principal);
   }
   else
   {
-    logger_info(logger, "Creando segmento con id %u, pid %u y tamaño %d", id,
-                pid, size);
+    log_info(logger, "Creando segmento con id %u, pid %u y tamaño %d", id, pid,
+             size);
     t_hueco hueco_elegido = selector_de_huecos(size, logger, memoria_principal);
 
     // Chequeo de compactación
     if (hueco_elegido.size == -1)
     {
-      logger_info(logger, "Es necesario compactar la memoria");
+      log_info(logger, "Es necesario compactar la memoria");
       notificar_compactacion(socket_scheduler);
       compactar_memoria(socket_scheduler, memoria_principal);
       hueco_elegido = selector_de_huecos(size, logger, memoria_principal);
@@ -351,8 +349,8 @@ void crear_segmento(uint32_t id, uint32_t pid, int size,
     pthread_mutex_unlock(memoria_principal->mutex_memoria_principal);
     enviar_string(OP_MEMORIA_ALOJADA, "Se ha alojado la memoria",
                   socket_scheduler);
-    logger_info(logger, "## PID: %u - Segmento Creado %u - Tamaño: %d", pid, id,
-                size);
+    log_info(logger, "## PID: %u - Segmento Creado %u - Tamaño: %d", pid, id,
+             size);
   }
 }
 
@@ -421,12 +419,12 @@ void notificar_compactacion(int socket_scheduler)
 
 t_segmento* buecar_y_eliminar_segmento(uint32_t id, uint32_t pid,
                                        t_memoria_principal* memoria_principal,
-                                       t_logger* logger)
+                                       t_log* logger)
 {
   pthread_mutex_lock(memoria_principal->mutex_memoria_principal);
 
-  logger_info(logger, "recorriendo lista de segmentos de tamanio %d:",
-              list_size(memoria_principal->segmentos));
+  log_info(logger, "recorriendo lista de segmentos de tamanio %d:",
+           list_size(memoria_principal->segmentos));
 
   t_list_iterator* iterador =
       list_iterator_create(memoria_principal->segmentos);
@@ -439,8 +437,8 @@ t_segmento* buecar_y_eliminar_segmento(uint32_t id, uint32_t pid,
     {
       list_iterator_remove(iterador);
       segmento_encontrado = segmento_actual;
-      logger_info(logger, "se ha eliminado el segmento con ID: %d, PID: %d",
-                  segmento_encontrado->id, segmento_encontrado->pid);
+      log_info(logger, "se ha eliminado el segmento con ID: %d, PID: %d",
+               segmento_encontrado->id, segmento_encontrado->pid);
       break;
     }
   }
@@ -450,26 +448,25 @@ t_segmento* buecar_y_eliminar_segmento(uint32_t id, uint32_t pid,
   {
     return segmento_encontrado;
   }
-  logger_error(
+  log_error(
       logger,
       "ha ocurrido un error con la eliminacion del segmento (no encontrado)");
   return NULL;
 }
 
 void eliminar_segmento(uint32_t id, uint32_t pid,
-                       t_memoria_principal* memoria_principal, t_logger* logger)
+                       t_memoria_principal* memoria_principal, t_log* logger)
 {
   t_hueco* nuevo_hueco = malloc(sizeof(t_hueco));
   nuevo_hueco->base = 0;
   nuevo_hueco->size = 0;
-  logger_info(logger, "eliminando segmento requerido ID : %d, PID : %d", id,
-              pid);
+  log_info(logger, "eliminando segmento requerido ID : %d, PID : %d", id, pid);
   t_segmento* segmento_aux =
       buecar_y_eliminar_segmento(id, pid, memoria_principal, logger);
   pthread_mutex_lock(memoria_principal->mutex_memoria_principal);
   if (segmento_aux == NULL)
   {
-    logger_error(logger, "No se encontro segmento");
+    log_error(logger, "No se encontro segmento");
     pthread_mutex_unlock(memoria_principal->mutex_memoria_principal);
     free(nuevo_hueco);
     return;
@@ -509,8 +506,7 @@ void eliminar_segmento(uint32_t id, uint32_t pid,
 
     if (indice1 == -1 || indice2 == -1)
     {
-      logger_error(logger,
-                   "No se encontraron los huecos adyacentes al segmento");
+      log_error(logger, "No se encontraron los huecos adyacentes al segmento");
       pthread_mutex_unlock(memoria_principal->mutex_memoria_principal);
       free(segmento_aux);
       free(nuevo_hueco);
@@ -527,7 +523,7 @@ void eliminar_segmento(uint32_t id, uint32_t pid,
       list_remove_and_destroy_element(memoria_principal->huecos, indice2, free);
     }
     list_add(memoria_principal->huecos, nuevo_hueco);
-    logger_info(logger, "Segmento en medio de huecos");
+    log_info(logger, "Segmento en medio de huecos");
   }
   else if (hay_antes)
   {
@@ -550,7 +546,7 @@ void eliminar_segmento(uint32_t id, uint32_t pid,
 
     list_remove_and_destroy_element(memoria_principal->huecos, indice1, free);
     list_add(memoria_principal->huecos, nuevo_hueco);
-    logger_info(logger, "Segmento despues de hueco");
+    log_info(logger, "Segmento despues de hueco");
   }
   else if (hay_despues)
   {
@@ -573,14 +569,14 @@ void eliminar_segmento(uint32_t id, uint32_t pid,
 
     list_remove_and_destroy_element(memoria_principal->huecos, indice2, free);
     list_add(memoria_principal->huecos, nuevo_hueco);
-    logger_info(logger, "Segmento antes de hueco");
+    log_info(logger, "Segmento antes de hueco");
   }
   else
   {
     nuevo_hueco->base = segmento_aux->base;
     nuevo_hueco->size = segmento_aux->size;
     list_add(memoria_principal->huecos, nuevo_hueco);
-    logger_info(logger, "Segmento entre dos segmentos");
+    log_info(logger, "Segmento entre dos segmentos");
   }
   pthread_mutex_unlock(memoria_principal->mutex_memoria_principal);
   free(segmento_aux);
@@ -624,14 +620,14 @@ bool hueco_despues_segmento(int base_segmento, int final_segmento,
 
 t_list* filtrar_segmentos_proceso(int pid,
                                   t_memoria_principal* memoria_principal,
-                                  t_logger* logger)
+                                  t_log* logger)
 {
   t_list* lista_filtrada = list_create();
 
   pthread_mutex_lock(memoria_principal->mutex_memoria_principal);
   for (int i = 0; i < list_size(memoria_principal->segmentos); i++)
   {
-    // logger_info(logger, "Filtrando segmento");
+    // log_info(logger, "Filtrando segmento");
     t_segmento* segmento_actual = list_get(memoria_principal->segmentos, i);
     if (segmento_actual->pid == pid)
     {
@@ -688,7 +684,7 @@ t_segmento* buscar_segmento(t_memoria_principal* memoria_principal,
 int traducir_direccion_logica(uint32_t pid, uint32_t direccion_logica,
                               uint32_t tamanio,
                               t_memoria_principal* memoria_principal,
-                              t_logger* logger)
+                              t_log* logger)
 {
   // Calculo de direccion fisica
   int seg_max = memoria_principal->tamanio_maximo_segmento;
@@ -699,9 +695,9 @@ int traducir_direccion_logica(uint32_t pid, uint32_t direccion_logica,
       buscar_segmento(memoria_principal, pid, num_segmento);
   if (seg_encontrado == NULL)
   {
-    logger_error(logger,
-                 "No se encontro el numero de segmento %u para el proceso %u",
-                 num_segmento, pid);
+    log_error(logger,
+              "No se encontro el numero de segmento %u para el proceso %u",
+              num_segmento, pid);
     return -1;
   }
   int dir_fisica = seg_encontrado->base + desplazamiento;
@@ -738,13 +734,13 @@ int encontrar_stick(int direccion_fisica, t_list* sticks_conectados,
 
 char* leer_de_sticks(int direccion_fisica, int tamanio,
                      t_list* sticks_conectados, pthread_mutex_t* mutex_sticks,
-                     t_logger* logger, int socket_scheduler)
+                     t_log* logger, int socket_scheduler)
 {
   char* resultado = malloc(tamanio);
   int bytes_leidos = 0;
   int dir_actual = direccion_fisica;
-  logger_info(logger, "Leyendo %d bytes desde dir_fisica %d", tamanio,
-              direccion_fisica);
+  log_info(logger, "Leyendo %d bytes desde dir_fisica %d", tamanio,
+           direccion_fisica);
   while (bytes_leidos < tamanio)
   {
     int offset_en_stick = 0;
@@ -752,9 +748,9 @@ char* leer_de_sticks(int direccion_fisica, int tamanio,
                                  &offset_en_stick);
     if (indice == -1)
     {
-      logger_error(logger,
-                   "La direccion fisica calculada no corresponde a ningún "
-                   "stick conectado");
+      log_error(logger,
+                "La direccion fisica calculada no corresponde a ningún "
+                "stick conectado");
       free(resultado);
       return NULL;
     }
@@ -771,8 +767,8 @@ char* leer_de_sticks(int direccion_fisica, int tamanio,
     agregar_a_paquete(paquete, &cant_bytes_a_leer, sizeof(int));
     if (!enviar_paquete(paquete, stick->socket_stick))
     {
-      logger_error(logger, "Error al enviar paquete de lectura al stick %d",
-                   indice);
+      log_error(logger, "Error al enviar paquete de lectura al stick %d",
+                indice);
       enviar_string(OP_MEMORIA_CORRUPTA, "Stick no disponible",
                     socket_scheduler);
       free(resultado);
@@ -793,7 +789,7 @@ char* leer_de_sticks(int direccion_fisica, int tamanio,
     }
     if (op != OP_MEMORY_STICK_LEIDO)
     {
-      logger_error(logger, "Opcode de respuesta erroneo del stick %d", indice);
+      log_error(logger, "Opcode de respuesta erroneo del stick %d", indice);
       free(resultado);
       return NULL;
     }
@@ -808,8 +804,8 @@ char* leer_de_sticks(int direccion_fisica, int tamanio,
     dir_actual += cant_bytes_a_leer;
   }
 
-  logger_info(logger, "Lectura de %d bytes desde dir_fisica %d", tamanio,
-              direccion_fisica);
+  log_info(logger, "Lectura de %d bytes desde dir_fisica %d", tamanio,
+           direccion_fisica);
   return resultado;
 }
 
@@ -835,7 +831,7 @@ int calcular_tamanio_proceso(t_proceso* proceso,
 
 bool escribir_en_sticks(int pid, int dir_fisica, int tamanio_a_leer,
                         char* buffer_escribir, t_list* sticks_conectados,
-                        pthread_mutex_t* mutex_lista_sockets, t_logger* logger,
+                        pthread_mutex_t* mutex_lista_sockets, t_log* logger,
                         int socket_scheduler)
 {
   int offset_en_stick = 0;
@@ -854,10 +850,10 @@ bool escribir_en_sticks(int pid, int dir_fisica, int tamanio_a_leer,
     t_datos_stick* stick_actual = list_get(sticks_conectados, i);
     if (stick_actual == NULL)
     {
-      logger_error(logger,
-                   "No hay mas sticks disponibles para completar la escritura "
-                   "(PID: %d, Dir. Fisica: %d)",
-                   pid, dir_fisica);
+      log_error(logger,
+                "No hay mas sticks disponibles para completar la escritura "
+                "(PID: %d, Dir. Fisica: %d)",
+                pid, dir_fisica);
       enviar_string(OP_MEMORIA_CORRUPTA, "Stick no disponible",
                     socket_scheduler);
       ok = false;
@@ -868,8 +864,8 @@ bool escribir_en_sticks(int pid, int dir_fisica, int tamanio_a_leer,
     int a_escribir =
         restante < espacio_disponible ? restante : espacio_disponible;
 
-    logger_info(logger, "Empiezo a escribir en el stick %d, offset %d", i,
-                offset_actual);
+    log_info(logger, "Empiezo a escribir en el stick %d, offset %d", i,
+             offset_actual);
 
     t_paquete* paquete = crear_paquete(OP_MEMORY_STICK_ESCRIBIR);
     agregar_a_paquete(paquete, &offset_actual, sizeof(int));
@@ -878,8 +874,7 @@ bool escribir_en_sticks(int pid, int dir_fisica, int tamanio_a_leer,
 
     if (!enviar_paquete(paquete, stick_actual->socket_stick))
     {
-      logger_error(logger, "Error al enviar paquete de escritura al stick %d",
-                   i);
+      log_error(logger, "Error al enviar paquete de escritura al stick %d", i);
       enviar_string(OP_MEMORIA_CORRUPTA, "Stick no disponible",
                     socket_scheduler);
       eliminar_paquete(paquete);
@@ -888,8 +883,8 @@ bool escribir_en_sticks(int pid, int dir_fisica, int tamanio_a_leer,
     }
     eliminar_paquete(paquete);
 
-    logger_info(logger, "##PID: %d - Escritura - Dir. Fisica: %d - Tamaño: %d",
-                pid, dir_fisica, a_escribir);
+    log_info(logger, "##PID: %d - Escritura - Dir. Fisica: %d - Tamaño: %d",
+             pid, dir_fisica, a_escribir);
 
     if (recibir_operacion(stick_actual->socket_stick) ==
         OP_MEMORY_STICK_ESCRITO)

@@ -6,7 +6,6 @@
 #include "kernel_scheduler/kernel_scheduler.h"
 #include "utils/collections/list.h"
 #include "utils/log.h"
-#include "utils/logger.h"
 #include "utils/string.h"
 
 /****************** FUNCIONES DE IO ******************/
@@ -24,7 +23,7 @@ typedef struct
   bool prioridad_activa;
   pthread_cond_t nuevo_proceso;
   t_colas* colas;
-  t_logger* logger;
+  t_log* logger;
   t_socket_kernel_memory* socket_km;
   int socket_server;
   bool cerrar_hilo;

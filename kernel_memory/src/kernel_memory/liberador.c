@@ -48,8 +48,8 @@ void liberar_datos_scheduler(t_datos_scheduler* datos_scheduler)
 
 void liberar_datos_kernel_mem(t_datos_kernel_mem* datos_kernel)
 {
-  logger_info(datos_kernel->logger,
-              "Liberando datos de kernel memory y finalizando programa.");
+  log_info(datos_kernel->logger,
+           "Liberando datos de kernel memory y finalizando programa.");
   if (datos_kernel == NULL)
     return;
   if (datos_kernel->cpus_conectados != NULL)

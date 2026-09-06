@@ -5,11 +5,11 @@
 
 #include "utils/msg.h"
 
-static int conectar_kernel_memory(char* ip, char* puerto, t_logger* logger);
-static bool handshake_kernel_memory(int socket_km, t_logger* logger);
+static int conectar_kernel_memory(char* ip, char* puerto, t_log* logger);
+static bool handshake_kernel_memory(int socket_km, t_log* logger);
 static void* hilo_verificar_conexion_kernel_memory(void* arg);
 
-int iniciar_conexion_kernel_memory(char* ip, char* puerto, t_logger* logger)
+int iniciar_conexion_kernel_memory(char* ip, char* puerto, t_log* logger)
 {
   int socket_km = conectar_kernel_memory(ip, puerto, logger);
   if (socket_km <= 0)
@@ -22,7 +22,7 @@ int iniciar_conexion_kernel_memory(char* ip, char* puerto, t_logger* logger)
 }
 
 bool avisar_terminar_proceso(t_socket_kernel_memory* socket_km, uint32_t pid,
-                             int socket_servidor, t_logger* logger)
+                             int socket_servidor, t_log* logger)
 {
   pthread_mutex_lock(&(socket_km->mutex_socket));
   bool ret = enviar_buffer(OP_TERMINAR_PROCESO, &pid, sizeof(uint32_t),
@@ -37,7 +37,7 @@ bool avisar_terminar_proceso(t_socket_kernel_memory* socket_km, uint32_t pid,
 }
 
 t_datos_hilo_verificar_conexion* iniciar_hilo_verificar_conexion_kernel_memory(
-    int socket_servidor, t_logger* logger, t_socket_kernel_memory* socket_km)
+    int socket_servidor, t_log* logger, t_socket_kernel_memory* socket_km)
 {
   t_datos_hilo_verificar_conexion* datos =
       malloc(sizeof(t_datos_hilo_verificar_conexion));
@@ -50,9 +50,9 @@ t_datos_hilo_verificar_conexion* iniciar_hilo_verificar_conexion_kernel_memory(
   if (pthread_create(&(datos->hilo), NULL,
                      hilo_verificar_conexion_kernel_memory, datos) != 0)
   {
-    logger_error(logger,
-                 "Error en la creación del hilo verificador de la conexión con "
-                 "Kernel Memory");
+    log_error(logger,
+              "Error en la creación del hilo verificador de la conexión con "
+              "Kernel Memory");
   }
   return datos;
 }
@@ -68,32 +68,31 @@ void destruir_hilo_verificar_conexion_kernel_memory(
   free(datos);
 }
 
-static int conectar_kernel_memory(char* ip, char* puerto, t_logger* logger)
+static int conectar_kernel_memory(char* ip, char* puerto, t_log* logger)
 {
   int socket_km = crear_conexion(ip, puerto);
   if (socket_km <= 0)
   {
-    logger_error(logger, "Error de conexión con Kernel Memory");
+    log_error(logger, "Error de conexión con Kernel Memory");
     return -1;
   }
-  logger_info(logger, "## Conectado a Kernel Memory");
+  log_info(logger, "## Conectado a Kernel Memory");
   return socket_km;
 }
 
-static bool handshake_kernel_memory(int socket_km, t_logger* logger)
+static bool handshake_kernel_memory(int socket_km, t_log* logger)
 {
   if (!enviar_handshake(MID_KERNEL_SCHEDULER, socket_km))
   {
-    logger_error(logger, "Error en el envio del Handshake con Kernel Memory");
+    log_error(logger, "Error en el envio del Handshake con Kernel Memory");
     return false;
   }
   if (recibir_handshake(socket_km) != MID_KERNEL_MEMORY)
   {
-    logger_error(logger,
-                 "Error en la recepción del Handshake con Kernel Memory");
+    log_error(logger, "Error en la recepción del Handshake con Kernel Memory");
     return false;
   }
-  logger_info(logger, "Handshake exitoso con Kernel Memory");
+  log_info(logger, "Handshake exitoso con Kernel Memory");
   return true;
 }
 

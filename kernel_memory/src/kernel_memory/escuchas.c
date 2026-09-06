@@ -21,8 +21,7 @@ void* escucha_scheduler(void* ptr)
         aniadir_lista_mtx(datos_scheduler->procesos,
                           datos_scheduler->mutex_procesos, proceso);
 
-        logger_info(datos_scheduler->logger, "## PID: %d  - Proceso Creado",
-                    *pid);
+        log_info(datos_scheduler->logger, "## PID: %d  - Proceso Creado", *pid);
         list_destroy_and_destroy_elements(paquete, free);
         enviar_string(OP_PROCESO_INICIADO, "Proceso creado",
                       datos_scheduler->socket_scheduler);
@@ -30,7 +29,7 @@ void* escucha_scheduler(void* ptr)
       }
       case OP_SYSCALL_MEM_ALLOC:
       {
-        logger_info(datos_scheduler->logger, "Llego una syscall de MEM_ALLOC");
+        log_info(datos_scheduler->logger, "Llego una syscall de MEM_ALLOC");
         int a;
         t_syscall_memory* syscall = (t_syscall_memory*)recibir_buffer(
             &a, datos_scheduler->socket_scheduler);
@@ -38,7 +37,7 @@ void* escucha_scheduler(void* ptr)
         if (syscall->tamanio >
             datos_scheduler->memoria_principal->tamanio_maximo_segmento)
         {
-          logger_info(
+          log_info(
               datos_scheduler->logger,
               "La syscall de MEM_ALLOC no se pudo realizar ya que el tamaño "
               "solicitado es mayor al tamaño máximo de segmento");
@@ -59,14 +58,14 @@ void* escucha_scheduler(void* ptr)
       }
       case OP_SYSCALL_MEM_FREE:
       {
-        logger_info(datos_scheduler->logger, "Llego una syscall de MEM_FREE");
+        log_info(datos_scheduler->logger, "Llego una syscall de MEM_FREE");
         int a;
         t_syscall_memory* syscall = (t_syscall_memory*)recibir_buffer(
             &a, datos_scheduler->socket_scheduler);
         eliminar_segmento(syscall->id_segmento, syscall->pid,
                           datos_scheduler->memoria_principal,
                           datos_scheduler->logger);
-        logger_info(datos_scheduler->logger, "se ha eliminado correctamente");
+        log_info(datos_scheduler->logger, "se ha eliminado correctamente");
         free(syscall);
         enviar_string(OP_MEMORIA_LIBERADA, "Memoria liberada",
                       datos_scheduler->socket_scheduler);
@@ -74,8 +73,8 @@ void* escucha_scheduler(void* ptr)
       }
       case OP_PETICION_IO_STDIN:
       {
-        logger_info(datos_scheduler->logger,
-                    "Llego una syscall de PETICION_IO_STDIN");
+        log_info(datos_scheduler->logger,
+                 "Llego una syscall de PETICION_IO_STDIN");
         t_list* paquete_stdin =
             recibir_paquete(datos_scheduler->socket_scheduler);
         t_peticion_stdin* peticion_stdin =
@@ -92,11 +91,11 @@ void* escucha_scheduler(void* ptr)
           list_destroy_and_destroy_elements(paquete_stdin, free);
           break;
         }
-        logger_info(datos_scheduler->logger,
-                    "## PID: %u - Escritura - "
-                    "Dir. Fisica: %u - Tamaño: %d",
-                    peticion_stdin->pid, dir_fisica,
-                    peticion_stdin->tamanio_a_leer);
+        log_info(datos_scheduler->logger,
+                 "## PID: %u - Escritura - "
+                 "Dir. Fisica: %u - Tamaño: %d",
+                 peticion_stdin->pid, dir_fisica,
+                 peticion_stdin->tamanio_a_leer);
 
         int tamanio_pedido = peticion_stdin->tamanio_a_leer;
         char* buffer_seguro = calloc(tamanio_pedido, sizeof(char));
@@ -110,7 +109,7 @@ void* escucha_scheduler(void* ptr)
                 datos_scheduler->mutex_lista_sockets, datos_scheduler->logger,
                 datos_scheduler->socket_scheduler))
         {
-          logger_error(datos_scheduler->logger, "Error al escribir en sticks");
+          log_error(datos_scheduler->logger, "Error al escribir en sticks");
           conexion_estable = false;
           free(buffer_seguro);
           list_destroy_and_destroy_elements(paquete_stdin, free);
@@ -119,14 +118,14 @@ void* escucha_scheduler(void* ptr)
         free(buffer_seguro);
         enviar_string(OP_RESPUESTA_STDIN, "Memoria Escrita",
                       datos_scheduler->socket_scheduler);
-        logger_info(datos_scheduler->logger, "Peticion STDIN finalizada");
+        log_info(datos_scheduler->logger, "Peticion STDIN finalizada");
         list_destroy_and_destroy_elements(paquete_stdin, free);
         break;
       }
       case OP_PETICION_IO_STDOUT:
       {
-        logger_info(datos_scheduler->logger,
-                    "Llego una syscall de PETICION_IO_STDOUT");
+        log_info(datos_scheduler->logger,
+                 "Llego una syscall de PETICION_IO_STDOUT");
         int size;
         t_peticion_stdout* peticion_stdout = (t_peticion_stdout*)recibir_buffer(
             &size, datos_scheduler->socket_scheduler);
@@ -134,11 +133,11 @@ void* escucha_scheduler(void* ptr)
             peticion_stdout->pid, peticion_stdout->direccion_logica,
             peticion_stdout->tamanio_a_escribir,
             datos_scheduler->memoria_principal, datos_scheduler->logger);
-        logger_info(datos_scheduler->logger,
-                    "## PID: %u - Lectura - "
-                    "Dir. Fisica: %u - Tamaño: %d",
-                    peticion_stdout->pid, dir_fisica,
-                    peticion_stdout->tamanio_a_escribir);
+        log_info(datos_scheduler->logger,
+                 "## PID: %u - Lectura - "
+                 "Dir. Fisica: %u - Tamaño: %d",
+                 peticion_stdout->pid, dir_fisica,
+                 peticion_stdout->tamanio_a_escribir);
         if (dir_fisica == -1)
         {
           enviar_string(OP_RESPUESTA_STDOUT, "Segmentation Fault",
@@ -163,13 +162,13 @@ void* escucha_scheduler(void* ptr)
                       datos_scheduler->socket_scheduler);
         free(buffer);
         free(peticion_stdout);
-        logger_info(datos_scheduler->logger, "Peticion STDOUT finalizada");
+        log_info(datos_scheduler->logger, "Peticion STDOUT finalizada");
         break;
       }
       case OP_TERMINAR_PROCESO:
       {
-        logger_info(datos_scheduler->logger,
-                    "Llego una solicitud de TERMINAR_PROCESO");
+        log_info(datos_scheduler->logger,
+                 "Llego una solicitud de TERMINAR_PROCESO");
         int a;
         uint32_t* pid =
             (uint32_t*)recibir_buffer(&a, datos_scheduler->socket_scheduler);
@@ -182,8 +181,8 @@ void* escucha_scheduler(void* ptr)
           pthread_mutex_lock(datos_scheduler->mutex_procesos);
           list_remove_element(datos_scheduler->procesos, proceso_a_terminar);
           pthread_mutex_unlock(datos_scheduler->mutex_procesos);
-          logger_info(datos_scheduler->logger, "Proceso con PID %u terminado",
-                      *pid);
+          log_info(datos_scheduler->logger, "Proceso con PID %u terminado",
+                   *pid);
           t_list_iterator* iterador_segmentos =
               list_iterator_create(lista_segmentos);
           while (list_iterator_has_next(iterador_segmentos))
@@ -198,9 +197,8 @@ void* escucha_scheduler(void* ptr)
         }
         else
         {
-          logger_info(datos_scheduler->logger,
-                      "No se encontró el proceso con PID %u para terminar",
-                      *pid);
+          log_info(datos_scheduler->logger,
+                   "No se encontró el proceso con PID %u para terminar", *pid);
         }
         list_destroy(lista_segmentos);
         free(pid);
@@ -209,18 +207,17 @@ void* escucha_scheduler(void* ptr)
       case OP_PEDIR_MEMORIA_DISPONIBLE:
       {
         free(recibir_string(datos_scheduler->socket_scheduler));
-        logger_info(
-            datos_scheduler->logger,
-            "Se requiere la memoria disponible por parte del scheduler");
+        log_info(datos_scheduler->logger,
+                 "Se requiere la memoria disponible por parte del scheduler");
 
         int tamanio = calcular_espacio_libre(
             datos_scheduler->memoria_principal->huecos,
             datos_scheduler->memoria_principal->mutex_memoria_principal,
             datos_scheduler->logger);
-        logger_info(datos_scheduler->logger, "espacio libre calculado");
+        log_info(datos_scheduler->logger, "espacio libre calculado");
         enviar_buffer(OP_MEMORIA_DISPONIBLE, &tamanio, sizeof(int),
                       datos_scheduler->socket_scheduler);
-        logger_info(datos_scheduler->logger, "espacio libre enviado");
+        log_info(datos_scheduler->logger, "espacio libre enviado");
         break;
       }
       case OP_PEDIR_TAMANIO_PROCESO:
@@ -239,14 +236,14 @@ void* escucha_scheduler(void* ptr)
       }
       case OP_SUSPENDER_PROCESO:
       {
-        logger_info(datos_scheduler->logger,
-                    "Llego una solicitud de SUSPENDER_PROCESO");
+        log_info(datos_scheduler->logger,
+                 "Llego una solicitud de SUSPENDER_PROCESO");
         int a;
         uint32_t* pid =
             (uint32_t*)recibir_buffer(&a, datos_scheduler->socket_scheduler);
         t_proceso* proceso_a_suspender = buscar_proceso(
             datos_scheduler->procesos, datos_scheduler->mutex_procesos, *pid);
-        logger_info(datos_scheduler->logger, "PID recibido: %u", *pid);
+        log_info(datos_scheduler->logger, "PID recibido: %u", *pid);
 
         suspender_proceso(proceso_a_suspender, datos_scheduler);
         free(pid);
@@ -254,8 +251,8 @@ void* escucha_scheduler(void* ptr)
       }
       case OP_DES_SUSPENDER_PROCESO:
       {
-        logger_info(datos_scheduler->logger,
-                    "Llego una solicitud de DES_SUSPENDER_PROCESO");
+        log_info(datos_scheduler->logger,
+                 "Llego una solicitud de DES_SUSPENDER_PROCESO");
         int a;
         uint32_t* pid =
             (uint32_t*)recibir_buffer(&a, datos_scheduler->socket_scheduler);
@@ -265,8 +262,8 @@ void* escucha_scheduler(void* ptr)
       }
       case OP_CIERRE_KERNEL_SCHEDULER:
       {
-        logger_info(datos_scheduler->logger,
-                    "Llego una solicitud de cerrar comunicaciones");
+        log_info(datos_scheduler->logger,
+                 "Llego una solicitud de cerrar comunicaciones");
         conexion_estable = false;
         break;
       }
@@ -277,13 +274,13 @@ void* escucha_scheduler(void* ptr)
         conexion_estable = false;
         break;
       default:
-        logger_error(datos_scheduler->logger,
-                     "Error codigo de operacion no reconocido");
+        log_error(datos_scheduler->logger,
+                  "Error codigo de operacion no reconocido");
         conexion_estable = false;
         break;
     }
   }
-  logger_info(datos_scheduler->logger, "Cierre de escucha del scheduler");
+  log_info(datos_scheduler->logger, "Cierre de escucha del scheduler");
   enviar_string(OP_MEMORIA_CORRUPTA, "Cierre de kernel",
                 datos_scheduler->socket_scheduler);
   pthread_mutex_lock(datos_scheduler->mutex_hilos_activos);
@@ -311,9 +308,9 @@ void* escucha_cpu(void* ptr)
         t_proceso* proceso =
             buscar_proceso(datos_cpu->procesos, datos_cpu->mutex_procesos, pid);
         char* instruccion = proceso->instrucciones[pc];
-        logger_info(datos_cpu->logger,
-                    "## PID: %u - Obtener instrucción: %u - Instrucción: %s",
-                    pid, pc, instruccion);
+        log_info(datos_cpu->logger,
+                 "## PID: %u - Obtener instrucción: %u - Instrucción: %s", pid,
+                 pc, instruccion);
         usleep(datos_cpu->instruction_delay * 1000);
         enviar_string(OP_ENVIAR_INSTRUCCION, instruccion,
                       datos_cpu->socket_cpu);
@@ -329,18 +326,18 @@ void* escucha_cpu(void* ptr)
                                             datos_cpu->mutex_procesos, *pid);
         if (proceso == NULL)
         {
-          logger_error(datos_cpu->logger, "Proceso con pid %d no encontrado",
-                       *pid);
+          log_error(datos_cpu->logger, "Proceso con pid %d no encontrado",
+                    *pid);
           free(pid);
           break;
         }
-        logger_info(datos_cpu->logger, "PID: %d - Obtener registro", *pid);
-        logger_info(datos_cpu->logger, "delay de la instruccion %d",
-                    datos_cpu->instruction_delay);
+        log_info(datos_cpu->logger, "PID: %d - Obtener registro", *pid);
+        log_info(datos_cpu->logger, "delay de la instruccion %d",
+                 datos_cpu->instruction_delay);
         usleep(datos_cpu->instruction_delay * 1000);
         enviar_buffer(OP_ENVIAR_CONTEXTO, &proceso->registro,
                       sizeof(t_registros), datos_cpu->socket_cpu);
-        logger_info(datos_cpu->logger, "Enviando tabla de segmentos");
+        log_info(datos_cpu->logger, "Enviando tabla de segmentos");
         t_paquete* tabla_segmentos_proceso =
             crear_paquete(OP_TABLA_DE_SEGMENTOS);
         t_list* lista_segmentos = filtrar_segmentos_proceso(
@@ -350,7 +347,7 @@ void* escucha_cpu(void* ptr)
 
         list_destroy(lista_segmentos);
         enviar_paquete(tabla_segmentos_proceso, datos_cpu->socket_cpu);
-        logger_info(datos_cpu->logger, "Tabla de segmentos enviada");
+        log_info(datos_cpu->logger, "Tabla de segmentos enviada");
         eliminar_paquete(tabla_segmentos_proceso);
         free(pid);
         break;
@@ -373,22 +370,21 @@ void* escucha_cpu(void* ptr)
       }
       case OP_TABLA_SEG_ACTUALIZADA:
       {
-        logger_info(datos_cpu->logger,
-                    "CPU requiere actualizar la tabla de segmentos");
+        log_info(datos_cpu->logger,
+                 "CPU requiere actualizar la tabla de segmentos");
         int a;
         uint32_t* pid = (uint32_t*)recibir_buffer(&a, datos_cpu->socket_cpu);
         t_proceso* proceso = buscar_proceso(datos_cpu->procesos,
                                             datos_cpu->mutex_procesos, *pid);
         if (proceso == NULL)
         {
-          logger_info(datos_cpu->logger,
-                      "No se encontró el proceso con PID %u para terminar",
-                      *pid);
+          log_info(datos_cpu->logger,
+                   "No se encontró el proceso con PID %u para terminar", *pid);
           free(pid);
           break;
         }
-        logger_info(datos_cpu->logger, "Enviando tabla de segmentos a cpu : %d",
-                    datos_cpu->id);
+        log_info(datos_cpu->logger, "Enviando tabla de segmentos a cpu : %d",
+                 datos_cpu->id);
         t_paquete* tabla_segmentos_proceso =
             crear_paquete(OP_TABLA_DE_SEGMENTOS);
         t_list* lista_segmentos = filtrar_segmentos_proceso(
@@ -398,20 +394,19 @@ void* escucha_cpu(void* ptr)
 
         list_destroy(lista_segmentos);
         enviar_paquete(tabla_segmentos_proceso, datos_cpu->socket_cpu);
-        logger_info(datos_cpu->logger, "Tabla de segmentos enviada a cpu");
+        log_info(datos_cpu->logger, "Tabla de segmentos enviada a cpu");
         eliminar_paquete(tabla_segmentos_proceso);
         free(pid);
         break;
       }
       case OP_STICK_DESCONECTADO:
-        logger_info(
-            datos_cpu->logger,
-            "Avisando al Kernel Scheduler que la memoria está corrupta");
+        log_info(datos_cpu->logger,
+                 "Avisando al Kernel Scheduler que la memoria está corrupta");
         if (!enviar_string(OP_MEMORIA_CORRUPTA, "Memoria corrupta",
                            datos_cpu->socket_scheduler))
         {
-          logger_error(datos_cpu->logger,
-                       "No se pudo enviar el BSOD al Kernel Scheduler");
+          log_error(datos_cpu->logger,
+                    "No se pudo enviar el BSOD al Kernel Scheduler");
         }
         shutdown(datos_cpu->socket_scheduler, SHUT_RDWR);
       case OP_CODE_ERROR:

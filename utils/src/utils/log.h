@@ -1,5 +1,6 @@
 #pragma once
 
+#include <pthread.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <sys/types.h>
@@ -11,6 +12,10 @@
  *
  * Each entry is written as
  * `[LEVEL] HH:MM:SS:mmm PROGRAM/(pid:tid): message`.
+ *
+ * A logger may be created thread-safe (every call serialized by an internal
+ * mutex) or not, depending on whether the owning module runs more than one
+ * thread.
  */
 
 typedef enum
@@ -26,9 +31,11 @@ typedef struct
 {
   FILE* file;
   bool is_active_console;
+  bool is_thread_safe;
   t_log_level detail;
   char* program_name;
   pid_t pid;
+  pthread_mutex_t mutex;
 } t_log;
 
 /**
@@ -38,10 +45,13 @@ typedef struct
  * @param program_name     Name shown on every entry.
  * @param is_active_console Whether entries are also printed to stdout.
  * @param detail           Lowest level that gets logged.
+ * @param is_thread_safe   When true, every logging call is serialized with an
+ *                         internal mutex. Pass false only when the logger is
+ *                         used from a single thread.
  * @return A new logger, or NULL on failure.
  */
 t_log* log_create(char* file, char* program_name, bool is_active_console,
-                  t_log_level detail);
+                  t_log_level detail, bool is_thread_safe);
 
 /** @brief Closes the log file and releases the logger. */
 void log_destroy(t_log* logger);

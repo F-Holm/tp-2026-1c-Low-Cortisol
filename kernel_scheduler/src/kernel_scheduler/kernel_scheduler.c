@@ -16,7 +16,7 @@ static t_config* iniciar_config(char* archivo_config,
                                 t_config_vars* config_vars);
 static void cerrar_config(t_config_vars* config_vars, t_config* config);
 
-static t_logger* iniciar_logger(t_log_level log_level);
+static t_log* iniciar_logger(t_log_level log_level);
 
 bool iniciar_modulo(t_kernel_scheduler_recursos* recursos, char* archivo_config)
 {
@@ -73,7 +73,7 @@ void cerrar_modulo_error(t_kernel_scheduler_recursos* recursos)
   }
   if (recursos->logger != NULL)
   {
-    logger_destroy(recursos->logger);
+    log_destroy(recursos->logger);
   }
   if (recursos->config != NULL)
   {
@@ -91,7 +91,7 @@ void cerrar_modulo(t_kernel_scheduler_recursos* recursos)
   destruir_kernel_memory(recursos->socket_km_mutex);
   close(recursos->socket_kernel_memory);
   close(recursos->socket_server);
-  logger_destroy(recursos->logger);
+  log_destroy(recursos->logger);
   cerrar_config(&(recursos->config_vars), recursos->config);
   destruir_mutex_pid_pcb();
   destruir_mutex_shutdown();
@@ -160,8 +160,8 @@ static void cerrar_config(t_config_vars* config_vars, t_config* config)
   config_destroy(config);
 }
 
-static t_logger* iniciar_logger(t_log_level log_level)
+static t_log* iniciar_logger(t_log_level log_level)
 {
-  return logger_create("kernel_scheduler.log", "kernel_scheduler", true,
-                       log_level);
+  return log_create("kernel_scheduler.log", "kernel_scheduler", true, log_level,
+                    true);
 }

@@ -4,36 +4,35 @@
 
 #include "utils/msg.h"
 
-bool handshake_km(int socket_km, t_logger* logger)
+bool handshake_km(int socket_km, t_log* logger)
 {
   if (!enviar_handshake(MID_MEMORY_STICK, socket_km))
   {
-    logger_error(logger,
-                 "## Error en el envio del Handshake con Kernel Memory");
+    log_error(logger, "## Error en el envio del Handshake con Kernel Memory");
     return false;
   }
   if (recibir_handshake(socket_km) != MID_KERNEL_MEMORY)
   {
-    logger_error(logger,
-                 "## Error en la recepción del Handshake con Kernel Memory");
+    log_error(logger,
+              "## Error en la recepción del Handshake con Kernel Memory");
     return false;
   }
-  logger_info(logger, "Handshake exitoso con Kernel Memory");
+  log_info(logger, "Handshake exitoso con Kernel Memory");
   return true;
 }
 
-bool enviar_tamanio(int socket_km, char* tamanio, t_logger* logger)
+bool enviar_tamanio(int socket_km, char* tamanio, t_log* logger)
 {
   if (!enviar_string(OP_TAMANIO_MEMORIA, tamanio, socket_km))
   {
-    logger_error(logger, "## Error en el envio de tamaño");
+    log_error(logger, "## Error en el envio de tamaño");
     return false;
   }
-  logger_info(logger, "Envio de tamaño exitoso");
+  log_info(logger, "Envio de tamaño exitoso");
   return true;
 }
 
-int iniciar_conexion_km(char* ip, char* puerto, char* tamanio, t_logger* logger)
+int iniciar_conexion_km(char* ip, char* puerto, char* tamanio, t_log* logger)
 {
   int socket_km = conectar_km(ip, puerto, logger);
   if (socket_km <= 0)
@@ -48,15 +47,15 @@ int iniciar_conexion_km(char* ip, char* puerto, char* tamanio, t_logger* logger)
   return socket_km;
 }
 
-int conectar_km(char* ip, char* puerto, t_logger* logger)
+int conectar_km(char* ip, char* puerto, t_log* logger)
 {
   int socket_km = crear_conexion(ip, puerto);
   if (socket_km <= 0)
   {
-    logger_error(logger, "## Error de conexión con Kernel Memory");
+    log_error(logger, "## Error de conexión con Kernel Memory");
     return -1;
   }
-  logger_info(logger, "Conectado a Kernel Memory");
+  log_info(logger, "Conectado a Kernel Memory");
   return socket_km;
 }
 

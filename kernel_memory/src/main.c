@@ -8,7 +8,7 @@
 #include "utils/collections/list.h"
 #include "utils/config.h"
 #include "utils/kernel_memory_cpu.h"
-#include "utils/logger.h"
+#include "utils/log.h"
 #include "utils/msg.h"
 
 int main(int argc, char* argv[])
@@ -18,7 +18,7 @@ int main(int argc, char* argv[])
   char* archivo_config = argv[1];
 
   t_config* config = iniciar_config(archivo_config);
-  t_logger* logger = iniciar_logger(config);
+  t_log* logger = iniciar_logger(config);
   int socket_kernel_memory =
       iniciar_servidor(config_get_string_value(config, "KERNEL_MEMORY_PUERTO"));
   char* scripts_basepath = iniciar_basepath(config);
@@ -31,7 +31,7 @@ int main(int argc, char* argv[])
       socket_kernel_memory, scripts_basepath, instruction_delay,
       compaction_delay, segment_max_size, allocation_strategy, logger);
 
-  logger_info(logger, "Kernel Memory Iniciado ");
+  log_info(logger, "Kernel Memory Iniciado ");
   bool conexion_estable = true;
   while (conexion_estable)
   {
@@ -40,6 +40,6 @@ int main(int argc, char* argv[])
 
   liberar_datos_kernel_mem(datos_kernel);
   config_destroy(config);
-  logger_destroy(logger);
+  log_destroy(logger);
   return 0;
 }

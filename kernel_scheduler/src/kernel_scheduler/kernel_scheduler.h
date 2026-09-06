@@ -13,7 +13,6 @@
 #include "utils/config.h"
 #include "utils/kernel_scheduler_cpu.h"
 #include "utils/log.h"
-#include "utils/logger.h"
 #include "utils/registros.h"
 
 extern const char* const ALGORITMOS_PLANIFICACION[3];
@@ -36,7 +35,7 @@ typedef struct
   int socket_kernel_memory;
   int socket_server;
   t_config* config;
-  t_logger* logger;
+  t_log* logger;
   t_config_vars config_vars;
   t_lista_mutex* lista_mutex;
   t_colas* colas;

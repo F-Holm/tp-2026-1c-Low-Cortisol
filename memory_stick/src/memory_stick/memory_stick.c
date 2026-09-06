@@ -7,15 +7,14 @@
 #include "utils/msg.h"
 
 bool conseguir_y_enviar_puerto(int socket_km, int socket_server_cpu,
-                               t_logger* logger)
+                               t_log* logger)
 {
   if (!enviar_puerto_server_ms_km(socket_km, get_puerto_cpu(socket_server_cpu)))
   {
-    logger_error(logger,
-                 "## Error en el envio del puerto del servidor para CPU");
+    log_error(logger, "## Error en el envio del puerto del servidor para CPU");
     return false;
   }
-  logger_info(logger, "Envio del puerto del servidor para CPU exitoso");
+  log_info(logger, "Envio del puerto del servidor para CPU exitoso");
   return true;
 }
 
@@ -74,9 +73,9 @@ t_config* iniciar_config(char* archivo_config, t_config_vars* config_vars)
   return config;
 }
 
-t_logger* iniciar_logger(t_log_level log_level)
+t_log* iniciar_logger(t_log_level log_level)
 {
-  return logger_create("memory_stick.log", "memory_stick", true, log_level);
+  return log_create("memory_stick.log", "memory_stick", true, log_level, true);
 }
 
 void read_confir_ms(t_config* config, t_config_vars* config_vars)
@@ -95,7 +94,7 @@ void cerrar_modulo_error(t_ms_recursos* ms_recursos)
   if (ms_recursos->socket_km > 0)
     close(ms_recursos->socket_km);
   if (ms_recursos->logger != NULL)
-    logger_destroy(ms_recursos->logger);
+    log_destroy(ms_recursos->logger);
   if (ms_recursos->config != NULL)
     config_destroy(ms_recursos->config);
   if (ms_recursos->memoria != NULL)
@@ -113,7 +112,7 @@ void cerrar_modulo(t_ms_recursos* ms_recursos, pthread_t* thread_server_cpu)
   pthread_join(*thread_server_cpu, NULL);
   close(ms_recursos->socket_km);
   close(ms_recursos->socket_server_cpu);
-  logger_destroy(ms_recursos->logger);
+  log_destroy(ms_recursos->logger);
   config_destroy(ms_recursos->config);
   free(ms_recursos->memoria);
   pthread_mutex_destroy(ms_recursos->mutex_memoria);
@@ -134,17 +133,16 @@ bool get_args(int argc, char** argv, char** archivo_config, char** tamanio_str,
 void leer_memoria(t_ms_recursos* ms_recursos, int posicion_inicial,
                   int cantidad_de_bytes, int socket_destino)
 {
-  logger_info(ms_recursos->logger,
-              "Memory stick necesita leer %d bytes, desde %d",
-              cantidad_de_bytes, posicion_inicial);
+  log_info(ms_recursos->logger, "Memory stick necesita leer %d bytes, desde %d",
+           cantidad_de_bytes, posicion_inicial);
   char* bytes_a_devolver = calloc(cantidad_de_bytes + 1, 1);
   pthread_mutex_lock(ms_recursos->mutex_memoria);
   memcpy(bytes_a_devolver, ms_recursos->memoria + posicion_inicial,
          cantidad_de_bytes);
   pthread_mutex_unlock(ms_recursos->mutex_memoria);
   usleep(ms_recursos->memory_delay * 1000);
-  logger_info(ms_recursos->logger, "Memory stick leyo los bytes, %s",
-              bytes_a_devolver);
+  log_info(ms_recursos->logger, "Memory stick leyo los bytes, %s",
+           bytes_a_devolver);
   enviar_buffer(OP_MEMORY_STICK_LEIDO, bytes_a_devolver, cantidad_de_bytes,
                 socket_destino);
   free(bytes_a_devolver);
@@ -158,8 +156,7 @@ void escribir_memoria(t_ms_recursos* ms_recursos, int posicion_inicial,
   memcpy(ms_recursos->memoria + posicion_inicial, bytes_a_escribir,
          cantidad_de_bytes);
   pthread_mutex_unlock(ms_recursos->mutex_memoria);
-  logger_info(ms_recursos->logger, "Se escribieron %d bytes",
-              cantidad_de_bytes);
+  log_info(ms_recursos->logger, "Se escribieron %d bytes", cantidad_de_bytes);
   usleep(ms_recursos->memory_delay * 1000);
   enviar_string(OP_MEMORY_STICK_ESCRITO, "Escritura Exitosa", socket_destino);
 }

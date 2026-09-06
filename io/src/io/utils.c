@@ -14,7 +14,7 @@ bool cargar_configs(t_modulo_io* modulo_io)
   modulo_io->puerto =
       config_get_string_value(modulo_io->config, "KERNEL_SCHEDULER_PUERTO");
   t_log_level log_level = log_level_from_string(log_levelstr);
-  modulo_io->logger = log_create("io.log", "IO", true, log_level);
+  modulo_io->logger = log_create("io.log", "IO", true, log_level, false);
   if (modulo_io->logger == NULL)
   {
     config_destroy(modulo_io->config);

@@ -5,15 +5,15 @@
 
 #include "utils/msg.h"
 
-int create_server_cpu(t_logger* logger)
+int create_server_cpu(t_log* logger)
 {
   int ret = iniciar_servidor("0");
   if (ret <= 0)
   {
-    logger_error(logger, "## Error en la creación del servidor para las CPU");
+    log_error(logger, "## Error en la creación del servidor para las CPU");
     return -1;
   }
-  logger_info(logger, "Creación del servidor para las CPU exitosa");
+  log_info(logger, "Creación del servidor para las CPU exitosa");
   return ret;
 }
 
@@ -43,12 +43,12 @@ t_datos_hilo_cpu* inicializar_datos_hilo_cpu(
   return datos;
 }
 
-bool crear_hilo_cpu(t_datos_hilo_cpu* datos_hilo_cpu, t_logger* logger)
+bool crear_hilo_cpu(t_datos_hilo_cpu* datos_hilo_cpu, t_log* logger)
 {
   pthread_t hilo_cpu;
   if (pthread_create(&hilo_cpu, NULL, manejar_cliente_cpu, datos_hilo_cpu) != 0)
   {
-    logger_error(logger, "## Error en la creación del hilo de la CPU");
+    log_error(logger, "## Error en la creación del hilo de la CPU");
     return false;
   }
   pthread_detach(hilo_cpu);
@@ -71,31 +71,31 @@ void cerrar_hilo_escucha(t_list* lista_sockets,
   free(datos_hilo_escucha);
 }
 
-bool handshake_cpu(int socket_cpu, t_logger* logger)
+bool handshake_cpu(int socket_cpu, t_log* logger)
 {
   if (recibir_handshake(socket_cpu) != MID_CPU)
   {
-    logger_error(logger, "## Error en la recepción del Handshake con CPU");
+    log_error(logger, "## Error en la recepción del Handshake con CPU");
     return false;
   }
   if (!enviar_handshake(MID_MEMORY_STICK, socket_cpu))
   {
-    logger_error(logger, "## Error en el envio del Handshake con CPU");
+    log_error(logger, "## Error en el envio del Handshake con CPU");
     return false;
   }
-  logger_info(logger, "Handshake exitoso con CPU");
+  log_info(logger, "Handshake exitoso con CPU");
   return true;
 }
 
-char* obtener_id_cpu(int socket_cpu, t_logger* logger)
+char* obtener_id_cpu(int socket_cpu, t_log* logger)
 {
   if (recibir_operacion(socket_cpu) != OP_ID_CPU)
   {
-    logger_error(logger, "## Error en la recepción del ID de la CPU");
+    log_error(logger, "## Error en la recepción del ID de la CPU");
     return NULL;
   }
   char* id_cpu = recibir_string(socket_cpu);
-  logger_info(logger, "## CPU %s Conectada", id_cpu);
+  log_info(logger, "## CPU %s Conectada", id_cpu);
   return id_cpu;
 }
 
@@ -155,7 +155,7 @@ void* hilo_escucha_cpu(void* datos_hilo_escucha_void)
     if (socket_cpu <= 0)
       break;
 
-    logger_info(datos_hilo_escucha->logger, "Conexión exitosa con CPU");
+    log_info(datos_hilo_escucha->logger, "Conexión exitosa con CPU");
 
     if (!atender_nueva_cpu(datos_hilo_escucha, socket_cpu, lista_sockets,
                            &mutex_lista_sockets, &cond_fin_hilo_escucha,
@@ -163,7 +163,7 @@ void* hilo_escucha_cpu(void* datos_hilo_escucha_void)
       close(socket_cpu);
   }
 
-  logger_info(datos_hilo_escucha->logger, "Cerrando servidor");
+  log_info(datos_hilo_escucha->logger, "Cerrando servidor");
   cerrar_hilo_escucha(lista_sockets, &mutex_lista_sockets,
                       &cond_fin_hilo_escucha, datos_hilo_escucha);
   return NULL;
@@ -192,20 +192,20 @@ void* manejar_cliente_cpu(void* datos_hilo_cpu_void)
     {
       case OP_MEMORY_STICK_LEER:
       {
-        logger_info(datos_hilo_cpu->ms_recursos->logger,
-                    "Recibiendo instrucción de lectura de parte de la cpu");
+        log_info(datos_hilo_cpu->ms_recursos->logger,
+                 "Recibiendo instrucción de lectura de parte de la cpu");
         t_list* paquete = recibir_paquete(datos_hilo_cpu->socket_cpu);
         if (list_size(paquete) != 2)
         {
-          logger_error(datos_hilo_cpu->ms_recursos->logger,
-                       "Cantidad de parametros para leer memoria invalida.");
+          log_error(datos_hilo_cpu->ms_recursos->logger,
+                    "Cantidad de parametros para leer memoria invalida.");
           break;
         }
         int posicion_inicial = *(int*)list_get(paquete, 0);
         int cantidad_bytes = *(int*)list_get(paquete, 1);
-        logger_info(datos_hilo_cpu->ms_recursos->logger,
-                    "Lectura de %d bytes, desde %d por parte de la cpu",
-                    cantidad_bytes, posicion_inicial);
+        log_info(datos_hilo_cpu->ms_recursos->logger,
+                 "Lectura de %d bytes, desde %d por parte de la cpu",
+                 cantidad_bytes, posicion_inicial);
         list_destroy_and_destroy_elements(paquete, free);
         leer_memoria(datos_hilo_cpu->ms_recursos, posicion_inicial,
                      cantidad_bytes, datos_hilo_cpu->socket_cpu);
@@ -213,14 +213,13 @@ void* manejar_cliente_cpu(void* datos_hilo_cpu_void)
       }
       case OP_MEMORY_STICK_ESCRIBIR:
       {
-        logger_info(datos_hilo_cpu->ms_recursos->logger,
-                    "Recibiendo instrucción de escritura de parte de la cpu");
+        log_info(datos_hilo_cpu->ms_recursos->logger,
+                 "Recibiendo instrucción de escritura de parte de la cpu");
         t_list* paquete = recibir_paquete(datos_hilo_cpu->socket_cpu);
         if (list_size(paquete) != 3)
         {
-          logger_error(
-              datos_hilo_cpu->ms_recursos->logger,
-              "Cantidad de parametros para escribir memoria invalida.");
+          log_error(datos_hilo_cpu->ms_recursos->logger,
+                    "Cantidad de parametros para escribir memoria invalida.");
           list_destroy_and_destroy_elements(paquete, free);
           break;
         }
@@ -245,7 +244,7 @@ void* manejar_cliente_cpu(void* datos_hilo_cpu_void)
 }
 
 bool crear_servidor_cpu(pthread_t* thread_server_cpu, int socket_servidor_cpu,
-                        t_logger* logger, t_ms_recursos* ms_recursos)
+                        t_log* logger, t_ms_recursos* ms_recursos)
 {
   t_datos_hilo_escucha* datos_hilo_escucha =
       malloc(sizeof(t_datos_hilo_escucha));
@@ -255,7 +254,7 @@ bool crear_servidor_cpu(pthread_t* thread_server_cpu, int socket_servidor_cpu,
   if (pthread_create(thread_server_cpu, NULL, hilo_escucha_cpu,
                      datos_hilo_escucha) != 0)
   {
-    logger_error(logger, "## Error al crear el hilo del servidor de CPU");
+    log_error(logger, "## Error al crear el hilo del servidor de CPU");
     return false;
   }
   return true;

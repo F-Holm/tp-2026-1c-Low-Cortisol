@@ -1,5 +1,6 @@
 #include "utils/log.h"
 
+#include <pthread.h>
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
@@ -62,6 +63,11 @@ static void log_write(t_log* logger, t_log_level level, const char* template,
   format_timestamp(timestamp, sizeof(timestamp));
   char* message = format_message(template, arguments);
 
+  if (logger->is_thread_safe)
+  {
+    pthread_mutex_lock(&logger->mutex);
+  }
+
   if (logger->file != NULL)
   {
     fprintf(logger->file, "[%s] %s %s/(%d:%ld): %s\n",
@@ -77,11 +83,16 @@ static void log_write(t_log* logger, t_log_level level, const char* template,
            logger->pid, current_thread_id(), message, COLOR_RESET);
   }
 
+  if (logger->is_thread_safe)
+  {
+    pthread_mutex_unlock(&logger->mutex);
+  }
+
   free(message);
 }
 
 t_log* log_create(char* file, char* program_name, bool is_active_console,
-                  t_log_level detail)
+                  t_log_level detail, bool is_thread_safe)
 {
   FILE* opened = NULL;
   if (file != NULL)
@@ -96,9 +107,11 @@ t_log* log_create(char* file, char* program_name, bool is_active_console,
   t_log* logger = malloc(sizeof(t_log));
   logger->file = opened;
   logger->is_active_console = is_active_console;
+  logger->is_thread_safe = is_thread_safe;
   logger->detail = detail;
   logger->program_name = string_duplicate(program_name);
   logger->pid = getpid();
+  pthread_mutex_init(&logger->mutex, NULL);
   return logger;
 }
 
@@ -108,6 +121,7 @@ void log_destroy(t_log* logger)
   {
     fclose(logger->file);
   }
+  pthread_mutex_destroy(&logger->mutex);
   free(logger->program_name);
   free(logger);
 }

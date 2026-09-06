@@ -3,7 +3,7 @@
 #include <pthread.h>
 
 #include "utils/collections/list.h"
-#include "utils/logger.h"
+#include "utils/log.h"
 #include "utils/registros.h"
 
 typedef enum
@@ -26,7 +26,7 @@ typedef struct
 typedef struct
 {
   int socket_swap;
-  t_logger* logger;
+  t_log* logger;
   t_list* lista_bloques;
   int tamanio_swap;
   int tamanio_bloque;
@@ -41,7 +41,7 @@ typedef struct
   t_allocation_strategy allocation_strategy;
   int socket_scheduler;
   char* scripts_basepath;
-  t_logger* logger;
+  t_log* logger;
   t_list* sticks_conectados;
   t_list* cpus_conectados;
   t_list* procesos;
@@ -58,7 +58,7 @@ typedef struct
 {
   int socket_kernel_memory;
   int socket_scheduler;
-  t_logger* logger;
+  t_log* logger;
   t_list* procesos;
   pthread_mutex_t* mutex_procesos;
   char* scripts_basepath;
@@ -76,7 +76,7 @@ typedef struct
   int id;
   int socket_cpu;
   int socket_scheduler;
-  t_logger* logger;
+  t_log* logger;
   int instruction_delay;
   t_list* procesos;
   pthread_mutex_t* mutex_procesos;
@@ -93,7 +93,7 @@ typedef struct
   char ip_memory_stick[16];
   int puerto_stick;
   int socket_scheduler;
-  t_logger* logger;
+  t_log* logger;
 } t_datos_stick;
 
 typedef struct

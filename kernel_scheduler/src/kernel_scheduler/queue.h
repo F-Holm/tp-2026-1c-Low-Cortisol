@@ -9,7 +9,7 @@
 #include "kernel_scheduler/kernel_memory.h"
 #include "kernel_scheduler/misc.h"
 #include "utils/collections/list.h"
-#include "utils/logger.h"
+#include "utils/log.h"
 
 typedef enum
 {
@@ -120,7 +120,7 @@ typedef struct
   t_contador_procesos* contador_procesos;
   t_contador* contador_hilos;
   t_contador* contador_syscalls;
-  t_logger* logger;
+  t_log* logger;
   t_socket_kernel_memory* socket_km;
   int socket_servidor;
   t_datos_suspendido* datos_suspendido;
@@ -135,7 +135,7 @@ typedef struct
 // ingresar NULL en t_list si no es CMN
 // ingresar quantum = 0 si no es RR
 t_colas* inicializar_colas(int algoritmo, t_list* algoritmos_cmn, int quantum,
-                           bool desalojo, int socket_servidor, t_logger* logger,
+                           bool desalojo, int socket_servidor, t_log* logger,
                            t_socket_kernel_memory* socket_km,
                            int suspension_timeout);
 void destruir_colas(t_colas* colas);

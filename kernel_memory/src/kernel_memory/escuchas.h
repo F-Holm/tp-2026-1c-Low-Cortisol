@@ -12,7 +12,7 @@
 #include "utils/collections/list.h"
 #include "utils/config.h"
 #include "utils/kernel_scheduler_cpu.h"
-#include "utils/logger.h"
+#include "utils/log.h"
 #include "utils/msg.h"
 
 void* escucha_scheduler(void* ptr);
