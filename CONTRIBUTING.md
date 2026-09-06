@@ -20,14 +20,16 @@ Formatting is enforced by `.clang-format`; run `make format` before committing.
 
 | Command | Description |
 | :--- | :--- |
-| `make` / `make all` | Same as `make debug`. |
-| `make debug` | Build the whole project in debug mode. |
-| `make release` | Build the whole project in release mode. |
-| `make <module>` | Build a single module. |
-| `make clean` | Remove object files and generated binaries. |
+| `make` / `make all` | Build every module (debug). |
+| `make debug` / `make release` | Build every module in that mode. |
+| `make <module>` | Build a single module, e.g. `make kernel_scheduler`. |
+| `make <module> BUILD=release` | ... in release mode. |
+| `make clean` | Remove the build tree and the module binaries. |
 | `make logs` | Remove generated log files. |
-| `make test` | Build and run each module's unit tests. |
 | `make format` | Run clang-format over the whole codebase. |
+
+Objects and the `utils` archive live under `build/<mode>/`; each module's
+binary is written to `<module>/bin/<module>`.
 
 ### End-to-end tests
 
