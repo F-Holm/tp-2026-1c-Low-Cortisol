@@ -13,60 +13,59 @@
 
 int main(int argc, char* argv[])
 {
-  t_io sio;
+  t_io io;
 
-  if (!parse_args(argc, argv, &sio))
+  if (!parse_args(argc, argv, &io))
   {
     return EXIT_FAILURE;
   }
 
-  if (!load_config(&sio))
+  if (!load_config(&io))
   {
     return EXIT_FAILURE;
   }
-  if (!connect_to_scheduler(&sio))
+  if (!connect_to_scheduler(&io))
   {
     return EXIT_FAILURE;
   }
-  // Esperando Instrucciones del Kernel Scheduler
-  bool seguir_operando = true;
-  bool operacion = -1;
-  while (seguir_operando)
+  // Waiting for instructions from the Kernel Scheduler.
+  bool keep_running = true;
+  bool ok = -1;
+  while (keep_running)
   {
     int op_code;
-    op_code = receive_op_code(sio.socket_io);
+    op_code = receive_op_code(io.socket_io);
     switch (op_code)
     {
       case OP_IO_STDIN_REQUEST:
-        operacion = run_stdin(&sio);
-        if (!operacion)
+        ok = run_stdin(&io);
+        if (!ok)
         {
-          seguir_operando = false;
+          keep_running = false;
         }
         break;
 
       case OP_IO_STDOUT_REQUEST:
-        operacion = run_stdout(&sio);
-        if (!operacion)
+        ok = run_stdout(&io);
+        if (!ok)
         {
-          seguir_operando = false;
+          keep_running = false;
         }
         break;
 
       case OP_IO_SLEEP_REQUEST:
-        operacion = run_sleep(&sio);
-        if (!operacion)
+        ok = run_sleep(&io);
+        if (!ok)
         {
-          seguir_operando = false;
+          keep_running = false;
         }
         break;
 
       default:
-        seguir_operando = false;
+        keep_running = false;
     }
   }
-  log_info(sio.logger, " Cierre de IO");
-  // Liberar y Cerrar
-  close_io(&sio);
+  log_info(io.logger, " IO shutdown");
+  close_io(&io);
   return EXIT_SUCCESS;
 }
