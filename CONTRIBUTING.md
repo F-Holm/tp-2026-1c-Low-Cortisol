@@ -28,7 +28,7 @@
 
 ### Pruebas end-to-end
 
-Cada directorio dentro de `tests/` (menos `pseudocodigo/`) es un escenario: contiene
+Cada directorio dentro de `tests/` (menos `pseudocode/`) es un escenario: contiene
 sus seis archivos `<modulo>.conf` y un `test.mk` con sus parámetros.
 
 | Comando | Descripción |
