@@ -69,8 +69,8 @@ bool iniciar_conexion(t_modulo_swap* datos_swap, t_config* config)
   log_info(datos_swap->logger, "Handshake exitoso con Kernel Memory");
 
   // Envio a memory el tamaño del swap y el tamaño de bloque
-  t_envio_a_km* envio_km = malloc(sizeof(t_envio_a_km));
-  int size_envio = sizeof(t_envio_a_km);
+  t_swap_config* envio_km = malloc(sizeof(t_swap_config));
+  int size_envio = sizeof(t_swap_config);
   envio_km->swap_size = datos_swap->tamanio_swap;
   envio_km->block_size = datos_swap->tamanio_bloque;
   envio_correcto = enviar_buffer(OP_INFO_SWAP, (void*)envio_km, size_envio,

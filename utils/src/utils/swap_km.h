@@ -8,4 +8,4 @@ typedef struct
 {
   int swap_size;
   int block_size;
-} t_envio_a_km;
+} t_swap_config;
