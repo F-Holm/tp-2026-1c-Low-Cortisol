@@ -108,7 +108,7 @@ static t_config* iniciar_config(char* archivo_config,
         log_level_from_string(config_get_string_value(config, "LOG_LEVEL"));
 
     char* algoritmo_planificacion_str =
-        config_get_string_value(config, "PLANIFICATION_ALGORITHM");
+        config_get_string_value(config, "SCHEDULING_ALGORITHM");
     for (i = 0; i < 3; i++)
     {
       if (strcmp(algoritmo_planificacion_str, ALGORITMOS_PLANIFICACION[i]) == 0)
@@ -118,7 +118,7 @@ static t_config* iniciar_config(char* archivo_config,
       }
     }
 
-    char** array_str = config_get_array_value(config, "QUEUES_ALGORITHMS");
+    char** array_str = config_get_array_value(config, "QUEUE_ALGORITHMS");
     config_vars->algoritmos_cmn = list_create();
     i = 0;
     while (array_str[i] != NULL)
@@ -143,13 +143,13 @@ static t_config* iniciar_config(char* archivo_config,
         config_get_int_value(config, "SUSPENSION_TIMEOUT");
 
     config_vars->puerto_servidor =
-        config_get_string_value(config, "KERNEL_SCHEDULER_PUERTO");
+        config_get_string_value(config, "KERNEL_SCHEDULER_PORT");
 
     config_vars->ip_kernel_memory =
         config_get_string_value(config, "KERNEL_MEMORY_IP");
 
     config_vars->puerto_kernel_memory =
-        config_get_string_value(config, "KERNEL_MEMORY_PUERTO");
+        config_get_string_value(config, "KERNEL_MEMORY_PORT");
   }
   return config;
 }

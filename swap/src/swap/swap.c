@@ -15,7 +15,7 @@ bool inicializar_configuracion(t_modulo_swap* datos_swap, t_config* config)
   char* log_levelstr = config_get_string_value(config, "LOG_LEVEL");
 
   datos_swap->ip = config_get_string_value(config, "KERNEL_MEMORY_IP");
-  datos_swap->puerto = config_get_string_value(config, "KERNEL_MEMORY_PUERTO");
+  datos_swap->puerto = config_get_string_value(config, "KERNEL_MEMORY_PORT");
   datos_swap->tamanio_swap = config_get_int_value(config, "SWAP_FILE_SIZE");
   datos_swap->tamanio_bloque = config_get_int_value(config, "BLOCK_SIZE");
   datos_swap->logger = log_create("swap.log", "SWAP", true,

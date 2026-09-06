@@ -84,7 +84,7 @@ void read_confir_ms(t_config* config, t_config_vars* config_vars)
   config_vars->memory_delay = config_get_int_value(config, "MEMORY_DELAY");
   config_vars->ip_km = config_get_string_value(config, "KERNEL_MEMORY_IP");
   config_vars->puerto_km =
-      config_get_string_value(config, "KERNEL_MEMORY_PUERTO");
+      config_get_string_value(config, "KERNEL_MEMORY_PORT");
 }
 
 void cerrar_modulo_error(t_ms_recursos* ms_recursos)

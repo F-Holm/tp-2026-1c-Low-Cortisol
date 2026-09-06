@@ -13,7 +13,7 @@ bool iniciar_conexion_scheduler(t_cpu* cpu)
       config_get_string_value(cpu->config, "KERNEL_SCHEDULER_IP");
 
   char* puerto_kernel_scheduler =
-      config_get_string_value(cpu->config, "KERNEL_SCHEDULER_PUERTO");
+      config_get_string_value(cpu->config, "KERNEL_SCHEDULER_PORT");
 
   cpu->socket_kernel_scheduler =
       crear_conexion(ip_kernel_scheduler, puerto_kernel_scheduler);
@@ -50,7 +50,7 @@ bool iniciar_conexion_kmemory(t_cpu* cpu)
       config_get_string_value(cpu->config, "KERNEL_MEMORY_IP");
 
   char* puerto_kernel_memory =
-      config_get_string_value(cpu->config, "KERNEL_MEMORY_PUERTO");
+      config_get_string_value(cpu->config, "KERNEL_MEMORY_PORT");
 
   cpu->socket_kernel_memory =
       crear_conexion(ip_kernel_memory, puerto_kernel_memory);
