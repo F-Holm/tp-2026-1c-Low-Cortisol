@@ -1,5 +1,8 @@
 # Eclipse files
 .metadata/
+.settings/
+.cproject
+.project
 
 # CLion files
 .idea/
@@ -71,5 +74,8 @@ dkms.conf
 # Reference documents (not tracked)
 *.pdf
 
-# Build tree
+# Build output
 /build/
+bin/
+obj/
+lib/
