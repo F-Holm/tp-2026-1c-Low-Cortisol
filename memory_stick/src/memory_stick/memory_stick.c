@@ -9,7 +9,7 @@
 bool conseguir_y_enviar_puerto(int socket_km, int socket_server_cpu,
                                t_log* logger)
 {
-  if (!enviar_puerto_server_ms_km(socket_km, get_puerto_cpu(socket_server_cpu)))
+  if (!send_cpu_server_port_to_km(socket_km, get_puerto_cpu(socket_server_cpu)))
   {
     log_error(logger, "## Error en el envio del puerto del servidor para CPU");
     return false;
@@ -38,7 +38,7 @@ bool iniciar_modulo(t_ms_recursos* ms_recursos, char* archivo_config,
     return false;
 
   // Socket Kernel Memory
-  ms_recursos->socket_km = iniciar_conexion_km(
+  ms_recursos->socket_km = connect_to_kernel_memory(
       config_vars.ip_km, config_vars.puerto_km, tamanio, ms_recursos->logger);
   if (ms_recursos->socket_km <= 0)
     return false;

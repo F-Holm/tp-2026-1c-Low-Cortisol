@@ -8,60 +8,59 @@ bool handshake_km(int socket_km, t_log* logger)
 {
   if (!send_handshake(MID_MEMORY_STICK, socket_km))
   {
-    log_error(logger, "## Error en el envio del Handshake con Kernel Memory");
+    log_error(logger, "## Error sending the handshake to Kernel Memory");
     return false;
   }
   if (receive_handshake(socket_km) != MID_KERNEL_MEMORY)
   {
-    log_error(logger,
-              "## Error en la recepción del Handshake con Kernel Memory");
+    log_error(logger, "## Error receiving the handshake from Kernel Memory");
     return false;
   }
-  log_info(logger, "Handshake exitoso con Kernel Memory");
+  log_info(logger, "Handshake successful with Kernel Memory");
   return true;
 }
 
-bool enviar_tamanio(int socket_km, char* tamanio, t_log* logger)
+bool send_size(int socket_km, char* size, t_log* logger)
 {
-  if (!send_string(OP_MEMORY_SIZE, tamanio, socket_km))
+  if (!send_string(OP_MEMORY_SIZE, size, socket_km))
   {
-    log_error(logger, "## Error en el envio de tamaño");
+    log_error(logger, "## Error sending the size");
     return false;
   }
-  log_info(logger, "Envio de tamaño exitoso");
+  log_info(logger, "Size sent successfully");
   return true;
 }
 
-int iniciar_conexion_km(char* ip, char* puerto, char* tamanio, t_log* logger)
+int connect_to_kernel_memory(char* ip, char* port, char* size, t_log* logger)
 {
-  int socket_km = conectar_km(ip, puerto, logger);
+  int socket_km = connect_km(ip, port, logger);
   if (socket_km <= 0)
     return -1;
 
   if (!handshake_km(socket_km, logger))
     return -1;
 
-  if (!enviar_tamanio(socket_km, tamanio, logger))
+  if (!send_size(socket_km, size, logger))
     return -1;
 
   return socket_km;
 }
 
-int conectar_km(char* ip, char* puerto, t_log* logger)
+int connect_km(char* ip, char* port, t_log* logger)
 {
-  int socket_km = create_connection(ip, puerto);
+  int socket_km = create_connection(ip, port);
   if (socket_km <= 0)
   {
-    log_error(logger, "## Error de conexión con Kernel Memory");
+    log_error(logger, "## Connection error with Kernel Memory");
     return -1;
   }
-  log_info(logger, "Conectado a Kernel Memory");
+  log_info(logger, "Connected to Kernel Memory");
   return socket_km;
 }
 
-bool enviar_puerto_server_ms_km(int socket, uint16_t puerto)
+bool send_cpu_server_port_to_km(int socket, uint16_t port)
 {
   char buffer[6];
-  snprintf(buffer, sizeof(buffer), "%u", puerto);
+  snprintf(buffer, sizeof(buffer), "%u", port);
   return send_string(OP_PORT, buffer, socket);
 }
