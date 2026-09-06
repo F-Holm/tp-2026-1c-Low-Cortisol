@@ -148,8 +148,8 @@ static void log_preemption_queue_priority(t_log* logger, uint32_t preempted_pid,
                                           uint32_t pid_new, int priority_new)
 {
   log_info(logger,
-           "## %u Priority: %d - Preempted due to queue more "
-           "priority by the process %u with priority %d",
+           "## %u Priority: %d - Preempted by a higher-priority queue "
+           "by process %u with priority %d",
            preempted_pid, preempted_priority, pid_new, priority_new);
 }
 
@@ -598,6 +598,6 @@ static char* get_id_cpu(int socket_cpu, t_log* logger)
     return NULL;
   }
   char* id_cpu = receive_string(socket_cpu);
-  log_info(logger, "CPU %s Conectada", id_cpu);
+  log_info(logger, "CPU %s connected", id_cpu);
   return id_cpu;
 }

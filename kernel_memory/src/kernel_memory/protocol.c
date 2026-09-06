@@ -12,7 +12,7 @@ bool receive_cpu_id(t_cpu_data* cpu_data)
   if (receive_op_code(cpu_data->socket_cpu) == OP_ID_CPU)
   {
     char* id_cpu = receive_string(cpu_data->socket_cpu);
-    log_info(cpu_data->logger, "## CPU %s Conectada", id_cpu);
+    log_info(cpu_data->logger, "## CPU %s connected", id_cpu);
     cpu_data->id = atoi(id_cpu);
     free(id_cpu);
     return true;
@@ -33,7 +33,7 @@ bool receive_stick_size(t_stick_data* stick_data)
   if (receive_op_code(stick_data->socket_stick) == OP_MEMORY_SIZE)
   {
     char* size = receive_string(stick_data->socket_stick);
-    log_info(stick_data->logger, "## Memory Stick of %s bytes Conectada", size);
+    log_info(stick_data->logger, "## Memory Stick of %s bytes connected", size);
     stick_data->stick_size = atoi(size);
     free(size);
     return true;

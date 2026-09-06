@@ -900,8 +900,8 @@ static void log_invalid_state(t_log* logger, uint32_t pid, int state,
                               int expected_state, int next_state)
 {
   log_error(logger,
-            "## %u Cannot pasar from state %s to state %s because it "
-            "encuentra in the state %s",
+            "## %u Cannot move from state %s to state %s because it "
+            "is in state %s",
             pid, STATE_NAMES[expected_state], STATE_NAMES[next_state],
             STATE_NAMES[state]);
 }
