@@ -29,7 +29,7 @@ To run the whole distributed system, use one of the end-to-end scenarios under
 ```sh
 make <scenario>               # build + launch a scenario
 make <scenario> MODE=memcheck  # ... with every process under Valgrind
-make run                      # alias for `make full`
+make full                     # launch the full-system scenario
 make kill                     # stop every process
 ```
 
