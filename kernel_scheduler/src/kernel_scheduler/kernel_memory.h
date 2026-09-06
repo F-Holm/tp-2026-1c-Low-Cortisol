@@ -5,18 +5,18 @@
 
 typedef struct
 {
-  int socket_servidor;
+  int server_socket;
   t_log* logger;
-  t_socket_kernel_memory* socket_km;
-  bool cerrar;
-  pthread_mutex_t mutex_cerrar;
-  pthread_t hilo;
-} t_datos_hilo_verificar_conexion;
+  t_kernel_memory_socket* km_socket;
+  bool close;
+  pthread_mutex_t close_mutex;
+  pthread_t thread;
+} t_connection_check_thread;
 
-int iniciar_conexion_kernel_memory(char* ip, char* puerto, t_log* logger);
-bool avisar_terminar_proceso(t_socket_kernel_memory* socket_km, uint32_t pid,
-                             int socket_servidor, t_log* logger);
-t_datos_hilo_verificar_conexion* iniciar_hilo_verificar_conexion_kernel_memory(
-    int socket_servidor, t_log* logger, t_socket_kernel_memory* socket_km);
-void destruir_hilo_verificar_conexion_kernel_memory(
-    t_datos_hilo_verificar_conexion* datos);
+int start_connection_kernel_memory(char* ip, char* port, t_log* logger);
+bool notify_terminate_process(t_kernel_memory_socket* km_socket, uint32_t pid,
+                              int server_socket, t_log* logger);
+t_connection_check_thread* start_thread_check_connection_kernel_memory(
+    int server_socket, t_log* logger, t_kernel_memory_socket* km_socket);
+void destroy_thread_check_connection_kernel_memory(
+    t_connection_check_thread* data);

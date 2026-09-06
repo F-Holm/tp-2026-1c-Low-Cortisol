@@ -12,36 +12,36 @@
 typedef struct
 {
   char* id;
-  int prioridad_siguiente;
+  int next_priority;
   pthread_mutex_t mutex;
-  bool prioridad_activa;
-  t_list* lista;
-  t_pcb* proceso_actual;
-  int estado;
-  t_colas* colas;
+  bool priority_active;
+  t_list* list;
+  t_pcb* current_process;
+  int state;
+  t_queues* queues;
 } t_mutex;
 
 typedef struct
 {
-  t_dictionary* lista;
-  pthread_mutex_t mutex_lista;
-} t_lista_mutex;
+  t_dictionary* list;
+  pthread_mutex_t list_mutex;
+} t_mutex_list;
 
 typedef enum
 {
-  RM_MUTEX_CREADO,
-  RM_NOMBRE_MUTEX_YA_EXISTE,
-  RM_NOMBRE_MUTEX_NO_EXISTE,
-  RM_MUTEX_BLOQUEADO,
-  RM_ESPERANDO_MUTEX,
-  RM_MUTEX_DESBLOQUEADO,
-  RM_PROCESO_NO_TIENE_MUTEX_BLOQUEADO
-} t_return_mutex;
+  RM_MUTEX_CREATED,
+  RM_MUTEX_NAME_ALREADY_EXISTS,
+  RM_MUTEX_NAME_NOT_FOUND,
+  RM_MUTEX_LOCKED,
+  RM_WAITING_MUTEX,
+  RM_MUTEX_UNLOCKED,
+  RM_PROCESS_HAS_NO_LOCKED_MUTEX
+} t_mutex_result;
 
-t_lista_mutex* inicializar_lista_mutex(void);
-void destruir_lista_mutex(t_lista_mutex* lista_mutex);
+t_mutex_list* init_list_mutex(void);
+void destroy_list_mutex(t_mutex_list* mutex_list);
 
-int crear_y_add_mutex(t_lista_mutex* lista_mutex, char* id,
-                      bool prioridad_activa, t_colas* colas);
-int lista_mutex_lock(t_lista_mutex* lista_mutex, char* id, t_pcb* pcb);
-int lista_mutex_unlock(t_lista_mutex* lista_mutex, char* id, t_pcb* pcb);
+int create_and_add_mutex(t_mutex_list* mutex_list, char* id,
+                         bool priority_active, t_queues* queues);
+int list_mutex_lock(t_mutex_list* mutex_list, char* id, t_pcb* pcb);
+int list_mutex_unlock(t_mutex_list* mutex_list, char* id, t_pcb* pcb);

@@ -12,54 +12,53 @@
 typedef struct
 {
   int socket_fd;
-  t_list* lista_sockets;
-  pthread_mutex_t* mutex_lista_sockets;
-  pthread_cond_t* cond_fin;
+  t_list* socket_list;
+  pthread_mutex_t* socket_list_mutex;
+  pthread_cond_t* done_cond;
   char* id;
   t_log* logger;
-  t_lista_mutex* lista_mutex;
-  t_colas* colas;
-  t_io* estructuras_io;
-  t_socket_kernel_memory* socket_km;
-  int socket_servidor;
-} t_datos_hilo_cpu;
+  t_mutex_list* mutex_list;
+  t_queues* queues;
+  t_io* io;
+  t_kernel_memory_socket* km_socket;
+  int server_socket;
+} t_cpu_thread;
 
 typedef struct
 {
-  t_datos_hilo_cpu* datos;
+  t_cpu_thread* data;
   t_pcb* pcb;
-  bool seguir_operando;
-  unsigned long contador;
-  int motivo_desalojo;
-} t_datos_syscall;
+  bool keep_running;
+  unsigned long counter;
+  int preemption_reason;
+} t_syscall_data;
 
 typedef enum
 {
-  MD_SIN_DESALOJO,
-  MD_FIN_QUANTUM,
-  MD_PROCESO_PRIORITARIO,
-  MD_COMPACTACION,
-  MD_FIN_PROCESO,
-  MD_PRIMER_CICLO,
-  MD_IO,
-  MD_MUTEX_BLOQUEADO,
-  MD_MEMORIA_INSUFICIENTE,
-  MD_SEGMENTATION_FAULT,
-  MD_NOMBRE_MUTEX_YA_EXISTE,
-  MD_NOMBRE_MUTEX_NO_EXISTE,
-  MD_PROCESO_NO_TIENE_MUTEX_BLOQUEADO
-} t_motivo_desalojo;
+  PR_NO_PREEMPTION,
+  PR_QUANTUM_END,
+  PR_HIGHER_PRIORITY_PROCESS,
+  PR_COMPACTION,
+  PR_PROCESS_END,
+  PR_FIRST_CYCLE,
+  PR_IO,
+  PR_MUTEX_LOCKED,
+  PR_NOT_ENOUGH_MEMORY,
+  PR_SEGMENTATION_FAULT,
+  PR_MUTEX_NAME_ALREADY_EXISTS,
+  PR_MUTEX_NAME_NOT_FOUND,
+  PR_PROCESS_HAS_NO_LOCKED_MUTEX
+} t_preemption_reason;
 
-extern const char* const MOTIVOS_DESALOJO[13];
+extern const char* const PREEMPTION_REASONS[13];
 
-extern const char* const SYSCALLS_STR[10];
+extern const char* const SYSCALL_NAMES[10];
 
-bool atender_nueva_cpu(int socket_cpu, t_list* lista_sockets_cpu,
-                       pthread_mutex_t* mutex_lista_sockets_cpu,
-                       pthread_cond_t* cond_fin_cpu, t_log* logger,
-                       t_lista_mutex* lista_mutex, t_colas* colas,
-                       t_io* estructuras_io, t_socket_kernel_memory* socket_km,
-                       int socket_servidor);
-void cerrar_cpu(t_list* lista_sockets_cpu,
-                pthread_mutex_t* mutex_lista_sockets_cpu,
-                pthread_cond_t* cond_fin_cpu, t_colas* colas);
+bool handle_new_cpu(int socket_cpu, t_list* list_sockets_cpu,
+                    pthread_mutex_t* mutex_list_sockets_cpu,
+                    pthread_cond_t* cond_fin_cpu, t_log* logger,
+                    t_mutex_list* mutex_list, t_queues* queues, t_io* io,
+                    t_kernel_memory_socket* km_socket, int server_socket);
+void close_cpu(t_list* list_sockets_cpu,
+               pthread_mutex_t* mutex_list_sockets_cpu,
+               pthread_cond_t* cond_fin_cpu, t_queues* queues);

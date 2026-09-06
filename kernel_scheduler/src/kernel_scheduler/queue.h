@@ -13,186 +13,186 @@
 
 typedef enum
 {
-  MFP_PRIORIDAD_NO_VALIDA,
-  MFP_INSTRUCCION_EXIT,
-  MFP_CIERRE_SISTEMA,
-  MFP_FALLO_IO,
-  MPF_MEMORIA_INSUFICIENTE,
-  MPF_SEGMENTATION_FAULT,
-  MPF_NOMBRE_MUTEX_YA_EXISTE,
-  MPF_NOMBRE_MUTEX_NO_EXISTE,
-  MPF_PROCESO_NO_TIENE_MUTEX_BLOQUEADO
-} t_motivos_fin_proceso;
+  PER_INVALID_PRIORITY,
+  PER_EXIT_INSTRUCTION,
+  PER_SYSTEM_SHUTDOWN,
+  PER_IO_FAILURE,
+  PER_NOT_ENOUGH_MEMORY,
+  PER_SEGMENTATION_FAULT,
+  PER_MUTEX_NAME_ALREADY_EXISTS,
+  PER_MUTEX_NAME_NOT_FOUND,
+  PER_PROCESS_HAS_NO_LOCKED_MUTEX
+} t_process_end_reason;
 
-extern const char* const MOTIVOS_FIN_PROCESO[9];
-
-typedef struct
-{
-  int cantidad;
-  pthread_mutex_t mutex_contador;
-  pthread_cond_t condicion;
-} t_contador;
+extern const char* const PROCESS_END_REASONS[9];
 
 typedef struct
 {
-  t_list* lista;
-  pthread_mutex_t mutex_lista;
-  pthread_cond_t cond_nuevo_proceso;
-  bool nuevo_proceso;
-} t_lista;
+  int count;
+  pthread_mutex_t counter_mutex;
+  pthread_cond_t condition;
+} t_counter;
 
 typedef struct
 {
-  t_list* cola;
-  int algoritmo;
-} t_cola_individual_ready;
+  t_list* list;
+  pthread_mutex_t list_mutex;
+  pthread_cond_t new_process_cond;
+  bool new_process;
+} t_blocking_list;
 
 typedef struct
 {
-  int cantidad_colas;
-  t_cola_individual_ready* colas;
-  bool cola_multi_nivel;
-  pthread_mutex_t mutex_cola;
-  int cant_procesos_ready;
-  pthread_cond_t nuevo_proceso;
-  pthread_cond_t salida_desbloqueada;
-  pthread_mutex_t bloquear_salida;
-  bool terminar_cola;
-  pthread_mutex_t mutex_terminar_cola;
-  bool desalojar_todo;
-  int mayor_prioridad;
-  pthread_cond_t cola_vacia;
-} t_cola_ready;
+  t_list* queue;
+  int algorithm;
+} t_ready_subqueue;
 
 typedef struct
 {
-  t_list* lista;
-  pthread_mutex_t mutex_lista;
-  pthread_cond_t cola_vacia;
-  int prioridad_mas_baja;
-  int quantum;      // = 0 si no es RR
-  bool desalojo;    // Si el desalojo está habilitado
-} t_lista_execute;  // Como algunos valores no cambian nunca (quantum y
-                    // desalojo), no necesitan mutex
+  int queue_count;
+  t_ready_subqueue* queues;
+  bool multilevel_queue;
+  pthread_mutex_t queue_mutex;
+  int ready_process_count;
+  pthread_cond_t new_process;
+  pthread_cond_t exit_unblocked;
+  pthread_mutex_t block_exit;
+  bool terminate_queue;
+  pthread_mutex_t terminate_queue_mutex;
+  bool preempt_all;
+  int highest_priority;
+  pthread_cond_t queue_empty;
+} t_ready_queue;
+
+typedef struct
+{
+  t_list* list;
+  pthread_mutex_t list_mutex;
+  pthread_cond_t queue_empty;
+  int lowest_priority;
+  int quantum;      // = 0 if not RR
+  bool preemption;  // whether preemption is enabled
+} t_execute_list;   // since some values never change (quantum and
+                    // preemption), they do not need a mutex
 
 typedef enum
 {
-  EH_EJECUTANDO,
-  EH_ESPERANDO_PROCESO,
-  EH_BLOQUEADO,
-  EH_FINALIZANDO,
-  EH_FINALIZADO
-} t_estado_hilo;
+  HS_RUNNING,
+  HS_WAITING_PROCESS,
+  HS_BLOCKED,
+  HS_FINISHING,
+  HS_FINISHED
+} t_thread_state;
 
 typedef struct
 {
-  pthread_t hilo;
-  pthread_mutex_t mutex_estado;
-  int estado;
-  pthread_cond_t* esperar_proceso;
-  pthread_cond_t desbloquear;
-} t_datos_hilo_suspendido;
+  pthread_t thread;
+  pthread_mutex_t state_mutex;
+  int state;
+  pthread_cond_t* wait_process;
+  pthread_cond_t unlock;
+} t_suspended_thread;
 
 typedef struct
 {
-  t_datos_hilo_suspendido* datos;
+  t_suspended_thread* data;
   int suspension_timeout;
-} t_datos_hilo_suspensor;
+} t_suspender_thread;
 
 typedef struct
 {
-  t_datos_hilo_suspendido* datos;
-} t_datos_hilo_des_suspensor;
+  t_suspended_thread* data;
+} t_resumer_thread;
 
 typedef struct
 {
-  t_datos_hilo_suspensor* datos_hilo_suspensor;
-  t_datos_hilo_des_suspensor* datos_hilo_des_suspensor;
-} t_datos_suspendido;
+  t_suspender_thread* suspender_thread_data;
+  t_resumer_thread* resumer_thread_data;
+} t_suspension_data;
 
 typedef struct
 {
-  t_cola_ready ready;
-  t_lista_execute exec;
-  t_lista block;
-  t_lista susp_block;
-  t_lista susp_ready;
-  t_contador_procesos* contador_procesos;
-  t_contador* contador_hilos;
-  t_contador* contador_syscalls;
+  t_ready_queue ready;
+  t_execute_list exec;
+  t_blocking_list block;
+  t_blocking_list susp_block;
+  t_blocking_list susp_ready;
+  t_process_counter* process_counter;
+  t_counter* thread_counter;
+  t_counter* syscall_counter;
   t_log* logger;
-  t_socket_kernel_memory* socket_km;
-  int socket_servidor;
-  t_datos_suspendido* datos_suspendido;
-  pthread_mutex_t mutex_rutina;
-  bool terminar_rutinas;
-  pthread_mutex_t mutex_compactacion_activa;
-  bool compactacion_activa;
-  pthread_mutex_t mutex_des_suspension_activa;
-  bool des_suspension_activa;
-} t_colas;
+  t_kernel_memory_socket* km_socket;
+  int server_socket;
+  t_suspension_data* suspension_data;
+  pthread_mutex_t routine_mutex;
+  bool terminate_routines;
+  pthread_mutex_t compaction_active_mutex;
+  bool compaction_active;
+  pthread_mutex_t resume_active_mutex;
+  bool resume_active;
+} t_queues;
 
-// ingresar NULL en t_list si no es CMN
-// ingresar quantum = 0 si no es RR
-t_colas* inicializar_colas(int algoritmo, t_list* algoritmos_cmn, int quantum,
-                           bool desalojo, int socket_servidor, t_log* logger,
-                           t_socket_kernel_memory* socket_km,
-                           int suspension_timeout);
-void destruir_colas(t_colas* colas);
+// pass NULL as t_list if the algorithm is not CMN
+// pass quantum = 0 if the algorithm is not RR
+t_queues* init_queues(int algorithm, t_list* cmn_algorithms, int quantum,
+                      bool preemption, int server_socket, t_log* logger,
+                      t_kernel_memory_socket* km_socket,
+                      int suspension_timeout);
+void destroy_queues(t_queues* queues);
 
-bool esta_cola_ready_vacia(t_cola_ready* ready);
-bool esta_cola_ready_bloqueada(t_cola_ready* ready);
-void bloquear_cola_ready(t_cola_ready* ready);
-void desbloquear_cola_ready(t_cola_ready* ready);
-bool cola_ready_terminada(t_cola_ready* ready);
-void terminar_cola_ready(t_cola_ready* ready);
+bool is_queue_ready_empty(t_ready_queue* ready);
+bool is_queue_ready_blocked(t_ready_queue* ready);
+void lock_queue_ready(t_ready_queue* ready);
+void unlock_queue_ready(t_ready_queue* ready);
+bool queue_ready_terminated(t_ready_queue* ready);
+void terminate_queue_ready(t_ready_queue* ready);
 
-void update_priordad_mas_baja_exec(t_lista_execute* exec);
-void esperar_cola_exec_vacia(t_colas* colas);
-void esperar_cola_exec_vacia_con_syscalls(t_colas* colas);
+void update_priordad_mas_baja_exec(t_execute_list* exec);
+void wait_queue_exec_empty(t_queues* queues);
+void wait_queue_exec_empty_with_syscalls(t_queues* queues);
 
-bool puedo_suspender(t_pcb* pcb, int suspension_timeout);
-void actualizar_prioridad(t_pcb* pcb, t_colas* colas);
+bool can_suspender(t_pcb* pcb, int suspension_timeout);
+void update_priority(t_pcb* pcb, t_queues* queues);
 
-// cambio_ready_exec: No implementado, solo contiene el log por ahora. Usar
-// funciones individuales
-void cambio_a_exec(t_pcb* pcb, t_lista_execute* exec);
-t_pcb* cambio_sacar_ready_bloqueante(t_cola_ready* ready);
-t_pcb* cambio_sacar_ready_siguiente_sin_mutex(t_cola_ready* ready);
-void cambio_ready_exec(t_pcb* pcb, t_colas* colas);
+// transition_ready_exec: not implemented, only logs for now. Use the
+// individual functions
+void transition_to_exec(t_pcb* pcb, t_execute_list* exec);
+t_pcb* transition_take_ready_blocking(t_ready_queue* ready);
+t_pcb* transition_take_ready_next_no_mutex(t_ready_queue* ready);
+void transition_ready_exec(t_pcb* pcb, t_queues* queues);
 
-// Funciones de cambios de estados
-void cambio_new_ready(t_colas* colas, char* archivo_instrucciones,
-                      int prioridad);
-void cambio_exec_ready(t_pcb* pcb, t_colas* colas);
-void cambio_exec_exit(t_pcb* pcb, t_colas* colas, int motivo);
-void cambio_exec_block(t_pcb* pcb, t_colas* colas);
-void cambio_block_ready(t_pcb* pcb, t_colas* colas);
-void cambio_block_susp_block(t_pcb* pcb, t_colas* colas);
-void cambio_susp_block_block(t_pcb* pcb, t_colas* colas);
-void cambio_susp_block_susp_ready(t_pcb* pcb, t_colas* colas);
-bool cambio_susp_ready_ready(t_pcb* pcb, t_colas* colas);
-void cambio_desbloquear(t_pcb* pcb, t_colas* colas);
+// state-change functions
+void transition_new_ready(t_queues* queues, char* instructions_file,
+                          int priority);
+void transition_exec_ready(t_pcb* pcb, t_queues* queues);
+void transition_exec_exit(t_pcb* pcb, t_queues* queues, int reason);
+void transition_exec_block(t_pcb* pcb, t_queues* queues);
+void transition_block_ready(t_pcb* pcb, t_queues* queues);
+void transition_block_susp_block(t_pcb* pcb, t_queues* queues);
+void transition_susp_block(t_pcb* pcb, t_queues* queues);
+void transition_susp_block_susp_ready(t_pcb* pcb, t_queues* queues);
+bool transition_susp_ready(t_pcb* pcb, t_queues* queues);
+void transition_unlock(t_pcb* pcb, t_queues* queues);
 
-// Para errores o rutinas de cierre
-void vaciar_colas(t_colas* colas);
+// for errors or shutdown routines
+void clear_queues(t_queues* queues);
 
-// Para bloquear y desbloquear los hilos suspensor y des-suspensor
-void bloquear_hilos_suspendido(t_colas* colas);
-void desbloquear_hilos_suspendido(t_colas* colas);
+// to lock and unlock the suspender and resumer threads
+void lock_threads_suspended(t_queues* queues);
+void unlock_threads_suspended(t_queues* queues);
 
-// Funciones de consultas a kernel_memory
-int espacio_disponible_sin_mutex(t_colas* colas, uint32_t pid);
-int espacio_disponible(t_colas* colas, uint32_t pid);
-int tamanio_proceso_sin_mutex(t_colas* colas, uint32_t pid);
-int tamanio_proceso(t_colas* colas, uint32_t pid);
+// kernel_memory query functions
+int space_available_no_mutex(t_queues* queues, uint32_t pid);
+int space_available(t_queues* queues, uint32_t pid);
+int size_process_no_mutex(t_queues* queues, uint32_t pid);
+int size_process(t_queues* queues, uint32_t pid);
 
-// Funciones de rutinas
-void crear_hilo_rutina_des_suspension(t_colas* colas);
-void rutina_compactacion(t_colas* colas);
-bool esta_compactando(t_colas* colas);
-bool esta_des_suspendiendo(t_colas* colas);
+// routine functions
+void create_thread_routine_resume_suspension(t_queues* queues);
+void routine_compaction(t_queues* queues);
+bool is_compacting(t_queues* queues);
+bool is_resuming(t_queues* queues);
 
 // Contadores
-void sumar_contador_syscalls(t_colas* colas);
-void restar_contador_syscalls(t_colas* colas);
+void sumar_counter_syscalls(t_queues* queues);
+void restar_counter_syscalls(t_queues* queues);

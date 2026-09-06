@@ -11,23 +11,23 @@
 #include "kernel_scheduler/queue.h"
 #include "utils/collections/list.h"
 #include "utils/config.h"
-#include "utils/syscalls.h"
 #include "utils/log.h"
 #include "utils/registers_cpu.h"
+#include "utils/syscalls.h"
 
-extern const char* const ALGORITMOS_PLANIFICACION[3];
+extern const char* const SCHEDULING_ALGORITHMS[3];
 
 typedef struct
 {
   t_log_level log_level;
-  int algoritmo_planificacion;
-  t_list* algoritmos_cmn;
+  int scheduling_algorithm;
+  t_list* cmn_algorithms;
   int rr_quantum;
-  bool desalojo;
+  bool preemption;
   int suspension_timeout;
-  char* puerto_servidor;
-  char* ip_kernel_memory;
-  char* puerto_kernel_memory;
+  char* server_port;
+  char* kernel_memory_ip;
+  char* kernel_memory_port;
 } t_config_vars;
 
 typedef struct
@@ -37,14 +37,13 @@ typedef struct
   t_config* config;
   t_log* logger;
   t_config_vars config_vars;
-  t_lista_mutex* lista_mutex;
-  t_colas* colas;
-  t_socket_kernel_memory* socket_km_mutex;
-  t_datos_hilo_verificar_conexion* datos_hilo_verificar_conexion;
-} t_kernel_scheduler_recursos;
+  t_mutex_list* mutex_list;
+  t_queues* queues;
+  t_kernel_memory_socket* km_socket_mutex;
+  t_connection_check_thread* connection_check_thread_data;
+} t_kernel_scheduler;
 
-bool iniciar_modulo(t_kernel_scheduler_recursos* recursos,
-                    char* archivo_config);
-void inicializar_colas_mutex(t_kernel_scheduler_recursos* recursos);
-void cerrar_modulo_error(t_kernel_scheduler_recursos* recursos);
-void cerrar_modulo(t_kernel_scheduler_recursos* recursos);
+bool start_module(t_kernel_scheduler* recursos, char* config_path);
+void init_queues_mutex(t_kernel_scheduler* recursos);
+void close_module_error(t_kernel_scheduler* recursos);
+void close_module(t_kernel_scheduler* recursos);

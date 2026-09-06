@@ -330,7 +330,7 @@ t_extended_bool check_interrupt(t_cpu* cpu, uint32_t pid)
     log_info(cpu->logger, "Interrupt reason: %s ", interrupt_reason);
 
     if ((strcmp(interrupt_reason,
-                "no hay memoria suficiente para esa instrucción")) == 0)
+                "there is not enough memory for this instruction")) == 0)
     {
       free(interrupt_reason);
       return EB_NO_TABLE;

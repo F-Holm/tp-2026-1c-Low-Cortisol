@@ -10,58 +10,58 @@
 #include "utils/msg.h"
 #include "utils/string.h"
 
-const char* const ALGORITMOS_PLANIFICACION[] = {"FIFO", "RR", "CMN"};
+const char* const SCHEDULING_ALGORITHMS[] = {"FIFO", "RR", "CMN"};
 
-static t_config* iniciar_config(char* archivo_config,
-                                t_config_vars* config_vars);
-static void cerrar_config(t_config_vars* config_vars, t_config* config);
+static t_config* start_config(char* config_path, t_config_vars* config_vars);
+static void close_config(t_config_vars* config_vars, t_config* config);
 
-static t_log* iniciar_logger(t_log_level log_level);
+static t_log* start_logger(t_log_level log_level);
 
-bool iniciar_modulo(t_kernel_scheduler_recursos* recursos, char* archivo_config)
+bool start_module(t_kernel_scheduler* recursos, char* config_path)
 {
   // Config
-  recursos->config = iniciar_config(archivo_config, &(recursos->config_vars));
+  recursos->config = start_config(config_path, &(recursos->config_vars));
   if (recursos->config == NULL)
     return false;
 
   // Logger
-  recursos->logger = iniciar_logger(recursos->config_vars.log_level);
+  recursos->logger = start_logger(recursos->config_vars.log_level);
   if (recursos->logger == NULL)
     return false;
 
   // Socket Kernel Memory
-  recursos->socket_kernel_memory = iniciar_conexion_kernel_memory(
-      recursos->config_vars.ip_kernel_memory,
-      recursos->config_vars.puerto_kernel_memory, recursos->logger);
+  recursos->socket_kernel_memory = start_connection_kernel_memory(
+      recursos->config_vars.kernel_memory_ip,
+      recursos->config_vars.kernel_memory_port, recursos->logger);
   if (recursos->socket_kernel_memory <= 0)
     return false;
 
-  // Crear socket servidor
-  recursos->socket_server = crear_socket_servidor(
-      recursos->config_vars.puerto_servidor, recursos->logger);
+  // Create server socket
+  recursos->socket_server =
+      create_socket_server(recursos->config_vars.server_port, recursos->logger);
 
   return recursos->socket_server > 0;
 }
 
-void inicializar_colas_mutex(t_kernel_scheduler_recursos* recursos)
+void init_queues_mutex(t_kernel_scheduler* recursos)
 {
-  inicializar_mutex_pid_pcb();
-  inicializar_mutex_shutdown();
-  recursos->socket_km_mutex =
-      inicializar_socket_kernel_memory(recursos->socket_kernel_memory);
-  recursos->datos_hilo_verificar_conexion =
-      iniciar_hilo_verificar_conexion_kernel_memory(
-          recursos->socket_server, recursos->logger, recursos->socket_km_mutex);
-  recursos->lista_mutex = inicializar_lista_mutex();
-  recursos->colas = inicializar_colas(
-      recursos->config_vars.algoritmo_planificacion,
-      recursos->config_vars.algoritmos_cmn, recursos->config_vars.rr_quantum,
-      recursos->config_vars.desalojo, recursos->socket_server, recursos->logger,
-      recursos->socket_km_mutex, recursos->config_vars.suspension_timeout);
+  init_mutex_pid_pcb();
+  init_mutex_shutdown();
+  recursos->km_socket_mutex =
+      init_socket_kernel_memory(recursos->socket_kernel_memory);
+  recursos->connection_check_thread_data =
+      start_thread_check_connection_kernel_memory(
+          recursos->socket_server, recursos->logger, recursos->km_socket_mutex);
+  recursos->mutex_list = init_list_mutex();
+  recursos->queues = init_queues(
+      recursos->config_vars.scheduling_algorithm,
+      recursos->config_vars.cmn_algorithms, recursos->config_vars.rr_quantum,
+      recursos->config_vars.preemption, recursos->socket_server,
+      recursos->logger, recursos->km_socket_mutex,
+      recursos->config_vars.suspension_timeout);
 }
 
-void cerrar_modulo_error(t_kernel_scheduler_recursos* recursos)
+void close_module_error(t_kernel_scheduler* recursos)
 {
   if (recursos->socket_server > 0)
   {
@@ -77,90 +77,89 @@ void cerrar_modulo_error(t_kernel_scheduler_recursos* recursos)
   }
   if (recursos->config != NULL)
   {
-    cerrar_config(&(recursos->config_vars), recursos->config);
+    close_config(&(recursos->config_vars), recursos->config);
   }
 }
 
-void cerrar_modulo(t_kernel_scheduler_recursos* recursos)
+void close_module(t_kernel_scheduler* recursos)
 {
-  destruir_lista_mutex(recursos->lista_mutex);
-  vaciar_colas(recursos->colas);
-  destruir_colas(recursos->colas);
-  destruir_hilo_verificar_conexion_kernel_memory(
-      recursos->datos_hilo_verificar_conexion);
-  destruir_kernel_memory(recursos->socket_km_mutex);
+  destroy_list_mutex(recursos->mutex_list);
+  clear_queues(recursos->queues);
+  destroy_queues(recursos->queues);
+  destroy_thread_check_connection_kernel_memory(
+      recursos->connection_check_thread_data);
+  destroy_kernel_memory(recursos->km_socket_mutex);
   close(recursos->socket_kernel_memory);
   close(recursos->socket_server);
   log_destroy(recursos->logger);
-  cerrar_config(&(recursos->config_vars), recursos->config);
-  destruir_mutex_pid_pcb();
-  destruir_mutex_shutdown();
+  close_config(&(recursos->config_vars), recursos->config);
+  destroy_mutex_pid_pcb();
+  destroy_mutex_shutdown();
 }
 
-static t_config* iniciar_config(char* archivo_config,
-                                t_config_vars* config_vars)
+static t_config* start_config(char* config_path, t_config_vars* config_vars)
 {
   int i;
-  t_config* config = config_create(archivo_config);
+  t_config* config = config_create(config_path);
   if (config != NULL)
   {
     config_vars->log_level =
         log_level_from_string(config_get_string_value(config, "LOG_LEVEL"));
 
-    char* algoritmo_planificacion_str =
+    char* algorithm_scheduling_str =
         config_get_string_value(config, "SCHEDULING_ALGORITHM");
     for (i = 0; i < 3; i++)
     {
-      if (strcmp(algoritmo_planificacion_str, ALGORITMOS_PLANIFICACION[i]) == 0)
+      if (strcmp(algorithm_scheduling_str, SCHEDULING_ALGORITHMS[i]) == 0)
       {
-        config_vars->algoritmo_planificacion = i;
+        config_vars->scheduling_algorithm = i;
         break;
       }
     }
 
     char** array_str = config_get_array_value(config, "QUEUE_ALGORITHMS");
-    config_vars->algoritmos_cmn = list_create();
+    config_vars->cmn_algorithms = list_create();
     i = 0;
     while (array_str[i] != NULL)
     {
-      int* algoritmo = malloc(sizeof(int));
-      if (strcmp(array_str[i], ALGORITMOS_PLANIFICACION[AP_FIFO]) == 0)
-        *algoritmo = AP_FIFO;
-      else if (strcmp(array_str[i], ALGORITMOS_PLANIFICACION[AP_RR]) == 0)
-        *algoritmo = AP_RR;
-      list_add(config_vars->algoritmos_cmn, algoritmo);
+      int* algorithm = malloc(sizeof(int));
+      if (strcmp(array_str[i], SCHEDULING_ALGORITHMS[AP_FIFO]) == 0)
+        *algorithm = AP_FIFO;
+      else if (strcmp(array_str[i], SCHEDULING_ALGORITHMS[AP_RR]) == 0)
+        *algorithm = AP_RR;
+      list_add(config_vars->cmn_algorithms, algorithm);
       i++;
     }
     string_array_destroy(array_str);
 
     config_vars->rr_quantum = config_get_int_value(config, "RR_QUANTUM");
 
-    config_vars->desalojo =
+    config_vars->preemption =
         strcmp(config_get_string_value(config, "QUEUE_PREEMPTION"), "TRUE") ==
         0;
 
     config_vars->suspension_timeout =
         config_get_int_value(config, "SUSPENSION_TIMEOUT");
 
-    config_vars->puerto_servidor =
+    config_vars->server_port =
         config_get_string_value(config, "KERNEL_SCHEDULER_PORT");
 
-    config_vars->ip_kernel_memory =
+    config_vars->kernel_memory_ip =
         config_get_string_value(config, "KERNEL_MEMORY_IP");
 
-    config_vars->puerto_kernel_memory =
+    config_vars->kernel_memory_port =
         config_get_string_value(config, "KERNEL_MEMORY_PORT");
   }
   return config;
 }
 
-static void cerrar_config(t_config_vars* config_vars, t_config* config)
+static void close_config(t_config_vars* config_vars, t_config* config)
 {
-  list_destroy_and_destroy_elements(config_vars->algoritmos_cmn, free);
+  list_destroy_and_destroy_elements(config_vars->cmn_algorithms, free);
   config_destroy(config);
 }
 
-static t_log* iniciar_logger(t_log_level log_level)
+static t_log* start_logger(t_log_level log_level)
 {
   return log_create("kernel_scheduler.log", "kernel_scheduler", true, log_level,
                     true);

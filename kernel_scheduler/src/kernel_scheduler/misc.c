@@ -6,97 +6,97 @@
 
 #include "utils/msg.h"
 
-const char* const ESTADOS_STR[7] = {
+const char* const STATE_NAMES[7] = {
     "NEW", "READY", "EXEC", "BLOCK", "SUSP. BLOCK", "SUSP. READY", "EXIT"};
 
-const char* const MOTIVOS_CIERE[4] = {
-    "Procesos finalizados con éxito", "BSOD: Corrupción de memoria detectada",
-    "Error en la conexión con Kernel Memory", "Error desconocido"};
+const char* const SHUTDOWN_REASONS[4] = {
+    "Processes finished successfully", "BSOD: Corruption of memory detected",
+    "Error in the connection with Kernel Memory", "Error ofsconocido"};
 
-static bool es_mas_prioritario(void* pcb1, void* pcb2);
-static void log_shutdown(t_log* logger, int motivo_cierre);
-static void comprobar_motivo_cierre(int* motivo_cierre, int socket_km);
-static void avisar_cierre_kernel_memory(int motivo_cierre, int socket_km,
-                                        t_log* logger);
+static bool is_highest_priority(void* pcb1, void* pcb2);
+static void log_shutdown(t_log* logger, int reason_shutdown);
+static void check_reason_shutdown(int* reason_shutdown, int km_socket);
+static void notify_shutdown_kernel_memory(int reason_shutdown, int km_socket,
+                                          t_log* logger);
 
 static pthread_mutex_t mutex_pid_pcb;
 static pthread_mutex_t mutex_shutdown;
 
-void inicializar_mutex_pid_pcb(void)
+void init_mutex_pid_pcb(void)
 {
   pthread_mutex_init(&mutex_pid_pcb, NULL);
 }
 
-void inicializar_mutex_shutdown(void)
+void init_mutex_shutdown(void)
 {
   pthread_mutex_init(&mutex_shutdown, NULL);
 }
 
-void destruir_mutex_pid_pcb(void)
+void destroy_mutex_pid_pcb(void)
 {
   pthread_mutex_destroy(&mutex_pid_pcb);
 }
 
-void destruir_mutex_shutdown(void)
+void destroy_mutex_shutdown(void)
 {
   pthread_mutex_destroy(&mutex_shutdown);
 }
 
-t_socket_kernel_memory* inicializar_socket_kernel_memory(int socket_km)
+t_kernel_memory_socket* init_socket_kernel_memory(int km_socket)
 {
-  t_socket_kernel_memory* socket_km_mutex =
-      malloc(sizeof(t_socket_kernel_memory));
-  socket_km_mutex->socket_km = socket_km;
-  pthread_mutex_init(&(socket_km_mutex->mutex_socket), NULL);
-  return socket_km_mutex;
+  t_kernel_memory_socket* km_socket_mutex =
+      malloc(sizeof(t_kernel_memory_socket));
+  km_socket_mutex->km_socket = km_socket;
+  pthread_mutex_init(&(km_socket_mutex->socket_mutex), NULL);
+  return km_socket_mutex;
 }
 
-void destruir_kernel_memory(t_socket_kernel_memory* socket_km)
+void destroy_kernel_memory(t_kernel_memory_socket* km_socket)
 {
-  pthread_mutex_destroy(&(socket_km->mutex_socket));
-  free(socket_km);
+  pthread_mutex_destroy(&(km_socket->socket_mutex));
+  free(km_socket);
 }
 
-int insertar_pcb_en_orden(t_list* lista, t_pcb* pcb)
+int insert_pcb_in_orden(t_list* list, t_pcb* pcb)
 {
-  return list_add_sorted(lista, pcb, es_mas_prioritario);
+  return list_add_sorted(list, pcb, is_highest_priority);
 }
 
-int get_estado_pcb(t_pcb* pcb)
+int get_state_pcb(t_pcb* pcb)
 {
-  pthread_mutex_lock(&(pcb->mutex_estado));
-  int estado_pcb = pcb->estado;
-  pthread_mutex_unlock(&(pcb->mutex_estado));
-  return estado_pcb;
+  pthread_mutex_lock(&(pcb->state_mutex));
+  int state_pcb = pcb->state;
+  pthread_mutex_unlock(&(pcb->state_mutex));
+  return state_pcb;
 }
 
-int get_prioridad_pcb(t_pcb* pcb)
+int get_priority_pcb(t_pcb* pcb)
 {
-  pthread_mutex_lock(&(pcb->mutex_prioridad));
-  int prioridad_pcb = pcb->prioridad;
-  pthread_mutex_unlock(&(pcb->mutex_prioridad));
-  return prioridad_pcb;
+  pthread_mutex_lock(&(pcb->priority_mutex));
+  int priority_pcb = pcb->priority;
+  pthread_mutex_unlock(&(pcb->priority_mutex));
+  return priority_pcb;
 }
 
-t_pcb* crear_pcb(int estado, int prioridad)
+t_pcb* create_pcb(int state, int priority)
 {
   static uint32_t pid = 0;
   t_pcb* pcb = malloc(sizeof(t_pcb));
 
-  pthread_mutex_init(&(pcb->mutex_prioridad), NULL);
-  pthread_mutex_init(&(pcb->mutex_estado), NULL);
-  pthread_mutex_init(&(pcb->mutex_instancias_activas), NULL);
-  pthread_cond_init(&(pcb->no_hay_instancias_activas), NULL);
-  pcb->instancias_activas = 0;
-  pcb->tiempo_bloqueado = 0;
-  pcb->estado = estado;
-  pcb->mutex_bloqueante = NULL;
+  pthread_mutex_init(&(pcb->priority_mutex), NULL);
+  pthread_mutex_init(&(pcb->state_mutex), NULL);
+  pthread_mutex_init(&(pcb->active_instances_mutex), NULL);
+  pthread_cond_init(&(pcb->no_active_instances), NULL);
+  pcb->active_instances = 0;
+  pcb->blocked_time = 0;
+  pcb->state = state;
+  pcb->blocking_mutex = NULL;
 
-  pcb->lista_prioridades = list_create();
-  pcb->prioridad = prioridad;
+  pcb->priority_list = list_create();
+  pcb->priority = priority;
   int* aux = malloc(sizeof(int));
-  *aux = prioridad;
-  list_add(pcb->lista_prioridades, aux);
+  *aux = priority;
+  list_add(pcb->priority_list, aux);
 
   pthread_mutex_lock(&mutex_pid_pcb);
   pcb->pid = pid;
@@ -105,66 +105,66 @@ t_pcb* crear_pcb(int estado, int prioridad)
   return pcb;
 }
 
-void incrementar_instancias_activas_pcb(t_pcb* pcb)
+void incrementar_instances_active_pcb(t_pcb* pcb)
 {
-  pthread_mutex_lock(&(pcb->mutex_instancias_activas));
-  pcb->instancias_activas++;
-  pthread_mutex_unlock(&(pcb->mutex_instancias_activas));
+  pthread_mutex_lock(&(pcb->active_instances_mutex));
+  pcb->active_instances++;
+  pthread_mutex_unlock(&(pcb->active_instances_mutex));
 }
 
-void disminuir_instancias_activas_pcb(t_pcb* pcb)
+void disminuir_instances_active_pcb(t_pcb* pcb)
 {
-  pthread_mutex_lock(&(pcb->mutex_instancias_activas));
-  pcb->instancias_activas--;
-  if (pcb->instancias_activas == 0)
+  pthread_mutex_lock(&(pcb->active_instances_mutex));
+  pcb->active_instances--;
+  if (pcb->active_instances == 0)
   {
-    pthread_cond_signal(&(pcb->no_hay_instancias_activas));
+    pthread_cond_signal(&(pcb->no_active_instances));
   }
-  pthread_mutex_unlock(&(pcb->mutex_instancias_activas));
+  pthread_mutex_unlock(&(pcb->active_instances_mutex));
 }
 
-void esperar_0_instancias_activas_pcb(t_pcb* pcb)
+void wait_0_instances_active_pcb(t_pcb* pcb)
 {
-  pthread_mutex_lock(&(pcb->mutex_instancias_activas));
-  while (pcb->instancias_activas != 0)
+  pthread_mutex_lock(&(pcb->active_instances_mutex));
+  while (pcb->active_instances != 0)
   {
-    pthread_cond_wait(&(pcb->no_hay_instancias_activas),
-                      &(pcb->mutex_instancias_activas));
+    pthread_cond_wait(&(pcb->no_active_instances),
+                      &(pcb->active_instances_mutex));
   }
-  pthread_mutex_unlock(&(pcb->mutex_instancias_activas));
+  pthread_mutex_unlock(&(pcb->active_instances_mutex));
 }
 
-void destruir_pcb(t_pcb* pcb)
+void destroy_pcb(t_pcb* pcb)
 {
-  pthread_mutex_destroy(&(pcb->mutex_prioridad));
-  pthread_mutex_destroy(&(pcb->mutex_estado));
-  pthread_mutex_destroy(&(pcb->mutex_instancias_activas));
-  pthread_cond_destroy(&(pcb->no_hay_instancias_activas));
-  list_destroy_and_destroy_elements(pcb->lista_prioridades, free);
+  pthread_mutex_destroy(&(pcb->priority_mutex));
+  pthread_mutex_destroy(&(pcb->state_mutex));
+  pthread_mutex_destroy(&(pcb->active_instances_mutex));
+  pthread_cond_destroy(&(pcb->no_active_instances));
+  list_destroy_and_destroy_elements(pcb->priority_list, free);
   free(pcb);
 }
 
-void set_mutex_bloqueante(t_pcb* pcb, void* mutex)
+void set_mutex_blocking(t_pcb* pcb, void* mutex)
 {
-  pthread_mutex_lock(&(pcb->mutex_prioridad));
-  pcb->mutex_bloqueante = mutex;
-  pthread_mutex_unlock(&(pcb->mutex_prioridad));
+  pthread_mutex_lock(&(pcb->priority_mutex));
+  pcb->blocking_mutex = mutex;
+  pthread_mutex_unlock(&(pcb->priority_mutex));
 }
 
-void* get_mutex_bloqueante(t_pcb* pcb)
+void* get_mutex_blocking(t_pcb* pcb)
 {
-  pthread_mutex_lock(&(pcb->mutex_prioridad));
-  void* mutex = pcb->mutex_bloqueante;
-  pthread_mutex_unlock(&(pcb->mutex_prioridad));
+  pthread_mutex_lock(&(pcb->priority_mutex));
+  void* mutex = pcb->blocking_mutex;
+  pthread_mutex_unlock(&(pcb->priority_mutex));
   return mutex;
 }
 
-bool responder_handshake(int socket_fd, int id_modulo, t_log* logger)
+bool respond_handshake(int socket_fd, int id_module, t_log* logger)
 {
-  if (!send_handshake(id_modulo, socket_fd))
+  if (!send_handshake(id_module, socket_fd))
   {
-    log_error(logger, "## Error en el envio del Handshake con %s",
-              HANDSHAKE_MSG[id_modulo]);
+    log_error(logger, "## Error in the sending the handshake with %s",
+              HANDSHAKE_MSG[id_module]);
     return false;
   }
   return true;
@@ -182,115 +182,116 @@ unsigned long time_diff(unsigned long time_1, unsigned long time_2)
   return time_1 > time_2 ? time_1 - time_2 : time_2 - time_1;
 }
 
-t_contador_procesos* inicializar_contador_procesos(
-    int socket_servidor, t_log* logger, t_socket_kernel_memory* socket_km)
+t_process_counter* init_counter_processes(int server_socket, t_log* logger,
+                                          t_kernel_memory_socket* km_socket)
 {
-  t_contador_procesos* contador = malloc(sizeof(t_contador_procesos));
-  contador->cantidad_procesos_activos = 0;
-  pthread_mutex_init(&(contador->mutex_contador), NULL);
-  contador->socket_servidor = socket_servidor;
-  contador->logger = logger;
-  contador->socket_km = socket_km;
-  return contador;
+  t_process_counter* counter = malloc(sizeof(t_process_counter));
+  counter->active_process_count = 0;
+  pthread_mutex_init(&(counter->counter_mutex), NULL);
+  counter->server_socket = server_socket;
+  counter->logger = logger;
+  counter->km_socket = km_socket;
+  return counter;
 }
 
-void aumentar_contador_procesos(t_contador_procesos* contador)
+void aumentar_counter_processes(t_process_counter* counter)
 {
-  pthread_mutex_lock(&(contador->mutex_contador));
-  contador->cantidad_procesos_activos++;
-  pthread_mutex_unlock(&(contador->mutex_contador));
+  pthread_mutex_lock(&(counter->counter_mutex));
+  counter->active_process_count++;
+  pthread_mutex_unlock(&(counter->counter_mutex));
 }
 
-void disminuir_contador_procesos(t_contador_procesos* contador)
+void disminuir_counter_processes(t_process_counter* counter)
 {
-  pthread_mutex_lock(&(contador->mutex_contador));
-  contador->cantidad_procesos_activos--;
-  bool ultimo = contador->cantidad_procesos_activos == 0;
-  pthread_mutex_unlock(&(contador->mutex_contador));
+  pthread_mutex_lock(&(counter->counter_mutex));
+  counter->active_process_count--;
+  bool is_last = counter->active_process_count == 0;
+  pthread_mutex_unlock(&(counter->counter_mutex));
 
-  if (ultimo)
+  if (is_last)
   {
-    pthread_mutex_lock(&(contador->socket_km->mutex_socket));
-    cerrar_kernel_scheduler(contador->socket_servidor, contador->logger,
-                            MC_SIN_PROCESOS, contador->socket_km->socket_km);
-    pthread_mutex_unlock(&(contador->socket_km->mutex_socket));
+    pthread_mutex_lock(&(counter->km_socket->socket_mutex));
+    close_kernel_scheduler(counter->server_socket, counter->logger,
+                           SR_NO_PROCESSES, counter->km_socket->km_socket);
+    pthread_mutex_unlock(&(counter->km_socket->socket_mutex));
   }
 }
 
-void destruir_contador_procesos(t_contador_procesos* contador)
+void destroy_counter_processes(t_process_counter* counter)
 {
-  pthread_mutex_destroy(&(contador->mutex_contador));
-  free(contador);
+  pthread_mutex_destroy(&(counter->counter_mutex));
+  free(counter);
 }
 
-void cerrar_kernel_scheduler(int socket_servidor, t_log* logger,
-                             int motivo_cierre, int socket_km)
+void close_kernel_scheduler(int server_socket, t_log* logger,
+                            int reason_shutdown, int km_socket)
 {
   static bool shutdown_activado = false;
   pthread_mutex_lock(&mutex_shutdown);
   if (!shutdown_activado)
   {
-    avisar_cierre_kernel_memory(motivo_cierre, socket_km, logger);
-    comprobar_motivo_cierre(&motivo_cierre, socket_km);
-    log_shutdown(logger, motivo_cierre);
-    shutdown(socket_servidor, SHUT_RDWR);
+    notify_shutdown_kernel_memory(reason_shutdown, km_socket, logger);
+    check_reason_shutdown(&reason_shutdown, km_socket);
+    log_shutdown(logger, reason_shutdown);
+    shutdown(server_socket, SHUT_RDWR);
     shutdown_activado = true;
   }
   pthread_mutex_unlock(&mutex_shutdown);
 }
 
-static bool es_mas_prioritario(void* pcb1, void* pcb2)
+static bool is_highest_priority(void* pcb1, void* pcb2)
 {
-  return get_prioridad_pcb((t_pcb*)pcb1) <= get_prioridad_pcb((t_pcb*)pcb2);
+  return get_priority_pcb((t_pcb*)pcb1) <= get_priority_pcb((t_pcb*)pcb2);
 }
 
-static void log_shutdown(t_log* logger, int motivo_cierre)
+static void log_shutdown(t_log* logger, int reason_shutdown)
 {
-  if (motivo_cierre == MC_SIN_PROCESOS)
+  if (reason_shutdown == SR_NO_PROCESSES)
   {
-    log_info(logger, "## %s", MOTIVOS_CIERE[motivo_cierre]);
+    log_info(logger, "## %s", SHUTDOWN_REASONS[reason_shutdown]);
   }
   else
   {
-    log_error(logger, "## %s", MOTIVOS_CIERE[motivo_cierre]);
+    log_error(logger, "## %s", SHUTDOWN_REASONS[reason_shutdown]);
   }
 }
 
-static void comprobar_motivo_cierre(int* motivo_cierre, int socket_km)
+static void check_reason_shutdown(int* reason_shutdown, int km_socket)
 {
-  if (*motivo_cierre != MC_ERROR_ENVIO_KERNEL_MEMORY)
+  if (*reason_shutdown != SR_KERNEL_MEMORY_SEND_ERROR)
   {
     return;
   }
 
-  bool seguir_operando = true;
-  while (seguir_operando)
+  bool keep_running = true;
+  while (keep_running)
   {
-    switch (receive_op_code(socket_km))
+    switch (receive_op_code(km_socket))
     {
       case OP_CODE_ERROR:
-        *motivo_cierre = MC_FALLO_CONEXION_KERNEL_MEMORY;
-        seguir_operando = false;
+        *reason_shutdown = SR_KERNEL_MEMORY_CONNECTION_FAILURE;
+        keep_running = false;
         break;
       case OP_MEMORY_CORRUPTED:
-        *motivo_cierre = MC_MEMORIA_CORRUPTA;
-        seguir_operando = false;
+        *reason_shutdown = SR_CORRUPTED_MEMORY;
+        keep_running = false;
         break;
       default:
-        free(receive_string(socket_km));
+        free(receive_string(km_socket));
         break;
     }
   }
 }
 
-static void avisar_cierre_kernel_memory(int motivo_cierre, int socket_km,
-                                        t_log* logger)
+static void notify_shutdown_kernel_memory(int reason_shutdown, int km_socket,
+                                          t_log* logger)
 {
-  if (motivo_cierre == MC_SIN_PROCESOS)
+  if (reason_shutdown == SR_NO_PROCESSES)
   {
     log_info(logger,
-             "Avisando al Kernel Memory del cierre del Kernel Scheduler");
-    send_string(OP_KERNEL_SCHEDULER_SHUTDOWN,
-                "No hay más procesos para ejecutar", socket_km);
+             "Avisando to the Kernel Memory of the shutdown of the Kernel "
+             "Scheduler");
+    send_string(OP_KERNEL_SCHEDULER_SHUTDOWN, "No more processes to run",
+                km_socket);
   }
 }

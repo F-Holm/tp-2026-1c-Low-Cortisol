@@ -8,51 +8,52 @@
 #include "utils/collections/list.h"
 #include "utils/msg.h"
 
-static void cerrar_hilo_escucha(t_io* estructuras_io, t_list* lista_sockets_cpu,
-                                pthread_mutex_t* mutex_lista_sockets_cpu,
+static void close_thread_listen(t_io* io, t_list* list_sockets_cpu,
+                                pthread_mutex_t* mutex_list_sockets_cpu,
                                 pthread_cond_t* cond_fin_cpu,
-                                t_datos_servidor_escucha* datos);
+                                t_listen_server_data* data);
 
-int crear_socket_servidor(char* puerto, t_log* logger)
+int create_socket_server(char* port, t_log* logger)
 {
-  int ret = start_server(puerto);
+  int ret = start_server(port);
   if (ret <= 0)
   {
-    log_error(logger, "Error en la creación del servidor");
+    log_error(logger, "Error in the creation of the server");
     return -1;
   }
-  log_info(logger, "Creación del servidor exitosa");
+  log_info(logger, "Server created successfully");
   return ret;
 }
 
-void inicializar_datos_server_escucha(
-    t_datos_servidor_escucha* datos, int socket_server, t_log* logger,
-    t_lista_mutex* lista_mutex, t_colas* colas,
-    t_socket_kernel_memory* socket_kernel_memory, char* path_proceso_inicial)
+void init_data_server_listen(t_listen_server_data* data, int socket_server,
+                             t_log* logger, t_mutex_list* mutex_list,
+                             t_queues* queues,
+                             t_kernel_memory_socket* socket_kernel_memory,
+                             char* initial_process_path)
 {
-  datos->socket_server = socket_server;
-  datos->logger = logger;
-  datos->lista_mutex = lista_mutex;
-  datos->colas = colas;
-  datos->socket_km = socket_kernel_memory;
-  datos->path_proceso_inicial = path_proceso_inicial;
+  data->socket_server = socket_server;
+  data->logger = logger;
+  data->mutex_list = mutex_list;
+  data->queues = queues;
+  data->km_socket = socket_kernel_memory;
+  data->initial_process_path = initial_process_path;
 }
 
-void servidor_escucha(t_datos_servidor_escucha* datos)
+void server_listen(t_listen_server_data* data)
 {
-  t_io* estructuras_io = crear_estructuras_io();
-  t_list* lista_sockets_cpu = list_create();
-  pthread_mutex_t mutex_lista_sockets_cpu;
+  t_io* io = create_estructuras_io();
+  t_list* list_sockets_cpu = list_create();
+  pthread_mutex_t mutex_list_sockets_cpu;
   pthread_cond_t cond_fin_cpu;
 
-  pthread_mutex_init(&mutex_lista_sockets_cpu, NULL);
+  pthread_mutex_init(&mutex_list_sockets_cpu, NULL);
   pthread_cond_init(&cond_fin_cpu, NULL);
 
-  cambio_new_ready(datos->colas, datos->path_proceso_inicial, 0);
+  transition_new_ready(data->queues, data->initial_process_path, 0);
   while (true)
   {
     bool manejo_exitoso = true;
-    int socket_fd = accept(datos->socket_server, NULL, NULL);
+    int socket_fd = accept(data->socket_server, NULL, NULL);
     if (socket_fd <= 0)
     {
       break;
@@ -61,18 +62,17 @@ void servidor_escucha(t_datos_servidor_escucha* datos)
     switch (receive_handshake(socket_fd))
     {
       case MID_CPU:
-        manejo_exitoso = atender_nueva_cpu(
-            socket_fd, lista_sockets_cpu, &mutex_lista_sockets_cpu,
-            &cond_fin_cpu, datos->logger, datos->lista_mutex, datos->colas,
-            estructuras_io, datos->socket_km, datos->socket_server);
+        manejo_exitoso = handle_new_cpu(
+            socket_fd, list_sockets_cpu, &mutex_list_sockets_cpu, &cond_fin_cpu,
+            data->logger, data->mutex_list, data->queues, io, data->km_socket,
+            data->socket_server);
         break;
       case MID_IO:
-        manejo_exitoso =
-            atender_nuevo_io(estructuras_io, socket_fd, datos->colas, false,
-                             datos->socket_server);
+        manejo_exitoso = handle_new_io(io, socket_fd, data->queues, false,
+                                       data->socket_server);
         break;
       default:
-        log_info(datos->logger, "Recepción de handshake no válido");
+        log_info(data->logger, "Invalid handshake received");
         manejo_exitoso = false;
         break;
     }
@@ -82,18 +82,18 @@ void servidor_escucha(t_datos_servidor_escucha* datos)
     }
   }
 
-  cerrar_hilo_escucha(estructuras_io, lista_sockets_cpu,
-                      &mutex_lista_sockets_cpu, &cond_fin_cpu, datos);
+  close_thread_listen(io, list_sockets_cpu, &mutex_list_sockets_cpu,
+                      &cond_fin_cpu, data);
 }
 
-static void cerrar_hilo_escucha(t_io* estructuras_io, t_list* lista_sockets_cpu,
-                                pthread_mutex_t* mutex_lista_sockets_cpu,
+static void close_thread_listen(t_io* io, t_list* list_sockets_cpu,
+                                pthread_mutex_t* mutex_list_sockets_cpu,
                                 pthread_cond_t* cond_fin_cpu,
-                                t_datos_servidor_escucha* datos)
+                                t_listen_server_data* data)
 {
-  log_info(datos->logger, "Cerrando servidor");
-  cerrar_cpu(lista_sockets_cpu, mutex_lista_sockets_cpu, cond_fin_cpu,
-             datos->colas);
-  cerrar_io(estructuras_io);
-  log_info(datos->logger, "Servidor cerrado");
+  log_info(data->logger, "Closing server");
+  close_cpu(list_sockets_cpu, mutex_list_sockets_cpu, cond_fin_cpu,
+            data->queues);
+  close_io(io);
+  log_info(data->logger, "Server closed");
 }

@@ -18,32 +18,32 @@
 
 int main(int argc, char* argv[])
 {
-  t_kernel_scheduler_recursos recursos = {0};
+  t_kernel_scheduler recursos = {0};
 
   // args
   if (argc != 3)
     return EXIT_FAILURE;
-  char* archivo_config = argv[1];
-  char* path_proceso_inicial = argv[2];
+  char* config_path = argv[1];
+  char* initial_process_path = argv[2];
 
-  // Iniciar módulo
-  if (!iniciar_modulo(&recursos, archivo_config))
+  // Start the module
+  if (!start_module(&recursos, config_path))
   {
-    cerrar_modulo_error(&recursos);
+    close_module_error(&recursos);
     return EXIT_FAILURE;
   }
 
-  // Inicializar datos para el servidor
-  inicializar_colas_mutex(&recursos);
-  t_datos_servidor_escucha datos;
-  inicializar_datos_server_escucha(
-      &datos, recursos.socket_server, recursos.logger, recursos.lista_mutex,
-      recursos.colas, recursos.socket_km_mutex, path_proceso_inicial);
+  // Initialize data for the server
+  init_queues_mutex(&recursos);
+  t_listen_server_data data;
+  init_data_server_listen(&data, recursos.socket_server, recursos.logger,
+                          recursos.mutex_list, recursos.queues,
+                          recursos.km_socket_mutex, initial_process_path);
 
-  // Empezar a escuchar servidor
-  servidor_escucha(&datos);
+  // Empezar a escuchar server
+  server_listen(&data);
 
-  // Liberar y Cerrar
-  cerrar_modulo(&recursos);
+  // Release and close
+  close_module(&recursos);
   return EXIT_SUCCESS;
 }

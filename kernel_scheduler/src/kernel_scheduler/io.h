@@ -8,50 +8,50 @@
 #include "utils/log.h"
 #include "utils/string.h"
 
-/****************** FUNCIONES DE IO ******************/
+/****************** IO FUNCTIONS ******************/
 
 typedef struct
 {
-  t_list* lista_io;
-  pthread_mutex_t mutex_lista_io;
-} t_lista_io;
+  t_list* io_list;
+  pthread_mutex_t io_list_mutex;
+} t_io_list;
 typedef struct
 {
   int socket_io;
-  pthread_mutex_t mutex_fin;
-  t_pcb* proceso_actual;
-  bool prioridad_activa;
-  pthread_cond_t nuevo_proceso;
-  t_colas* colas;
+  pthread_mutex_t done_mutex;
+  t_pcb* current_process;
+  bool priority_active;
+  pthread_cond_t new_process;
+  t_queues* queues;
   t_log* logger;
-  t_socket_kernel_memory* socket_km;
+  t_kernel_memory_socket* km_socket;
   int socket_server;
-  bool cerrar_hilo;
-  pthread_t hilo_io;
-  t_lista_io* lista_io;
-  int tipo_io;
+  bool close_thread;
+  pthread_t io_thread;
+  t_io_list* io_list;
+  int io_type;
 } t_io;
 
 typedef struct
 {
   t_pcb* pcb;
-  t_stdin_request* peticion;
+  t_stdin_request* request;
 } t_stdin;
 
 typedef struct
 {
   t_pcb* pcb;
-  t_stdout_request* peticion;
+  t_stdout_request* request;
 } t_stdout;
 
 typedef struct
 {
   t_pcb* pcb;
-  t_sleep_request* peticion;
+  t_sleep_request* request;
 } t_sleep;
 
-t_io* crear_estructuras_io(void);
-bool atender_nuevo_io(t_io io[3], int socket_fd, t_colas* colas,
-                      bool prioridad_activa, int socket_server);
-bool procesar_nuevo_io(void* peticion, t_io* io, t_pcb* pcb);
-void cerrar_io(t_io* io);
+t_io* create_estructuras_io(void);
+bool handle_new_io(t_io io[3], int socket_fd, t_queues* queues,
+                   bool priority_active, int socket_server);
+bool procesar_new_io(void* request, t_io* io, t_pcb* pcb);
+void close_io(t_io* io);

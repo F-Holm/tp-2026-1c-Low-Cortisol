@@ -2,128 +2,130 @@
 
 #include "utils/msg.h"
 
-static bool respuesta_km_mem_alloc(t_colas* colas);
-static bool hay_espacio(t_syscall_memory* mem_alloc, t_colas* colas);
-static bool respuesta_km_mem_free(t_colas* colas);
+static bool response_km_mem_alloc(t_queues* queues);
+static bool has_space(t_syscall_memory* mem_alloc, t_queues* queues);
+static bool response_km_mem_free(t_queues* queues);
 
-bool allocate_memory(t_syscall_memory* mem_alloc, t_colas* colas)
+bool allocate_memory(t_syscall_memory* mem_alloc, t_queues* queues)
 {
-  pthread_mutex_lock(&(colas->socket_km->mutex_socket));
-  if (!hay_espacio(mem_alloc, colas))
+  pthread_mutex_lock(&(queues->km_socket->socket_mutex));
+  if (!has_space(mem_alloc, queues))
   {
-    log_info(colas->logger, "No Hay espacio suficiente");
-    pthread_mutex_unlock(&(colas->socket_km->mutex_socket));
+    log_info(queues->logger, "Not enough space");
+    pthread_mutex_unlock(&(queues->km_socket->socket_mutex));
     return false;
   }
 
   int mem_alloc_size = sizeof(t_syscall_memory);
   bool comms = send_buffer(OP_SYSCALL_MEM_ALLOC, mem_alloc, mem_alloc_size,
-                           colas->socket_km->socket_km);
+                           queues->km_socket->km_socket);
 
   if (!comms)
   {
-    log_error(colas->logger, "Error en la comunicacion con el Kernel Memory");
-    cerrar_kernel_scheduler(colas->socket_servidor, colas->logger,
-                            MC_ERROR_ENVIO_KERNEL_MEMORY,
-                            colas->socket_km->socket_km);
-    pthread_mutex_unlock(&(colas->socket_km->mutex_socket));
+    log_error(queues->logger,
+              "Error in the communication with the Kernel Memory");
+    close_kernel_scheduler(queues->server_socket, queues->logger,
+                           SR_KERNEL_MEMORY_SEND_ERROR,
+                           queues->km_socket->km_socket);
+    pthread_mutex_unlock(&(queues->km_socket->socket_mutex));
     return false;
   }
 
-  comms = respuesta_km_mem_alloc(colas);
-  pthread_mutex_unlock(&(colas->socket_km->mutex_socket));
+  comms = response_km_mem_alloc(queues);
+  pthread_mutex_unlock(&(queues->km_socket->socket_mutex));
   return comms;
 }
 
-bool free_memory(t_syscall_memory* mem_free, t_colas* colas)
+bool free_memory(t_syscall_memory* mem_free, t_queues* queues)
 {
   int mem_free_size = sizeof(t_syscall_memory);
-  pthread_mutex_lock(&(colas->socket_km->mutex_socket));
+  pthread_mutex_lock(&(queues->km_socket->socket_mutex));
   bool comms = send_buffer(OP_SYSCALL_MEM_FREE, mem_free, mem_free_size,
-                           colas->socket_km->socket_km);
+                           queues->km_socket->km_socket);
 
   if (!comms)
   {
-    log_error(colas->logger, "Error en la comunicacion con el Kernel Memory");
-    cerrar_kernel_scheduler(colas->socket_servidor, colas->logger,
-                            MC_ERROR_ENVIO_KERNEL_MEMORY,
-                            colas->socket_km->socket_km);
-    pthread_mutex_unlock(&(colas->socket_km->mutex_socket));
+    log_error(queues->logger,
+              "Error in the communication with the Kernel Memory");
+    close_kernel_scheduler(queues->server_socket, queues->logger,
+                           SR_KERNEL_MEMORY_SEND_ERROR,
+                           queues->km_socket->km_socket);
+    pthread_mutex_unlock(&(queues->km_socket->socket_mutex));
     return false;
   }
 
-  // Ahora aguardo a que el km me envíe el "OK"
-  comms = respuesta_km_mem_free(colas);
-  crear_hilo_rutina_des_suspension(colas);
-  pthread_mutex_unlock(&(colas->socket_km->mutex_socket));
+  // Now wait for the km to send the "OK"
+  comms = response_km_mem_free(queues);
+  create_thread_routine_resume_suspension(queues);
+  pthread_mutex_unlock(&(queues->km_socket->socket_mutex));
   return comms;
 }
 
-static bool respuesta_km_mem_alloc(t_colas* colas)
+static bool response_km_mem_alloc(t_queues* queues)
 {
   int cod_op = -1;
 
-  cod_op = receive_op_code(colas->socket_km->socket_km);
+  cod_op = receive_op_code(queues->km_socket->km_socket);
 
   switch (cod_op)
   {
     case OP_MEMORY_CORRUPTED:
-      free(receive_string(colas->socket_km->socket_km));
-      cerrar_kernel_scheduler(colas->socket_servidor, colas->logger,
-                              MC_MEMORIA_CORRUPTA, -1);
+      free(receive_string(queues->km_socket->km_socket));
+      close_kernel_scheduler(queues->server_socket, queues->logger,
+                             SR_CORRUPTED_MEMORY, -1);
       return true;
     case OP_SEGMENT_SIZE_EXCEEDED:
-      free(receive_string(colas->socket_km->socket_km));
+      free(receive_string(queues->km_socket->km_socket));
       return false;
     case OP_MEMORY_ALLOCATED:
-      free(receive_string(colas->socket_km->socket_km));
+      free(receive_string(queues->km_socket->km_socket));
       return true;
     case OP_COMPACTION_NEEDED:
-      free(receive_string(colas->socket_km->socket_km));
-      rutina_compactacion(colas);
-      return respuesta_km_mem_alloc(colas);
+      free(receive_string(queues->km_socket->km_socket));
+      routine_compaction(queues);
+      return response_km_mem_alloc(queues);
     case OP_NEW_MEMORY_STICK:
-      free(receive_string(colas->socket_km->socket_km));
-      crear_hilo_rutina_des_suspension(colas);
-      return respuesta_km_mem_alloc(colas);
+      free(receive_string(queues->km_socket->km_socket));
+      create_thread_routine_resume_suspension(queues);
+      return response_km_mem_alloc(queues);
     default:
-      free(receive_string(colas->socket_km->socket_km));
-      cerrar_kernel_scheduler(colas->socket_servidor, colas->logger,
-                              MC_FALLO_CONEXION_KERNEL_MEMORY, -1);
+      free(receive_string(queues->km_socket->km_socket));
+      close_kernel_scheduler(queues->server_socket, queues->logger,
+                             SR_KERNEL_MEMORY_CONNECTION_FAILURE, -1);
       return true;
   }
 }
 
-static bool hay_espacio(t_syscall_memory* mem_alloc, t_colas* colas)
+static bool has_space(t_syscall_memory* mem_alloc, t_queues* queues)
 {
-  int espacio = espacio_disponible_sin_mutex(colas, mem_alloc->pid);
-  return espacio >= mem_alloc->size;
+  int space = space_available_no_mutex(queues, mem_alloc->pid);
+  return space >= mem_alloc->size;
 }
 
-static bool respuesta_km_mem_free(t_colas* colas)
+static bool response_km_mem_free(t_queues* queues)
 {
   int cod_op = -1;
 
-  cod_op = receive_op_code(colas->socket_km->socket_km);
+  cod_op = receive_op_code(queues->km_socket->km_socket);
 
   switch (cod_op)
   {
     case OP_MEMORY_CORRUPTED:
-      free(receive_string(colas->socket_km->socket_km));
-      cerrar_kernel_scheduler(colas->socket_servidor, colas->logger,
-                              MC_MEMORIA_CORRUPTA, -1);
+      free(receive_string(queues->km_socket->km_socket));
+      close_kernel_scheduler(queues->server_socket, queues->logger,
+                             SR_CORRUPTED_MEMORY, -1);
       return false;
     case OP_MEMORY_FREED:
-      free(receive_string(colas->socket_km->socket_km));
+      free(receive_string(queues->km_socket->km_socket));
       return true;
     case OP_NEW_MEMORY_STICK:
-      free(receive_string(colas->socket_km->socket_km));
-      crear_hilo_rutina_des_suspension(colas);
-      return respuesta_km_mem_free(colas);
+      free(receive_string(queues->km_socket->km_socket));
+      create_thread_routine_resume_suspension(queues);
+      return response_km_mem_free(queues);
     default:
-      free(receive_string(colas->socket_km->socket_km));
-      cerrar_kernel_scheduler(colas->socket_servidor, colas->logger,
-                              MC_FALLO_CONEXION_KERNEL_MEMORY, -1);
+      free(receive_string(queues->km_socket->km_socket));
+      close_kernel_scheduler(queues->server_socket, queues->logger,
+                             SR_KERNEL_MEMORY_CONNECTION_FAILURE, -1);
       return false;
   }
 }

@@ -5,122 +5,122 @@
 
 #include "utils/msg.h"
 
-static int conectar_kernel_memory(char* ip, char* puerto, t_log* logger);
-static bool handshake_kernel_memory(int socket_km, t_log* logger);
-static void* hilo_verificar_conexion_kernel_memory(void* arg);
+static int connect_kernel_memory(char* ip, char* port, t_log* logger);
+static bool handshake_kernel_memory(int km_socket, t_log* logger);
+static void* thread_check_connection_kernel_memory(void* arg);
 
-int iniciar_conexion_kernel_memory(char* ip, char* puerto, t_log* logger)
+int start_connection_kernel_memory(char* ip, char* port, t_log* logger)
 {
-  int socket_km = conectar_kernel_memory(ip, puerto, logger);
-  if (socket_km <= 0)
+  int km_socket = connect_kernel_memory(ip, port, logger);
+  if (km_socket <= 0)
     return -1;
 
-  if (!handshake_kernel_memory(socket_km, logger))
+  if (!handshake_kernel_memory(km_socket, logger))
     return -1;
 
-  return socket_km;
+  return km_socket;
 }
 
-bool avisar_terminar_proceso(t_socket_kernel_memory* socket_km, uint32_t pid,
-                             int socket_servidor, t_log* logger)
+bool notify_terminate_process(t_kernel_memory_socket* km_socket, uint32_t pid,
+                              int server_socket, t_log* logger)
 {
-  pthread_mutex_lock(&(socket_km->mutex_socket));
+  pthread_mutex_lock(&(km_socket->socket_mutex));
   bool ret =
-      send_buffer(OP_END_PROCESS, &pid, sizeof(uint32_t), socket_km->socket_km);
+      send_buffer(OP_END_PROCESS, &pid, sizeof(uint32_t), km_socket->km_socket);
   if (!ret)
   {
-    cerrar_kernel_scheduler(socket_servidor, logger,
-                            MC_ERROR_ENVIO_KERNEL_MEMORY, socket_km->socket_km);
+    close_kernel_scheduler(server_socket, logger, SR_KERNEL_MEMORY_SEND_ERROR,
+                           km_socket->km_socket);
   }
-  pthread_mutex_unlock(&(socket_km->mutex_socket));
+  pthread_mutex_unlock(&(km_socket->socket_mutex));
   return ret;
 }
 
-t_datos_hilo_verificar_conexion* iniciar_hilo_verificar_conexion_kernel_memory(
-    int socket_servidor, t_log* logger, t_socket_kernel_memory* socket_km)
+t_connection_check_thread* start_thread_check_connection_kernel_memory(
+    int server_socket, t_log* logger, t_kernel_memory_socket* km_socket)
 {
-  t_datos_hilo_verificar_conexion* datos =
-      malloc(sizeof(t_datos_hilo_verificar_conexion));
-  datos->socket_servidor = socket_servidor;
-  datos->logger = logger;
-  datos->socket_km = socket_km;
-  datos->cerrar = false;
-  pthread_mutex_init(&(datos->mutex_cerrar), NULL);
+  t_connection_check_thread* data = malloc(sizeof(t_connection_check_thread));
+  data->server_socket = server_socket;
+  data->logger = logger;
+  data->km_socket = km_socket;
+  data->close = false;
+  pthread_mutex_init(&(data->close_mutex), NULL);
 
-  if (pthread_create(&(datos->hilo), NULL,
-                     hilo_verificar_conexion_kernel_memory, datos) != 0)
+  if (pthread_create(&(data->thread), NULL,
+                     thread_check_connection_kernel_memory, data) != 0)
   {
     log_error(logger,
-              "Error en la creación del hilo verificador de la conexión con "
+              "Error in the creation the connection-check thread of the "
+              "connection with "
               "Kernel Memory");
   }
-  return datos;
+  return data;
 }
 
-void destruir_hilo_verificar_conexion_kernel_memory(
-    t_datos_hilo_verificar_conexion* datos)
+void destroy_thread_check_connection_kernel_memory(
+    t_connection_check_thread* data)
 {
-  pthread_mutex_lock(&(datos->mutex_cerrar));
-  datos->cerrar = true;
-  pthread_mutex_unlock(&(datos->mutex_cerrar));
-  pthread_join(datos->hilo, NULL);
-  pthread_mutex_destroy(&(datos->mutex_cerrar));
-  free(datos);
+  pthread_mutex_lock(&(data->close_mutex));
+  data->close = true;
+  pthread_mutex_unlock(&(data->close_mutex));
+  pthread_join(data->thread, NULL);
+  pthread_mutex_destroy(&(data->close_mutex));
+  free(data);
 }
 
-static int conectar_kernel_memory(char* ip, char* puerto, t_log* logger)
+static int connect_kernel_memory(char* ip, char* port, t_log* logger)
 {
-  int socket_km = create_connection(ip, puerto);
-  if (socket_km <= 0)
+  int km_socket = create_connection(ip, port);
+  if (km_socket <= 0)
   {
-    log_error(logger, "Error de conexión con Kernel Memory");
+    log_error(logger, "Error of connection with Kernel Memory");
     return -1;
   }
-  log_info(logger, "## Conectado a Kernel Memory");
-  return socket_km;
+  log_info(logger, "## Connected to Kernel Memory");
+  return km_socket;
 }
 
-static bool handshake_kernel_memory(int socket_km, t_log* logger)
+static bool handshake_kernel_memory(int km_socket, t_log* logger)
 {
-  if (!send_handshake(MID_KERNEL_SCHEDULER, socket_km))
+  if (!send_handshake(MID_KERNEL_SCHEDULER, km_socket))
   {
-    log_error(logger, "Error en el envio del Handshake con Kernel Memory");
+    log_error(logger, "Error in the sending the handshake with Kernel Memory");
     return false;
   }
-  if (receive_handshake(socket_km) != MID_KERNEL_MEMORY)
+  if (receive_handshake(km_socket) != MID_KERNEL_MEMORY)
   {
-    log_error(logger, "Error en la recepción del Handshake con Kernel Memory");
+    log_error(logger,
+              "Error in the reception of the Handshake with Kernel Memory");
     return false;
   }
-  log_info(logger, "Handshake exitoso con Kernel Memory");
+  log_info(logger, "Handshake successful with Kernel Memory");
   return true;
 }
 
-static void* hilo_verificar_conexion_kernel_memory(void* args)
+static void* thread_check_connection_kernel_memory(void* args)
 {
-  t_datos_hilo_verificar_conexion* datos =
-      (t_datos_hilo_verificar_conexion*)args;
-  bool seguir_operando = true;
-  while (seguir_operando)
+  t_connection_check_thread* data = (t_connection_check_thread*)args;
+  bool keep_running = true;
+  while (keep_running)
   {
     usleep(500000);
-    pthread_mutex_lock(&(datos->socket_km->mutex_socket));
-    seguir_operando = send_string(OP_KERNEL_MEMORY_RUNNING,
-                                  "¿El Kernel Memory sigue conectado?",
-                                  datos->socket_km->socket_km);
-    if (!seguir_operando)
+    pthread_mutex_lock(&(data->km_socket->socket_mutex));
+    keep_running = send_string(OP_KERNEL_MEMORY_RUNNING,
+                               "Is Kernel Memory still connected?",
+                               data->km_socket->km_socket);
+    if (!keep_running)
     {
-      cerrar_kernel_scheduler(datos->socket_servidor, datos->logger,
-                              MC_ERROR_ENVIO_KERNEL_MEMORY,
-                              datos->socket_km->socket_km);
+      close_kernel_scheduler(data->server_socket, data->logger,
+                             SR_KERNEL_MEMORY_SEND_ERROR,
+                             data->km_socket->km_socket);
     }
     else
     {
-      pthread_mutex_lock(&(datos->mutex_cerrar));
-      seguir_operando = !datos->cerrar;
-      pthread_mutex_unlock(&(datos->mutex_cerrar));
+      pthread_mutex_lock(&(data->close_mutex));
+      keep_running = !data->close;
+      pthread_mutex_unlock(&(data->close_mutex));
     }
-    pthread_mutex_unlock(&(datos->socket_km->mutex_socket));
+    pthread_mutex_unlock(&(data->km_socket->socket_mutex));
   }
   return NULL;
 }
