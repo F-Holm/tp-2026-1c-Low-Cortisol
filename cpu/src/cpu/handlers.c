@@ -10,7 +10,6 @@
 #include "utils/syscalls.h"
 
 /*             BASIC INSTRUCTIONS HANDLED BY THE CPU           */
-
 t_extended_bool handler_noop(t_cpu* cpu, t_context* context,
                              t_instruction* instruction, uint32_t pid)
 {
@@ -62,7 +61,6 @@ t_extended_bool handler_jnz(t_cpu* cpu, t_context* context,
 }
 
 /*             INSTRUCTIONS THAT TOUCH MEMORY           */
-
 t_extended_bool handler_mov_in(t_cpu* cpu, t_context* context,
                                t_instruction* instruction, uint32_t pid)
 {
@@ -152,7 +150,6 @@ t_extended_bool handler_copy_mem(t_cpu* cpu, t_context* context,
 }
 
 /*             SYSCALLS (HANDLED BY THE SCHEDULER)           */
-
 t_extended_bool handler_mutex_create(t_cpu* cpu, t_context* context,
                                      t_instruction* instruction, uint32_t pid)
 {
