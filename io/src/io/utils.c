@@ -54,7 +54,7 @@ bool iniciar_enviar_tipo_io(t_modulo_io* modulo_io)
   log_info(modulo_io->logger, " Handshake exitoso con Kernel Scheduler");
 
   envio_correcto = enviar_string(
-      OP_TIPO_IO, (char*)V_TIPO_IO[modulo_io->tipo_io], modulo_io->socket_io);
+      OP_TIPO_IO, (char*)IO_TYPE_NAMES[modulo_io->tipo_io], modulo_io->socket_io);
   if (!envio_correcto)
   {
     log_error(modulo_io->logger, " Error en el Envío de tipo de IO");
@@ -74,15 +74,15 @@ bool args(int argc, char** argv, t_modulo_io* modulo_io)
   char* archivo_config = argv[1];
   modulo_io->config = config_create(archivo_config);
   // Chequeo si la operacion de IO recibida existe
-  if (strcmp(V_TIPO_IO[E_STDIN], argv[2]) == 0)
+  if (strcmp(IO_TYPE_NAMES[E_STDIN], argv[2]) == 0)
   {
     modulo_io->tipo_io = E_STDIN;
   }
-  else if (strcmp(V_TIPO_IO[E_STDOUT], argv[2]) == 0)
+  else if (strcmp(IO_TYPE_NAMES[E_STDOUT], argv[2]) == 0)
   {
     modulo_io->tipo_io = E_STDOUT;
   }
-  else if (strcmp(V_TIPO_IO[E_SLEEP], argv[2]) == 0)
+  else if (strcmp(IO_TYPE_NAMES[E_SLEEP], argv[2]) == 0)
   {
     modulo_io->tipo_io = E_SLEEP;
   }

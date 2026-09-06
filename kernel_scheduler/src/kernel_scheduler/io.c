@@ -87,11 +87,11 @@ bool atender_nuevo_io(t_io io[3], int socket_fd, t_colas* colas,
                      (void*)(&(io[tipo_io]))))
   {
     log_error(colas->logger, "Error al crear el hilo para IO de tipo %s",
-              V_TIPO_IO[tipo_io]);
+              IO_TYPE_NAMES[tipo_io]);
     return false;
   }
   log_info(colas->logger, "Se creo el hilo de io de tipo %s",
-           V_TIPO_IO[tipo_io]);
+           IO_TYPE_NAMES[tipo_io]);
   return true;
 }
 
@@ -551,7 +551,7 @@ static void* hilo_io(void* hilo_io)
     {
       seguir_atendiendo = false;
       log_error(io->logger, "Error en la operacion de io de tipo %s",
-                V_TIPO_IO[io->tipo_io]);
+                IO_TYPE_NAMES[io->tipo_io]);
     }
   }
   cerrar_hilo_io(io);
@@ -569,11 +569,11 @@ static int obtener_tipo_io(int socket_fd, t_log* logger)
   char* buffer = recibir_string(socket_fd);
   int tipo_io;
 
-  if (strcmp(buffer, V_TIPO_IO[E_STDIN]) == 0)
+  if (strcmp(buffer, IO_TYPE_NAMES[E_STDIN]) == 0)
     tipo_io = E_STDIN;
-  else if (strcmp(buffer, V_TIPO_IO[E_STDOUT]) == 0)
+  else if (strcmp(buffer, IO_TYPE_NAMES[E_STDOUT]) == 0)
     tipo_io = E_STDOUT;
-  else if (strcmp(buffer, V_TIPO_IO[E_SLEEP]) == 0)
+  else if (strcmp(buffer, IO_TYPE_NAMES[E_SLEEP]) == 0)
     tipo_io = E_SLEEP;
   else
   {

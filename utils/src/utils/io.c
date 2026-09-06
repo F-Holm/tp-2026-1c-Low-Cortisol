@@ -1,3 +1,3 @@
-#include "io.h"
+#include "utils/io.h"
 
-const char* const V_TIPO_IO[] = {"STDIN", "STDOUT", "SLEEP"};
+const char* const IO_TYPE_NAMES[] = {"STDIN", "STDOUT", "SLEEP"};

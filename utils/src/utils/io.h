@@ -20,6 +20,6 @@ typedef enum
   E_STDOUT,
   E_SLEEP
 
-} t_tipo_io;
+} t_io_type;
 
-extern const char* const V_TIPO_IO[3];
+extern const char* const IO_TYPE_NAMES[3];
