@@ -15,7 +15,7 @@
 
 int main(int argc, char* argv[])
 {
-  t_ms_recursos ms_recursos = {0};
+  t_ms ms_recursos = {0};
   pthread_t thread_server_cpu;
 
   // args
@@ -26,10 +26,10 @@ int main(int argc, char* argv[])
     return EXIT_FAILURE;
 
   // Iniciar módulo
-  if (!iniciar_modulo(&ms_recursos, archivo_config, tamanio_str,
+  if (!init_module(&ms_recursos, archivo_config, tamanio_str,
                       &thread_server_cpu))
   {
-    cerrar_modulo_error(&ms_recursos);
+    close_module_on_error(&ms_recursos);
     return EXIT_FAILURE;
   }
 
@@ -53,7 +53,7 @@ int main(int argc, char* argv[])
         }
         int posicion_inicial = *(int*)list_get(packet, 0);
         int cantidad_bytes = *(int*)list_get(packet, 1);
-        leer_memoria(&ms_recursos, posicion_inicial, cantidad_bytes,
+        read_memory(&ms_recursos, posicion_inicial, cantidad_bytes,
                      ms_recursos.socket_km);
         log_info(ms_recursos.logger, "## Lectura de %d bytes", cantidad_bytes);
         list_destroy_and_destroy_elements(packet, free);
@@ -77,7 +77,7 @@ int main(int argc, char* argv[])
                  "Escritura por parte del Kernel memory de %d bytes, desde "
                  "%d",
                  cantidad_bytes, posicion_inicial);
-        escribir_memoria(&ms_recursos, posicion_inicial, bytes_a_escribir,
+        write_memory(&ms_recursos, posicion_inicial, bytes_a_escribir,
                          cantidad_bytes, ms_recursos.socket_km);
         log_info(ms_recursos.logger, "## Escritura de %d bytes",
                  cantidad_bytes);
@@ -91,6 +91,6 @@ int main(int argc, char* argv[])
   }
 
   // Liberar y Cerrar
-  cerrar_modulo(&ms_recursos, &thread_server_cpu);
+  close_module(&ms_recursos, &thread_server_cpu);
   return EXIT_SUCCESS;
 }

@@ -33,7 +33,7 @@ void iterator_shutdown(void* value)
 t_cpu_thread* create_cpu_thread_data(int socket_cpu, t_list* socket_list,
                                      pthread_mutex_t* socket_list_mutex,
                                      pthread_cond_t* listen_done_cond,
-                                     t_ms_recursos* ms)
+                                     t_ms* ms)
 {
   t_cpu_thread* data = malloc(sizeof(t_cpu_thread));
   data->socket_cpu = socket_cpu;
@@ -101,7 +101,7 @@ char* receive_cpu_id(int socket_cpu, t_log* logger)
 
 bool handle_new_cpu(t_listen_thread* listen_thread, int socket_cpu,
                     t_list* socket_list, pthread_mutex_t* socket_list_mutex,
-                    pthread_cond_t* listen_done_cond, t_ms_recursos* ms)
+                    pthread_cond_t* listen_done_cond, t_ms* ms)
 {
   if (!handshake_cpu(socket_cpu, listen_thread->logger))
     return false;
@@ -197,7 +197,7 @@ void* handle_cpu_client(void* cpu_thread_void)
                  "Read of %d bytes, from %d, requested by the CPU", byte_count,
                  start_position);
         list_destroy_and_destroy_elements(packet, free);
-        leer_memoria(cpu_thread->ms, start_position, byte_count,
+        read_memory(cpu_thread->ms, start_position, byte_count,
                     cpu_thread->socket_cpu);
         break;
       }
@@ -216,7 +216,7 @@ void* handle_cpu_client(void* cpu_thread_void)
         int start_position = *(int*)list_get(packet, 0);
         char* bytes_to_write = (char*)list_get(packet, 1);
         int byte_count = *(int*)list_get(packet, 2);
-        escribir_memoria(cpu_thread->ms, start_position, bytes_to_write, byte_count,
+        write_memory(cpu_thread->ms, start_position, bytes_to_write, byte_count,
                      cpu_thread->socket_cpu);
         list_destroy_and_destroy_elements(packet, free);
         break;
@@ -232,7 +232,7 @@ void* handle_cpu_client(void* cpu_thread_void)
 }
 
 bool start_cpu_server(pthread_t* cpu_server_thread, int cpu_server_socket,
-                      t_log* logger, t_ms_recursos* ms)
+                      t_log* logger, t_ms* ms)
 {
   t_listen_thread* listen_thread = malloc(sizeof(t_listen_thread));
   listen_thread->cpu_listen_socket = cpu_server_socket;

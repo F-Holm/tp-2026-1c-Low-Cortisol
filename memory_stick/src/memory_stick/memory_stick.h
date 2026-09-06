@@ -10,8 +10,8 @@ typedef struct
 {
   char* log_level;
   int memory_delay;
-  char* ip_km;
-  char* puerto_km;
+  char* km_ip;
+  char* km_port;
 } t_config_vars;
 
 typedef struct
@@ -21,23 +21,20 @@ typedef struct
   int memory_delay;
   int socket_km;
   int socket_server_cpu;
-  char* memoria;
-  pthread_mutex_t* mutex_memoria;
-} t_ms_recursos;
+  char* memory;
+  pthread_mutex_t* memory_mutex;
+} t_ms;
 
-bool conseguir_y_enviar_puerto(int socket_km, int socket_server_cpu,
-                               t_log* logger);
-bool iniciar_modulo(t_ms_recursos* ms_recursos, char* archivo_config,
-                    char* tamanio, pthread_t* hilo_server_cpu);
-t_config* iniciar_config(char* archivo_config, t_config_vars* config_vars);
-t_log* iniciar_logger(t_log_level log_level);
-void read_confir_ms(t_config* config, t_config_vars* config_vars);
-void cerrar_modulo_error(t_ms_recursos* ms_recursos);
-void cerrar_modulo(t_ms_recursos* ms_recursos, pthread_t* thread_server_cpu);
-bool get_args(int argc, char** argv, char** archivo_config, char** tamanio_str,
-              int* tamanio);
-void escribir_memoria(t_ms_recursos* ms_recursos, int posicion_inicial,
-                      char* bytes_a_escribir, int cantidad_de_bytes,
-                      int socket_destino);
-void leer_memoria(t_ms_recursos* ms_recursos, int posicion_inicial,
-                  int cantidad_de_bytes, int socket_destino);
+bool send_cpu_server_port(int socket_km, int socket_server_cpu, t_log* logger);
+bool init_module(t_ms* ms, char* config_path, char* size,
+                 pthread_t* cpu_server_thread);
+t_config* init_config(char* config_path, t_config_vars* config_vars);
+t_log* init_logger(t_log_level log_level);
+void read_config(t_config* config, t_config_vars* config_vars);
+void close_module_on_error(t_ms* ms);
+void close_module(t_ms* ms, pthread_t* cpu_server_thread);
+bool get_args(int argc, char** argv, char** config_path, char** size_str,
+              int* size);
+void write_memory(t_ms* ms, int start_position, char* bytes_to_write,
+                  int byte_count, int dest_socket);
+void read_memory(t_ms* ms, int start_position, int byte_count, int dest_socket);

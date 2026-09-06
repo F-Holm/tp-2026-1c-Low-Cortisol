@@ -6,157 +6,140 @@
 #include "memory_stick/kernel_memory.h"
 #include "utils/msg.h"
 
-bool conseguir_y_enviar_puerto(int socket_km, int socket_server_cpu,
-                               t_log* logger)
+bool send_cpu_server_port(int socket_km, int socket_server_cpu, t_log* logger)
 {
   if (!send_cpu_server_port_to_km(socket_km, get_cpu_port(socket_server_cpu)))
   {
-    log_error(logger, "## Error en el envio del puerto del servidor para CPU");
+    log_error(logger, "## Error sending the CPU server port");
     return false;
   }
-  log_info(logger, "Envio del puerto del servidor para CPU exitoso");
+  log_info(logger, "CPU server port sent successfully");
   return true;
 }
 
-bool iniciar_modulo(t_ms_recursos* ms_recursos, char* archivo_config,
-                    char* tamanio, pthread_t* hilo_server_cpu)
+bool init_module(t_ms* ms, char* config_path, char* size,
+                 pthread_t* cpu_server_thread)
 {
   t_config_vars config_vars;
 
-  // Config
-  ms_recursos->config = iniciar_config(archivo_config, &config_vars);
-  if (ms_recursos->config == NULL)
+  ms->config = init_config(config_path, &config_vars);
+  if (ms->config == NULL)
     return false;
 
-  // Config vars
-  ms_recursos->memory_delay = config_vars.memory_delay;
+  ms->memory_delay = config_vars.memory_delay;
 
-  // Logger
-  ms_recursos->logger =
-      iniciar_logger(log_level_from_string(config_vars.log_level));
-  if (ms_recursos->logger == NULL)
+  ms->logger = init_logger(log_level_from_string(config_vars.log_level));
+  if (ms->logger == NULL)
     return false;
 
-  // Socket Kernel Memory
-  ms_recursos->socket_km = connect_to_kernel_memory(
-      config_vars.ip_km, config_vars.puerto_km, tamanio, ms_recursos->logger);
-  if (ms_recursos->socket_km <= 0)
+  ms->socket_km = connect_to_kernel_memory(config_vars.km_ip, config_vars.km_port,
+                                           size, ms->logger);
+  if (ms->socket_km <= 0)
     return false;
 
-  // Enviar puerto del servidor a Memory Kernel
-  ms_recursos->socket_server_cpu = create_server_cpu(ms_recursos->logger);
-  if (ms_recursos->socket_server_cpu <= 0)
+  ms->socket_server_cpu = create_server_cpu(ms->logger);
+  if (ms->socket_server_cpu <= 0)
     return false;
 
-  // Enviar puerto del servidor a Kernel Memory
-  if (!conseguir_y_enviar_puerto(ms_recursos->socket_km,
-                                 ms_recursos->socket_server_cpu,
-                                 ms_recursos->logger))
+  if (!send_cpu_server_port(ms->socket_km, ms->socket_server_cpu, ms->logger))
     return false;
 
-  // Reservar la memoria indicada en el archivo config
-  ms_recursos->memoria = calloc(atoi(tamanio), sizeof(char));
-  // Mutex
-  ms_recursos->mutex_memoria = malloc(sizeof(pthread_mutex_t));
-  pthread_mutex_init(ms_recursos->mutex_memoria, NULL);
+  // Reserve the amount of memory given in the config file.
+  ms->memory = calloc(atoi(size), sizeof(char));
+  ms->memory_mutex = malloc(sizeof(pthread_mutex_t));
+  pthread_mutex_init(ms->memory_mutex, NULL);
 
-  // Hilo para escuchar nuevas conexiones de CPUs
-  return start_cpu_server(hilo_server_cpu, ms_recursos->socket_server_cpu,
-                            ms_recursos->logger, ms_recursos);
+  // Thread that listens for new CPU connections.
+  return start_cpu_server(cpu_server_thread, ms->socket_server_cpu, ms->logger,
+                          ms);
 }
 
-t_config* iniciar_config(char* archivo_config, t_config_vars* config_vars)
+t_config* init_config(char* config_path, t_config_vars* config_vars)
 {
-  t_config* config = config_create(archivo_config);
+  t_config* config = config_create(config_path);
   if (config != NULL)
-    read_confir_ms(config, config_vars);
+    read_config(config, config_vars);
   return config;
 }
 
-t_log* iniciar_logger(t_log_level log_level)
+t_log* init_logger(t_log_level log_level)
 {
   return log_create("memory_stick.log", "memory_stick", true, log_level, true);
 }
 
-void read_confir_ms(t_config* config, t_config_vars* config_vars)
+void read_config(t_config* config, t_config_vars* config_vars)
 {
   config_vars->log_level = config_get_string_value(config, "LOG_LEVEL");
   config_vars->memory_delay = config_get_int_value(config, "MEMORY_DELAY");
-  config_vars->ip_km = config_get_string_value(config, "KERNEL_MEMORY_IP");
-  config_vars->puerto_km =
-      config_get_string_value(config, "KERNEL_MEMORY_PORT");
+  config_vars->km_ip = config_get_string_value(config, "KERNEL_MEMORY_IP");
+  config_vars->km_port = config_get_string_value(config, "KERNEL_MEMORY_PORT");
 }
 
-void cerrar_modulo_error(t_ms_recursos* ms_recursos)
+void close_module_on_error(t_ms* ms)
 {
-  if (ms_recursos->socket_server_cpu > 0)
-    close(ms_recursos->socket_server_cpu);
-  if (ms_recursos->socket_km > 0)
-    close(ms_recursos->socket_km);
-  if (ms_recursos->logger != NULL)
-    log_destroy(ms_recursos->logger);
-  if (ms_recursos->config != NULL)
-    config_destroy(ms_recursos->config);
-  if (ms_recursos->memoria != NULL)
-    free(ms_recursos->memoria);
-  if (ms_recursos->mutex_memoria != NULL)
+  if (ms->socket_server_cpu > 0)
+    close(ms->socket_server_cpu);
+  if (ms->socket_km > 0)
+    close(ms->socket_km);
+  if (ms->logger != NULL)
+    log_destroy(ms->logger);
+  if (ms->config != NULL)
+    config_destroy(ms->config);
+  if (ms->memory != NULL)
+    free(ms->memory);
+  if (ms->memory_mutex != NULL)
   {
-    pthread_mutex_destroy(ms_recursos->mutex_memoria);
-    free(ms_recursos->mutex_memoria);
+    pthread_mutex_destroy(ms->memory_mutex);
+    free(ms->memory_mutex);
   }
 }
 
-void cerrar_modulo(t_ms_recursos* ms_recursos, pthread_t* thread_server_cpu)
+void close_module(t_ms* ms, pthread_t* cpu_server_thread)
 {
-  shutdown(ms_recursos->socket_server_cpu, SHUT_RDWR);
-  pthread_join(*thread_server_cpu, NULL);
-  close(ms_recursos->socket_km);
-  close(ms_recursos->socket_server_cpu);
-  log_destroy(ms_recursos->logger);
-  config_destroy(ms_recursos->config);
-  free(ms_recursos->memoria);
-  pthread_mutex_destroy(ms_recursos->mutex_memoria);
-  free(ms_recursos->mutex_memoria);
+  shutdown(ms->socket_server_cpu, SHUT_RDWR);
+  pthread_join(*cpu_server_thread, NULL);
+  close(ms->socket_km);
+  close(ms->socket_server_cpu);
+  log_destroy(ms->logger);
+  config_destroy(ms->config);
+  free(ms->memory);
+  pthread_mutex_destroy(ms->memory_mutex);
+  free(ms->memory_mutex);
 }
 
-bool get_args(int argc, char** argv, char** archivo_config, char** tamanio_str,
-              int* tamanio)
+bool get_args(int argc, char** argv, char** config_path, char** size_str,
+              int* size)
 {
   if (argc != 3)
     return false;
-  *archivo_config = argv[1];
-  *tamanio_str = argv[2];
-  *tamanio = atoi(*tamanio_str);
-  return tamanio > 0;
+  *config_path = argv[1];
+  *size_str = argv[2];
+  *size = atoi(*size_str);
+  return size > 0;
 }
 
-void leer_memoria(t_ms_recursos* ms_recursos, int posicion_inicial,
-                  int cantidad_de_bytes, int socket_destino)
+void read_memory(t_ms* ms, int start_position, int byte_count, int dest_socket)
 {
-  log_info(ms_recursos->logger, "Memory stick necesita leer %d bytes, desde %d",
-           cantidad_de_bytes, posicion_inicial);
-  char* bytes_a_devolver = calloc(cantidad_de_bytes + 1, 1);
-  pthread_mutex_lock(ms_recursos->mutex_memoria);
-  memcpy(bytes_a_devolver, ms_recursos->memoria + posicion_inicial,
-         cantidad_de_bytes);
-  pthread_mutex_unlock(ms_recursos->mutex_memoria);
-  usleep(ms_recursos->memory_delay * 1000);
-  log_info(ms_recursos->logger, "Memory stick leyo los bytes, %s",
-           bytes_a_devolver);
-  send_buffer(OP_MEMORY_STICK_READ_DONE, bytes_a_devolver, cantidad_de_bytes,
-              socket_destino);
-  free(bytes_a_devolver);
+  log_info(ms->logger, "Memory stick must read %d bytes, from %d", byte_count,
+           start_position);
+  char* bytes_to_return = calloc(byte_count + 1, 1);
+  pthread_mutex_lock(ms->memory_mutex);
+  memcpy(bytes_to_return, ms->memory + start_position, byte_count);
+  pthread_mutex_unlock(ms->memory_mutex);
+  usleep(ms->memory_delay * 1000);
+  log_info(ms->logger, "Memory stick read the bytes, %s", bytes_to_return);
+  send_buffer(OP_MEMORY_STICK_READ_DONE, bytes_to_return, byte_count,
+              dest_socket);
+  free(bytes_to_return);
 }
 
-void escribir_memoria(t_ms_recursos* ms_recursos, int posicion_inicial,
-                      char* bytes_a_escribir, int cantidad_de_bytes,
-                      int socket_destino)
+void write_memory(t_ms* ms, int start_position, char* bytes_to_write,
+                  int byte_count, int dest_socket)
 {
-  pthread_mutex_lock(ms_recursos->mutex_memoria);
-  memcpy(ms_recursos->memoria + posicion_inicial, bytes_a_escribir,
-         cantidad_de_bytes);
-  pthread_mutex_unlock(ms_recursos->mutex_memoria);
-  log_info(ms_recursos->logger, "Se escribieron %d bytes", cantidad_de_bytes);
-  usleep(ms_recursos->memory_delay * 1000);
-  send_string(OP_MEMORY_STICK_WRITE_DONE, "Escritura Exitosa", socket_destino);
+  pthread_mutex_lock(ms->memory_mutex);
+  memcpy(ms->memory + start_position, bytes_to_write, byte_count);
+  pthread_mutex_unlock(ms->memory_mutex);
+  log_info(ms->logger, "%d bytes written", byte_count);
+  usleep(ms->memory_delay * 1000);
+  send_string(OP_MEMORY_STICK_WRITE_DONE, "Write successful", dest_socket);
 }
