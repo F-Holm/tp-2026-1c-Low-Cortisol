@@ -4,7 +4,7 @@
 
 #include "cpu/cpu.h"
 #include "cpu/cleanup.h"
-#include "cpu/memoria.h"
+#include "cpu/memory.h"
 #include "cpu/registers.h"
 #include "utils/log.h"
 #include "utils/syscalls.h"
@@ -67,12 +67,12 @@ t_extended_bool handler_mov_in(t_cpu* cpu, t_context* context,
   uint32_t phys_addr =
       mmu(cpu, context, context->registers->SI, sizeof(uint32_t), pid);
 
-  if (phys_addr == DIR_INVALIDA)
+  if (phys_addr == INVALID_ADDRESS)
     return EB_FALSE;
-  else if (phys_addr == DIR_INVALIDA - 1)
+  else if (phys_addr == INVALID_ADDRESS - 1)
     return EB_ERROR;
 
-  void* read_value = leer_memoria(cpu, phys_addr, sizeof(uint32_t));
+  void* read_value = read_memory(cpu, phys_addr, sizeof(uint32_t));
   uint32_t value = *(uint32_t*)read_value;
   if (!read_value)
     return EB_ERROR;
@@ -94,12 +94,12 @@ t_extended_bool handler_mov_out(t_cpu* cpu, t_context* context,
   uint32_t phys_addr =
       mmu(cpu, context, context->registers->DI, sizeof(uint32_t), pid);
 
-  if (phys_addr == DIR_INVALIDA)
+  if (phys_addr == INVALID_ADDRESS)
     return EB_FALSE;
-  else if (phys_addr == DIR_INVALIDA - 1)
+  else if (phys_addr == INVALID_ADDRESS - 1)
     return EB_ERROR;
 
-  if (!escribir_memoria(cpu, phys_addr, &value, sizeof(uint32_t)))
+  if (!write_memory(cpu, phys_addr, &value, sizeof(uint32_t)))
     return EB_ERROR;
 
   log_info(cpu->logger,
@@ -117,19 +117,19 @@ t_extended_bool handler_copy_mem(t_cpu* cpu, t_context* context,
 
   uint32_t src_addr =
       mmu(cpu, context, context->registers->SI, sizeof(uint32_t), pid);
-  if (src_addr == DIR_INVALIDA)
+  if (src_addr == INVALID_ADDRESS)
     return EB_FALSE;
-  else if (src_addr == DIR_INVALIDA - 1)
+  else if (src_addr == INVALID_ADDRESS - 1)
     return EB_ERROR;
 
   uint32_t dst_addr =
       mmu(cpu, context, context->registers->DI, sizeof(uint32_t), pid);
-  if (dst_addr == DIR_INVALIDA)
+  if (dst_addr == INVALID_ADDRESS)
     return EB_TRUE;
-  else if (dst_addr == DIR_INVALIDA - 1)
+  else if (dst_addr == INVALID_ADDRESS - 1)
     return EB_ERROR;
 
-  void* read_bytes = leer_memoria(cpu, src_addr, byte_count);
+  void* read_bytes = read_memory(cpu, src_addr, byte_count);
 
   if (!read_bytes)
     return EB_ERROR;
@@ -138,7 +138,7 @@ t_extended_bool handler_copy_mem(t_cpu* cpu, t_context* context,
            "PID: %u - Action: READ - Physical Address: %u - Value: %s", pid,
            src_addr, (char*)read_bytes);
 
-  if (!escribir_memoria(cpu, dst_addr, read_bytes, byte_count))
+  if (!write_memory(cpu, dst_addr, read_bytes, byte_count))
     return EB_ERROR;
 
   log_info(cpu->logger,
