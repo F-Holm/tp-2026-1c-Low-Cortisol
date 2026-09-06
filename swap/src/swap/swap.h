@@ -1,5 +1,4 @@
-#ifndef SWAP_SWAP_H_
-#define SWAP_SWAP_H_
+#pragma once
 
 #include <assert.h>
 #include <netdb.h>
@@ -37,5 +36,3 @@ void escribir_bloque(FILE* archivo_swap, int num_bloque, int tamanio_bloque,
                      char* contenido_a_escribir);
 void leer_bloque(FILE* archivo_swap, int num_bloque, int tamanio_bloque,
                  char* contenido_leido);
-
-#endif  // SWAP_SWAP_H

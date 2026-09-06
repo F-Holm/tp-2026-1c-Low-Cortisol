@@ -1,5 +1,4 @@
-#ifndef UTILS_COLLECTIONS_LIST_H_
-#define UTILS_COLLECTIONS_LIST_H_
+#pragma once
 
 #include <stdbool.h>
 
@@ -107,5 +106,3 @@ void list_iterator_remove(t_list_iterator* iterator);
 
 /** @brief Releases the iterator. Does not touch the list nor its elements. */
 void list_iterator_destroy(t_list_iterator* iterator);
-
-#endif /* UTILS_COLLECTIONS_LIST_H_ */

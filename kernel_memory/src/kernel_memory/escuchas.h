@@ -1,5 +1,4 @@
-#ifndef KERNEL_MEMORY_ESCUCHAS_H_
-#define KERNEL_MEMORY_ESCUCHAS_H_
+#pragma once
 
 #include <pthread.h>
 #include <stdlib.h>
@@ -22,5 +21,3 @@ void* escucha_swap(void* ptr);
 void empezar_escucha_scheduler(t_datos_scheduler* datos_scheduler);
 void empezar_escucha_cpu(t_datos_cpu* datos_cpu);
 void empezar_escucha_swap(t_datos_swap* datos_swap);
-
-#endif

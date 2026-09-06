@@ -1,5 +1,4 @@
-#ifndef KERNEL_SCHEDULER_MUTEX_H_
-#define KERNEL_SCHEDULER_MUTEX_H_
+#pragma once
 
 #include <pthread.h>
 #include <stdbool.h>
@@ -46,5 +45,3 @@ int crear_y_add_mutex(t_lista_mutex* lista_mutex, char* id,
                       bool prioridad_activa, t_colas* colas);
 int lista_mutex_lock(t_lista_mutex* lista_mutex, char* id, t_pcb* pcb);
 int lista_mutex_unlock(t_lista_mutex* lista_mutex, char* id, t_pcb* pcb);
-
-#endif /* KERNEL_SCHEDULER_MUTEX_H_ */

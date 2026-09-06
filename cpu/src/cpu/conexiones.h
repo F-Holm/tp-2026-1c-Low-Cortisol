@@ -1,5 +1,4 @@
-#ifndef CPU_CONEXIONES_H_
-#define CPU_CONEXIONES_H_
+#pragma once
 
 #include <stdio.h>
 
@@ -14,5 +13,3 @@ bool conectar_memory_stick(t_cpu* cpu);
 uint32_t calcular_offset(t_list* sticks);
 bool handshake_memory_stick(t_cpu* cpu, int nuevo_socket);
 void avisar_bsod(t_cpu* cpu);
-
-#endif /* CPU_CONEXIONES_H_ */

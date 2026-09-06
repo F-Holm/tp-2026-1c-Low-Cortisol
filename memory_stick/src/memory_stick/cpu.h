@@ -1,5 +1,4 @@
-#ifndef MEMORY_STICK_CPU_H_
-#define MEMORY_STICK_CPU_H_
+#pragma once
 
 #include <arpa/inet.h>
 #include <netinet/in.h>
@@ -56,5 +55,3 @@ void* manejar_cliente_cpu(void* datos_hilo_cpu_void);
 void cerrar_hilo_cpu(t_datos_hilo_cpu* datos_hilo_cpu);
 bool crear_servidor_cpu(pthread_t* thread_server_cpu, int socket_servidor_cpu,
                         t_logger* logger, t_ms_recursos* ms_recursos);
-
-#endif /* MEMORY_STICK_CPU_H_ */

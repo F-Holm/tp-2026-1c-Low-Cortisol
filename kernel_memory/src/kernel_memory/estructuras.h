@@ -1,5 +1,4 @@
-#ifndef KERNEL_MEMORY_ESTRUCTURAS_H_
-#define KERNEL_MEMORY_ESTRUCTURAS_H_
+#pragma once
 
 #include <pthread.h>
 
@@ -121,5 +120,3 @@ typedef struct
   int num_bloque_del_segmento;
   int tamanio_segmento;
 } t_datos_bloque;
-
-#endif

@@ -1,5 +1,4 @@
-#ifndef CPU_MEMORIA_H_
-#define CPU_MEMORIA_H_
+#pragma once
 
 #include <stdio.h>
 
@@ -23,5 +22,3 @@ bool solicitar_escritura_MS(t_cpu* cpu, t_memory_stick_info* stick,
                             uint32_t dir_en_stick, void* datos,
                             uint32_t bytes_a_escribir);
 bool confirmacion_escritura_MS(t_cpu* cpu, t_memory_stick_info* stick);
-
-#endif /* CPU_MEMORIA_H_ */

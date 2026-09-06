@@ -1,5 +1,4 @@
-#ifndef KERNEL_MEMORY_LIBERADOR_H
-#define KERNEL_MEMORY_LIBERADOR_H
+#pragma once
 
 #include <pthread.h>
 #include <stdlib.h>
@@ -17,5 +16,3 @@ void liberar_datos_stick(t_datos_stick* datos_stick);
 void liberar_datos_swap(t_datos_swap* datos_swap);
 void liberar_proceso(t_proceso* proceso);
 void liberar_memoria_principal(t_memoria_principal* memoria);
-
-#endif

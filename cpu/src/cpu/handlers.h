@@ -1,5 +1,4 @@
-#ifndef CPU_HANDLERS_H_
-#define CPU_HANDLERS_H_
+#pragma once
 
 #include <stdio.h>
 
@@ -45,5 +44,3 @@ t_bool_extendido handler_init_proc(t_cpu* cpu, t_contexto* contexto,
                                    t_instruccion* instruccion, uint32_t pid);
 t_bool_extendido handler_exit(t_cpu* cpu, t_contexto* contexto,
                               t_instruccion* instruccion, uint32_t pid);
-
-#endif /* CPU_HANDLERS_H_ */

@@ -1,5 +1,4 @@
-#ifndef UTILS_LOG_H_
-#define UTILS_LOG_H_
+#pragma once
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -66,5 +65,3 @@ const char* log_level_as_string(t_log_level level);
  * @return The matching level, or -1 if @p level is not recognized.
  */
 t_log_level log_level_from_string(char* level);
-
-#endif /* UTILS_LOG_H_ */

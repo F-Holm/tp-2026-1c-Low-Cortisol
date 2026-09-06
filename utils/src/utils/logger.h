@@ -1,5 +1,4 @@
-#ifndef UTILS_LOGGER_H_
-#define UTILS_LOGGER_H_
+#pragma once
 
 #include <pthread.h>
 #include <stdbool.h>
@@ -59,5 +58,3 @@ void logger_destroy(t_logger* logger);
     log_error((logger_ptr)->log, __VA_ARGS__);        \
     pthread_mutex_unlock(&((logger_ptr)->mutex_log)); \
   } while (0)
-
-#endif /* UTILS_LOGGER_H_ */

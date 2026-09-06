@@ -1,5 +1,4 @@
-#ifndef CPU_CPU_H_
-#define CPU_CPU_H_
+#pragma once
 
 #include <pthread.h>
 #include <stdio.h>
@@ -65,5 +64,3 @@ t_bool_extendido check_interrupt(t_cpu* cpu, uint32_t pid);
 bool enviar_contexto_actualizado(t_cpu* cpu, uint32_t pid,
                                  t_registros* contexto_actualizado);
 bool actualizar_tabla_segmentos(t_cpu* cpu, uint32_t pid, t_contexto* contexto);
-
-#endif /* CPU_CPU_H_ */

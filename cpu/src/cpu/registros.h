@@ -1,5 +1,4 @@
-#ifndef CPU_REGISTROS_H_
-#define CPU_REGISTROS_H_
+#pragma once
 
 #include <stdio.h>
 
@@ -15,5 +14,3 @@ typedef struct
 
 uint32_t get_registro(t_registros* contexto, char* registro);
 void set_registro(t_registros* contexto, char* registro, uint32_t valor);
-
-#endif /* CPU_REGISTROS_H_ */

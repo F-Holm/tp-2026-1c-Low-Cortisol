@@ -1,5 +1,4 @@
-#ifndef UTILS_SWAP_H_
-#define UTILS_SWAP_H_
+#pragma once
 
 #include <stdint.h>
 #include <stdio.h>
@@ -10,5 +9,3 @@ typedef struct
   int swap_size;
   int block_size;
 } t_envio_a_km;
-
-#endif  // UTILS_SWAP_H_

@@ -1,5 +1,4 @@
-#ifndef KERNEL_MEMORY_PROTOCOLO_H_
-#define KERNEL_MEMORY_PROTOCOLO_H_
+#pragma once
 
 #include <pthread.h>
 #include <stdio.h>
@@ -77,4 +76,3 @@ t_hueco selector_de_huecos(uint32_t tamanio, t_logger* logger,
 void actualizar_lista_segmentos(t_memoria_principal* memoria_principal,
                                 t_hueco hueco_elegido, int tamanio,
                                 uint32_t pid, uint32_t id);
-#endif

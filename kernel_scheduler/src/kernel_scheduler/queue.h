@@ -1,5 +1,4 @@
-#ifndef KERNEL_SCHEDULER_QUEUE_H_
-#define KERNEL_SCHEDULER_QUEUE_H_
+#pragma once
 
 #include <pthread.h>
 #include <stdbool.h>
@@ -197,5 +196,3 @@ bool esta_des_suspendiendo(t_colas* colas);
 // Contadores
 void sumar_contador_syscalls(t_colas* colas);
 void restar_contador_syscalls(t_colas* colas);
-
-#endif /* KERNEL_SCHEDULER_QUEUE_H_ */

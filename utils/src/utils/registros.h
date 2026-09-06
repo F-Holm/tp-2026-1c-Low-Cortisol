@@ -1,5 +1,4 @@
-#ifndef UTILS_REGISTROS_H_
-#define UTILS_REGISTROS_H_
+#pragma once
 
 #include <stdint.h>
 #include <stdio.h>
@@ -18,5 +17,3 @@ typedef struct
   int base;
   int size;
 } t_segmento;
-
-#endif /* UTILS_REGISTROS_H_ */

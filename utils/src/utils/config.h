@@ -1,5 +1,4 @@
-#ifndef UTILS_CONFIG_H_
-#define UTILS_CONFIG_H_
+#pragma once
 
 #include "utils/collections/dictionary.h"
 
@@ -39,5 +38,3 @@ int config_get_int_value(t_config* self, char* key);
  * @return NULL-terminated array; free it with `string_array_destroy()`.
  */
 char** config_get_array_value(t_config* self, char* key);
-
-#endif /* UTILS_CONFIG_H_ */

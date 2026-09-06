@@ -1,5 +1,4 @@
-#ifndef UTILS_KERNEL_SCHEDULER_CPU_H_
-#define UTILS_KERNEL_SCHEDULER_CPU_H_
+#pragma once
 
 #include <stdint.h>
 #include <stdio.h>
@@ -33,5 +32,3 @@ typedef struct
   uint32_t id_segmento;
   uint32_t tamanio;
 } t_syscall_memory;
-
-#endif /* UTILS_KERNEL_SCHEDULER_CPU_H_ */

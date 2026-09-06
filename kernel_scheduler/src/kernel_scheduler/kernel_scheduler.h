@@ -1,5 +1,4 @@
-#ifndef KERNEL_SCHEDULER_KERNEL_SCHEDULER_H_
-#define KERNEL_SCHEDULER_KERNEL_SCHEDULER_H_
+#pragma once
 
 #include <pthread.h>
 #include <stdbool.h>
@@ -50,5 +49,3 @@ bool iniciar_modulo(t_kernel_scheduler_recursos* recursos,
 void inicializar_colas_mutex(t_kernel_scheduler_recursos* recursos);
 void cerrar_modulo_error(t_kernel_scheduler_recursos* recursos);
 void cerrar_modulo(t_kernel_scheduler_recursos* recursos);
-
-#endif

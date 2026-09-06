@@ -1,5 +1,4 @@
-#ifndef KERNEL_SCHEDULER_IO_H_
-#define KERNEL_SCHEDULER_IO_H_
+#pragma once
 
 #include <pthread.h>
 #include <stdbool.h>
@@ -57,5 +56,3 @@ bool atender_nuevo_io(t_io io[3], int socket_fd, t_colas* colas,
                       bool prioridad_activa, int socket_server);
 bool procesar_nuevo_io(void* peticion, t_io* io, t_pcb* pcb);
 void cerrar_io(t_io* io);
-
-#endif /* KERNEL_SCHEDULER_IO_H_ */

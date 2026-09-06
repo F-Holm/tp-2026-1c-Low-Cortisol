@@ -1,5 +1,4 @@
-#ifndef KERNEL_SCHEDULER_MISC_H_
-#define KERNEL_SCHEDULER_MISC_H_
+#pragma once
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -108,5 +107,3 @@ t_contador_procesos* inicializar_contador_procesos(
 void aumentar_contador_procesos(t_contador_procesos* contador);
 void disminuir_contador_procesos(t_contador_procesos* contador);
 void destruir_contador_procesos(t_contador_procesos* contador);
-
-#endif /* KERNEL_SCHEDULER_MISC_H_ */

@@ -1,5 +1,4 @@
-#ifndef MEMORY_STICK_MEMORY_STICK_H_
-#define MEMORY_STICK_MEMORY_STICK_H_
+#pragma once
 
 #include <pthread.h>
 #include <stdio.h>
@@ -43,4 +42,3 @@ void escribir_memoria(t_ms_recursos* ms_recursos, int posicion_inicial,
                       int socket_destino);
 void leer_memoria(t_ms_recursos* ms_recursos, int posicion_inicial,
                   int cantidad_de_bytes, int socket_destino);
-#endif /* MEMORY_STICK_MEMORY_STICK_H_ */

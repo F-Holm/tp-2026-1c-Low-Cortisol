@@ -1,5 +1,4 @@
-#ifndef UTILS_STRING_H_
-#define UTILS_STRING_H_
+#pragma once
 
 #include <stdbool.h>
 
@@ -47,5 +46,3 @@ char** string_split(const char* text, const char* separator);
  * @return NULL-terminated array of the values between the brackets.
  */
 char** string_get_string_as_array(const char* text);
-
-#endif /* UTILS_STRING_H_ */

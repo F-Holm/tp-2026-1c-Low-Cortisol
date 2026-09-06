@@ -1,5 +1,4 @@
-#ifndef IO_UTILS_H
-#define IO_UTILS_H
+#pragma once
 
 #include <assert.h>
 #include <netdb.h>
@@ -33,5 +32,3 @@ void cerrar_todo(t_modulo_io* modulo_io);
 bool iniciar_enviar_tipo_io(t_modulo_io* modulo_io);
 bool args(int argc, char** argv, t_modulo_io* modulo_io);
 bool cargar_configs(t_modulo_io* modulo_io);
-
-#endif  // IO_UTILS_H

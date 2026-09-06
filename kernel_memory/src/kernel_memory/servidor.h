@@ -1,5 +1,4 @@
-#ifndef KERNEL_MEMORY_SERVIDOR_H_
-#define KERNEL_MEMORY_SERVIDOR_H_
+#pragma once
 
 #include "kernel_memory/configurador.h"
 #include "kernel_memory/error.h"
@@ -11,5 +10,3 @@
 
 bool handshake(t_datos_kernel_mem* datos_kernel_memory, int client_socket);
 bool accept_cliente(void* ptr);
-
-#endif

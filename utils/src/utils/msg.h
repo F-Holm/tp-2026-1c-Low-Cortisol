@@ -1,5 +1,4 @@
-#ifndef UTILS_MSG_
-#define UTILS_MSG_
+#pragma once
 
 #include <assert.h>
 #include <netdb.h>
@@ -258,5 +257,3 @@ t_list* recibir_paquete(int socket_fd);
  * @note Usar después de crear_paquete()
  */
 void eliminar_paquete(t_paquete* paquete);
-
-#endif /* UTILS_MSG_ */

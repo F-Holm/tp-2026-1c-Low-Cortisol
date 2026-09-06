@@ -1,5 +1,4 @@
-#ifndef UTILS_COLLECTIONS_DICTIONARY_H_
-#define UTILS_COLLECTIONS_DICTIONARY_H_
+#pragma once
 
 #include <stdbool.h>
 
@@ -49,5 +48,3 @@ void dictionary_destroy(t_dictionary* self);
  */
 void dictionary_destroy_and_destroy_elements(t_dictionary* self,
                                              void (*data_destroyer)(void*));
-
-#endif /* UTILS_COLLECTIONS_DICTIONARY_H_ */

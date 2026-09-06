@@ -1,5 +1,4 @@
-#ifndef UTILS_IO_H_
-#define UTILS_IO_H_
+#pragma once
 
 #include <assert.h>
 #include <netdb.h>
@@ -24,5 +23,3 @@ typedef enum
 } t_tipo_io;
 
 extern const char* const V_TIPO_IO[3];
-
-#endif /* UTILS_MSG_ */
