@@ -1,11 +1,11 @@
 #ifndef MEMORY_STICK_MEMORY_STICK_H_
 #define MEMORY_STICK_MEMORY_STICK_H_
 
-#include <commons/config.h>
-#include <commons/log.h>
 #include <pthread.h>
 #include <stdio.h>
 
+#include "utils/config.h"
+#include "utils/log.h"
 #include "utils/logger.h"
 
 typedef struct

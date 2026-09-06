@@ -1,11 +1,10 @@
 #ifndef KERNEL_SCHEDULER_SERVER_H_
 #define KERNEL_SCHEDULER_SERVER_H_
 
-#include <commons/log.h>
-
 #include "kernel_scheduler/misc.h"
 #include "kernel_scheduler/mutex.h"
 #include "kernel_scheduler/queue.h"
+#include "utils/log.h"
 #include "utils/logger.h"
 
 typedef struct

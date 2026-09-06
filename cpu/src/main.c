@@ -1,5 +1,3 @@
-#include <commons/config.h>
-#include <commons/log.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -7,6 +5,8 @@
 #include "cpu/cpu.h"
 #include "cpu/inicializador.h"
 #include "cpu/liberacion.h"
+#include "utils/config.h"
+#include "utils/log.h"
 #include "utils/msg.h"
 
 int main(int argc, char* argv[])

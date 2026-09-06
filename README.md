@@ -5,15 +5,10 @@ Operativos de la UTN FRBA.
 
 ## Dependencias
 
-Para poder compilar y ejecutar el proyecto, es necesario tener instalada la
-biblioteca [so-commons-library] de la cátedra:
-
-```bash
-git clone https://github.com/sisoputnfrba/so-commons-library
-cd so-commons-library
-make debug
-make install
-```
+El proyecto trae su propia implementación de las utilidades que necesita en el
+módulo `utils`, por lo que ya no depende de la `so-commons-library` de la
+cátedra. Las únicas dependencias son bibliotecas del sistema (`pthread`,
+`readline`, `m`), disponibles en cualquier instalación estándar de GCC.
 
 ## Compilación y ejecución
 
@@ -74,8 +69,8 @@ cd so-deploy
 ./deploy.sh -r=release -p=utils -p=kernel_scheduler -p=kernel_memory -p=cpu -p=memory_stick -p=swap -p=io "tp-{año}-{cuatri}-{grupo}"
 ```
 
-El mismo se encargará de instalar las Commons, clonar el repositorio del grupo
-y compilar el proyecto en la máquina remota.
+El mismo se encargará de clonar el repositorio del grupo y compilar el proyecto
+en la máquina remota.
 
 > [!NOTE]
 > Ante cualquier duda, pueden consultar la documentación en el repositorio de
@@ -88,5 +83,4 @@ y compilar el proyecto en la máquina remota.
 - [Cómo configuramos Visual Studio Code](https://docs.utnso.com.ar/guias/herramientas/code)
 - **[Guía de despliegue de TP](https://docs.utnso.com.ar/guías/herramientas/deploy)**
 
-[so-commons-library]: https://github.com/sisoputnfrba/so-commons-library
 [so-deploy]: https://github.com/sisoputnfrba/so-deploy

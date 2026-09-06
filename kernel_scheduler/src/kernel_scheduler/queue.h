@@ -1,8 +1,6 @@
 #ifndef KERNEL_SCHEDULER_QUEUE_H_
 #define KERNEL_SCHEDULER_QUEUE_H_
 
-#include <commons/collections/list.h>
-#include <commons/collections/queue.h>
 #include <pthread.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -11,6 +9,7 @@
 
 #include "kernel_scheduler/kernel_memory.h"
 #include "kernel_scheduler/misc.h"
+#include "utils/collections/list.h"
 #include "utils/logger.h"
 
 typedef enum

@@ -1,10 +1,6 @@
 #ifndef KERNEL_SCHEDULER_KERNEL_SCHEDULER_H_
 #define KERNEL_SCHEDULER_KERNEL_SCHEDULER_H_
 
-#include <commons/collections/list.h>
-#include <commons/collections/queue.h>
-#include <commons/config.h>
-#include <commons/log.h>
 #include <pthread.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -14,7 +10,10 @@
 #include "kernel_scheduler/misc.h"
 #include "kernel_scheduler/mutex.h"
 #include "kernel_scheduler/queue.h"
+#include "utils/collections/list.h"
+#include "utils/config.h"
 #include "utils/kernel_scheduler_cpu.h"
+#include "utils/log.h"
 #include "utils/logger.h"
 #include "utils/registros.h"
 

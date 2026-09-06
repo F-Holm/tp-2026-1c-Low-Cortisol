@@ -1,12 +1,12 @@
 #ifndef KERNEL_MEMORY_CONFIGURADOR_H_
 #define KERNEL_MEMORY_CONFIGURADOR_H_
 
-#include <commons/config.h>
 #include <pthread.h>
 #include <string.h>
 #include <unistd.h>
 
 #include "kernel_memory/estructuras.h"
+#include "utils/config.h"
 #include "utils/logger.h"
 
 t_logger* iniciar_logger(t_config* config);

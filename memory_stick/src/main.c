@@ -1,6 +1,4 @@
 #include <arpa/inet.h>
-#include <commons/collections/list.h>
-#include <commons/config.h>
 #include <pthread.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -10,6 +8,8 @@
 #include "memory_stick/cpu.h"
 #include "memory_stick/kernel_memory.h"
 #include "memory_stick/memory_stick.h"
+#include "utils/collections/list.h"
+#include "utils/config.h"
 #include "utils/logger.h"
 #include "utils/msg.h"
 

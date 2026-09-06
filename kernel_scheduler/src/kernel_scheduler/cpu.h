@@ -1,14 +1,14 @@
 #ifndef KERNEL_SCHEDULER_CPU_H_
 #define KERNEL_SCHEDULER_CPU_H_
 
-#include <commons/collections/list.h>
-#include <commons/log.h>
 #include <pthread.h>
 #include <stdint.h>
 
 #include "kernel_scheduler/io.h"
 #include "kernel_scheduler/mutex.h"
 #include "kernel_scheduler/queue.h"
+#include "utils/collections/list.h"
+#include "utils/log.h"
 #include "utils/logger.h"
 
 typedef struct

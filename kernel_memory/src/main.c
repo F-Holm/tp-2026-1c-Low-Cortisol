@@ -1,5 +1,3 @@
-#include <commons/collections/list.h>
-#include <commons/config.h>
 #include <pthread.h>
 #include <stdlib.h>
 
@@ -7,6 +5,8 @@
 #include "kernel_memory/inicializador.h"
 #include "kernel_memory/liberador.h"
 #include "kernel_memory/servidor.h"
+#include "utils/collections/list.h"
+#include "utils/config.h"
 #include "utils/kernel_memory_cpu.h"
 #include "utils/logger.h"
 #include "utils/msg.h"

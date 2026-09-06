@@ -1,13 +1,13 @@
 #ifndef CPU_CPU_H_
 #define CPU_CPU_H_
 
-#include <commons/collections/list.h>
-#include <commons/config.h>
 #include <pthread.h>
 #include <stdio.h>
 
 #include "cpu/registros.h"
 #include "utils/client.h"
+#include "utils/collections/list.h"
+#include "utils/config.h"
 #include "utils/msg.h"
 #include "utils/registros.h"
 

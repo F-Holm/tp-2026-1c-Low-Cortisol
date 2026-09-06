@@ -2,9 +2,6 @@
 #define MEMORY_STICK_CPU_H_
 
 #include <arpa/inet.h>
-#include <commons/collections/list.h>
-#include <commons/config.h>
-#include <commons/log.h>
 #include <netinet/in.h>
 #include <pthread.h>
 #include <stdbool.h>
@@ -15,6 +12,9 @@
 #include <unistd.h>
 
 #include "memory_stick/memory_stick.h"
+#include "utils/collections/list.h"
+#include "utils/config.h"
+#include "utils/log.h"
 #include "utils/logger.h"
 
 typedef struct

@@ -1,7 +1,5 @@
 #include "cpu/cpu.h"
 
-#include <commons/log.h>
-#include <commons/string.h>
 #include <limits.h>
 #include <stdio.h>
 
@@ -10,6 +8,8 @@
 #include "cpu/liberacion.h"
 #include "cpu/registros.h"
 #include "utils/kernel_memory_cpu.h"
+#include "utils/log.h"
+#include "utils/string.h"
 
 bool recibir_tamanio_maximo_segmento(t_cpu* cpu)
 {

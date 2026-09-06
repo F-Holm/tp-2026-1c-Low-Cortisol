@@ -2,9 +2,6 @@
 #define IO_IOOPS_H_
 
 #include <assert.h>
-#include <commons/collections/list.h>
-#include <commons/config.h>
-#include <commons/log.h>
 #include <netdb.h>
 #include <signal.h>
 #include <stdbool.h>
@@ -17,8 +14,11 @@
 
 #include "utils.h"
 #include "utils/client.h"
+#include "utils/collections/list.h"
+#include "utils/config.h"
 #include "utils/io.h"
 #include "utils/kernel_scheduler_cpu.h"
+#include "utils/log.h"
 #include "utils/msg.h"
 #include "utils/registros.h"
 

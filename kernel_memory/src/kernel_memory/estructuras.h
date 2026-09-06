@@ -1,9 +1,9 @@
 #ifndef KERNEL_MEMORY_ESTRUCTURAS_H_
 #define KERNEL_MEMORY_ESTRUCTURAS_H_
 
-#include <commons/collections/list.h>
 #include <pthread.h>
 
+#include "utils/collections/list.h"
 #include "utils/logger.h"
 #include "utils/registros.h"
 

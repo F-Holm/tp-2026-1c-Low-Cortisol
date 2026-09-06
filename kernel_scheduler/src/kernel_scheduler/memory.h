@@ -1,7 +1,6 @@
 #ifndef KERNEL_SCHEDULER_MEMORY_H_
 #define KERNEL_SCHEDULER_MEMORY_H_
 
-#include <commons/log.h>
 #include <pthread.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -10,6 +9,7 @@
 #include "kernel_scheduler/misc.h"
 #include "kernel_scheduler/queue.h"
 #include "utils/kernel_scheduler_cpu.h"
+#include "utils/log.h"
 #include "utils/logger.h"
 #include "utils/msg.h"
 

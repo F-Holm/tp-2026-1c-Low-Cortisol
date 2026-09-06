@@ -1,13 +1,13 @@
 #ifndef KERNEL_SCHEDULER_MISC_H_
 #define KERNEL_SCHEDULER_MISC_H_
 
-#include <commons/collections/list.h>
-#include <commons/log.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "utils/collections/list.h"
+#include "utils/log.h"
 #include "utils/logger.h"
 
 typedef enum

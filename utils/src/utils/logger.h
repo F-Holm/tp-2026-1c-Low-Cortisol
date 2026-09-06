@@ -1,9 +1,10 @@
 #ifndef UTILS_LOGGER_H_
 #define UTILS_LOGGER_H_
 
-#include <commons/log.h>
 #include <pthread.h>
 #include <stdbool.h>
+
+#include "utils/log.h"
 
 typedef struct
 {
@@ -11,8 +12,8 @@ typedef struct
   pthread_mutex_t mutex_log;
 } t_logger;
 
-// Todas las funciones son iguales a las de commons/log.h solo que cambian log
-// por logger y tienen mutex incorporado
+// Same functions as utils/log.h, but they take a t_logger and are guarded by an
+// internal mutex.
 
 t_logger* logger_create(char* file, char* process_name, bool is_active_console,
                         t_log_level level);

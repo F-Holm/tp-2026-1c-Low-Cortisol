@@ -1,7 +1,4 @@
 #include <arpa/inet.h>
-#include <commons/collections/list.h>
-#include <commons/config.h>
-#include <commons/log.h>
 #include <pthread.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -14,6 +11,9 @@
 #include "kernel_scheduler/mutex.h"
 #include "kernel_scheduler/queue.h"
 #include "kernel_scheduler/server.h"
+#include "utils/collections/list.h"
+#include "utils/config.h"
+#include "utils/log.h"
 #include "utils/msg.h"
 
 int main(int argc, char* argv[])

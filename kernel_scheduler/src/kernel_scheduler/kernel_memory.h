@@ -1,9 +1,8 @@
 #ifndef KERNEL_SCHEDULER_KERNEL_MEMORY_H_
 #define KERNEL_SCHEDULER_KERNEL_MEMORY_H_
 
-#include <commons/log.h>
-
 #include "kernel_scheduler/misc.h"
+#include "utils/log.h"
 #include "utils/logger.h"
 
 typedef struct

@@ -1,8 +1,6 @@
 #ifndef KERNEL_MEMORY_ESCUCHAS_H_
 #define KERNEL_MEMORY_ESCUCHAS_H_
 
-#include <commons/collections/list.h>
-#include <commons/config.h>
 #include <pthread.h>
 #include <stdlib.h>
 
@@ -12,6 +10,8 @@
 #include "kernel_memory/liberador.h"
 #include "kernel_memory/swap.h"
 #include "protocolo.h"
+#include "utils/collections/list.h"
+#include "utils/config.h"
 #include "utils/kernel_scheduler_cpu.h"
 #include "utils/logger.h"
 #include "utils/msg.h"

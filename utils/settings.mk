@@ -1,5 +1,5 @@
 # Libraries
-LIBS=commons pthread readline m
+LIBS=pthread readline m
 
 # Custom libraries' paths
 SHARED_LIBPATHS=

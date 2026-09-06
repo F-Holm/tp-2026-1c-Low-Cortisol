@@ -1,6 +1,5 @@
 #include "cpu/handlers.h"
 
-#include <commons/log.h>
 #include <stdio.h>
 
 #include "cpu/cpu.h"
@@ -8,6 +7,7 @@
 #include "cpu/memoria.h"
 #include "cpu/registros.h"
 #include "utils/kernel_scheduler_cpu.h"
+#include "utils/log.h"
 
 /*             INSTRUCCIONES BASICAS MANEJADAS POR CPU           */
 

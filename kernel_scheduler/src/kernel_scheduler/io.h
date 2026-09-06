@@ -1,15 +1,14 @@
 #ifndef KERNEL_SCHEDULER_IO_H_
 #define KERNEL_SCHEDULER_IO_H_
 
-#include <commons/collections/list.h>
-#include <commons/collections/queue.h>
-#include <commons/log.h>
-#include <commons/string.h>
 #include <pthread.h>
 #include <stdbool.h>
 
 #include "kernel_scheduler/kernel_scheduler.h"
+#include "utils/collections/list.h"
+#include "utils/log.h"
 #include "utils/logger.h"
+#include "utils/string.h"
 
 /****************** FUNCIONES DE IO ******************/
 

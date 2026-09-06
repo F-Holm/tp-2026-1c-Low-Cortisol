@@ -1,6 +1,5 @@
 #include "kernel_scheduler/cpu.h"
 
-#include <commons/collections/list.h>
 #include <stdlib.h>
 #include <sys/socket.h>
 #include <unistd.h>
@@ -9,6 +8,7 @@
 #include "kernel_scheduler/misc.h"
 #include "misc.h"
 #include "utils/client.h"
+#include "utils/collections/list.h"
 #include "utils/io.h"
 #include "utils/kernel_scheduler_cpu.h"
 #include "utils/msg.h"

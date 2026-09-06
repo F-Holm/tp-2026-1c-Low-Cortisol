@@ -2,8 +2,6 @@
 #define UTILS_IO_H_
 
 #include <assert.h>
-#include <commons/collections/list.h>
-#include <commons/log.h>
 #include <netdb.h>
 #include <signal.h>
 #include <stdbool.h>
@@ -13,6 +11,9 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <unistd.h>
+
+#include "utils/collections/list.h"
+#include "utils/log.h"
 
 typedef enum
 {

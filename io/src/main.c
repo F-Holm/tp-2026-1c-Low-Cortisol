@@ -1,5 +1,3 @@
-#include <commons/config.h>
-#include <commons/log.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -9,7 +7,9 @@
 #include "io/ioops.h"
 #include "io/utils.h"
 #include "utils/client.h"
+#include "utils/config.h"
 #include "utils/io.h"
+#include "utils/log.h"
 #include "utils/msg.h"
 
 int main(int argc, char* argv[])

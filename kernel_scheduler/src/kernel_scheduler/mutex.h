@@ -1,13 +1,13 @@
 #ifndef KERNEL_SCHEDULER_MUTEX_H_
 #define KERNEL_SCHEDULER_MUTEX_H_
 
-#include <commons/collections/dictionary.h>
-#include <commons/collections/list.h>
 #include <pthread.h>
 #include <stdbool.h>
 
 #include "kernel_scheduler/misc.h"
 #include "kernel_scheduler/queue.h"
+#include "utils/collections/dictionary.h"
+#include "utils/collections/list.h"
 #include "utils/logger.h"
 
 typedef struct

@@ -1,11 +1,11 @@
 #include "kernel_scheduler/server.h"
 
-#include <commons/collections/list.h>
 #include <pthread.h>
 
 #include "kernel_scheduler/cpu.h"
 #include "kernel_scheduler/io.h"
 #include "kernel_scheduler/misc.h"
+#include "utils/collections/list.h"
 #include "utils/msg.h"
 #include "utils/server.h"
 

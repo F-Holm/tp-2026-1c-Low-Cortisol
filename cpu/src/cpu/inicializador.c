@@ -1,10 +1,10 @@
 #include "cpu/inicializador.h"
 
-#include <commons/log.h>
 #include <stdio.h>
 
 #include "cpu/cpu.h"
 #include "cpu/handlers.h"
+#include "utils/log.h"
 
 bool verificar_argumentos(int argc, char** argv)
 {

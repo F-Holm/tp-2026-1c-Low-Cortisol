@@ -1,10 +1,9 @@
 #ifndef CPU_LIBERACION_H_
 #define CPU_LIBERACION_H_
 
-#include <commons/config.h>
-#include <commons/log.h>
-
 #include "cpu/cpu.h"
+#include "utils/config.h"
+#include "utils/log.h"
 #include "utils/registros.h"
 
 void cerrar_modulo(t_cpu* cpu);

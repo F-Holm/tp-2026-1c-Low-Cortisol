@@ -1,11 +1,11 @@
-#include <commons/config.h>
-#include <commons/log.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/socket.h>
 
 #include "swap/swap.h"
 #include "utils/client.h"
+#include "utils/config.h"
+#include "utils/log.h"
 #include "utils/msg.h"
 
 int main(int argc, char* argv[])

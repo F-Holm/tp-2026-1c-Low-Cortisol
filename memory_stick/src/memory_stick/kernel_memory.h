@@ -1,10 +1,10 @@
 #ifndef MEMORY_STICK_KERNEL_MEMORY_H_
 #define MEMORY_STICK_KERNEL_MEMORY_H_
 
-#include <commons/log.h>
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "utils/log.h"
 #include "utils/logger.h"
 
 bool handshake_km(int socket_km, t_logger* logger);

@@ -1,11 +1,11 @@
 #ifndef CPU_CONEXIONES_H_
 #define CPU_CONEXIONES_H_
 
-#include <commons/config.h>
 #include <stdio.h>
 
 #include "cpu/cpu.h"
 #include "utils/client.h"
+#include "utils/config.h"
 #include "utils/msg.h"
 #include "utils/registros.h"
 

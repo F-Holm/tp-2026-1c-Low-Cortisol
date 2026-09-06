@@ -1,13 +1,13 @@
 #ifndef KERNEL_MEMORY_PROTOCOLO_H_
 #define KERNEL_MEMORY_PROTOCOLO_H_
 
-#include <commons/collections/list.h>
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 
 #include "kernel_memory/configurador.h"
 #include "kernel_memory/estructuras.h"
+#include "utils/collections/list.h"
 #include "utils/msg.h"
 
 bool recibir_id_cpu(t_datos_cpu* datos_cpu);
