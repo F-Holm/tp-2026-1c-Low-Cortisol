@@ -22,13 +22,13 @@ typedef struct
   t_config* config;
   t_log* logger;
   char* ip;
-  char* puerto;
+  char* port;
   int socket_io;
-  int tipo_io;
+  int io_type;
   int sleep;
-} t_modulo_io;
+} t_io;
 
-void cerrar_todo(t_modulo_io* modulo_io);
-bool iniciar_enviar_tipo_io(t_modulo_io* modulo_io);
-bool args(int argc, char** argv, t_modulo_io* modulo_io);
-bool cargar_configs(t_modulo_io* modulo_io);
+void close_io(t_io* io);
+bool connect_to_scheduler(t_io* io);
+bool parse_args(int argc, char** argv, t_io* io);
+bool load_config(t_io* io);

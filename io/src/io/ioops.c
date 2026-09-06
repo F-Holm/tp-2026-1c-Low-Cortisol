@@ -1,6 +1,6 @@
 #include "ioops.h"
 
-bool io_tipo_stdin(t_modulo_io* sio)
+bool io_tipo_stdin(t_io* sio)
 {
   int size_peticion;
   t_stdin_request* peticion_stdin =
@@ -48,7 +48,7 @@ bool io_tipo_stdin(t_modulo_io* sio)
   return true;
 }
 
-bool io_tipo_stdout(t_modulo_io* sio)
+bool io_tipo_stdout(t_io* sio)
 {
   // Recibo la peticion de IO
   t_list* packet = receive_packet(sio->socket_io);
@@ -83,7 +83,7 @@ bool io_tipo_stdout(t_modulo_io* sio)
   return true;
 }
 
-bool io_tipo_sleep(t_modulo_io* sio)
+bool io_tipo_sleep(t_io* sio)
 {
   // Recibo la peticion de IO
   int size_peticion;

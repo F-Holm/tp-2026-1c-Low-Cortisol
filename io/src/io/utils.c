@@ -1,91 +1,88 @@
 #include "io/utils.h"
 
-void cerrar_todo(t_modulo_io* modulo_io)
+void close_io(t_io* io)
 {
-  close(modulo_io->socket_io);
-  log_destroy(modulo_io->logger);
-  config_destroy(modulo_io->config);
+  close(io->socket_io);
+  log_destroy(io->logger);
+  config_destroy(io->config);
 }
-bool cargar_configs(t_modulo_io* modulo_io)
+
+bool load_config(t_io* io)
 {
-  char* log_levelstr = config_get_string_value(modulo_io->config, "LOG_LEVEL");
-  modulo_io->ip =
-      config_get_string_value(modulo_io->config, "KERNEL_SCHEDULER_IP");
-  modulo_io->puerto =
-      config_get_string_value(modulo_io->config, "KERNEL_SCHEDULER_PORT");
-  t_log_level log_level = log_level_from_string(log_levelstr);
-  modulo_io->logger = log_create("io.log", "IO", true, log_level, false);
-  if (modulo_io->logger == NULL)
+  char* log_level_str = config_get_string_value(io->config, "LOG_LEVEL");
+  io->ip = config_get_string_value(io->config, "KERNEL_SCHEDULER_IP");
+  io->port = config_get_string_value(io->config, "KERNEL_SCHEDULER_PORT");
+  t_log_level log_level = log_level_from_string(log_level_str);
+  io->logger = log_create("io.log", "IO", true, log_level, false);
+  if (io->logger == NULL)
   {
-    config_destroy(modulo_io->config);
+    config_destroy(io->config);
     return false;
   }
   return true;
 }
-bool iniciar_enviar_tipo_io(t_modulo_io* modulo_io)
+
+bool connect_to_scheduler(t_io* io)
 {
-  modulo_io->socket_io = create_connection(
-      modulo_io->ip, modulo_io->puerto);  // Establezco conexión
+  io->socket_io = create_connection(io->ip, io->port);
 
-  if (modulo_io->socket_io == -1)
+  if (io->socket_io == -1)
   {
-    log_error(modulo_io->logger, "ERROR DE CONEXION");
-    cerrar_todo(modulo_io);
+    log_error(io->logger, "CONNECTION ERROR");
+    close_io(io);
     return false;
   }
-  log_info(modulo_io->logger, "## Conectado a Kernel Scheduler");
+  log_info(io->logger, "## Connected to Kernel Scheduler");
 
-  // Handshake con Kernel Scheduler
-  bool envio_correcto = send_handshake(MID_IO, modulo_io->socket_io);
-  if (!envio_correcto)
+  bool sent_ok = send_handshake(MID_IO, io->socket_io);
+  if (!sent_ok)
   {
-    log_error(modulo_io->logger, " Error en el Handshake con Kernel Scheduler");
-    cerrar_todo(modulo_io);
+    log_error(io->logger, " Handshake error with Kernel Scheduler");
+    close_io(io);
     return false;
   }
 
-  int recepcion_correcta = receive_handshake(modulo_io->socket_io);
-  if (recepcion_correcta != MID_KERNEL_SCHEDULER)
+  int received_id = receive_handshake(io->socket_io);
+  if (received_id != MID_KERNEL_SCHEDULER)
   {
-    log_error(modulo_io->logger, " Error en el Handshake con Kernel Scheduler");
-    cerrar_todo(modulo_io);
+    log_error(io->logger, " Handshake error with Kernel Scheduler");
+    close_io(io);
     return false;
   }
-  log_info(modulo_io->logger, " Handshake exitoso con Kernel Scheduler");
+  log_info(io->logger, " Handshake successful with Kernel Scheduler");
 
-  envio_correcto =
-      send_string(OP_IO_TYPE, (char*)IO_TYPE_NAMES[modulo_io->tipo_io],
-                  modulo_io->socket_io);
-  if (!envio_correcto)
+  sent_ok =
+      send_string(OP_IO_TYPE, (char*)IO_TYPE_NAMES[io->io_type], io->socket_io);
+  if (!sent_ok)
   {
-    log_error(modulo_io->logger, " Error en el Envío de tipo de IO");
-    cerrar_todo(modulo_io);
+    log_error(io->logger, " Error sending the IO type");
+    close_io(io);
     return false;
   }
-  log_info(modulo_io->logger, " Envio correcto de tipo de IO");
+  log_info(io->logger, " IO type sent successfully");
   return true;
 }
 
-bool args(int argc, char** argv, t_modulo_io* modulo_io)
+bool parse_args(int argc, char** argv, t_io* io)
 {
   if (argc != 3)
   {
     return false;
   }
-  char* archivo_config = argv[1];
-  modulo_io->config = config_create(archivo_config);
-  // Chequeo si la operacion de IO recibida existe
+  char* config_path = argv[1];
+  io->config = config_create(config_path);
+  // Check that the received IO operation exists.
   if (strcmp(IO_TYPE_NAMES[E_STDIN], argv[2]) == 0)
   {
-    modulo_io->tipo_io = E_STDIN;
+    io->io_type = E_STDIN;
   }
   else if (strcmp(IO_TYPE_NAMES[E_STDOUT], argv[2]) == 0)
   {
-    modulo_io->tipo_io = E_STDOUT;
+    io->io_type = E_STDOUT;
   }
   else if (strcmp(IO_TYPE_NAMES[E_SLEEP], argv[2]) == 0)
   {
-    modulo_io->tipo_io = E_SLEEP;
+    io->io_type = E_SLEEP;
   }
   else
   {

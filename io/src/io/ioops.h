@@ -20,6 +20,6 @@
 #include "utils/msg.h"
 #include "utils/registers_cpu.h"
 
-bool io_tipo_stdin(t_modulo_io* sio);
-bool io_tipo_stdout(t_modulo_io* sio);
-bool io_tipo_sleep(t_modulo_io* sio);
+bool io_tipo_stdin(t_io* sio);
+bool io_tipo_stdout(t_io* sio);
+bool io_tipo_sleep(t_io* sio);
