@@ -27,9 +27,9 @@ void* listen_scheduler(void* ptr)
                     scheduler_data->socket_scheduler);
         break;
       }
-      case OP_SYSCALL_MEM_ALLOC:
+      case OP_CREATE_SEGMENT:
       {
-        log_info(scheduler_data->logger, "Received a syscall: MEM_ALLOC");
+        log_info(scheduler_data->logger, "Received a MEM_ALLOC request");
         int a;
         t_syscall_memory* syscall = (t_syscall_memory*)receive_buffer(
             &a, scheduler_data->socket_scheduler);
@@ -54,9 +54,9 @@ void* listen_scheduler(void* ptr)
         free(syscall);
         break;
       }
-      case OP_SYSCALL_MEM_FREE:
+      case OP_DELETE_SEGMENT:
       {
-        log_info(scheduler_data->logger, "Received a syscall: MEM_FREE");
+        log_info(scheduler_data->logger, "Received a MEM_FREE request");
         int a;
         t_syscall_memory* syscall = (t_syscall_memory*)receive_buffer(
             &a, scheduler_data->socket_scheduler);

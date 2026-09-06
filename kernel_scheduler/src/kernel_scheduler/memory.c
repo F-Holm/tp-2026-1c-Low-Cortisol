@@ -17,7 +17,7 @@ bool allocate_memory(t_syscall_memory* mem_alloc, t_queues* queues)
   }
 
   int mem_alloc_size = sizeof(t_syscall_memory);
-  bool comms = send_buffer(OP_SYSCALL_MEM_ALLOC, mem_alloc, mem_alloc_size,
+  bool comms = send_buffer(OP_CREATE_SEGMENT, mem_alloc, mem_alloc_size,
                            queues->km_socket->km_socket);
 
   if (!comms)
@@ -39,7 +39,7 @@ bool free_memory(t_syscall_memory* mem_free, t_queues* queues)
 {
   int mem_free_size = sizeof(t_syscall_memory);
   pthread_mutex_lock(&(queues->km_socket->socket_mutex));
-  bool comms = send_buffer(OP_SYSCALL_MEM_FREE, mem_free, mem_free_size,
+  bool comms = send_buffer(OP_DELETE_SEGMENT, mem_free, mem_free_size,
                            queues->km_socket->km_socket);
 
   if (!comms)

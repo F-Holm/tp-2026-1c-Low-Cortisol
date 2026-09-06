@@ -42,8 +42,8 @@ typedef enum
   OP_SYSCALL_MUTEX_CREATE,
   OP_SYSCALL_MUTEX_LOCK,
   OP_SYSCALL_MUTEX_UNLOCK,
-  OP_SYSCALL_MEM_ALLOC,  // reused Kernel Scheduler -> Kernel Memory
-  OP_SYSCALL_MEM_FREE,   // reused Kernel Scheduler -> Kernel Memory
+  OP_SYSCALL_MEM_ALLOC,
+  OP_SYSCALL_MEM_FREE,
   OP_SYSCALL_SLEEP,
   OP_SYSCALL_STDOUT,
   OP_SYSCALL_STDIN,
@@ -56,6 +56,8 @@ typedef enum
   OP_KERNEL_MEMORY_RUNNING,      // connection-check ping
   OP_NEW_PROCESS,                // create a process (PID + path); no reply
   OP_END_PROCESS,                // terminate a process (PID); no reply
+  OP_CREATE_SEGMENT,             // MEM_ALLOC: create a process segment
+  OP_DELETE_SEGMENT,             // MEM_FREE: remove a process segment
   OP_REQUEST_FREE_MEMORY,        // ask for the current free space
   OP_REQUEST_PROCESS_SIZE,       // ask for a process's size in memory
   OP_SUSPEND_PROCESS,            // move a process's segments to swap
