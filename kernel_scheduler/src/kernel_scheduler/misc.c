@@ -13,14 +13,15 @@ const char* const SHUTDOWN_REASONS[4] = {
     "Processes finished successfully", "BSOD: Corruption of memory detected",
     "Connection error with Kernel Memory", "Unknown error"};
 
+static pthread_mutex_t mutex_pid_pcb;
+
+static pthread_mutex_t mutex_shutdown;
+
 static bool is_highest_priority(void* pcb1, void* pcb2);
 static void log_shutdown(t_log* logger, int reason_shutdown);
 static void check_reason_shutdown(int* reason_shutdown, int km_socket);
 static void notify_shutdown_kernel_memory(int reason_shutdown, int km_socket,
                                           t_log* logger);
-
-static pthread_mutex_t mutex_pid_pcb;
-static pthread_mutex_t mutex_shutdown;
 
 void init_mutex_pid_pcb(void)
 {

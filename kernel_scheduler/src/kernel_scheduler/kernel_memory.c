@@ -7,7 +7,7 @@
 
 static int connect_kernel_memory(char* ip, char* port, t_log* logger);
 static bool handshake_kernel_memory(int km_socket, t_log* logger);
-static void* thread_check_connection_kernel_memory(void* arg);
+static void* thread_check_connection_kernel_memory(void* args);
 
 int start_connection_kernel_memory(char* ip, char* port, t_log* logger)
 {

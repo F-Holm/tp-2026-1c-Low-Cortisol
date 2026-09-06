@@ -14,7 +14,6 @@ const char* const SCHEDULING_ALGORITHMS[] = {"FIFO", "RR", "CMN"};
 
 static t_config* start_config(char* config_path, t_config_vars* config_vars);
 static void close_config(t_config_vars* config_vars, t_config* config);
-
 static t_log* start_logger(t_log_level log_level);
 
 bool start_module(t_kernel_scheduler* recursos, char* config_path)

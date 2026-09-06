@@ -1,4 +1,3 @@
-
 #include "kernel_scheduler/io.h"
 
 #include <string.h>
@@ -10,14 +9,12 @@
 #include "utils/registers_cpu.h"
 #include "utils/syscalls.h"
 
-// IO syscall communication functions
 static bool send_stdout(t_io* io_out, t_stdout* request, char* buffer);
 static bool request_stdout_km(t_stdout* request, t_io* io_out);
 static bool send_stdin(t_stdin* request, t_io* io_in, char* buffer);
 static bool communication_io_stdin(t_stdin* request, t_io* io_in,
                                    char** buffer);
 static bool communication_io_sleep(t_sleep* request, t_io* io_sleep);
-// IO termination helper
 static void finalize_io(void* request, t_io* io, t_pcb* pcb);
 static bool io_sleep_f(t_sleep* request, t_io* io_sleep);
 static void free_request(void* request, t_io* io);
@@ -30,6 +27,7 @@ static bool handle_stdin(t_io* io);
 static bool handle_stdout(t_io* io);
 static bool handle_sleep(t_io* io);
 static bool handle_io(t_io* io);
+static bool check_close_thread(t_io* io);
 static void* io_thread(void* io_thread);
 static int get_io_type(int socket_fd, t_log* logger);
 static bool compare_priority_stdin(void* syscall1, void* syscall2);
@@ -38,7 +36,6 @@ static bool compare_priority_sleep(void* syscall1, void* syscall2);
 static void* transform_request(void* request, int io_type, t_pcb* pcb);
 static void add_ordered(void* entry, t_io* io);
 static void destroy_io(t_io* io);
-static bool check_close_thread(t_io* io);
 
 t_io* create_estructuras_io(void)
 {
@@ -520,6 +517,7 @@ static bool handle_io(t_io* io)
   }
   return true;
 }
+
 static bool check_close_thread(t_io* io)
 {
   pthread_mutex_lock(&(io->done_mutex));

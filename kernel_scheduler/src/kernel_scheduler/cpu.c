@@ -40,6 +40,7 @@ static void manage_queue_blocked(t_syscall_data* data);
 static void log_preemption_end_quantum(t_log* logger, uint32_t pid);
 static bool is_process_lowest_priority(t_syscall_data* data, int priority);
 static void manage_preemption_priority(t_syscall_data* data);
+static bool is_rr(t_syscall_data* data);
 static void manage_end_quantum(t_syscall_data* data);
 static bool send_preemption(t_syscall_data* data);
 static void manage_request_process(t_syscall_data* data);

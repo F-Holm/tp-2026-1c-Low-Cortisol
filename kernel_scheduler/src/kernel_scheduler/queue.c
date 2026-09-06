@@ -65,8 +65,8 @@ static void transition_to_exit(t_pcb* pcb, t_queues* queues, int reason);
 static t_pcb* transition_take_new(char* instructions_file, int priority,
                                   t_queues* queues);
 static void update_highest_priority_ready_no_mutex(t_ready_queue* ready);
-static t_pcb* transition_take_ready_next(t_ready_queue* ready);
 static void transition_take_ready(t_pcb* pcb, t_ready_queue* ready);
+static t_pcb* transition_take_ready_next(t_ready_queue* ready);
 static void transition_take_exec(t_pcb* pcb, t_execute_list* exec,
                                  t_counter* syscall_counter);
 static t_pcb* transition_take_exec_next(t_execute_list* exec);
@@ -100,7 +100,6 @@ static void resume_suspended_process(t_queues* queues, t_resumer_thread* data,
 static void wait_process_susp_ready(t_queues* queues, t_resumer_thread* data);
 static void* thread_suspender(void* data_void);
 static void* thread_resumer(void* data_void);
-// total lock/unlock functions
 static void lock_total(t_queues* queues);
 static bool fits_process(t_queues* queues, t_pcb* process);
 static bool is_empty(t_blocking_list* list);
@@ -114,7 +113,6 @@ static int process_size_no_logger(t_queues* queues, uint32_t pid);
 static void* resumption_routine_thread(void* data_resume_suspension);
 static bool set_is_resuming(t_queues* queues, bool new_state);
 static bool set_is_compacting(t_queues* queues, bool new_state);
-// COMPACTION ROUTINE
 static void* thread_unlock_queue_ready(void* args);
 static void create_thread_unlock_queue_ready(t_queues* queues);
 static bool compaction_finished(t_queues* queues);

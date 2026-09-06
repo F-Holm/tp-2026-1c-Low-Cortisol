@@ -11,11 +11,11 @@ static void log_transition_of_priority(t_log* logger, uint32_t pid,
 static void destroy_mutex_iterator(void* mutex);
 static t_mutex* create_mutex(char* id, bool priority_active, t_queues* queues);
 static void remove_priority_list(t_list* list, int priority);
-static bool remove_pcb_list(t_list* list, t_pcb* pcb);
 static bool has_higher_priority_than(void* p1, void* p2);
 static void insert_priority(t_pcb* pcb, int priority, t_log* logger);
 static void replace_priority(t_pcb* pcb, int old_priority, int priority_new,
                              t_queues* queues);
+static bool remove_pcb_list(t_list* list, t_pcb* pcb);
 static void propagate_priority_transitive(t_pcb* pcb, int priority_new,
                                           t_queues* queues);
 static bool remove_priority(t_pcb* pcb, int priority, t_log* logger);
