@@ -34,7 +34,7 @@ static int add_block_to_swap(t_segment* segment, int counter,
   }
   else
   {
-    log_info(logger, "Cannot add the segment to swap: not free blocks.");
+    log_info(logger, "Cannot add the segment to swap: no free blocks.");
   }
   return free_block_number;
 }
@@ -197,7 +197,7 @@ static bool regenerate_segment(uint32_t id, uint32_t pid, int size,
                                t_main_memory* main_memory, int socket_scheduler,
                                t_log* logger)
 {
-  // Chequeo of count of memory available
+  // Check available memory
   pthread_mutex_lock(main_memory->main_memory_mutex);
   if (compute_free_space(main_memory->holes, main_memory->main_memory_mutex,
                          logger) < size)
@@ -214,7 +214,7 @@ static bool regenerate_segment(uint32_t id, uint32_t pid, int size,
              pid, size);
     t_hole chosen_hole = select_hole(size, logger, main_memory);
 
-    // Chequeo of compaction
+    // Compaction check
     if (chosen_hole.size == -1)
     {
       log_error(logger, "## Could not allocate any hole.");

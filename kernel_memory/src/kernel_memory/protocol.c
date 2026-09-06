@@ -159,7 +159,7 @@ int compute_free_space(t_list* holes, pthread_mutex_t* holes_mutex,
     total += current_hole->size;
   }
   list_iterator_destroy(iterator);
-  log_info(logger, "%d free space", total);
+  log_info(logger, "free space: %d", total);
   return total;
 }
 
@@ -245,7 +245,7 @@ static t_hole hole_selection_algorithm(
   list_iterator_destroy(iterator);
   if (chosen_hole.size == -1)
   {
-    log_info(logger, "There are not holes availables");
+    log_info(logger, "No available holes");
   }
   return chosen_hole;
 }
@@ -305,14 +305,14 @@ void create_segment(uint32_t id, uint32_t pid, int size,
                     t_main_memory* main_memory, int socket_scheduler,
                     t_log* logger)
 {
-  // Chequeo of segmentation fault
+  // Segmentation fault check
   if (size > main_memory->max_segment_size)
     send_string(OP_SEGMENT_SIZE_EXCEEDED,
                 "The requested size exceeds "
                 "the max segment size.",
                 socket_scheduler);
 
-  // Chequeo of count of memory available
+  // Check available memory
   pthread_mutex_lock(main_memory->main_memory_mutex);
   if (compute_free_space(main_memory->holes, main_memory->main_memory_mutex,
                          logger) < size)
@@ -328,7 +328,7 @@ void create_segment(uint32_t id, uint32_t pid, int size,
              size);
     t_hole chosen_hole = select_hole(size, logger, main_memory);
 
-    // Chequeo of compaction
+    // Compaction check
     if (chosen_hole.size == -1)
     {
       log_info(logger, "Memory needs to be compacted");
@@ -378,8 +378,8 @@ void compact_segments(t_list* segments)
 
 int compute_last_segment_end(t_list* segments)
 {
-  t_segment* ultimo_segment = list_get(segments, list_size(segments) - 1);
-  return ultimo_segment->base + ultimo_segment->size;
+  t_segment* last_segment = list_get(segments, list_size(segments) - 1);
+  return last_segment->base + last_segment->size;
 }
 
 t_list* compact_holes(int memory_total, int base_final_segment)
@@ -466,8 +466,8 @@ void remove_segment(uint32_t id, uint32_t pid, t_main_memory* main_memory,
 
   if (has_hole_before && has_hole_after)
   {
-    int indice1 = -1;
-    int indice2 = -1;
+    int index1 = -1;
+    int index2 = -1;
     // SEGMENT BETWEEN HOLES
     t_list_iterator* iterator = list_iterator_create(main_memory->holes);
     int i = 0;
@@ -478,18 +478,18 @@ void remove_segment(uint32_t id, uint32_t pid, t_main_memory* main_memory,
       {
         new_hole->base = current_hole->base;
         new_hole->size += current_hole->size + segment_aux->size;
-        indice1 = i;
+        index1 = i;
       }
       if (current_hole->base == segment_aux->base + segment_aux->size)
       {
         new_hole->size += current_hole->size;
-        indice2 = i;
+        index2 = i;
       }
       i++;
     }
     list_iterator_destroy(iterator);
 
-    if (indice1 == -1 || indice2 == -1)
+    if (index1 == -1 || index2 == -1)
     {
       log_error(logger, "The holes adjacent to the segment were not found");
       pthread_mutex_unlock(main_memory->main_memory_mutex);
@@ -497,22 +497,22 @@ void remove_segment(uint32_t id, uint32_t pid, t_main_memory* main_memory,
       free(new_hole);
       return;
     }
-    if (indice1 < indice2)
+    if (index1 < index2)
     {
-      list_remove_and_destroy_element(main_memory->holes, indice2, free);
-      list_remove_and_destroy_element(main_memory->holes, indice1, free);
+      list_remove_and_destroy_element(main_memory->holes, index2, free);
+      list_remove_and_destroy_element(main_memory->holes, index1, free);
     }
     else
     {
-      list_remove_and_destroy_element(main_memory->holes, indice1, free);
-      list_remove_and_destroy_element(main_memory->holes, indice2, free);
+      list_remove_and_destroy_element(main_memory->holes, index1, free);
+      list_remove_and_destroy_element(main_memory->holes, index2, free);
     }
     list_add(main_memory->holes, new_hole);
-    log_info(logger, "Segment in medio of holes");
+    log_info(logger, "Segment between holes");
   }
   else if (has_hole_before)
   {
-    int indice1 = -1;
+    int index1 = -1;
     // SEGMENT AFTER HOLE
     t_list_iterator* iterator = list_iterator_create(main_memory->holes);
     int i = 0;
@@ -523,19 +523,19 @@ void remove_segment(uint32_t id, uint32_t pid, t_main_memory* main_memory,
       {
         new_hole->base = current_hole->base;
         new_hole->size = current_hole->size + segment_aux->size;
-        indice1 = i;
+        index1 = i;
       }
       i++;
     }
     list_iterator_destroy(iterator);
 
-    list_remove_and_destroy_element(main_memory->holes, indice1, free);
+    list_remove_and_destroy_element(main_memory->holes, index1, free);
     list_add(main_memory->holes, new_hole);
     log_info(logger, "Segment after hole");
   }
   else if (has_hole_after)
   {
-    int indice2 = -1;
+    int index2 = -1;
     // SEGMENT BEFORE HOLE
     t_list_iterator* iterator = list_iterator_create(main_memory->holes);
     int i = 0;
@@ -546,13 +546,13 @@ void remove_segment(uint32_t id, uint32_t pid, t_main_memory* main_memory,
       {
         new_hole->base = segment_aux->base;
         new_hole->size = current_hole->size + segment_aux->size;
-        indice2 = i;
+        index2 = i;
       }
       i++;
     }
     list_iterator_destroy(iterator);
 
-    list_remove_and_destroy_element(main_memory->holes, indice2, free);
+    list_remove_and_destroy_element(main_memory->holes, index2, free);
     list_add(main_memory->holes, new_hole);
     log_info(logger, "Segment before hole");
   }
@@ -605,21 +605,20 @@ bool hole_after_segment(int base_segment, int final_segment, t_list* holes)
 t_list* filter_process_segments(int pid, t_main_memory* main_memory,
                                 t_log* logger)
 {
-  t_list* lista_filtrada = list_create();
+  t_list* filtered_list = list_create();
 
   pthread_mutex_lock(main_memory->main_memory_mutex);
   for (int i = 0; i < list_size(main_memory->segments); i++)
   {
-    // log_info(logger, "Filtrando segment");
     t_segment* current_segment = list_get(main_memory->segments, i);
     if (current_segment->pid == pid)
     {
-      list_add(lista_filtrada, current_segment);
+      list_add(filtered_list, current_segment);
     }
   }
   pthread_mutex_unlock(main_memory->main_memory_mutex);
 
-  return lista_filtrada;
+  return filtered_list;
 }
 
 void add_segments_to_packet(t_list* segments, t_packet* process_segment_table)
@@ -637,23 +636,22 @@ t_segment* find_segment(t_main_memory* main_memory, uint32_t pid,
                         uint32_t segment_number)
 {
   t_segment* found_seg = NULL;
-  uint32_t contador_segments_pid = 0;
+  uint32_t pid_segment_count = 0;
 
   pthread_mutex_lock(main_memory->main_memory_mutex);
-  // scan the segments until the matching one is found correspondiente to the
-  // pid y number of segment
+  // scan the segments looking for the one matching this pid and segment number
   t_list_iterator* iterator = list_iterator_create(main_memory->segments);
   while (list_iterator_has_next(iterator))
   {
     t_segment* current_item = list_iterator_next(iterator);
     if (current_item->pid == pid)
     {
-      if (contador_segments_pid == segment_number)
+      if (pid_segment_count == segment_number)
       {
         found_seg = current_item;
         break;
       }
-      contador_segments_pid++;
+      pid_segment_count++;
     }
   }
   list_iterator_destroy(iterator);
@@ -665,7 +663,7 @@ int translate_logical_address(uint32_t pid, uint32_t logical_address,
                               uint32_t size, t_main_memory* main_memory,
                               t_log* logger)
 {
-  // Calculo of physical address
+  // Compute the physical address
   int seg_max = main_memory->max_segment_size;
   uint32_t segment_number = logical_address / seg_max;
   uint32_t desplazamiento = logical_address % seg_max;
@@ -696,7 +694,7 @@ int find_stick(int physical_address, t_list* connected_sticks,
     if (physical_address >= base_acumulada &&
         physical_address < base_acumulada + current_item->stick_size)
     {
-      // found the stick for the dir fisica
+      // found the stick for the physical address
       *stick_offset = physical_address - base_acumulada;
       index = current_index;
       break;
@@ -733,12 +731,11 @@ char* read_from_sticks(int physical_address, int size, t_list* connected_sticks,
     }
     pthread_mutex_lock(sticks_mutex);
     t_stick_data* stick = list_get(connected_sticks, index);
-    int bytes_hasta_fin_stick = stick->stick_size - stick_offset;
+    int bytes_to_stick_end = stick->stick_size - stick_offset;
     int bytes_to_read_count = size - bytes_read;
-    // check whether the requested size fits in the stick or if it is split at
-    // the medio
-    if (bytes_to_read_count > bytes_hasta_fin_stick)
-      bytes_to_read_count = bytes_hasta_fin_stick;
+    // check whether the requested size fits in the stick or spills past its end
+    if (bytes_to_read_count > bytes_to_stick_end)
+      bytes_to_read_count = bytes_to_stick_end;
     // Send read request to the stick
     t_packet* packet = create_packet(OP_MEMORY_STICK_READ);
     packet_append(packet, &stick_offset, sizeof(int));
@@ -754,7 +751,7 @@ char* read_from_sticks(int physical_address, int size, t_list* connected_sticks,
     destroy_packet(packet);
     pthread_mutex_unlock(sticks_mutex);
 
-    // Recibo response
+    // Receive the response
     int stick_socket =
         ((t_stick_data*)list_get(connected_sticks, index))->socket_stick;
     int op = receive_op_code(stick_socket);
@@ -764,7 +761,7 @@ char* read_from_sticks(int physical_address, int size, t_list* connected_sticks,
     }
     if (op != OP_MEMORY_STICK_READ_DONE)
     {
-      log_error(logger, "Opcode of response erroneo of the stick %d", index);
+      log_error(logger, "Wrong response opcode from stick %d", index);
       free(result);
       return NULL;
     }

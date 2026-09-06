@@ -120,10 +120,10 @@ t_swap_data* init_swap_data(int socket_swap, t_log* logger)
     return NULL;
   }
   int a;
-  t_swap_config* envio_km = (t_swap_config*)receive_buffer(&a, socket_swap);
-  swap_data->swap_size = envio_km->swap_size;
-  swap_data->block_size = envio_km->block_size;
-  free(envio_km);
+  t_swap_config* send_to_km = (t_swap_config*)receive_buffer(&a, socket_swap);
+  swap_data->swap_size = send_to_km->swap_size;
+  swap_data->block_size = send_to_km->block_size;
+  free(send_to_km);
   swap_data->block_list = list_create();
   init_block_list(swap_data);
   return swap_data;

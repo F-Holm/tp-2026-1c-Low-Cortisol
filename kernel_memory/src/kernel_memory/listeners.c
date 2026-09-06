@@ -190,7 +190,7 @@ void* listen_scheduler(void* ptr)
         else
         {
           log_info(scheduler_data->logger,
-                   "Process with PID %u to end was not found", *pid);
+                   "Process with PID %u to terminate was not found", *pid);
         }
         list_destroy(segment_list);
         free(pid);
@@ -362,8 +362,8 @@ void* listen_cpu(void* ptr)
             find_process(cpu_data->processes, cpu_data->processes_mutex, *pid);
         if (process == NULL)
         {
-          log_info(cpu_data->logger, "Process with PID %u to end was not found",
-                   *pid);
+          log_info(cpu_data->logger,
+                   "Process with PID %u to terminate was not found", *pid);
           free(pid);
           break;
         }
