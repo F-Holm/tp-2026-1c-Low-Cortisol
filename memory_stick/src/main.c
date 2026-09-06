@@ -37,42 +37,42 @@ int main(int argc, char* argv[])
   bool seguir_operando = true;
   while (seguir_operando)
   {
-    int op_code = recibir_operacion(ms_recursos.socket_km);
+    int op_code = receive_op_code(ms_recursos.socket_km);
     switch (op_code)
     {
-      case OP_MEMORY_STICK_LEER:
+      case OP_MEMORY_STICK_READ:
       {
         log_info(ms_recursos.logger, "Recibiendo instrucción de lectura");
-        t_list* paquete = recibir_paquete(ms_recursos.socket_km);
-        if (list_size(paquete) != 2)
+        t_list* packet = receive_packet(ms_recursos.socket_km);
+        if (list_size(packet) != 2)
         {
           log_error(ms_recursos.logger,
                     "Cantidad de parametros para leer memoria invalida.");
-          list_destroy_and_destroy_elements(paquete, free);
+          list_destroy_and_destroy_elements(packet, free);
           break;
         }
-        int posicion_inicial = *(int*)list_get(paquete, 0);
-        int cantidad_bytes = *(int*)list_get(paquete, 1);
+        int posicion_inicial = *(int*)list_get(packet, 0);
+        int cantidad_bytes = *(int*)list_get(packet, 1);
         leer_memoria(&ms_recursos, posicion_inicial, cantidad_bytes,
                      ms_recursos.socket_km);
         log_info(ms_recursos.logger, "## Lectura de %d bytes", cantidad_bytes);
-        list_destroy_and_destroy_elements(paquete, free);
+        list_destroy_and_destroy_elements(packet, free);
         break;
       }
-      case OP_MEMORY_STICK_ESCRIBIR:
+      case OP_MEMORY_STICK_WRITE:
       {
         log_info(ms_recursos.logger, "Recibiendo instrucción de escritura");
-        t_list* paquete = recibir_paquete(ms_recursos.socket_km);
-        if (list_size(paquete) != 3)
+        t_list* packet = receive_packet(ms_recursos.socket_km);
+        if (list_size(packet) != 3)
         {
           log_error(ms_recursos.logger,
                     "Cantidad de parametros para escribir memoria invalida.");
-          list_destroy_and_destroy_elements(paquete, free);
+          list_destroy_and_destroy_elements(packet, free);
           break;
         }
-        int posicion_inicial = *(int*)list_get(paquete, 0);
-        char* bytes_a_escribir = (char*)list_get(paquete, 1);
-        int cantidad_bytes = *(int*)list_get(paquete, 2);
+        int posicion_inicial = *(int*)list_get(packet, 0);
+        char* bytes_a_escribir = (char*)list_get(packet, 1);
+        int cantidad_bytes = *(int*)list_get(packet, 2);
         log_info(ms_recursos.logger,
                  "Escritura por parte del Kernel memory de %d bytes, desde "
                  "%d",
@@ -81,7 +81,7 @@ int main(int argc, char* argv[])
                          cantidad_bytes, ms_recursos.socket_km);
         log_info(ms_recursos.logger, "## Escritura de %d bytes",
                  cantidad_bytes);
-        list_destroy_and_destroy_elements(paquete, free);
+        list_destroy_and_destroy_elements(packet, free);
         break;
       }
       default:

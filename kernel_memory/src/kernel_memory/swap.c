@@ -45,19 +45,19 @@ static int agregar_bloque_lista_swap(t_segment* segmento, int contador,
 static void escribir_bloque_en_swap(int num_bloque, char* contenido,
                                     int cantidad_bytes, t_datos_swap* swap)
 {
-  t_paquete* paquete = crear_paquete(OP_ESCRIBIR_DISCO);
-  agregar_a_paquete(paquete, &num_bloque, sizeof(int));
+  t_packet* packet = create_packet(OP_DISK_WRITE);
+  packet_append(packet, &num_bloque, sizeof(int));
   char* buffer_auxiliar = calloc(swap->tamanio_bloque, 1);
   memcpy(buffer_auxiliar, contenido, cantidad_bytes);
-  agregar_a_paquete(paquete, buffer_auxiliar, swap->tamanio_bloque);
-  enviar_paquete(paquete, swap->socket_swap);
-  eliminar_paquete(paquete);
+  packet_append(packet, buffer_auxiliar, swap->tamanio_bloque);
+  send_packet(packet, swap->socket_swap);
+  destroy_packet(packet);
   free(buffer_auxiliar);
 
-  int operacion = recibir_operacion(swap->socket_swap);
-  if (operacion == OP_DISCO_ESCRITO)
+  int operacion = receive_op_code(swap->socket_swap);
+  if (operacion == OP_DISK_WRITE_DONE)
   {
-    char* ack = recibir_string(swap->socket_swap);
+    char* ack = receive_string(swap->socket_swap);
     free(ack);
   }
   else
@@ -132,10 +132,9 @@ void suspender_proceso(t_proceso* proceso_a_suspender,
                    "No se pudo suspender el proceso PID %d: No hay bloques "
                    "libres en swap.",
                    proceso_a_suspender->pid);
-          enviar_string(
-              OP_SUSPENSION_NO_EXITOSA,
-              "No se pudo suspender el proceso porque swap esta lleno.",
-              datos_scheduler->socket_scheduler);
+          send_string(OP_SUSPENSION_FAILED,
+                      "No se pudo suspender el proceso porque swap esta lleno.",
+                      datos_scheduler->socket_scheduler);
           segmento_suspendido = false;
           free(contenido);
           break;
@@ -162,16 +161,15 @@ void suspender_proceso(t_proceso* proceso_a_suspender,
     log_info(datos_scheduler->logger,
              "Se suspendio correctamente el proceso PID %d.",
              proceso_a_suspender->pid);
-    enviar_string(OP_SUSPENSION_EXITOSA, "", datos_scheduler->socket_scheduler);
+    send_string(OP_SUSPENSION_OK, "", datos_scheduler->socket_scheduler);
   }
   else
   {
     log_info(datos_scheduler->logger, "No se encontro el proceso PID %d.",
              proceso_a_suspender->pid);
-    enviar_string(
-        OP_SUSPENSION_NO_EXITOSA,
-        "No se pudo suspender el proceso porque no se encontro su pid.",
-        datos_scheduler->socket_scheduler);
+    send_string(OP_SUSPENSION_FAILED,
+                "No se pudo suspender el proceso porque no se encontro su pid.",
+                datos_scheduler->socket_scheduler);
   }
 }
 
@@ -215,8 +213,8 @@ static bool regenerar_segmento(uint32_t id, uint32_t pid, int size,
                              logger) < size)
   {
     log_info(logger, "No hay espacio suficiente para regenerar el segmento");
-    enviar_string(OP_DES_SUSPENSION_NO_EXITOSA, "No hay memoria suficiente",
-                  socket_scheduler);
+    send_string(OP_RESUME_SUSPENSION_FAILED, "No hay memoria suficiente",
+                socket_scheduler);
     pthread_mutex_unlock(memoria_principal->mutex_memoria_principal);
     return false;
   }
@@ -230,8 +228,8 @@ static bool regenerar_segmento(uint32_t id, uint32_t pid, int size,
     if (hueco_elegido.size == -1)
     {
       log_error(logger, "## No se pudo asignar ningun hueco.");
-      enviar_string(OP_DES_SUSPENSION_NO_EXITOSA,
-                    "No se pudieron asignar huecos.", socket_scheduler);
+      send_string(OP_RESUME_SUSPENSION_FAILED, "No se pudieron asignar huecos.",
+                  socket_scheduler);
       return false;
     }
     actualizar_lista_segmentos(memoria_principal, hueco_elegido, size, pid, id);
@@ -244,10 +242,10 @@ static bool regenerar_segmento(uint32_t id, uint32_t pid, int size,
 
 static char* leer_bloque_en_swap(int num_bloque, t_datos_swap* swap)
 {
-  enviar_buffer(OP_LEER_DISCO, &num_bloque, sizeof(int), swap->socket_swap);
+  send_buffer(OP_DISK_READ, &num_bloque, sizeof(int), swap->socket_swap);
 
-  int operacion = recibir_operacion(swap->socket_swap);
-  if (operacion != OP_DISCO_LEIDO)
+  int operacion = receive_op_code(swap->socket_swap);
+  if (operacion != OP_DISK_READ_DONE)
   {
     log_error(swap->logger,
               "Respuesta inesperada del modulo swap al leer el bloque %d",
@@ -256,7 +254,7 @@ static char* leer_bloque_en_swap(int num_bloque, t_datos_swap* swap)
   }
 
   int a;
-  char* contenido_leido = (char*)recibir_buffer(&a, swap->socket_swap);
+  char* contenido_leido = (char*)receive_buffer(&a, swap->socket_swap);
   return contenido_leido;
 }
 
@@ -299,8 +297,8 @@ void des_suspender_proceso(uint32_t pid, t_datos_scheduler* datos_scheduler)
   {
     log_info(datos_scheduler->logger,
              "No se pudo suspender porque el proceso no cabe en la memoria");
-    enviar_string(OP_DES_SUSPENSION_NO_EXITOSA, "El proceso no cabe en memoria",
-                  datos_scheduler->socket_scheduler);
+    send_string(OP_RESUME_SUSPENSION_FAILED, "El proceso no cabe en memoria",
+                datos_scheduler->socket_scheduler);
     return;
   }
   t_list_iterator* iterador =
@@ -332,9 +330,8 @@ void des_suspender_proceso(uint32_t pid, t_datos_scheduler* datos_scheduler)
         log_error(datos_scheduler->logger,
                   "No se pudo leer el bloque %d desde swap para el PID %d",
                   bloque->num_bloque, pid);
-        enviar_string(OP_DES_SUSPENSION_NO_EXITOSA,
-                      "Error al leer bloque de swap",
-                      datos_scheduler->socket_scheduler);
+        send_string(OP_RESUME_SUSPENSION_FAILED, "Error al leer bloque de swap",
+                    datos_scheduler->socket_scheduler);
         list_iterator_destroy(iterador);
         return;
       }
@@ -362,9 +359,9 @@ void des_suspender_proceso(uint32_t pid, t_datos_scheduler* datos_scheduler)
                  "Como no se encontro el bloque nro: %d en swap, no se "
                  "puede des-suspender al PID %d.",
                  bloque->num_bloque, pid);
-        enviar_string(OP_DES_SUSPENSION_NO_EXITOSA,
-                      "No se pudo quitar el bloque de swap.",
-                      datos_scheduler->socket_scheduler);
+        send_string(OP_RESUME_SUSPENSION_FAILED,
+                    "No se pudo quitar el bloque de swap.",
+                    datos_scheduler->socket_scheduler);
         list_iterator_destroy(iterador);
         return;
       }
@@ -376,16 +373,15 @@ void des_suspender_proceso(uint32_t pid, t_datos_scheduler* datos_scheduler)
     log_info(datos_scheduler->logger,
              "El proceso no esta suspendido o no se encontraron sus bloques "
              "en disco.");
-    enviar_string(OP_DES_SUSPENSION_NO_EXITOSA,
-                  "No se des-suspendio el proceso porque no se encontraron sus "
-                  "bloques en disco.",
-                  datos_scheduler->socket_scheduler);
+    send_string(OP_RESUME_SUSPENSION_FAILED,
+                "No se des-suspendio el proceso porque no se encontraron sus "
+                "bloques en disco.",
+                datos_scheduler->socket_scheduler);
   }
   else
   {
     log_info(datos_scheduler->logger,
              "Se des-suspendio correctamente el proceso PID %d.", pid);
-    enviar_string(OP_DES_SUSPENSION_EXITOSA, "",
-                  datos_scheduler->socket_scheduler);
+    send_string(OP_RESUME_SUSPENSION_OK, "", datos_scheduler->socket_scheduler);
   }
 }

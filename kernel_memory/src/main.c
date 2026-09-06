@@ -19,7 +19,7 @@ int main(int argc, char* argv[])
   t_config* config = iniciar_config(archivo_config);
   t_log* logger = iniciar_logger(config);
   int socket_kernel_memory =
-      iniciar_servidor(config_get_string_value(config, "KERNEL_MEMORY_PORT"));
+      start_server(config_get_string_value(config, "KERNEL_MEMORY_PORT"));
   char* scripts_basepath = iniciar_basepath(config);
   int instruction_delay = iniciar_instruction_delay(config);
   int compaction_delay = iniciar_compaction_delay(config);

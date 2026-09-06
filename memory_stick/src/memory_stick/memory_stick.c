@@ -143,8 +143,8 @@ void leer_memoria(t_ms_recursos* ms_recursos, int posicion_inicial,
   usleep(ms_recursos->memory_delay * 1000);
   log_info(ms_recursos->logger, "Memory stick leyo los bytes, %s",
            bytes_a_devolver);
-  enviar_buffer(OP_MEMORY_STICK_LEIDO, bytes_a_devolver, cantidad_de_bytes,
-                socket_destino);
+  send_buffer(OP_MEMORY_STICK_READ_DONE, bytes_a_devolver, cantidad_de_bytes,
+              socket_destino);
   free(bytes_a_devolver);
 }
 
@@ -158,5 +158,5 @@ void escribir_memoria(t_ms_recursos* ms_recursos, int posicion_inicial,
   pthread_mutex_unlock(ms_recursos->mutex_memoria);
   log_info(ms_recursos->logger, "Se escribieron %d bytes", cantidad_de_bytes);
   usleep(ms_recursos->memory_delay * 1000);
-  enviar_string(OP_MEMORY_STICK_ESCRITO, "Escritura Exitosa", socket_destino);
+  send_string(OP_MEMORY_STICK_WRITE_DONE, "Escritura Exitosa", socket_destino);
 }

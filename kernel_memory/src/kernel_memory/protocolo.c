@@ -9,9 +9,9 @@ void aniadir_lista_mtx(t_list* lista, pthread_mutex_t* mutex, void* elemento)
 
 bool recibir_id_cpu(t_datos_cpu* datos_cpu)
 {
-  if (recibir_operacion(datos_cpu->socket_cpu) == OP_ID_CPU)
+  if (receive_op_code(datos_cpu->socket_cpu) == OP_ID_CPU)
   {
-    char* id_cpu = recibir_string(datos_cpu->socket_cpu);
+    char* id_cpu = receive_string(datos_cpu->socket_cpu);
     log_info(datos_cpu->logger, "## CPU %s Conectada", id_cpu);
     datos_cpu->id = atoi(id_cpu);
     free(id_cpu);
@@ -30,9 +30,9 @@ bool recibir_id_cpu(t_datos_cpu* datos_cpu)
 
 bool recibir_tamanio_stick(t_datos_stick* datos_stick)
 {
-  if (recibir_operacion(datos_stick->socket_stick) == OP_TAMANIO_MEMORIA)
+  if (receive_op_code(datos_stick->socket_stick) == OP_MEMORY_SIZE)
   {
-    char* tamanio = recibir_string(datos_stick->socket_stick);
+    char* tamanio = receive_string(datos_stick->socket_stick);
     log_info(datos_stick->logger, "## Memory Stick de %s bytes Conectada",
              tamanio);
     datos_stick->tamanio_stick = atoi(tamanio);
@@ -52,9 +52,9 @@ bool recibir_tamanio_stick(t_datos_stick* datos_stick)
 
 bool recibir_puerto_escucha_stick(t_datos_stick* datos_stick)
 {
-  if (recibir_operacion(datos_stick->socket_stick) == OP_PUERTO)
+  if (receive_op_code(datos_stick->socket_stick) == OP_PORT)
   {
-    char* puerto = recibir_string(datos_stick->socket_stick);
+    char* puerto = receive_string(datos_stick->socket_stick);
     log_info(datos_stick->logger, "Puerto de Memory Stick recibido %s", puerto);
     datos_stick->puerto_stick = atoi(puerto);
     free(puerto);
@@ -96,19 +96,19 @@ void enviar_sticks_conectadas(t_list* sticks_conectados,
 
   for (int i = 0; i < total_sticks; i++)
   {
-    t_paquete* paquete = crear_paquete(OP_PAQUETE);
+    t_packet* packet = create_packet(OP_PACKET);
     t_datos_stick* stick_actual =
         (t_datos_stick*)list_get(sticks_conectados, i);
 
     char puerto[6];
     snprintf(puerto, sizeof(puerto), "%u", stick_actual->puerto_stick);
 
-    agregar_string_a_paquete(paquete, stick_actual->ip_memory_stick);
-    agregar_string_a_paquete(paquete, puerto);
-    agregar_a_paquete(paquete, &stick_actual->tamanio_stick, sizeof(int));
+    packet_append_string(packet, stick_actual->ip_memory_stick);
+    packet_append_string(packet, puerto);
+    packet_append(packet, &stick_actual->tamanio_stick, sizeof(int));
 
-    enviar_paquete(paquete, datos_cpu->socket_cpu);
-    eliminar_paquete(paquete);
+    send_packet(packet, datos_cpu->socket_cpu);
+    destroy_packet(packet);
   }
   pthread_mutex_unlock(mutex_lista_sockets);
 }
@@ -119,21 +119,21 @@ void enviar_conexion_cpu(t_datos_stick* datos_stick, t_list* cpus_conectados)
   {
     return;
   }
-  t_paquete* paquete = crear_paquete(OP_PAQUETE);
+  t_packet* packet = create_packet(OP_PACKET);
 
-  agregar_string_a_paquete(paquete, datos_stick->ip_memory_stick);
+  packet_append_string(packet, datos_stick->ip_memory_stick);
 
   char puerto[6];
   snprintf(puerto, sizeof(puerto), "%u", datos_stick->puerto_stick);
-  agregar_string_a_paquete(paquete, puerto);
-  agregar_a_paquete(paquete, &datos_stick->tamanio_stick, sizeof(int));
+  packet_append_string(packet, puerto);
+  packet_append(packet, &datos_stick->tamanio_stick, sizeof(int));
 
   for (int i = 0; i < list_size(cpus_conectados); i++)
   {
     t_datos_cpu* cpu_actual = (t_datos_cpu*)list_get(cpus_conectados, i);
-    enviar_paquete(paquete, cpu_actual->socket_cpu);
+    send_packet(packet, cpu_actual->socket_cpu);
   }
-  eliminar_paquete(paquete);
+  destroy_packet(packet);
 }
 
 int calcular_memoria_total(t_list* sticks_conectados,
@@ -316,9 +316,9 @@ void crear_segmento(uint32_t id, uint32_t pid, int size,
 {
   // Chequeo de segmentation fault
   if (size > memoria_principal->tamanio_maximo_segmento)
-    enviar_string(OP_TAMANIO_SEGMENTO_EXCEDIDO,
-                  "El tamaño solicitado supera el tamaño máximo de segmento.",
-                  socket_scheduler);
+    send_string(OP_SEGMENT_SIZE_EXCEEDED,
+                "El tamaño solicitado supera el tamaño máximo de segmento.",
+                socket_scheduler);
 
   // Chequeo de cantidad de memoria disponible
   pthread_mutex_lock(memoria_principal->mutex_memoria_principal);
@@ -327,8 +327,8 @@ void crear_segmento(uint32_t id, uint32_t pid, int size,
                              logger) < size)
   {
     log_info(logger, "No hay espacio suficiente para crear el segmento");
-    enviar_string(OP_MEMORIA_INSUFICIENTE, "No hay memoria suficiente",
-                  socket_scheduler);
+    send_string(OP_NOT_ENOUGH_MEMORY, "No hay memoria suficiente",
+                socket_scheduler);
     pthread_mutex_unlock(memoria_principal->mutex_memoria_principal);
   }
   else
@@ -347,8 +347,8 @@ void crear_segmento(uint32_t id, uint32_t pid, int size,
     }
     actualizar_lista_segmentos(memoria_principal, hueco_elegido, size, pid, id);
     pthread_mutex_unlock(memoria_principal->mutex_memoria_principal);
-    enviar_string(OP_MEMORIA_ALOJADA, "Se ha alojado la memoria",
-                  socket_scheduler);
+    send_string(OP_MEMORY_ALLOCATED, "Se ha alojado la memoria",
+                socket_scheduler);
     log_info(logger, "## PID: %u - Segmento Creado %u - Tamaño: %d", pid, id,
              size);
   }
@@ -363,8 +363,8 @@ bool compactar_memoria(int socket_scheduler,
       memoria_principal->tamanio_total,
       calcular_base_final_segmento(memoria_principal->segmentos));
   usleep(memoria_principal->compaction_delay * 1000);
-  enviar_string(OP_COMPACTACION_FINALIZADA, "Se finalizo la compactacion",
-                socket_scheduler);
+  send_string(OP_COMPACTION_DONE, "Se finalizo la compactacion",
+              socket_scheduler);
   return true;
 }
 
@@ -407,19 +407,19 @@ t_list* compactar_huecos(int memoria_total, int base_final_segmento)
 
 void notificar_compactacion(int socket_scheduler)
 {
-  enviar_string(OP_COMPACTACION_NECESARIA, "Es necesario compactar la memoria",
-                socket_scheduler);
-  int operacion = recibir_operacion(socket_scheduler);
-  if (operacion == OP_PUEDE_COMPACTAR)
+  send_string(OP_COMPACTION_NEEDED, "Es necesario compactar la memoria",
+              socket_scheduler);
+  int operacion = receive_op_code(socket_scheduler);
+  if (operacion == OP_CAN_COMPACT)
   {
-    char* mensaje = recibir_string(socket_scheduler);
+    char* mensaje = receive_string(socket_scheduler);
     free(mensaje);
   }
 }
 
 t_segment* buecar_y_eliminar_segmento(uint32_t id, uint32_t pid,
-                                       t_memoria_principal* memoria_principal,
-                                       t_log* logger)
+                                      t_memoria_principal* memoria_principal,
+                                      t_log* logger)
 {
   pthread_mutex_lock(memoria_principal->mutex_memoria_principal);
 
@@ -640,20 +640,19 @@ t_list* filtrar_segmentos_proceso(int pid,
 }
 
 void agregar_segmentos_a_paquete(t_list* segmentos,
-                                 t_paquete* tabla_segmentos_proceso)
+                                 t_packet* tabla_segmentos_proceso)
 {
   t_list_iterator* iterador = list_iterator_create(segmentos);
   while (list_iterator_has_next(iterador))
   {
     t_segment* segmento_actual = list_iterator_next(iterador);
-    agregar_a_paquete(tabla_segmentos_proceso, segmento_actual,
-                      sizeof(t_segment));
+    packet_append(tabla_segmentos_proceso, segmento_actual, sizeof(t_segment));
   }
   list_iterator_destroy(iterador);
 }
 
-t_segment* buscar_segmento(t_memoria_principal* memoria_principal,
-                            uint32_t pid, uint32_t num_segmento)
+t_segment* buscar_segmento(t_memoria_principal* memoria_principal, uint32_t pid,
+                           uint32_t num_segmento)
 {
   t_segment* seg_encontrado = NULL;
   uint32_t contador_segmentos_pid = 0;
@@ -762,32 +761,30 @@ char* leer_de_sticks(int direccion_fisica, int tamanio,
     if (cant_bytes_a_leer > bytes_hasta_fin_stick)
       cant_bytes_a_leer = bytes_hasta_fin_stick;
     // Envio pedido de lectura al stick
-    t_paquete* paquete = crear_paquete(OP_MEMORY_STICK_LEER);
-    agregar_a_paquete(paquete, &offset_en_stick, sizeof(int));
-    agregar_a_paquete(paquete, &cant_bytes_a_leer, sizeof(int));
-    if (!enviar_paquete(paquete, stick->socket_stick))
+    t_packet* packet = create_packet(OP_MEMORY_STICK_READ);
+    packet_append(packet, &offset_en_stick, sizeof(int));
+    packet_append(packet, &cant_bytes_a_leer, sizeof(int));
+    if (!send_packet(packet, stick->socket_stick))
     {
-      log_error(logger, "Error al enviar paquete de lectura al stick %d",
+      log_error(logger, "Error al enviar packet de lectura al stick %d",
                 indice);
-      enviar_string(OP_MEMORIA_CORRUPTA, "Stick no disponible",
-                    socket_scheduler);
+      send_string(OP_MEMORY_CORRUPTED, "Stick no disponible", socket_scheduler);
       free(resultado);
       pthread_mutex_unlock(mutex_sticks);
       return NULL;
     }
-    eliminar_paquete(paquete);
+    destroy_packet(packet);
     pthread_mutex_unlock(mutex_sticks);
 
     // Recibo respuesta
     int stick_socket =
         ((t_datos_stick*)list_get(sticks_conectados, indice))->socket_stick;
-    int op = recibir_operacion(stick_socket);
+    int op = receive_op_code(stick_socket);
     if (op == 0)
     {
-      enviar_string(OP_MEMORIA_CORRUPTA, "Stick no disponible",
-                    socket_scheduler);
+      send_string(OP_MEMORY_CORRUPTED, "Stick no disponible", socket_scheduler);
     }
-    if (op != OP_MEMORY_STICK_LEIDO)
+    if (op != OP_MEMORY_STICK_READ_DONE)
     {
       log_error(logger, "Opcode de respuesta erroneo del stick %d", indice);
       free(resultado);
@@ -795,7 +792,7 @@ char* leer_de_sticks(int direccion_fisica, int tamanio,
     }
     // Recibo los bytes como string
     int size_recibido = 0;
-    char* fragmento = recibir_buffer(&size_recibido, stick_socket);
+    char* fragmento = receive_buffer(&size_recibido, stick_socket);
 
     memcpy(resultado + bytes_leidos, fragmento, cant_bytes_a_leer);
     free(fragmento);
@@ -854,8 +851,7 @@ bool escribir_en_sticks(int pid, int dir_fisica, int tamanio_a_leer,
                 "No hay mas sticks disponibles para completar la escritura "
                 "(PID: %d, Dir. Fisica: %d)",
                 pid, dir_fisica);
-      enviar_string(OP_MEMORIA_CORRUPTA, "Stick no disponible",
-                    socket_scheduler);
+      send_string(OP_MEMORY_CORRUPTED, "Stick no disponible", socket_scheduler);
       ok = false;
       break;
     }
@@ -867,35 +863,33 @@ bool escribir_en_sticks(int pid, int dir_fisica, int tamanio_a_leer,
     log_info(logger, "Empiezo a escribir en el stick %d, offset %d", i,
              offset_actual);
 
-    t_paquete* paquete = crear_paquete(OP_MEMORY_STICK_ESCRIBIR);
-    agregar_a_paquete(paquete, &offset_actual, sizeof(int));
-    agregar_a_paquete(paquete, puntero_buffer, a_escribir);
-    agregar_a_paquete(paquete, &a_escribir, sizeof(int));
+    t_packet* packet = create_packet(OP_MEMORY_STICK_WRITE);
+    packet_append(packet, &offset_actual, sizeof(int));
+    packet_append(packet, puntero_buffer, a_escribir);
+    packet_append(packet, &a_escribir, sizeof(int));
 
-    if (!enviar_paquete(paquete, stick_actual->socket_stick))
+    if (!send_packet(packet, stick_actual->socket_stick))
     {
-      log_error(logger, "Error al enviar paquete de escritura al stick %d", i);
-      enviar_string(OP_MEMORIA_CORRUPTA, "Stick no disponible",
-                    socket_scheduler);
-      eliminar_paquete(paquete);
+      log_error(logger, "Error al enviar packet de escritura al stick %d", i);
+      send_string(OP_MEMORY_CORRUPTED, "Stick no disponible", socket_scheduler);
+      destroy_packet(packet);
       ok = false;
       break;
     }
-    eliminar_paquete(paquete);
+    destroy_packet(packet);
 
     log_info(logger, "##PID: %d - Escritura - Dir. Fisica: %d - Tamaño: %d",
              pid, dir_fisica, a_escribir);
 
-    if (recibir_operacion(stick_actual->socket_stick) ==
-        OP_MEMORY_STICK_ESCRITO)
+    if (receive_op_code(stick_actual->socket_stick) ==
+        OP_MEMORY_STICK_WRITE_DONE)
     {
-      char* buffer = recibir_string(stick_actual->socket_stick);
+      char* buffer = receive_string(stick_actual->socket_stick);
       free(buffer);
     }
     else
     {
-      enviar_string(OP_MEMORIA_CORRUPTA, "Stick no disponible",
-                    socket_scheduler);
+      send_string(OP_MEMORY_CORRUPTED, "Stick no disponible", socket_scheduler);
     }
 
     puntero_buffer += a_escribir;

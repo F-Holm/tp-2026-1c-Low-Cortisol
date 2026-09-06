@@ -6,12 +6,12 @@
 
 bool handshake_km(int socket_km, t_log* logger)
 {
-  if (!enviar_handshake(MID_MEMORY_STICK, socket_km))
+  if (!send_handshake(MID_MEMORY_STICK, socket_km))
   {
     log_error(logger, "## Error en el envio del Handshake con Kernel Memory");
     return false;
   }
-  if (recibir_handshake(socket_km) != MID_KERNEL_MEMORY)
+  if (receive_handshake(socket_km) != MID_KERNEL_MEMORY)
   {
     log_error(logger,
               "## Error en la recepción del Handshake con Kernel Memory");
@@ -23,7 +23,7 @@ bool handshake_km(int socket_km, t_log* logger)
 
 bool enviar_tamanio(int socket_km, char* tamanio, t_log* logger)
 {
-  if (!enviar_string(OP_TAMANIO_MEMORIA, tamanio, socket_km))
+  if (!send_string(OP_MEMORY_SIZE, tamanio, socket_km))
   {
     log_error(logger, "## Error en el envio de tamaño");
     return false;
@@ -49,7 +49,7 @@ int iniciar_conexion_km(char* ip, char* puerto, char* tamanio, t_log* logger)
 
 int conectar_km(char* ip, char* puerto, t_log* logger)
 {
-  int socket_km = crear_conexion(ip, puerto);
+  int socket_km = create_connection(ip, puerto);
   if (socket_km <= 0)
   {
     log_error(logger, "## Error de conexión con Kernel Memory");
@@ -63,5 +63,5 @@ bool enviar_puerto_server_ms_km(int socket, uint16_t puerto)
 {
   char buffer[6];
   snprintf(buffer, sizeof(buffer), "%u", puerto);
-  return enviar_string(OP_PUERTO, buffer, socket);
+  return send_string(OP_PORT, buffer, socket);
 }

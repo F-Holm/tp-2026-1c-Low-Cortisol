@@ -31,30 +31,30 @@ int main(int argc, char* argv[])
   bool seguir_operando = true;
   while (seguir_operando)
   {
-    int op_code = recibir_operacion(datos_swap.socket_swap);
+    int op_code = receive_op_code(datos_swap.socket_swap);
     switch (op_code)
     {
-      case OP_ESCRIBIR_DISCO:
-        t_list* paquete = recibir_paquete(datos_swap.socket_swap);
-        if (list_size(paquete) != 2)
+      case OP_DISK_WRITE:
+        t_list* packet = receive_packet(datos_swap.socket_swap);
+        if (list_size(packet) != 2)
         {
           log_error(datos_swap.logger,
                     "Cantidad de parametros para escribir en disco invalida.");
           break;
         }
-        int numero_bloque = *(int*)list_get(paquete, 0);
-        char* contenido_a_escribir = (char*)list_get(paquete, 1);
+        int numero_bloque = *(int*)list_get(packet, 0);
+        char* contenido_a_escribir = (char*)list_get(packet, 1);
         escribir_bloque(datos_swap.archivo_swap, numero_bloque,
                         datos_swap.tamanio_bloque, contenido_a_escribir);
-        enviar_string(OP_DISCO_ESCRITO, "", datos_swap.socket_swap);
-        list_destroy_and_destroy_elements(paquete, free);
+        send_string(OP_DISK_WRITE_DONE, "", datos_swap.socket_swap);
+        list_destroy_and_destroy_elements(packet, free);
         log_info(datos_swap.logger, "## Escritura de bloque: <%d>",
                  numero_bloque);
         break;
 
-      case OP_LEER_DISCO:
+      case OP_DISK_READ:
         int a;
-        int* num_bloque = (int*)recibir_buffer(&a, datos_swap.socket_swap);
+        int* num_bloque = (int*)receive_buffer(&a, datos_swap.socket_swap);
         if (num_bloque == NULL)
         {
           log_error(datos_swap.logger,
@@ -64,8 +64,8 @@ int main(int argc, char* argv[])
         char* contenido_leido = malloc(datos_swap.tamanio_bloque);
         leer_bloque(datos_swap.archivo_swap, *num_bloque,
                     datos_swap.tamanio_bloque, contenido_leido);
-        enviar_buffer(OP_DISCO_LEIDO, contenido_leido,
-                      datos_swap.tamanio_bloque, datos_swap.socket_swap);
+        send_buffer(OP_DISK_READ_DONE, contenido_leido,
+                    datos_swap.tamanio_bloque, datos_swap.socket_swap);
         log_info(datos_swap.logger, "## Lectura de bloque: <%d>", *num_bloque);
         free(num_bloque);
         free(contenido_leido);

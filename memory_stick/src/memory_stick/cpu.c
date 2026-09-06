@@ -7,7 +7,7 @@
 
 int create_server_cpu(t_log* logger)
 {
-  int ret = iniciar_servidor("0");
+  int ret = start_server("0");
   if (ret <= 0)
   {
     log_error(logger, "## Error en la creación del servidor para las CPU");
@@ -73,12 +73,12 @@ void cerrar_hilo_escucha(t_list* lista_sockets,
 
 bool handshake_cpu(int socket_cpu, t_log* logger)
 {
-  if (recibir_handshake(socket_cpu) != MID_CPU)
+  if (receive_handshake(socket_cpu) != MID_CPU)
   {
     log_error(logger, "## Error en la recepción del Handshake con CPU");
     return false;
   }
-  if (!enviar_handshake(MID_MEMORY_STICK, socket_cpu))
+  if (!send_handshake(MID_MEMORY_STICK, socket_cpu))
   {
     log_error(logger, "## Error en el envio del Handshake con CPU");
     return false;
@@ -89,12 +89,12 @@ bool handshake_cpu(int socket_cpu, t_log* logger)
 
 char* obtener_id_cpu(int socket_cpu, t_log* logger)
 {
-  if (recibir_operacion(socket_cpu) != OP_ID_CPU)
+  if (receive_op_code(socket_cpu) != OP_ID_CPU)
   {
     log_error(logger, "## Error en la recepción del ID de la CPU");
     return NULL;
   }
-  char* id_cpu = recibir_string(socket_cpu);
+  char* id_cpu = receive_string(socket_cpu);
   log_info(logger, "## CPU %s Conectada", id_cpu);
   return id_cpu;
 }
@@ -187,49 +187,49 @@ void* manejar_cliente_cpu(void* datos_hilo_cpu_void)
 
   while (true)
   {
-    int op_code = recibir_operacion(datos_hilo_cpu->socket_cpu);
+    int op_code = receive_op_code(datos_hilo_cpu->socket_cpu);
     switch (op_code)
     {
-      case OP_MEMORY_STICK_LEER:
+      case OP_MEMORY_STICK_READ:
       {
         log_info(datos_hilo_cpu->ms_recursos->logger,
                  "Recibiendo instrucción de lectura de parte de la cpu");
-        t_list* paquete = recibir_paquete(datos_hilo_cpu->socket_cpu);
-        if (list_size(paquete) != 2)
+        t_list* packet = receive_packet(datos_hilo_cpu->socket_cpu);
+        if (list_size(packet) != 2)
         {
           log_error(datos_hilo_cpu->ms_recursos->logger,
                     "Cantidad de parametros para leer memoria invalida.");
           break;
         }
-        int posicion_inicial = *(int*)list_get(paquete, 0);
-        int cantidad_bytes = *(int*)list_get(paquete, 1);
+        int posicion_inicial = *(int*)list_get(packet, 0);
+        int cantidad_bytes = *(int*)list_get(packet, 1);
         log_info(datos_hilo_cpu->ms_recursos->logger,
                  "Lectura de %d bytes, desde %d por parte de la cpu",
                  cantidad_bytes, posicion_inicial);
-        list_destroy_and_destroy_elements(paquete, free);
+        list_destroy_and_destroy_elements(packet, free);
         leer_memoria(datos_hilo_cpu->ms_recursos, posicion_inicial,
                      cantidad_bytes, datos_hilo_cpu->socket_cpu);
         break;
       }
-      case OP_MEMORY_STICK_ESCRIBIR:
+      case OP_MEMORY_STICK_WRITE:
       {
         log_info(datos_hilo_cpu->ms_recursos->logger,
                  "Recibiendo instrucción de escritura de parte de la cpu");
-        t_list* paquete = recibir_paquete(datos_hilo_cpu->socket_cpu);
-        if (list_size(paquete) != 3)
+        t_list* packet = receive_packet(datos_hilo_cpu->socket_cpu);
+        if (list_size(packet) != 3)
         {
           log_error(datos_hilo_cpu->ms_recursos->logger,
                     "Cantidad de parametros para escribir memoria invalida.");
-          list_destroy_and_destroy_elements(paquete, free);
+          list_destroy_and_destroy_elements(packet, free);
           break;
         }
-        int posicion_inicial = *(int*)list_get(paquete, 0);
-        char* bytes_a_escribir = (char*)list_get(paquete, 1);
-        int cantidad_bytes = *(int*)list_get(paquete, 2);
+        int posicion_inicial = *(int*)list_get(packet, 0);
+        char* bytes_a_escribir = (char*)list_get(packet, 1);
+        int cantidad_bytes = *(int*)list_get(packet, 2);
         escribir_memoria(datos_hilo_cpu->ms_recursos, posicion_inicial,
                          bytes_a_escribir, cantidad_bytes,
                          datos_hilo_cpu->socket_cpu);
-        list_destroy_and_destroy_elements(paquete, free);
+        list_destroy_and_destroy_elements(packet, free);
         break;
       }
       default:

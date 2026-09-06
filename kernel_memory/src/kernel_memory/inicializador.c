@@ -110,7 +110,7 @@ t_datos_swap* inicializar_datos_swap(int socket_swap, t_log* logger)
   t_datos_swap* datos_swap = malloc(sizeof(t_datos_swap));
   datos_swap->socket_swap = socket_swap;
   datos_swap->logger = logger;
-  int op = recibir_operacion(socket_swap);
+  int op = receive_op_code(socket_swap);
   if (op != OP_INFO_SWAP)
   {
     log_error(logger, "Opcode inesperado al recibir info de swap");
@@ -118,7 +118,7 @@ t_datos_swap* inicializar_datos_swap(int socket_swap, t_log* logger)
     return NULL;
   }
   int a;
-  t_swap_config* envio_km = (t_swap_config*)recibir_buffer(&a, socket_swap);
+  t_swap_config* envio_km = (t_swap_config*)receive_buffer(&a, socket_swap);
   datos_swap->tamanio_swap = envio_km->swap_size;
   datos_swap->tamanio_bloque = envio_km->block_size;
   free(envio_km);

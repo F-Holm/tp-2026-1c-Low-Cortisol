@@ -15,9 +15,9 @@ bool connect_to_kernel_scheduler(t_cpu* cpu)
       config_get_string_value(cpu->config, "KERNEL_SCHEDULER_PORT");
 
   cpu->socket_kernel_scheduler =
-      crear_conexion(kernel_scheduler_ip, kernel_scheduler_port);
+      create_connection(kernel_scheduler_ip, kernel_scheduler_port);
 
-  if (enviar_handshake(MID_CPU, cpu->socket_kernel_scheduler))
+  if (send_handshake(MID_CPU, cpu->socket_kernel_scheduler))
   {
     log_info(cpu->logger, "handshake sent to the kernel scheduler");
   }
@@ -27,7 +27,7 @@ bool connect_to_kernel_scheduler(t_cpu* cpu)
               "## failed to send the handshake to the kernel scheduler");
   }
 
-  int module_id = recibir_handshake(cpu->socket_kernel_scheduler);
+  int module_id = receive_handshake(cpu->socket_kernel_scheduler);
   if (module_id != MID_KERNEL_SCHEDULER)
   {
     log_error(cpu->logger,
@@ -49,9 +49,9 @@ bool connect_to_kernel_memory(t_cpu* cpu)
       config_get_string_value(cpu->config, "KERNEL_MEMORY_PORT");
 
   cpu->socket_kernel_memory =
-      crear_conexion(kernel_memory_ip, kernel_memory_port);
+      create_connection(kernel_memory_ip, kernel_memory_port);
 
-  if (enviar_handshake(MID_CPU, cpu->socket_kernel_memory))
+  if (send_handshake(MID_CPU, cpu->socket_kernel_memory))
   {
     log_info(cpu->logger, "handshake sent to the kernel memory");
   }
@@ -61,7 +61,7 @@ bool connect_to_kernel_memory(t_cpu* cpu)
               "## failed to send the handshake to the kernel memory");
   }
 
-  int module_id = recibir_handshake(cpu->socket_kernel_memory);
+  int module_id = receive_handshake(cpu->socket_kernel_memory);
   if (module_id != MID_KERNEL_MEMORY)
   {
     log_error(cpu->logger,
@@ -77,7 +77,7 @@ bool connect_to_kernel_memory(t_cpu* cpu)
 bool connect_memory_stick(t_cpu* cpu)
 {
   t_list* packet;
-  packet = recibir_paquete(cpu->socket_kernel_memory);
+  packet = receive_packet(cpu->socket_kernel_memory);
 
   char stick_ip[16];
   char stick_port[6];
@@ -87,7 +87,7 @@ bool connect_memory_stick(t_cpu* cpu)
   if (!parse_stick_packet(cpu, packet, stick_ip, stick_port, &received_size))
     return false;
 
-  new_socket = crear_conexion(stick_ip, stick_port);
+  new_socket = create_connection(stick_ip, stick_port);
 
   if (new_socket <= 0)
   {
@@ -104,7 +104,7 @@ bool connect_memory_stick(t_cpu* cpu)
     return false;
   }
 
-  if (!enviar_string(OP_ID_CPU, cpu->id, new_socket))
+  if (!send_string(OP_ID_CPU, cpu->id, new_socket))
   {
     log_error(cpu->logger, "## Error sending the ID to the memory stick");
     close(new_socket);
@@ -134,13 +134,13 @@ uint32_t compute_offset(t_list* sticks)
 
 bool handshake_memory_stick(t_cpu* cpu, int new_socket)
 {
-  if (!enviar_handshake(MID_CPU, new_socket))
+  if (!send_handshake(MID_CPU, new_socket))
   {
     close(new_socket);
     return false;
   }
 
-  int module_id = recibir_handshake(new_socket);
+  int module_id = receive_handshake(new_socket);
   if (module_id != MID_MEMORY_STICK)
   {
     close(new_socket);
@@ -153,8 +153,8 @@ bool handshake_memory_stick(t_cpu* cpu, int new_socket)
 
 void notify_bsod(t_cpu* cpu)
 {
-  if (!enviar_string(OP_STICK_DESCONECTADO, "MS disconnected",
-                     cpu->socket_kernel_memory))
+  if (!send_string(OP_STICK_DISCONNECTED, "MS disconnected",
+                   cpu->socket_kernel_memory))
     log_info(cpu->logger, "Kernel Memory disconnected");
   else
     log_info(cpu->logger, "Kernel Memory notified of BSOD");

@@ -6,9 +6,9 @@
 #include "kernel_scheduler/misc.h"
 #include "kernel_scheduler/queue.h"
 #include "utils/io.h"
-#include "utils/syscalls.h"
 #include "utils/msg.h"
 #include "utils/registers_cpu.h"
+#include "utils/syscalls.h"
 
 // Funciones de comunicacion de syscalls IO
 static bool envio_stdout(t_io* io_out, t_stdout* peticion, char* buffer);
@@ -154,11 +154,11 @@ void cerrar_io(t_io* io)
 static bool envio_stdout(t_io* io_out, t_stdout* peticion, char* buffer)
 {
   int peticion_size = sizeof(t_stdout_request);
-  t_paquete* paquete = crear_paquete(OP_PETICION_IO_STDOUT);
-  agregar_a_paquete(paquete, peticion->peticion, peticion_size);
-  agregar_string_a_paquete(paquete, buffer);
-  bool envio = enviar_paquete(paquete, io_out->socket_io);
-  eliminar_paquete(paquete);
+  t_packet* packet = create_packet(OP_IO_STDOUT_REQUEST);
+  packet_append(packet, peticion->peticion, peticion_size);
+  packet_append_string(packet, buffer);
+  bool envio = send_packet(packet, io_out->socket_io);
+  destroy_packet(packet);
   free(buffer);
   if (!envio)
   {
@@ -172,8 +172,8 @@ static bool envio_stdout(t_io* io_out, t_stdout* peticion, char* buffer)
 static bool peticion_stdout_km(t_stdout* peticion, t_io* io_out)
 {
   int peticion_size = sizeof(t_stdout_request);
-  bool envio = enviar_buffer(OP_PETICION_IO_STDOUT, peticion->peticion,
-                             peticion_size, io_out->socket_km->socket_km);
+  bool envio = send_buffer(OP_IO_STDOUT_REQUEST, peticion->peticion,
+                           peticion_size, io_out->socket_km->socket_km);
   if (!envio)
   {
     log_error(io_out->logger, "Error en la comunicacion con el Kernel Memory");
@@ -185,11 +185,11 @@ static bool peticion_stdout_km(t_stdout* peticion, t_io* io_out)
 static bool envio_stdin(t_stdin* peticion, t_io* io_in, char* buffer)
 {
   int peticion_size = sizeof(t_stdin_request);
-  t_paquete* paquete = crear_paquete(OP_PETICION_IO_STDIN);
-  agregar_a_paquete(paquete, peticion->peticion, peticion_size);
-  agregar_string_a_paquete(paquete, buffer);
-  bool envio = enviar_paquete(paquete, io_in->socket_km->socket_km);
-  eliminar_paquete(paquete);
+  t_packet* packet = create_packet(OP_IO_STDIN_REQUEST);
+  packet_append(packet, peticion->peticion, peticion_size);
+  packet_append_string(packet, buffer);
+  bool envio = send_packet(packet, io_in->socket_km->socket_km);
+  destroy_packet(packet);
   if (!envio)
   {
     log_error(io_in->logger, "Error en el envio a Kernel memory");
@@ -202,8 +202,8 @@ static bool envio_stdin(t_stdin* peticion, t_io* io_in, char* buffer)
 static bool comunicacion_io_stdin(t_stdin* peticion, t_io* io_in, char** buffer)
 {
   int peticion_size = sizeof(t_stdin_request);
-  bool envio = enviar_buffer(OP_PETICION_IO_STDIN, peticion->peticion,
-                             peticion_size, io_in->socket_io);
+  bool envio = send_buffer(OP_IO_STDIN_REQUEST, peticion->peticion,
+                           peticion_size, io_in->socket_io);
   if (!envio)
   {
     log_error(io_in->logger, "Error em el envio a IO");
@@ -212,12 +212,12 @@ static bool comunicacion_io_stdin(t_stdin* peticion, t_io* io_in, char** buffer)
   }
 
   // recibo la respuesta de IO
-  int cod_op = recibir_operacion(io_in->socket_io);
+  int cod_op = receive_op_code(io_in->socket_io);
   if (cod_op == OP_CODE_ERROR)
   {
     return false;
   }
-  *buffer = recibir_string(io_in->socket_io);
+  *buffer = receive_string(io_in->socket_io);
 
   if (*buffer == NULL)
   {
@@ -231,22 +231,22 @@ static bool comunicacion_io_stdin(t_stdin* peticion, t_io* io_in, char** buffer)
 static bool comunicacion_io_sleep(t_sleep* peticion, t_io* io_sleep)
 {
   int peticion_size = sizeof(t_sleep_request);
-  bool envio = enviar_buffer(OP_PETICION_IO_SLEEP, peticion->peticion,
-                             peticion_size, io_sleep->socket_io);
+  bool envio = send_buffer(OP_IO_SLEEP_REQUEST, peticion->peticion,
+                           peticion_size, io_sleep->socket_io);
   if (!envio)
   {
     log_error(io_sleep->logger, "Error al enviar a IO");
     return false;
   }
 
-  int cod_op = recibir_operacion(io_sleep->socket_io);
+  int cod_op = receive_op_code(io_sleep->socket_io);
   if (cod_op == OP_CODE_ERROR)
   {
     log_error(io_sleep->logger,
               "Error en la respuesta de IO a Kernel Scheduler");
     return false;
   }
-  char* respuesta = recibir_string(io_sleep->socket_io);
+  char* respuesta = receive_string(io_sleep->socket_io);
   if (strcmp(respuesta, "OK") != 0)
   {
     log_error(io_sleep->logger,
@@ -339,23 +339,23 @@ static void cerrar_hilo_io(t_io* io)
 static bool charla_km_stdin(t_io* io_in)
 {
   int cod_op = -1;
-  cod_op = recibir_operacion(io_in->socket_km->socket_km);
+  cod_op = receive_op_code(io_in->socket_km->socket_km);
   switch (cod_op)
   {
-    case OP_MEMORIA_CORRUPTA:
-      free(recibir_string(io_in->socket_km->socket_km));
+    case OP_MEMORY_CORRUPTED:
+      free(receive_string(io_in->socket_km->socket_km));
       cerrar_kernel_scheduler(io_in->socket_server, io_in->logger,
                               MC_MEMORIA_CORRUPTA, -1);
       return false;
-    case OP_NUEVO_MEMORY_STICK:
-      free(recibir_string(io_in->socket_km->socket_km));
+    case OP_NEW_MEMORY_STICK:
+      free(receive_string(io_in->socket_km->socket_km));
       crear_hilo_rutina_des_suspension(io_in->colas);
       return charla_km_stdin(io_in);
-    case OP_RESPUESTA_STDIN:
-      free(recibir_string(io_in->socket_km->socket_km));
+    case OP_STDIN_RESPONSE:
+      free(receive_string(io_in->socket_km->socket_km));
       return true;
     default:
-      free(recibir_string(io_in->socket_km->socket_km));
+      free(receive_string(io_in->socket_km->socket_km));
       cerrar_kernel_scheduler(io_in->socket_server, io_in->logger,
                               MC_FALLO_CONEXION_KERNEL_MEMORY, -1);
       return false;
@@ -371,7 +371,7 @@ static int io_stdin_f(t_stdin* peticion, t_io* io_in)
   {
     return false;
   }
-  // Le envio el paquete al Kernel Memory para que escriba en la memoria
+  // Le envio el packet al Kernel Memory para que escriba en la memoria
   pthread_mutex_lock(&(io_in->socket_km->mutex_socket));
   envio = envio_stdin(peticion, io_in, buffer);
   if (!envio)
@@ -396,23 +396,23 @@ static int io_stdin_f(t_stdin* peticion, t_io* io_in)
 static bool recepcion_km_stdout(t_io* io_out)
 {
   int op_code = -1;
-  op_code = recibir_operacion(io_out->socket_km->socket_km);
+  op_code = receive_op_code(io_out->socket_km->socket_km);
 
   switch (op_code)
   {
-    case OP_MEMORIA_CORRUPTA:
-      free(recibir_string(io_out->socket_km->socket_km));
+    case OP_MEMORY_CORRUPTED:
+      free(receive_string(io_out->socket_km->socket_km));
       cerrar_kernel_scheduler(io_out->socket_server, io_out->logger,
                               MC_MEMORIA_CORRUPTA, -1);
       return false;
-    case OP_NUEVO_MEMORY_STICK:
-      free(recibir_string(io_out->socket_km->socket_km));
+    case OP_NEW_MEMORY_STICK:
+      free(receive_string(io_out->socket_km->socket_km));
       crear_hilo_rutina_des_suspension(io_out->colas);
       return recepcion_km_stdout(io_out);
-    case OP_RESPUESTA_STDOUT:
+    case OP_STDOUT_RESPONSE:
       return true;
     default:
-      free(recibir_string(io_out->socket_km->socket_km));
+      free(receive_string(io_out->socket_km->socket_km));
       cerrar_kernel_scheduler(io_out->socket_server, io_out->logger,
                               MC_FALLO_CONEXION_KERNEL_MEMORY, -1);
       return false;
@@ -440,7 +440,7 @@ static bool io_stdout_f(t_stdout* peticion, t_io* io_out)
     return false;
   }
 
-  char* buffer = recibir_string(io_out->socket_km->socket_km);
+  char* buffer = receive_string(io_out->socket_km->socket_km);
   pthread_mutex_unlock(&(io_out->socket_km->mutex_socket));
   if (buffer == NULL)
   {
@@ -458,13 +458,13 @@ static bool io_stdout_f(t_stdout* peticion, t_io* io_out)
     return false;
   }
 
-  cod_op = recibir_operacion(io_out->socket_io);
-  if (cod_op != OP_RESPUESTA_STDOUT)
+  cod_op = receive_op_code(io_out->socket_io);
+  if (cod_op != OP_STDOUT_RESPONSE)
   {
     log_error(io_out->logger, "Error en la respuesta de IO a Kernel Scheduler");
     return false;
   }
-  free(recibir_string(io_out->socket_io));
+  free(receive_string(io_out->socket_io));
   finalizar_io(peticion, io_out, peticion->pcb);
   return true;
 }
@@ -560,13 +560,13 @@ static void* hilo_io(void* hilo_io)
 
 static int obtener_tipo_io(int socket_fd, t_log* logger)
 {
-  if (recibir_operacion(socket_fd) != OP_TIPO_IO)
+  if (receive_op_code(socket_fd) != OP_IO_TYPE)
   {
-    log_error(logger, "Error en el tipo de operación. Expected: OP_TIPO_IO");
+    log_error(logger, "Error en el tipo de operación. Expected: OP_IO_TYPE");
     return -1;
   }
 
-  char* buffer = recibir_string(socket_fd);
+  char* buffer = receive_string(socket_fd);
   int tipo_io;
 
   if (strcmp(buffer, IO_TYPE_NAMES[E_STDIN]) == 0)

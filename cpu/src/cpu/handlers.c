@@ -156,8 +156,8 @@ t_extended_bool handler_copy_mem(t_cpu* cpu, t_context* context,
 t_extended_bool handler_mutex_create(t_cpu* cpu, t_context* context,
                                      t_instruction* instruction, uint32_t pid)
 {
-  if (enviar_string(OP_SYSCALL_MUTEX_CREATE, instruction->parameters[0],
-                    cpu->socket_kernel_scheduler))
+  if (send_string(OP_SYSCALL_MUTEX_CREATE, instruction->parameters[0],
+                  cpu->socket_kernel_scheduler))
   {
     log_info(cpu->logger, "Syscall sent to the kernel scheduler");
   }
@@ -173,8 +173,8 @@ t_extended_bool handler_mutex_create(t_cpu* cpu, t_context* context,
 t_extended_bool handler_mutex_lock(t_cpu* cpu, t_context* context,
                                    t_instruction* instruction, uint32_t pid)
 {
-  if (enviar_string(OP_SYSCALL_MUTEX_LOCK, instruction->parameters[0],
-                    cpu->socket_kernel_scheduler))
+  if (send_string(OP_SYSCALL_MUTEX_LOCK, instruction->parameters[0],
+                  cpu->socket_kernel_scheduler))
   {
     log_info(cpu->logger, "Syscall sent to the kernel scheduler");
   }
@@ -190,8 +190,8 @@ t_extended_bool handler_mutex_lock(t_cpu* cpu, t_context* context,
 t_extended_bool handler_mutex_unlock(t_cpu* cpu, t_context* context,
                                      t_instruction* instruction, uint32_t pid)
 {
-  if (enviar_string(OP_SYSCALL_MUTEX_UNLOCK, instruction->parameters[0],
-                    cpu->socket_kernel_scheduler))
+  if (send_string(OP_SYSCALL_MUTEX_UNLOCK, instruction->parameters[0],
+                  cpu->socket_kernel_scheduler))
   {
     log_info(cpu->logger, "Syscall sent to the kernel scheduler");
   }
@@ -214,8 +214,8 @@ t_extended_bool handler_mem_alloc(t_cpu* cpu, t_context* context,
   syscall_data->segment_id = atoi(instruction->parameters[0]);
   syscall_data->size = atoi(instruction->parameters[1]);
 
-  if (enviar_buffer(OP_SYSCALL_MEM_ALLOC, syscall_data,
-                    sizeof(t_syscall_memory), cpu->socket_kernel_scheduler))
+  if (send_buffer(OP_SYSCALL_MEM_ALLOC, syscall_data, sizeof(t_syscall_memory),
+                  cpu->socket_kernel_scheduler))
   {
     log_info(cpu->logger, "Syscall sent to the kernel scheduler");
     free(syscall_data);
@@ -241,8 +241,8 @@ t_extended_bool handler_mem_free(t_cpu* cpu, t_context* context,
   syscall_data->segment_id = atoi(instruction->parameters[0]);
   syscall_data->size = 0;
 
-  if (enviar_buffer(OP_SYSCALL_MEM_FREE, syscall_data, sizeof(t_syscall_memory),
-                    cpu->socket_kernel_scheduler))
+  if (send_buffer(OP_SYSCALL_MEM_FREE, syscall_data, sizeof(t_syscall_memory),
+                  cpu->socket_kernel_scheduler))
   {
     log_info(cpu->logger, "Syscall sent to the kernel scheduler");
     free(syscall_data);
@@ -267,8 +267,8 @@ t_extended_bool handler_sleep(t_cpu* cpu, t_context* context,
   syscall_data->pid = pid;
   syscall_data->blocked_time_ms = atoi(instruction->parameters[0]);
 
-  if (enviar_buffer(OP_SYSCALL_SLEEP, syscall_data, sizeof(t_sleep_request),
-                    cpu->socket_kernel_scheduler))
+  if (send_buffer(OP_SYSCALL_SLEEP, syscall_data, sizeof(t_sleep_request),
+                  cpu->socket_kernel_scheduler))
   {
     log_info(cpu->logger, "Syscall sent to the kernel scheduler");
     free(syscall_data);
@@ -295,8 +295,8 @@ t_extended_bool handler_stdout(t_cpu* cpu, t_context* context,
   syscall_data->bytes_to_write =
       get_register(context->registers, instruction->parameters[1]);
 
-  if (enviar_buffer(OP_SYSCALL_STDOUT, syscall_data, sizeof(t_stdout_request),
-                    cpu->socket_kernel_scheduler))
+  if (send_buffer(OP_SYSCALL_STDOUT, syscall_data, sizeof(t_stdout_request),
+                  cpu->socket_kernel_scheduler))
   {
     log_info(cpu->logger, "Syscall sent to the kernel scheduler");
     free(syscall_data);
@@ -323,8 +323,8 @@ t_extended_bool handler_stdin(t_cpu* cpu, t_context* context,
   syscall_data->bytes_to_read =
       get_register(context->registers, instruction->parameters[1]);
 
-  if (enviar_buffer(OP_SYSCALL_STDIN, syscall_data, sizeof(t_stdin_request),
-                    cpu->socket_kernel_scheduler))
+  if (send_buffer(OP_SYSCALL_STDIN, syscall_data, sizeof(t_stdin_request),
+                  cpu->socket_kernel_scheduler))
   {
     log_info(cpu->logger, "Syscall sent to the kernel scheduler");
     free(syscall_data);
@@ -344,20 +344,20 @@ t_extended_bool handler_init_proc(t_cpu* cpu, t_context* context,
 {
   int priority = atoi(instruction->parameters[1]);
 
-  t_paquete* syscall_packet = crear_paquete(OP_SYSCALL_INIT_PROC);
-  agregar_string_a_paquete(syscall_packet, instruction->parameters[0]);
-  agregar_a_paquete(syscall_packet, &priority, sizeof(int));
+  t_packet* syscall_packet = create_packet(OP_SYSCALL_INIT_PROC);
+  packet_append_string(syscall_packet, instruction->parameters[0]);
+  packet_append(syscall_packet, &priority, sizeof(int));
 
-  if (enviar_paquete(syscall_packet, cpu->socket_kernel_scheduler))
+  if (send_packet(syscall_packet, cpu->socket_kernel_scheduler))
   {
     log_info(cpu->logger, "Syscall sent to the kernel scheduler");
-    eliminar_paquete(syscall_packet);
+    destroy_packet(syscall_packet);
   }
   else
   {
     log_error(cpu->logger,
               "## failed to send the syscall to the kernel scheduler");
-    eliminar_paquete(syscall_packet);
+    destroy_packet(syscall_packet);
     return EB_ERROR;
   }
   return EB_FALSE;
@@ -366,8 +366,8 @@ t_extended_bool handler_init_proc(t_cpu* cpu, t_context* context,
 t_extended_bool handler_exit(t_cpu* cpu, t_context* context,
                              t_instruction* instruction, uint32_t pid)
 {
-  if (enviar_string(OP_SYSCALL_EXIT, "PROCESS FINISHED",
-                    cpu->socket_kernel_scheduler))
+  if (send_string(OP_SYSCALL_EXIT, "PROCESS FINISHED",
+                  cpu->socket_kernel_scheduler))
   {
     log_info(cpu->logger, "Syscall sent to the kernel scheduler");
   }

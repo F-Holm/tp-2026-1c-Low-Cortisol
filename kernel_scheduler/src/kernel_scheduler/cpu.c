@@ -9,8 +9,8 @@
 #include "misc.h"
 #include "utils/collections/list.h"
 #include "utils/io.h"
-#include "utils/syscalls.h"
 #include "utils/msg.h"
+#include "utils/syscalls.h"
 
 const char* const MOTIVOS_DESALOJO[13] = {
     "no hubo desalojo",
@@ -261,9 +261,9 @@ static bool enviar_desalojo(t_datos_syscall* datos)
 {
   log_info(datos->datos->logger, "CPU %s: Enviando mensaje de desalojo: %s",
            datos->datos->id, MOTIVOS_DESALOJO[datos->motivo_desalojo]);
-  return enviar_string(
-      (datos->motivo_desalojo != MD_SIN_DESALOJO ? OP_INTERRUPCION
-                                                 : OP_SIN_INTERRUPCION),
+  return send_string(
+      (datos->motivo_desalojo != MD_SIN_DESALOJO ? OP_INTERRUPT
+                                                 : OP_NO_INTERRUPT),
       (char*)MOTIVOS_DESALOJO[datos->motivo_desalojo], datos->datos->socket_fd);
 }
 
@@ -287,26 +287,26 @@ static void gestionar_pedir_proceso(t_datos_syscall* datos)
 
 static bool enviar_codigo(t_datos_syscall* datos)
 {
-  return enviar_buffer(OP_CONTINUAR_PROCESO, &(datos->pcb->pid),
-                       sizeof(uint32_t), datos->datos->socket_fd);
+  return send_buffer(OP_RESUME_PROCESS, &(datos->pcb->pid), sizeof(uint32_t),
+                     datos->datos->socket_fd);
 }
 
 static void manejar_ciclo_cpu_ok(t_datos_syscall* datos)
 {
-  free(recibir_string(datos->datos->socket_fd));
+  free(receive_string(datos->datos->socket_fd));
   log_info(datos->datos->logger, "CPU %s: Ciclo CPU OK", datos->datos->id);
 }
 
 static void manejar_segmentation_fault(t_datos_syscall* datos)
 {
-  free(recibir_string(datos->datos->socket_fd));
+  free(receive_string(datos->datos->socket_fd));
   cambio_exec_exit(datos->pcb, datos->datos->colas, MPF_SEGMENTATION_FAULT);
   datos->motivo_desalojo = MD_SEGMENTATION_FAULT;
 }
 
 static void manejar_syscall_mutex_create(t_datos_syscall* datos)
 {
-  char* id_mutex = recibir_string(datos->datos->socket_fd);
+  char* id_mutex = receive_string(datos->datos->socket_fd);
   switch (crear_y_add_mutex(datos->datos->lista_mutex, id_mutex, true,
                             datos->datos->colas))
   {
@@ -323,7 +323,7 @@ static void manejar_syscall_mutex_create(t_datos_syscall* datos)
 
 static void manejar_syscall_mutex_lock(t_datos_syscall* datos)
 {
-  char* id_mutex = recibir_string(datos->datos->socket_fd);
+  char* id_mutex = receive_string(datos->datos->socket_fd);
   switch (lista_mutex_lock(datos->datos->lista_mutex, id_mutex, datos->pcb))
   {
     case RM_NOMBRE_MUTEX_NO_EXISTE:
@@ -342,7 +342,7 @@ static void manejar_syscall_mutex_lock(t_datos_syscall* datos)
 
 static void manejar_syscall_mutex_unlock(t_datos_syscall* datos)
 {
-  char* id_mutex = recibir_string(datos->datos->socket_fd);
+  char* id_mutex = receive_string(datos->datos->socket_fd);
   switch (lista_mutex_unlock(datos->datos->lista_mutex, id_mutex, datos->pcb))
   {
     case RM_NOMBRE_MUTEX_NO_EXISTE:
@@ -364,7 +364,7 @@ static void manejar_syscall_mutex_unlock(t_datos_syscall* datos)
 static void manejar_syscall_memory_allocation(t_datos_syscall* datos)
 {
   int size;
-  t_syscall_memory* peticion = recibir_buffer(&size, datos->datos->socket_fd);
+  t_syscall_memory* peticion = receive_buffer(&size, datos->datos->socket_fd);
   if (!allocate_memory(peticion, datos->datos->colas))
   {
     cambio_exec_exit(datos->pcb, datos->datos->colas, MPF_MEMORIA_INSUFICIENTE);
@@ -376,7 +376,7 @@ static void manejar_syscall_memory_allocation(t_datos_syscall* datos)
 static void manejar_syscall_memory_free(t_datos_syscall* datos)
 {
   int size;
-  t_syscall_memory* peticion = recibir_buffer(&size, datos->datos->socket_fd);
+  t_syscall_memory* peticion = receive_buffer(&size, datos->datos->socket_fd);
   if (!free_memory(peticion, datos->datos->colas))
   {
     datos->seguir_operando = false;
@@ -387,7 +387,7 @@ static void manejar_syscall_memory_free(t_datos_syscall* datos)
 static void manejar_syscall_io_sleep(t_datos_syscall* datos)
 {
   int size;
-  t_sleep_request* peticion = recibir_buffer(&size, datos->datos->socket_fd);
+  t_sleep_request* peticion = receive_buffer(&size, datos->datos->socket_fd);
   datos->motivo_desalojo = MD_IO;
   if (!procesar_nuevo_io(peticion, &(datos->datos->estructuras_io[E_SLEEP]),
                          datos->pcb))
@@ -403,7 +403,7 @@ static void manejar_syscall_io_sleep(t_datos_syscall* datos)
 static void manejar_syscall_io_stdout(t_datos_syscall* datos)
 {
   int size;
-  t_stdout_request* peticion = recibir_buffer(&size, datos->datos->socket_fd);
+  t_stdout_request* peticion = receive_buffer(&size, datos->datos->socket_fd);
   datos->motivo_desalojo = MD_IO;
   if (!procesar_nuevo_io(peticion, &(datos->datos->estructuras_io[E_STDOUT]),
                          datos->pcb))
@@ -419,7 +419,7 @@ static void manejar_syscall_io_stdout(t_datos_syscall* datos)
 static void manejar_syscall_io_stdin(t_datos_syscall* datos)
 {
   int size;
-  t_stdin_request* peticion = recibir_buffer(&size, datos->datos->socket_fd);
+  t_stdin_request* peticion = receive_buffer(&size, datos->datos->socket_fd);
   datos->motivo_desalojo = MD_IO;
   if (!procesar_nuevo_io(peticion, &(datos->datos->estructuras_io[E_STDIN]),
                          datos->pcb))
@@ -434,7 +434,7 @@ static void manejar_syscall_io_stdin(t_datos_syscall* datos)
 
 static void manejar_syscall_iniciar_proceso(t_datos_syscall* datos)
 {
-  t_list* lista = recibir_paquete(datos->datos->socket_fd);
+  t_list* lista = receive_packet(datos->datos->socket_fd);
   cambio_new_ready(datos->datos->colas, list_get(lista, 0),
                    *(int*)list_get(lista, 1));
   list_destroy_and_destroy_elements(lista, free);
@@ -442,7 +442,7 @@ static void manejar_syscall_iniciar_proceso(t_datos_syscall* datos)
 
 static void manejar_syscall_exit(t_datos_syscall* datos)
 {
-  free(recibir_string(datos->datos->socket_fd));
+  free(receive_string(datos->datos->socket_fd));
   cambio_exec_exit(datos->pcb, datos->datos->colas, MFP_INSTRUCCION_EXIT);
   datos->motivo_desalojo = MD_FIN_PROCESO;
 }
@@ -478,7 +478,7 @@ static void* manejar_cliente_cpu(void* datos_hilo_cpu_void)
 {
   t_datos_syscall datos_syscall = {(t_datos_hilo_cpu*)datos_hilo_cpu_void, NULL,
                                    true, 0, MD_PRIMER_CICLO};
-  void (*funciones_syscalls[OP_SYSCALL_EXIT - OP_CICLO_CPU_OK + 2])(
+  void (*funciones_syscalls[OP_SYSCALL_EXIT - OP_CPU_CYCLE_OK + 2])(
       t_datos_syscall*) = {manejar_ciclo_cpu_ok,
                            manejar_segmentation_fault,
                            manejar_syscall_mutex_create,
@@ -510,10 +510,10 @@ static void* manejar_cliente_cpu(void* datos_hilo_cpu_void)
       break;
     }
 
-    int op_code = recibir_operacion(datos_syscall.datos->socket_fd);
+    int op_code = receive_op_code(datos_syscall.datos->socket_fd);
     log_info(datos_syscall.datos->logger, "CPU %s: Operación recibida: %d",
              datos_syscall.datos->id, op_code);
-    if (op_code < OP_CICLO_CPU_OK || op_code > OP_SYSCALL_EXIT)
+    if (op_code < OP_CPU_CYCLE_OK || op_code > OP_SYSCALL_EXIT)
     {
       op_code = OP_SYSCALL_EXIT + 1;
     }
@@ -523,7 +523,7 @@ static void* manejar_cliente_cpu(void* datos_hilo_cpu_void)
       sumar_contador_syscalls(datos_syscall.datos->colas);
     }
     log_syscall(&datos_syscall, op_code);
-    funciones_syscalls[op_code - OP_CICLO_CPU_OK](&datos_syscall);
+    funciones_syscalls[op_code - OP_CPU_CYCLE_OK](&datos_syscall);
     if (op_code >= OP_SYSCALL_MUTEX_CREATE && op_code <= OP_SYSCALL_EXIT)
     {
       restar_contador_syscalls(datos_syscall.datos->colas);
@@ -608,12 +608,12 @@ static bool crear_hilo_cpu(t_datos_hilo_cpu* datos)
 
 static char* obtener_id_cpu(int socket_cpu, t_log* logger)
 {
-  if (recibir_operacion(socket_cpu) != OP_ID_CPU)
+  if (receive_op_code(socket_cpu) != OP_ID_CPU)
   {
     log_error(logger, "Error en la recepción del ID de la CPU");
     return NULL;
   }
-  char* id_cpu = recibir_string(socket_cpu);
+  char* id_cpu = receive_string(socket_cpu);
   log_info(logger, "CPU %s Conectada", id_cpu);
   return id_cpu;
 }

@@ -3,7 +3,7 @@
 const char* const HANDSHAKE_MSG[] = {"kernel_scheduler", "kernel_memory", "cpu",
                                      "memory_stick",     "swap",          "io"};
 
-int crear_conexion(char* ip, char* puerto)
+int create_connection(char* ip, char* port)
 {
   struct addrinfo hints;
   struct addrinfo* server_info;
@@ -13,7 +13,7 @@ int crear_conexion(char* ip, char* puerto)
   hints.ai_socktype = SOCK_STREAM;
   hints.ai_flags = AI_PASSIVE;
 
-  if (getaddrinfo(ip, puerto, &hints, &server_info) != 0)
+  if (getaddrinfo(ip, port, &hints, &server_info) != 0)
     return -1;
 
   int fd_socket = socket(server_info->ai_family, server_info->ai_socktype,
@@ -36,7 +36,7 @@ int crear_conexion(char* ip, char* puerto)
   return fd_socket;
 }
 
-int iniciar_servidor(char* puerto)
+int start_server(char* port)
 {
   struct addrinfo hints, *servinfo;
 
@@ -45,42 +45,42 @@ int iniciar_servidor(char* puerto)
   hints.ai_socktype = SOCK_STREAM;
   hints.ai_flags = AI_PASSIVE;
 
-  getaddrinfo(NULL, puerto, &hints, &servinfo);
+  getaddrinfo(NULL, port, &hints, &servinfo);
 
-  int socket_servidor =
+  int server_socket =
       socket(hints.ai_family, hints.ai_socktype, hints.ai_protocol);
 
   // Make the socket reusable; remove if it causes issues.
   int opt = 1;
-  setsockopt(socket_servidor, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+  setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
 
-  bind(socket_servidor, servinfo->ai_addr, servinfo->ai_addrlen);
-  listen(socket_servidor, SOMAXCONN);
+  bind(server_socket, servinfo->ai_addr, servinfo->ai_addrlen);
+  listen(server_socket, SOMAXCONN);
 
   freeaddrinfo(servinfo);
 
-  return socket_servidor;
+  return server_socket;
 }
 
-int recibir_operacion(int socket_fd)
+int receive_op_code(int socket_fd)
 {
-  int cod_op;
-  if (recv(socket_fd, &cod_op, sizeof(int), MSG_WAITALL) > 0)
-    return cod_op;
+  int op_code;
+  if (recv(socket_fd, &op_code, sizeof(int), MSG_WAITALL) > 0)
+    return op_code;
   else
   {
     return OP_CODE_ERROR;
   }
 }
 
-void crear_buffer(t_paquete* paquete)
+static void create_buffer(t_packet* packet)
 {
-  paquete->buffer = malloc(sizeof(t_buffer));
-  paquete->buffer->size = 0;
-  paquete->buffer->stream = NULL;
+  packet->buffer = malloc(sizeof(t_buffer));
+  packet->buffer->size = 0;
+  packet->buffer->stream = NULL;
 }
 
-void* recibir_buffer(int* size, int socket_fd)
+void* receive_buffer(int* size, int socket_fd)
 {
   recv(socket_fd, size, sizeof(int), MSG_WAITALL);
   if (*size == 0)
@@ -94,174 +94,168 @@ void* recibir_buffer(int* size, int socket_fd)
   return buffer;
 }
 
-void* serializar_paquete(t_paquete* paquete, int bytes)
+static void* serialize_packet(t_packet* packet, int bytes)
 {
   void* magic = malloc(bytes);
-  int desplazamiento = 0;
+  int offset = 0;
 
-  memcpy(magic + desplazamiento, &(paquete->codigo_operacion), sizeof(int));
-  desplazamiento += sizeof(int);
-  memcpy(magic + desplazamiento, &(paquete->buffer->size), sizeof(int));
-  desplazamiento += sizeof(int);
-  if (paquete->buffer->stream != NULL)
+  memcpy(magic + offset, &(packet->op_code), sizeof(int));
+  offset += sizeof(int);
+  memcpy(magic + offset, &(packet->buffer->size), sizeof(int));
+  offset += sizeof(int);
+  if (packet->buffer->stream != NULL)
   {
-    memcpy(magic + desplazamiento, paquete->buffer->stream,
-           paquete->buffer->size);
+    memcpy(magic + offset, packet->buffer->stream, packet->buffer->size);
   }
-  desplazamiento += paquete->buffer->size;
+  offset += packet->buffer->size;
 
   return magic;
 }
 
-bool enviar_buffer(int codigo_operacion, void* buffer, int size, int socket_fd)
+bool send_buffer(int op_code, void* buffer, int size, int socket_fd)
 {
-  t_paquete* paquete = malloc(sizeof(t_paquete));
+  t_packet* packet = malloc(sizeof(t_packet));
 
-  paquete->codigo_operacion = codigo_operacion;
-  paquete->buffer = malloc(sizeof(t_buffer));
-  paquete->buffer->size = size;
-  paquete->buffer->stream = malloc(paquete->buffer->size);
-  memcpy(paquete->buffer->stream, buffer, paquete->buffer->size);
+  packet->op_code = op_code;
+  packet->buffer = malloc(sizeof(t_buffer));
+  packet->buffer->size = size;
+  packet->buffer->stream = malloc(packet->buffer->size);
+  memcpy(packet->buffer->stream, buffer, packet->buffer->size);
 
-  int bytes = paquete->buffer->size + 2 * sizeof(int);
+  int bytes = packet->buffer->size + 2 * sizeof(int);
 
-  void* a_enviar = serializar_paquete(paquete, bytes);
+  void* to_send = serialize_packet(packet, bytes);
 
-  bool ret = send(socket_fd, a_enviar, bytes, MSG_NOSIGNAL) > 0;
+  bool ret = send(socket_fd, to_send, bytes, MSG_NOSIGNAL) > 0;
 
-  free(a_enviar);
-  eliminar_paquete(paquete);
+  free(to_send);
+  destroy_packet(packet);
 
   return ret;
 }
 
-// String
-bool enviar_string(int codigo_operacion, char* mensaje, int socket_fd)
+bool send_string(int op_code, char* message, int socket_fd)
 {
-  t_paquete* paquete = malloc(sizeof(t_paquete));
+  t_packet* packet = malloc(sizeof(t_packet));
 
-  paquete->codigo_operacion = codigo_operacion;
-  paquete->buffer = malloc(sizeof(t_buffer));
-  paquete->buffer->size = strlen(mensaje) + 1;
-  paquete->buffer->stream = malloc(paquete->buffer->size);
-  memcpy(paquete->buffer->stream, mensaje, paquete->buffer->size);
+  packet->op_code = op_code;
+  packet->buffer = malloc(sizeof(t_buffer));
+  packet->buffer->size = strlen(message) + 1;
+  packet->buffer->stream = malloc(packet->buffer->size);
+  memcpy(packet->buffer->stream, message, packet->buffer->size);
 
-  int bytes = paquete->buffer->size + 2 * sizeof(int);
+  int bytes = packet->buffer->size + 2 * sizeof(int);
 
-  void* a_enviar = serializar_paquete(paquete, bytes);
+  void* to_send = serialize_packet(packet, bytes);
 
-  bool ret = send(socket_fd, a_enviar, bytes, MSG_NOSIGNAL) > 0;
+  bool ret = send(socket_fd, to_send, bytes, MSG_NOSIGNAL) > 0;
 
-  free(a_enviar);
-  eliminar_paquete(paquete);
+  free(to_send);
+  destroy_packet(packet);
 
   return ret;
 }
 
-char* recibir_string(int socket_fd)
+char* receive_string(int socket_fd)
 {
   int size;
-  return recibir_buffer(&size, socket_fd);
+  return receive_buffer(&size, socket_fd);
 }
 
-// Handshake
 int handshake_msg_to_module_id(char* handshake_msg)
 {
-  int total_modulos = 6;
+  int module_count = 6;
 
-  for (int i = 0; i < total_modulos; i++)
+  for (int i = 0; i < module_count; i++)
     if (strcmp(handshake_msg, HANDSHAKE_MSG[i]) == 0)
       return i;
   return MID_MODULE_ID_ERROR;
 }
 
-bool enviar_handshake(int id_modulo, int socket_fd)
+bool send_handshake(int module_id, int socket_fd)
 {
-  return enviar_string(OP_HANDSHAKE, (char*)HANDSHAKE_MSG[id_modulo],
-                       socket_fd);
+  return send_string(OP_HANDSHAKE, (char*)HANDSHAKE_MSG[module_id], socket_fd);
 }
 
-int recibir_handshake(int socket_fd)
+int receive_handshake(int socket_fd)
 {
-  if (recibir_operacion(socket_fd) != OP_HANDSHAKE)
+  if (receive_op_code(socket_fd) != OP_HANDSHAKE)
     return MID_MODULE_ID_ERROR;
-  char* msg = recibir_string(socket_fd);
-  int id_module = handshake_msg_to_module_id(msg);
+  char* msg = receive_string(socket_fd);
+  int module_id = handshake_msg_to_module_id(msg);
   free(msg);
-  return id_module;
+  return module_id;
 }
 
-// Paquete
-t_paquete* crear_paquete(int codigo_operacion)
+t_packet* create_packet(int op_code)
 {
-  t_paquete* paquete = malloc(sizeof(t_paquete));
-  paquete->codigo_operacion = codigo_operacion;
-  crear_buffer(paquete);
-  return paquete;
+  t_packet* packet = malloc(sizeof(t_packet));
+  packet->op_code = op_code;
+  create_buffer(packet);
+  return packet;
 }
 
-void agregar_a_paquete(t_paquete* paquete, void* valor, int tamanio)
+void packet_append(t_packet* packet, void* value, int size)
 {
-  paquete->buffer->stream = realloc(
-      paquete->buffer->stream, paquete->buffer->size + tamanio + sizeof(int));
+  packet->buffer->stream = realloc(packet->buffer->stream,
+                                   packet->buffer->size + size + sizeof(int));
 
-  memcpy(paquete->buffer->stream + paquete->buffer->size, &tamanio,
-         sizeof(int));
-  memcpy(paquete->buffer->stream + paquete->buffer->size + sizeof(int), valor,
-         tamanio);
+  memcpy(packet->buffer->stream + packet->buffer->size, &size, sizeof(int));
+  memcpy(packet->buffer->stream + packet->buffer->size + sizeof(int), value,
+         size);
 
-  paquete->buffer->size += tamanio + sizeof(int);
+  packet->buffer->size += size + sizeof(int);
 }
 
-void agregar_string_a_paquete(t_paquete* paquete, char* valor)
+void packet_append_string(t_packet* packet, char* value)
 {
-  agregar_a_paquete(paquete, valor, strlen(valor) + 1);
+  packet_append(packet, value, strlen(value) + 1);
 }
 
-bool enviar_paquete(t_paquete* paquete, int socket_fd)
+bool send_packet(t_packet* packet, int socket_fd)
 {
-  int bytes = paquete->buffer->size + 2 * sizeof(int);
-  void* a_enviar = serializar_paquete(paquete, bytes);
+  int bytes = packet->buffer->size + 2 * sizeof(int);
+  void* to_send = serialize_packet(packet, bytes);
 
-  bool ret = send(socket_fd, a_enviar, bytes, MSG_NOSIGNAL) > 0;
+  bool ret = send(socket_fd, to_send, bytes, MSG_NOSIGNAL) > 0;
 
-  free(a_enviar);
+  free(to_send);
 
   return ret;
 }
 
-t_list* recibir_paquete(int socket_fd)
+t_list* receive_packet(int socket_fd)
 {
   int size;
-  int desplazamiento = 0;
+  int offset = 0;
   void* buffer;
-  t_list* valores = list_create();
-  int tamanio;
+  t_list* values = list_create();
+  int element_size;
 
-  buffer = recibir_buffer(&size, socket_fd);
-  while (desplazamiento < size)
+  buffer = receive_buffer(&size, socket_fd);
+  while (offset < size)
   {
-    memcpy(&tamanio, buffer + desplazamiento, sizeof(int));
-    desplazamiento += sizeof(int);
-    if (tamanio == 0)
+    memcpy(&element_size, buffer + offset, sizeof(int));
+    offset += sizeof(int);
+    if (element_size == 0)
     {
       break;
     }
-    char* valor = malloc(tamanio);
-    memcpy(valor, buffer + desplazamiento, tamanio);
-    desplazamiento += tamanio;
-    list_add(valores, valor);
+    char* value = malloc(element_size);
+    memcpy(value, buffer + offset, element_size);
+    offset += element_size;
+    list_add(values, value);
   }
   if (buffer != NULL)
   {
     free(buffer);
   }
-  return valores;
+  return values;
 }
 
-void eliminar_paquete(t_paquete* paquete)
+void destroy_packet(t_packet* packet)
 {
-  free(paquete->buffer->stream);
-  free(paquete->buffer);
-  free(paquete);
+  free(packet->buffer->stream);
+  free(packet->buffer);
+  free(packet);
 }

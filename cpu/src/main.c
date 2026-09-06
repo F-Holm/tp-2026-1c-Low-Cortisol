@@ -33,7 +33,7 @@ int main(int argc, char* argv[])
     return EXIT_FAILURE;
   }
 
-  if (enviar_string(OP_ID_CPU, cpu->id, cpu->socket_kernel_scheduler))
+  if (send_string(OP_ID_CPU, cpu->id, cpu->socket_kernel_scheduler))
   {
     log_info(cpu->logger, "ID sent to the kernel scheduler");
   }
@@ -51,7 +51,7 @@ int main(int argc, char* argv[])
     return EXIT_FAILURE;
   }
 
-  if (enviar_string(OP_ID_CPU, cpu->id, cpu->socket_kernel_memory))
+  if (send_string(OP_ID_CPU, cpu->id, cpu->socket_kernel_memory))
   {
     log_info(cpu->logger, "ID sent to the kernel memory");
   }

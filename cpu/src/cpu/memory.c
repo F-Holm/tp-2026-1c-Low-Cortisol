@@ -49,8 +49,8 @@ t_segment* find_segment_by_id(t_list* segment_table, uint32_t segment_number)
 
 bool notify_seg_fault(t_cpu* cpu, uint32_t pid)
 {
-  if (!enviar_string(OP_SEG_FAULT, "SEGMENTATION FAULT",
-                     cpu->socket_kernel_scheduler))
+  if (!send_string(OP_SEG_FAULT, "SEGMENTATION FAULT",
+                   cpu->socket_kernel_scheduler))
   {
     log_error(cpu->logger, "## Failed to send the segmentation fault");
     return false;
@@ -119,28 +119,28 @@ void* read_memory(t_cpu* cpu, uint32_t physical_address, uint32_t size)
 bool request_read(t_cpu* cpu, t_memory_stick_info* stick,
                   uint32_t address_in_stick, uint32_t bytes_to_read)
 {
-  t_paquete* packet = crear_paquete(OP_MEMORY_STICK_LEER);
-  agregar_a_paquete(packet, &address_in_stick, sizeof(uint32_t));
-  agregar_a_paquete(packet, &bytes_to_read, sizeof(uint32_t));
+  t_packet* packet = create_packet(OP_MEMORY_STICK_READ);
+  packet_append(packet, &address_in_stick, sizeof(uint32_t));
+  packet_append(packet, &bytes_to_read, sizeof(uint32_t));
 
-  if (!enviar_paquete(packet, stick->socket_ms))
+  if (!send_packet(packet, stick->socket_ms))
   {
     log_error(cpu->logger, "## Error sending the read request to the MS");
     notify_bsod(cpu);
     return false;
   }
   log_info(cpu->logger, "Read requested from the MS");
-  eliminar_paquete(packet);
+  destroy_packet(packet);
   return true;
 }
 
 char* receive_read_response(t_cpu* cpu, t_memory_stick_info* stick)
 {
-  int op_code = recibir_operacion(stick->socket_ms);
-  if (op_code == OP_MEMORY_STICK_LEIDO)
+  int op_code = receive_op_code(stick->socket_ms);
+  if (op_code == OP_MEMORY_STICK_READ_DONE)
   {
     log_info(cpu->logger, "Read done");
-    return recibir_string(stick->socket_ms);
+    return receive_string(stick->socket_ms);
   }
   else
   {
@@ -192,27 +192,27 @@ bool request_write(t_cpu* cpu, t_memory_stick_info* stick,
                    uint32_t address_in_stick, void* data,
                    uint32_t bytes_to_write)
 {
-  t_paquete* packet = crear_paquete(OP_MEMORY_STICK_ESCRIBIR);
-  agregar_a_paquete(packet, &address_in_stick, sizeof(uint32_t));
-  agregar_a_paquete(packet, data, bytes_to_write);
-  agregar_a_paquete(packet, &bytes_to_write, sizeof(uint32_t));
-  if (!enviar_paquete(packet, stick->socket_ms))
+  t_packet* packet = create_packet(OP_MEMORY_STICK_WRITE);
+  packet_append(packet, &address_in_stick, sizeof(uint32_t));
+  packet_append(packet, data, bytes_to_write);
+  packet_append(packet, &bytes_to_write, sizeof(uint32_t));
+  if (!send_packet(packet, stick->socket_ms))
   {
     log_error(cpu->logger, "## Error sending the write request to the MS");
     notify_bsod(cpu);
-    eliminar_paquete(packet);
+    destroy_packet(packet);
     return false;
   }
   log_info(cpu->logger, "Write requested from the MS");
-  eliminar_paquete(packet);
+  destroy_packet(packet);
   return true;
 }
 
 bool receive_write_response(t_cpu* cpu, t_memory_stick_info* stick)
 {
-  int op_code = recibir_operacion(stick->socket_ms);
-  free(recibir_string(stick->socket_ms));
-  if (op_code == OP_MEMORY_STICK_ESCRITO)
+  int op_code = receive_op_code(stick->socket_ms);
+  free(receive_string(stick->socket_ms));
+  if (op_code == OP_MEMORY_STICK_WRITE_DONE)
   {
     log_info(cpu->logger, "Write done");
     return true;

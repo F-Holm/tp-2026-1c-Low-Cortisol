@@ -34,10 +34,10 @@ int main(int argc, char* argv[])
   while (seguir_operando)
   {
     int op_code;
-    op_code = recibir_operacion(sio.socket_io);
+    op_code = receive_op_code(sio.socket_io);
     switch (op_code)
     {
-      case OP_PETICION_IO_STDIN:
+      case OP_IO_STDIN_REQUEST:
         operacion = io_tipo_stdin(&sio);
         if (!operacion)
         {
@@ -45,7 +45,7 @@ int main(int argc, char* argv[])
         }
         break;
 
-      case OP_PETICION_IO_STDOUT:
+      case OP_IO_STDOUT_REQUEST:
         operacion = io_tipo_stdout(&sio);
         if (!operacion)
         {
@@ -53,7 +53,7 @@ int main(int argc, char* argv[])
         }
         break;
 
-      case OP_PETICION_IO_SLEEP:
+      case OP_IO_SLEEP_REQUEST:
         operacion = io_tipo_sleep(&sio);
         if (!operacion)
         {

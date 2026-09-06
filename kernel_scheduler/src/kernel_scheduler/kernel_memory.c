@@ -25,8 +25,8 @@ bool avisar_terminar_proceso(t_socket_kernel_memory* socket_km, uint32_t pid,
                              int socket_servidor, t_log* logger)
 {
   pthread_mutex_lock(&(socket_km->mutex_socket));
-  bool ret = enviar_buffer(OP_TERMINAR_PROCESO, &pid, sizeof(uint32_t),
-                           socket_km->socket_km);
+  bool ret =
+      send_buffer(OP_END_PROCESS, &pid, sizeof(uint32_t), socket_km->socket_km);
   if (!ret)
   {
     cerrar_kernel_scheduler(socket_servidor, logger,
@@ -70,7 +70,7 @@ void destruir_hilo_verificar_conexion_kernel_memory(
 
 static int conectar_kernel_memory(char* ip, char* puerto, t_log* logger)
 {
-  int socket_km = crear_conexion(ip, puerto);
+  int socket_km = create_connection(ip, puerto);
   if (socket_km <= 0)
   {
     log_error(logger, "Error de conexión con Kernel Memory");
@@ -82,12 +82,12 @@ static int conectar_kernel_memory(char* ip, char* puerto, t_log* logger)
 
 static bool handshake_kernel_memory(int socket_km, t_log* logger)
 {
-  if (!enviar_handshake(MID_KERNEL_SCHEDULER, socket_km))
+  if (!send_handshake(MID_KERNEL_SCHEDULER, socket_km))
   {
     log_error(logger, "Error en el envio del Handshake con Kernel Memory");
     return false;
   }
-  if (recibir_handshake(socket_km) != MID_KERNEL_MEMORY)
+  if (receive_handshake(socket_km) != MID_KERNEL_MEMORY)
   {
     log_error(logger, "Error en la recepción del Handshake con Kernel Memory");
     return false;
@@ -105,9 +105,9 @@ static void* hilo_verificar_conexion_kernel_memory(void* args)
   {
     usleep(500000);
     pthread_mutex_lock(&(datos->socket_km->mutex_socket));
-    seguir_operando = enviar_string(OP_KERNEL_MEMORY_FUNCIONANDO,
-                                    "¿El Kernel Memory sigue conectado?",
-                                    datos->socket_km->socket_km);
+    seguir_operando = send_string(OP_KERNEL_MEMORY_RUNNING,
+                                  "¿El Kernel Memory sigue conectado?",
+                                  datos->socket_km->socket_km);
     if (!seguir_operando)
     {
       cerrar_kernel_scheduler(datos->socket_servidor, datos->logger,

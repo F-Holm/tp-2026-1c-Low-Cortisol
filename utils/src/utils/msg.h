@@ -14,29 +14,30 @@
 #include "utils/collections/list.h"
 #include "utils/log.h"
 
+// Operation codes are serialized as ints on the wire: keep the order stable.
 typedef enum
 {
   OP_CODE_ERROR,
   OP_HANDSHAKE,
-  OP_MENSAJE,
-  OP_PAQUETE,
-  OP_PUERTO,
+  OP_MESSAGE,
+  OP_PACKET,
+  OP_PORT,
   OP_IP,
   OP_ID_CPU,
   OP_INFO_SWAP,
-  OP_TAMANIO_MEMORIA,
-  OP_TIPO_IO,
-  OP_PETICION_IO_STDIN,
-  OP_PETICION_IO_STDOUT,
-  OP_PETICION_IO_SLEEP,
-  OP_RESPUESTA_STDIN,
-  OP_RESPUESTA_STDOUT,
-  OP_RESPUESTA_SLEEP,
-  OP_MEMORIA_CORRUPTA,
-  OP_CICLO_CPU_OK,
+  OP_MEMORY_SIZE,
+  OP_IO_TYPE,
+  OP_IO_STDIN_REQUEST,
+  OP_IO_STDOUT_REQUEST,
+  OP_IO_SLEEP_REQUEST,
+  OP_STDIN_RESPONSE,
+  OP_STDOUT_RESPONSE,
+  OP_SLEEP_RESPONSE,
+  OP_MEMORY_CORRUPTED,
+  OP_CPU_CYCLE_OK,
   OP_SEG_FAULT,
-  OP_SYSCALL_MUTEX_CREATE,  // No cambiar el orden de las syscalls
-  OP_SYSCALL_MUTEX_LOCK,    // No poner elementos entre las syscalls
+  OP_SYSCALL_MUTEX_CREATE,  // Do not change the order of the syscalls
+  OP_SYSCALL_MUTEX_LOCK,    // Do not add entries between the syscalls
   OP_SYSCALL_MUTEX_UNLOCK,
   OP_SYSCALL_MEM_ALLOC,
   OP_SYSCALL_MEM_FREE,
@@ -45,52 +46,51 @@ typedef enum
   OP_SYSCALL_STDIN,
   OP_SYSCALL_INIT_PROC,
   OP_SYSCALL_EXIT,
-  OP_CONTINUAR_PROCESO,
-  OP_NUEVO_PROCESO,     // No responder
-  OP_TERMINAR_PROCESO,  // No responder
-  OP_TAMANIO_TOTAL_MEMORIA,
-  OP_SIGUIENTE_INSTRUCCION,
-  OP_ENVIAR_INSTRUCCION,
+  OP_RESUME_PROCESS,
+  OP_NEW_PROCESS,  // No reply
+  OP_END_PROCESS,  // No reply
+  OP_TOTAL_MEMORY_SIZE,
+  OP_NEXT_INSTRUCTION,
+  OP_SEND_INSTRUCTION,
   OP_OK,
-  OP_PEDIR_CONTEXTO,
-  OP_ENVIAR_CONTEXTO,
-  OP_CONTEXTO_ACTUALIZADO,
-  OP_SIN_INTERRUPCION,
-  OP_INTERRUPCION,
-  OP_PEDIR_MEMORIA_DISPONIBLE,  // pedir cantidad de memoria disponible
-  OP_MEMORIA_DISPONIBLE,        // cantidad de memoria disponible
-  OP_PEDIR_TAMANIO_PROCESO,     // pedir tamaño del proceso (puedo estar
-                                // suspendido)
-  OP_TAMANIO_PROCESO,           // tamaño del proceso en memoria
-  OP_NUEVO_MEMORY_STICK,        // avisar que se conectó un memory stick
-  OP_SUSPENDER_PROCESO,
-  OP_SUSPENSION_EXITOSA,
-  OP_SUSPENSION_NO_EXITOSA,
-  OP_DES_SUSPENDER_PROCESO,  // devuelve uno de los siguientes 2 mensajes
-  OP_DES_SUSPENSION_EXITOSA,
-  OP_DES_SUSPENSION_NO_EXITOSA,
-  OP_COMPACTACION_NECESARIA,
-  OP_PUEDE_COMPACTAR,  // Indica que puede iniciar la compactación
-  OP_COMPACTACION_FINALIZADA,
-  OP_MEMORIA_ALOJADA,
-  OP_MEMORIA_LIBERADA,
-  OP_TAMANIO_SEGMENTO_EXCEDIDO,
-  OP_TAMANIO_MAX_SEG,
-  OP_MEMORY_STICK_LEER,
-  OP_MEMORY_STICK_ESCRIBIR,
-  OP_MEMORY_STICK_LEIDO,
-  OP_MEMORY_STICK_ESCRITO,
-  OP_TABLA_DE_SEGMENTOS,
-  OP_MEMORIA_INSUFICIENTE,
-  OP_CIERRE_KERNEL_SCHEDULER,
-  OP_TABLA_SEG_ACTUALIZADA,
-  OP_ESCRIBIR_DISCO,
-  OP_LEER_DISCO,
-  OP_DISCO_ESCRITO,
-  OP_DISCO_LEIDO,
-  OP_PROCESO_INICIADO,
-  OP_STICK_DESCONECTADO,
-  OP_KERNEL_MEMORY_FUNCIONANDO
+  OP_REQUEST_CONTEXT,
+  OP_SEND_CONTEXT,
+  OP_UPDATED_CONTEXT,
+  OP_NO_INTERRUPT,
+  OP_INTERRUPT,
+  OP_REQUEST_FREE_MEMORY,
+  OP_FREE_MEMORY,
+  OP_REQUEST_PROCESS_SIZE,  // process may be suspended
+  OP_PROCESS_SIZE,          // process size in memory
+  OP_NEW_MEMORY_STICK,      // a memory stick connected
+  OP_SUSPEND_PROCESS,
+  OP_SUSPENSION_OK,
+  OP_SUSPENSION_FAILED,
+  OP_RESUME_SUSPENDED_PROCESS,  // replies with one of the next two
+  OP_RESUME_SUSPENSION_OK,
+  OP_RESUME_SUSPENSION_FAILED,
+  OP_COMPACTION_NEEDED,
+  OP_CAN_COMPACT,  // compaction may start
+  OP_COMPACTION_DONE,
+  OP_MEMORY_ALLOCATED,
+  OP_MEMORY_FREED,
+  OP_SEGMENT_SIZE_EXCEEDED,
+  OP_MAX_SEGMENT_SIZE,
+  OP_MEMORY_STICK_READ,
+  OP_MEMORY_STICK_WRITE,
+  OP_MEMORY_STICK_READ_DONE,
+  OP_MEMORY_STICK_WRITE_DONE,
+  OP_SEGMENT_TABLE,
+  OP_NOT_ENOUGH_MEMORY,
+  OP_KERNEL_SCHEDULER_SHUTDOWN,
+  OP_UPDATED_SEGMENT_TABLE,
+  OP_DISK_WRITE,
+  OP_DISK_READ,
+  OP_DISK_WRITE_DONE,
+  OP_DISK_READ_DONE,
+  OP_PROCESS_STARTED,
+  OP_STICK_DISCONNECTED,
+  OP_KERNEL_MEMORY_RUNNING
 } t_op_code;
 
 typedef struct
@@ -101,9 +101,9 @@ typedef struct
 
 typedef struct
 {
-  t_op_code codigo_operacion;
+  t_op_code op_code;
   t_buffer* buffer;
-} t_paquete;
+} t_packet;
 
 typedef enum
 {
@@ -119,141 +119,93 @@ typedef enum
 extern const char* const HANDSHAKE_MSG[6];
 
 /**
- * @brief Opens a TCP connection to @p ip : @p puerto.
+ * @brief Opens a TCP connection to @p ip : @p port.
  * @return The connected socket fd, or -1 on failure.
  */
-int crear_conexion(char* ip, char* puerto);
+int create_connection(char* ip, char* port);
 
 /**
- * @brief Creates a listening TCP socket bound to @p puerto (INADDR_ANY).
+ * @brief Creates a listening TCP socket bound to @p port (INADDR_ANY).
  * @return The listening socket fd.
  */
-int iniciar_servidor(char* puerto);
+int start_server(char* port);
 
 /**
- * @brief Recibe el código de operación
- * @param socket_fd
- * @return Código de operación (enum / int)
- * @note Usar siempre antes de llamar a a una función de recibir o leer algo del
-         buffer
+ * @brief Receives the operation code.
+ * @note Always call this before any receive/read from the buffer.
  */
-int recibir_operacion(int socket_fd);
+int receive_op_code(int socket_fd);
 
 /**
- * @brief Recibe datos del buffer
- * @param size Cantidad de bytes que se quieren leer
- * @param socket_fd
- * @return Puntero al buffer
- * @note Usar después de recibir_operacion()
- * @note Liberar memoria dinámica del buffer retornado
+ * @brief Receives raw data from the buffer.
+ * @param size  Out-param: number of bytes read.
+ * @note Call after receive_op_code(). Free the returned buffer.
  */
-void* recibir_buffer(int* size, int socket_fd);
+void* receive_buffer(int* size, int socket_fd);
 
 /**
- * @brief Envia un void*
- * @param codigo_operacion Código de operación (enum / int)
- * @param buffer
- * @param size
- * @param socket_fd
- * @return Devuelve un bool: false = envio nulo o receptor desconectado
+ * @brief Sends a void* payload with the given operation code.
+ * @return false if nothing was sent or the peer disconnected.
  */
-bool enviar_buffer(int codigo_operacion, void* buffer, int size, int socket_fd);
+bool send_buffer(int op_code, void* buffer, int size, int socket_fd);
 
 /**
- * @brief Envia un char*
- * @param codigo_operacion Código de operación (enum / int)
- * @param mensaje
- * @param socket_fd
- * @return Devuelve un bool: false = envio nulo o receptor desconectado
+ * @brief Sends a char* payload with the given operation code.
+ * @return false if nothing was sent or the peer disconnected.
  */
-bool enviar_string(int codigo_operacion, char* mensaje, int socket_fd);
+bool send_string(int op_code, char* message, int socket_fd);
 
 /**
- * @brief Recibe un char*
- * @param socket_fd
- * @return Puntero al buffer
- * @note Usar después de recibir_operacion()
- * @note Liberar memoria dinámica del buffer retornado
+ * @brief Receives a char*.
+ * @note Call after receive_op_code(). Free the returned string.
  */
-char* recibir_string(int socket_fd);
+char* receive_string(int socket_fd);
 
 /**
- * @brief Devuelve el id del módulo, este id es de tipo t_module_id (se puede
- * usar cualquier entero)
- * @param handshake_msg char* de HANDSHAKE_MSG[]
- * @return Retorna un int que representa el id_module que es un enum (se puede
-           castear)
- * @note Usar después de recibir_string()
+ * @brief Maps a HANDSHAKE_MSG[] string to its t_module_id.
+ * @note Call after receive_string().
  */
 int handshake_msg_to_module_id(char* handshake_msg);
 
 /**
- * @brief Envia handshake
- * @param id_modulo entero de tipo t_module_id (se puede usar cualquier entero)
- * @param socket_fd
- * @return Devuelve un bool: false = envio nulo o receptor desconectado
+ * @brief Sends a handshake for @p module_id.
+ * @return false if nothing was sent or the peer disconnected.
  */
-bool enviar_handshake(int id_modulo, int socket_fd);
+bool send_handshake(int module_id, int socket_fd);
+
+/** @brief Receives a handshake and returns the sender's t_module_id. */
+int receive_handshake(int socket_fd);
 
 /**
- * @brief Recibe handshake
- * @param socket_fd
- * @return Retorna un int que representa el id_module que es un enum (se puede
-           castear)
+ * @brief Creates a packet with the given operation code.
+ * @note Free it with destroy_packet().
  */
-int recibir_handshake(int socket_fd);
+t_packet* create_packet(int op_code);
 
 /**
- * @brief Crea un paquete
- * @param codigo_operacion código de operación del paquete
- * @return Devuelve un t_paqute* inicializado
- * @note Llamar a eliminar_paquete() para liberar la memoria reservada en esta
-         función
+ * @brief Appends @p size bytes of @p value to the packet.
+ * @note Call after create_packet().
  */
-t_paquete* crear_paquete(int codigo_operacion);
+void packet_append(t_packet* packet, void* value, int size);
 
 /**
- * @brief Agrega el elemento al paquete
- * @param paquete
- * @param valor
- * @param tamanio
- * @return No devuelve nada
- * @note Usar después de crear_paquete()
+ * @brief Appends a string (including its '\0') to the packet.
+ * @note Call after create_packet().
  */
-void agregar_a_paquete(t_paquete* paquete, void* valor, int tamanio);
+void packet_append_string(t_packet* packet, char* value);
 
 /**
- * @brief Agrega el elemento al paquete
- * @param paquete
- * @param valor
- * @return No devuelve nada
- * @note Usar después de crear_paquete()
+ * @brief Sends the packet.
+ * @return false if nothing was sent or the peer disconnected.
  */
-void agregar_string_a_paquete(t_paquete* paquete, char* valor);
+bool send_packet(t_packet* packet, int socket_fd);
 
 /**
- * @brief Envia el paquete
- * @param socket_fd
- * @return Devuelve un bool: false = envio nulo o receptor desconectado
- * @note Usar después de crear_paquete()
+ * @brief Receives a packet as a list of void* elements.
+ * @note Free the list and every element after use. Strings added with
+ *       packet_append_string() are already '\0'-terminated.
  */
-bool enviar_paquete(t_paquete* paquete, int socket_fd);
+t_list* receive_packet(int socket_fd);
 
-/**
- * @brief Recibe un paquete y lo guarda en una lista
- * @param socket_fd
- * @return Devuelve una lista de void* con el contenido de cada elemento dentro
-           del paquete
- * @note La lista retornada debe ser liberada después de su uso.
- * @note Hay que liberar cada elemento de la lista luego de su uso.
- * @note Los strings agregador mediante agregar_string_a_paquete ya tienen '\0'
- */
-t_list* recibir_paquete(int socket_fd);
-
-/**
- * @brief Elimina el paquete
- * @param paquete
- * @return No devuelve nada
- * @note Usar después de crear_paquete()
- */
-void eliminar_paquete(t_paquete* paquete);
+/** @brief Destroys the packet. */
+void destroy_packet(t_packet* packet);

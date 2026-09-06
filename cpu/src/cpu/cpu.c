@@ -12,11 +12,11 @@
 
 bool receive_max_segment_size(t_cpu* cpu)
 {
-  int op_code = recibir_operacion(cpu->socket_kernel_memory);
-  if (op_code == OP_TAMANIO_MAX_SEG)
+  int op_code = receive_op_code(cpu->socket_kernel_memory);
+  if (op_code == OP_MAX_SEGMENT_SIZE)
   {
     int size;
-    void* buffer = recibir_buffer(&size, cpu->socket_kernel_memory);
+    void* buffer = receive_buffer(&size, cpu->socket_kernel_memory);
     cpu->max_segment_size = *(int*)buffer;
     free(buffer);
     log_info(cpu->logger, "Maximum segment size received: %u",
@@ -26,7 +26,7 @@ bool receive_max_segment_size(t_cpu* cpu)
   {
     log_error(cpu->logger, "## Wrong operation code: %d", op_code);
     int size;
-    free(recibir_buffer(&size, cpu->socket_kernel_memory));
+    free(receive_buffer(&size, cpu->socket_kernel_memory));
     return false;
   }
   return true;
@@ -56,22 +56,22 @@ bool listen_kernel_memory(t_cpu* cpu)
   bool keep_going = true;
   while (keep_going)
   {
-    int op_code = recibir_operacion(cpu->socket_kernel_memory);
+    int op_code = receive_op_code(cpu->socket_kernel_memory);
     switch (op_code)
     {
-      case OP_TABLA_DE_SEGMENTOS:
+      case OP_SEGMENT_TABLE:
         keep_going = false;
         break;
 
-      case OP_ENVIAR_CONTEXTO:
+      case OP_SEND_CONTEXT:
         keep_going = false;
         break;
 
-      case OP_ENVIAR_INSTRUCCION:
+      case OP_SEND_INSTRUCTION:
         keep_going = false;
         break;
 
-      case OP_PAQUETE:
+      case OP_PACKET:
         if (!connect_memory_stick(cpu))
           return false;
         break;
@@ -134,12 +134,12 @@ void run_instruction_loop(t_cpu* cpu)
 
 uint32_t receive_pid(t_cpu* cpu)
 {
-  int op_code = recibir_operacion(cpu->socket_kernel_scheduler);
+  int op_code = receive_op_code(cpu->socket_kernel_scheduler);
   uint32_t pid = UINT32_MAX;
-  if (op_code == OP_CONTINUAR_PROCESO)
+  if (op_code == OP_RESUME_PROCESS)
   {
     int size;
-    void* buffer = recibir_buffer(&size, cpu->socket_kernel_scheduler);
+    void* buffer = receive_buffer(&size, cpu->socket_kernel_scheduler);
     pid = *(uint32_t*)buffer;
     free(buffer);
 
@@ -159,14 +159,14 @@ uint32_t receive_pid(t_cpu* cpu)
 
 bool request_context(t_cpu* cpu, uint32_t pid)
 {
-  return enviar_buffer(OP_PEDIR_CONTEXTO, &pid, sizeof(uint32_t),
-                       cpu->socket_kernel_memory);
+  return send_buffer(OP_REQUEST_CONTEXT, &pid, sizeof(uint32_t),
+                     cpu->socket_kernel_memory);
 }
 
 t_registers* receive_context(t_cpu* cpu)
 {
   int size;
-  void* buffer = recibir_buffer(&size, cpu->socket_kernel_memory);
+  void* buffer = receive_buffer(&size, cpu->socket_kernel_memory);
   t_registers* registers = malloc(sizeof(t_registers));
   memcpy(registers, buffer, size);
   free(buffer);
@@ -178,7 +178,7 @@ t_list* receive_segment_table(t_cpu* cpu, t_context* context)
 {
   list_destroy_and_destroy_elements(context->segment_table, free);
   log_info(cpu->logger, "Waiting for the segment table");
-  t_list* segment_table = recibir_paquete(cpu->socket_kernel_memory);
+  t_list* segment_table = receive_packet(cpu->socket_kernel_memory);
   log_info(cpu->logger, "Segment table received - segment count: %d",
            list_size(segment_table));
   return segment_table;
@@ -217,7 +217,7 @@ bool run_instruction_cycle(t_cpu* cpu, uint32_t pid, t_context* context)
 
     if (syscall)
     {
-      if (!enviar_string(OP_CICLO_CPU_OK, "OK", cpu->socket_kernel_scheduler))
+      if (!send_string(OP_CPU_CYCLE_OK, "OK", cpu->socket_kernel_scheduler))
       {
         log_error(cpu->logger, "## Error confirming the end of the cycle");
         destroy_instruction(instruction);
@@ -265,22 +265,22 @@ char* fetch_stage(t_cpu* cpu, uint32_t pid, uint32_t pc)
 
 bool request_instruction(t_cpu* cpu, uint32_t pid, uint32_t pc)
 {
-  t_paquete* packet = crear_paquete(OP_SIGUIENTE_INSTRUCCION);
-  agregar_a_paquete(packet, &pid, sizeof(uint32_t));
-  agregar_a_paquete(packet, &pc, sizeof(uint32_t));
-  if (!enviar_paquete(packet, cpu->socket_kernel_memory))
+  t_packet* packet = create_packet(OP_NEXT_INSTRUCTION);
+  packet_append(packet, &pid, sizeof(uint32_t));
+  packet_append(packet, &pc, sizeof(uint32_t));
+  if (!send_packet(packet, cpu->socket_kernel_memory))
   {
     log_error(cpu->logger, "## Error requesting the instruction");
     return false;
   }
   log_info(cpu->logger, "Instruction requested successfully");
-  eliminar_paquete(packet);
+  destroy_packet(packet);
   return true;
 }
 
 char* receive_instruction(t_cpu* cpu)
 {
-  return recibir_string(cpu->socket_kernel_memory);
+  return receive_string(cpu->socket_kernel_memory);
 }
 
 t_instruction* decode_stage(char* raw_instruction)
@@ -321,12 +321,12 @@ t_extended_bool execute_stage(t_cpu* cpu, t_context* context,
 
 t_extended_bool check_interrupt(t_cpu* cpu, uint32_t pid)
 {
-  int code = recibir_operacion(cpu->socket_kernel_scheduler);
+  int code = receive_op_code(cpu->socket_kernel_scheduler);
 
-  if (code == OP_INTERRUPCION)
+  if (code == OP_INTERRUPT)
   {
     log_info(cpu->logger, "## Interrupt received");
-    char* interrupt_reason = recibir_string(cpu->socket_kernel_scheduler);
+    char* interrupt_reason = receive_string(cpu->socket_kernel_scheduler);
     log_info(cpu->logger, "Interrupt reason: %s ", interrupt_reason);
 
     if ((strcmp(interrupt_reason,
@@ -338,10 +338,10 @@ t_extended_bool check_interrupt(t_cpu* cpu, uint32_t pid)
     free(interrupt_reason);
     return EB_FALSE;
   }
-  else if (code == OP_SIN_INTERRUPCION)
+  else if (code == OP_NO_INTERRUPT)
   {
     log_info(cpu->logger, "No interrupt");
-    free(recibir_string(cpu->socket_kernel_scheduler));
+    free(receive_string(cpu->socket_kernel_scheduler));
     return EB_TRUE;
   }
   else if (code == OP_CODE_ERROR)
@@ -356,24 +356,24 @@ t_extended_bool check_interrupt(t_cpu* cpu, uint32_t pid)
 bool send_updated_context(t_cpu* cpu, uint32_t pid,
                           t_registers* updated_context)
 {
-  t_paquete* packet = crear_paquete(OP_CONTEXTO_ACTUALIZADO);
-  agregar_a_paquete(packet, &pid, sizeof(uint32_t));
-  agregar_a_paquete(packet, updated_context, sizeof(t_registers));
-  if (!enviar_paquete(packet, cpu->socket_kernel_memory))
+  t_packet* packet = create_packet(OP_UPDATED_CONTEXT);
+  packet_append(packet, &pid, sizeof(uint32_t));
+  packet_append(packet, updated_context, sizeof(t_registers));
+  if (!send_packet(packet, cpu->socket_kernel_memory))
   {
     log_error(cpu->logger, "## Error sending the updated context");
     return false;
   }
   log_info(cpu->logger, "Updated context sent successfully");
-  eliminar_paquete(packet);
+  destroy_packet(packet);
   return true;
 }
 
 bool update_segment_table(t_cpu* cpu, uint32_t pid, t_context* context)
 {
   log_info(cpu->logger, "Requesting the updated segment table");
-  if (!enviar_buffer(OP_TABLA_SEG_ACTUALIZADA, &pid, sizeof(uint32_t),
-                     cpu->socket_kernel_memory))
+  if (!send_buffer(OP_UPDATED_SEGMENT_TABLE, &pid, sizeof(uint32_t),
+                   cpu->socket_kernel_memory))
   {
     log_error(cpu->logger, "## Failed to request the segment table update");
     return false;

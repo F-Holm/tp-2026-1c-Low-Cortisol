@@ -9,12 +9,12 @@ bool handshake(t_datos_kernel_mem* datos_kernel_memory, int client_socket)
     log_info(datos_kernel_memory->logger, "Servidor a la espera de handshake");
   }
 
-  int identificador = recibir_handshake(client_socket);
+  int identificador = receive_handshake(client_socket);
   switch (identificador)
   {
     case MID_KERNEL_SCHEDULER:
     {
-      if (!enviar_handshake(MID_KERNEL_MEMORY, client_socket))
+      if (!send_handshake(MID_KERNEL_MEMORY, client_socket))
       {
         enviar_handshake_error(datos_kernel_memory->logger, client_socket,
                                "Kernel Scheduler");
@@ -53,7 +53,7 @@ bool handshake(t_datos_kernel_mem* datos_kernel_memory, int client_socket)
         close(client_socket);
         break;
       }
-      if (!enviar_handshake(MID_KERNEL_MEMORY, client_socket))
+      if (!send_handshake(MID_KERNEL_MEMORY, client_socket))
       {
         enviar_handshake_error(datos_kernel_memory->logger, client_socket,
                                "CPU");
@@ -70,8 +70,8 @@ bool handshake(t_datos_kernel_mem* datos_kernel_memory, int client_socket)
           datos_kernel_memory->mutex_hilos_activos,
           datos_kernel_memory->cond_hilos_activos, socket_scheduler);
       inicializar_correcto = recibir_id_cpu(datos_cpu);
-      enviar_buffer(OP_TAMANIO_MAX_SEG, &datos_kernel_memory->segment_max_size,
-                    sizeof(int), datos_cpu->socket_cpu);
+      send_buffer(OP_MAX_SEGMENT_SIZE, &datos_kernel_memory->segment_max_size,
+                  sizeof(int), datos_cpu->socket_cpu);
       agregar_conexion_cpu(datos_kernel_memory, datos_cpu);
       if (inicializar_correcto)
       {
@@ -93,7 +93,7 @@ bool handshake(t_datos_kernel_mem* datos_kernel_memory, int client_socket)
 
     case MID_MEMORY_STICK:
     {
-      if (!enviar_handshake(MID_KERNEL_MEMORY, client_socket))
+      if (!send_handshake(MID_KERNEL_MEMORY, client_socket))
       {
         enviar_handshake_error(datos_kernel_memory->logger, client_socket,
                                "Memory Stick");
@@ -112,9 +112,9 @@ bool handshake(t_datos_kernel_mem* datos_kernel_memory, int client_socket)
       if (inicializar_correcto)
       {
         enviar_conexion_cpu(datos_stick, datos_kernel_memory->cpus_conectados);
-        enviar_string(OP_NUEVO_MEMORY_STICK,
-                      "Se ha conectado una nueva Memory Stick",
-                      datos_kernel_memory->socket_scheduler);
+        send_string(OP_NEW_MEMORY_STICK,
+                    "Se ha conectado una nueva Memory Stick",
+                    datos_kernel_memory->socket_scheduler);
         aniadir_memoria_total(datos_kernel_memory->memoria_principal,
                               datos_stick->tamanio_stick);
       }
@@ -129,7 +129,7 @@ bool handshake(t_datos_kernel_mem* datos_kernel_memory, int client_socket)
 
     case MID_SWAP:
     {
-      if (!enviar_handshake(MID_KERNEL_MEMORY, client_socket))
+      if (!send_handshake(MID_KERNEL_MEMORY, client_socket))
       {
         enviar_handshake_error(datos_kernel_memory->logger, client_socket,
                                "SWAP");

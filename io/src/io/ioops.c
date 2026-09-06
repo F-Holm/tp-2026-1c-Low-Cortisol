@@ -4,7 +4,7 @@ bool io_tipo_stdin(t_modulo_io* sio)
 {
   int size_peticion;
   t_stdin_request* peticion_stdin =
-      (t_stdin_request*)recibir_buffer(&size_peticion, sio->socket_io);
+      (t_stdin_request*)receive_buffer(&size_peticion, sio->socket_io);
   log_info(sio->logger, "## PID %d -Inicio de IO", peticion_stdin->pid);
 
   // Solicito el input por teclado
@@ -32,8 +32,7 @@ bool io_tipo_stdin(t_modulo_io* sio)
 
   buffer[strcspn(buffer, "\n")] = '\0';
 
-  bool envio_correcto =
-      enviar_string(OP_RESPUESTA_STDIN, buffer, sio->socket_io);
+  bool envio_correcto = send_string(OP_STDIN_RESPONSE, buffer, sio->socket_io);
   if (!envio_correcto)
   {
     log_error(sio->logger,
@@ -52,10 +51,10 @@ bool io_tipo_stdin(t_modulo_io* sio)
 bool io_tipo_stdout(t_modulo_io* sio)
 {
   // Recibo la peticion de IO
-  t_list* paquete = recibir_paquete(sio->socket_io);
-  t_stdout_request* peticion = (t_stdout_request*)list_remove(paquete, 0);
-  char* buffer = (char*)list_remove(paquete, 0);
-  list_destroy(paquete);
+  t_list* packet = receive_packet(sio->socket_io);
+  t_stdout_request* peticion = (t_stdout_request*)list_remove(packet, 0);
+  char* buffer = (char*)list_remove(packet, 0);
+  list_destroy(packet);
   if (buffer == NULL)
   {
     log_error(sio->logger,
@@ -69,8 +68,7 @@ bool io_tipo_stdout(t_modulo_io* sio)
   log_info(sio->logger, "## PID: %d - %s", peticion->pid, buffer);
 
   // Envio OK a Scheduler para que sepa que ya terminó el IO
-  bool envio_correcto =
-      enviar_string(OP_RESPUESTA_STDOUT, "OK", sio->socket_io);
+  bool envio_correcto = send_string(OP_STDOUT_RESPONSE, "OK", sio->socket_io);
   if (!envio_correcto)
   {
     log_error(sio->logger,
@@ -90,7 +88,7 @@ bool io_tipo_sleep(t_modulo_io* sio)
   // Recibo la peticion de IO
   int size_peticion;
   t_sleep_request* peticion_sleep =
-      (t_sleep_request*)recibir_buffer(&size_peticion, sio->socket_io);
+      (t_sleep_request*)receive_buffer(&size_peticion, sio->socket_io);
   log_info(sio->logger, "## PID %d -Inicio de IO", peticion_sleep->pid);
 
   // Simulo el sleep
@@ -99,7 +97,7 @@ bool io_tipo_sleep(t_modulo_io* sio)
   usleep(peticion_sleep->blocked_time_ms * 1000);  // Convertir a microsegundos
 
   // Envio OK a Scheduler para que sepa que ya terminó el IO
-  bool envio_correcto = enviar_string(OP_RESPUESTA_SLEEP, "OK", sio->socket_io);
+  bool envio_correcto = send_string(OP_SLEEP_RESPONSE, "OK", sio->socket_io);
   if (!envio_correcto)
   {
     log_error(sio->logger,

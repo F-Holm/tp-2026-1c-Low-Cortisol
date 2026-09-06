@@ -24,8 +24,8 @@ bool cargar_configs(t_modulo_io* modulo_io)
 }
 bool iniciar_enviar_tipo_io(t_modulo_io* modulo_io)
 {
-  modulo_io->socket_io =
-      crear_conexion(modulo_io->ip, modulo_io->puerto);  // Establezco conexión
+  modulo_io->socket_io = create_connection(
+      modulo_io->ip, modulo_io->puerto);  // Establezco conexión
 
   if (modulo_io->socket_io == -1)
   {
@@ -36,7 +36,7 @@ bool iniciar_enviar_tipo_io(t_modulo_io* modulo_io)
   log_info(modulo_io->logger, "## Conectado a Kernel Scheduler");
 
   // Handshake con Kernel Scheduler
-  bool envio_correcto = enviar_handshake(MID_IO, modulo_io->socket_io);
+  bool envio_correcto = send_handshake(MID_IO, modulo_io->socket_io);
   if (!envio_correcto)
   {
     log_error(modulo_io->logger, " Error en el Handshake con Kernel Scheduler");
@@ -44,7 +44,7 @@ bool iniciar_enviar_tipo_io(t_modulo_io* modulo_io)
     return false;
   }
 
-  int recepcion_correcta = recibir_handshake(modulo_io->socket_io);
+  int recepcion_correcta = receive_handshake(modulo_io->socket_io);
   if (recepcion_correcta != MID_KERNEL_SCHEDULER)
   {
     log_error(modulo_io->logger, " Error en el Handshake con Kernel Scheduler");
@@ -53,8 +53,9 @@ bool iniciar_enviar_tipo_io(t_modulo_io* modulo_io)
   }
   log_info(modulo_io->logger, " Handshake exitoso con Kernel Scheduler");
 
-  envio_correcto = enviar_string(
-      OP_TIPO_IO, (char*)IO_TYPE_NAMES[modulo_io->tipo_io], modulo_io->socket_io);
+  envio_correcto =
+      send_string(OP_IO_TYPE, (char*)IO_TYPE_NAMES[modulo_io->tipo_io],
+                  modulo_io->socket_io);
   if (!envio_correcto)
   {
     log_error(modulo_io->logger, " Error en el Envío de tipo de IO");

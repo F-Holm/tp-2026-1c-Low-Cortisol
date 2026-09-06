@@ -15,7 +15,7 @@ static void cerrar_hilo_escucha(t_io* estructuras_io, t_list* lista_sockets_cpu,
 
 int crear_socket_servidor(char* puerto, t_log* logger)
 {
-  int ret = iniciar_servidor(puerto);
+  int ret = start_server(puerto);
   if (ret <= 0)
   {
     log_error(logger, "Error en la creación del servidor");
@@ -58,7 +58,7 @@ void servidor_escucha(t_datos_servidor_escucha* datos)
       break;
     }
 
-    switch (recibir_handshake(socket_fd))
+    switch (receive_handshake(socket_fd))
     {
       case MID_CPU:
         manejo_exitoso = atender_nueva_cpu(

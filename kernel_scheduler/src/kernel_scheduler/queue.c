@@ -515,9 +515,8 @@ void desbloquear_hilos_suspendido(t_colas* colas)
 
 int espacio_disponible_sin_mutex(t_colas* colas, uint32_t pid)
 {
-  if (!(enviar_string(OP_PEDIR_MEMORIA_DISPONIBLE,
-                      "Solicito el espacio disponible",
-                      colas->socket_km->socket_km)))
+  if (!(send_string(OP_REQUEST_FREE_MEMORY, "Solicito el espacio disponible",
+                    colas->socket_km->socket_km)))
   {
     cerrar_kernel_scheduler(colas->socket_servidor, colas->logger,
                             MC_ERROR_ENVIO_KERNEL_MEMORY,
@@ -537,8 +536,8 @@ int espacio_disponible(t_colas* colas, uint32_t pid)
 
 int tamanio_proceso_sin_mutex(t_colas* colas, uint32_t pid)
 {
-  if (!(enviar_buffer(OP_PEDIR_TAMANIO_PROCESO, &pid, sizeof(uint32_t),
-                      colas->socket_km->socket_km)))
+  if (!(send_buffer(OP_REQUEST_PROCESS_SIZE, &pid, sizeof(uint32_t),
+                    colas->socket_km->socket_km)))
   {
     cerrar_kernel_scheduler(colas->socket_servidor, colas->logger,
                             MC_ERROR_ENVIO_KERNEL_MEMORY,
@@ -1189,19 +1188,19 @@ static void cambio_block_ready_sin_mutex(t_pcb* pcb, t_colas* colas)
 
 static bool recibir_respuesta_suspender_proceso(t_colas* colas)
 {
-  int op_code = recibir_operacion(colas->socket_km->socket_km);
+  int op_code = receive_op_code(colas->socket_km->socket_km);
   switch (op_code)
   {
-    case OP_SUSPENSION_EXITOSA:
-      free(recibir_string(colas->socket_km->socket_km));
+    case OP_SUSPENSION_OK:
+      free(receive_string(colas->socket_km->socket_km));
       return true;
-    case OP_SUSPENSION_NO_EXITOSA:
+    case OP_SUSPENSION_FAILED:
       break;
-    case OP_NUEVO_MEMORY_STICK:
-      free(recibir_string(colas->socket_km->socket_km));
+    case OP_NEW_MEMORY_STICK:
+      free(receive_string(colas->socket_km->socket_km));
       crear_hilo_rutina_des_suspension(colas);
       return recibir_respuesta_suspender_proceso(colas);
-    case OP_MEMORIA_CORRUPTA:
+    case OP_MEMORY_CORRUPTED:
       cerrar_kernel_scheduler(colas->socket_servidor, colas->logger,
                               MC_MEMORIA_CORRUPTA, -1);
       break;
@@ -1210,15 +1209,15 @@ static bool recibir_respuesta_suspender_proceso(t_colas* colas)
                               MC_FALLO_CONEXION_KERNEL_MEMORY, -1);
       break;
   }
-  free(recibir_string(colas->socket_km->socket_km));
+  free(receive_string(colas->socket_km->socket_km));
   return false;
 }
 
 static bool avisar_proceso_suspendido(t_pcb* pcb, t_colas* colas)
 {
   pthread_mutex_lock(&(colas->socket_km->mutex_socket));
-  if (!enviar_buffer(OP_SUSPENDER_PROCESO, &(pcb->pid), sizeof(uint32_t),
-                     colas->socket_km->socket_km))
+  if (!send_buffer(OP_SUSPEND_PROCESS, &(pcb->pid), sizeof(uint32_t),
+                   colas->socket_km->socket_km))
   {
     cerrar_kernel_scheduler(colas->socket_servidor, colas->logger,
                             MC_ERROR_ENVIO_KERNEL_MEMORY,
@@ -1277,8 +1276,8 @@ static bool avisar_proceso_des_suspendido(t_pcb* pcb, t_colas* colas)
 {
   pthread_mutex_lock(&(colas->socket_km->mutex_socket));
 
-  if (!(enviar_buffer(OP_DES_SUSPENDER_PROCESO, &(pcb->pid), sizeof(uint32_t),
-                      colas->socket_km->socket_km)))
+  if (!(send_buffer(OP_RESUME_SUSPENDED_PROCESS, &(pcb->pid), sizeof(uint32_t),
+                    colas->socket_km->socket_km)))
   {
     cerrar_kernel_scheduler(colas->socket_servidor, colas->logger,
                             MC_ERROR_ENVIO_KERNEL_MEMORY,
@@ -1612,27 +1611,27 @@ static void bloqueo_total(t_colas* colas)
 
 static bool entra_proceso(t_colas* colas, t_pcb* proceso)
 {
-  int op_code = recibir_operacion(colas->socket_km->socket_km);
+  int op_code = receive_op_code(colas->socket_km->socket_km);
 
   switch (op_code)
   {
-    case OP_DES_SUSPENSION_NO_EXITOSA:
-      free(recibir_string(colas->socket_km->socket_km));
+    case OP_RESUME_SUSPENSION_FAILED:
+      free(receive_string(colas->socket_km->socket_km));
       return false;
-    case OP_NUEVO_MEMORY_STICK:
-      free(recibir_string(colas->socket_km->socket_km));
+    case OP_NEW_MEMORY_STICK:
+      free(receive_string(colas->socket_km->socket_km));
       crear_hilo_rutina_des_suspension(colas);
       return entra_proceso(colas, proceso);
-    case OP_MEMORIA_CORRUPTA:
-      free(recibir_string(colas->socket_km->socket_km));
+    case OP_MEMORY_CORRUPTED:
+      free(receive_string(colas->socket_km->socket_km));
       cerrar_kernel_scheduler(colas->socket_servidor, colas->logger,
                               MC_MEMORIA_CORRUPTA, -1);
       return false;
-    case OP_DES_SUSPENSION_EXITOSA:
-      free(recibir_string(colas->socket_km->socket_km));
+    case OP_RESUME_SUSPENSION_OK:
+      free(receive_string(colas->socket_km->socket_km));
       return true;
     default:
-      free(recibir_string(colas->socket_km->socket_km));
+      free(receive_string(colas->socket_km->socket_km));
       cerrar_kernel_scheduler(colas->socket_servidor, colas->logger,
                               MC_FALLO_CONEXION_KERNEL_MEMORY, -1);
       return false;
@@ -1680,23 +1679,23 @@ static void rutina_des_suspension(t_colas* colas)
 
 static int recibir_espacio(t_colas* colas)
 {
-  int op_code = recibir_operacion(colas->socket_km->socket_km);
+  int op_code = receive_op_code(colas->socket_km->socket_km);
 
   switch (op_code)
   {
-    case OP_MEMORIA_DISPONIBLE:
+    case OP_FREE_MEMORY:
       int espacio;
-      int* aux = recibir_buffer(&espacio, colas->socket_km->socket_km);
+      int* aux = receive_buffer(&espacio, colas->socket_km->socket_km);
       espacio = *aux;
       free(aux);
       log_info(colas->logger, "Espacio disponible: %d", espacio);
       return espacio;
-    case OP_NUEVO_MEMORY_STICK:
-      free(recibir_string(colas->socket_km->socket_km));
+    case OP_NEW_MEMORY_STICK:
+      free(receive_string(colas->socket_km->socket_km));
       crear_hilo_rutina_des_suspension(colas);
       return recibir_espacio(colas);
       break;
-    case OP_MEMORIA_CORRUPTA:
+    case OP_MEMORY_CORRUPTED:
       cerrar_kernel_scheduler(colas->socket_servidor, colas->logger,
                               MC_MEMORIA_CORRUPTA, -1);
       break;
@@ -1710,24 +1709,24 @@ static int recibir_espacio(t_colas* colas)
 
 static int recibir_tamanio(t_colas* colas)
 {
-  int op_code = recibir_operacion(colas->socket_km->socket_km);
+  int op_code = receive_op_code(colas->socket_km->socket_km);
 
   switch (op_code)
   {
-    case OP_TAMANIO_PROCESO:
+    case OP_PROCESS_SIZE:
       int espacio;
-      int* aux = recibir_buffer(&espacio, colas->socket_km->socket_km);
+      int* aux = receive_buffer(&espacio, colas->socket_km->socket_km);
       espacio = *aux;
       free(aux);
       log_info(colas->logger, "Tamaño proceso: %d", espacio);
       return espacio;
       break;
-    case OP_NUEVO_MEMORY_STICK:
-      free(recibir_string(colas->socket_km->socket_km));
+    case OP_NEW_MEMORY_STICK:
+      free(receive_string(colas->socket_km->socket_km));
       crear_hilo_rutina_des_suspension(colas);
       return recibir_tamanio(colas);
       break;
-    case OP_MEMORIA_CORRUPTA:
+    case OP_MEMORY_CORRUPTED:
       cerrar_kernel_scheduler(colas->socket_servidor, colas->logger,
                               MC_MEMORIA_CORRUPTA, -1);
       break;
@@ -1741,23 +1740,23 @@ static int recibir_tamanio(t_colas* colas)
 
 static int recibir_tamanio_sin_logger(t_colas* colas)
 {
-  int op_code = recibir_operacion(colas->socket_km->socket_km);
+  int op_code = receive_op_code(colas->socket_km->socket_km);
 
   switch (op_code)
   {
-    case OP_TAMANIO_PROCESO:
+    case OP_PROCESS_SIZE:
       int espacio;
-      int* aux = recibir_buffer(&espacio, colas->socket_km->socket_km);
+      int* aux = receive_buffer(&espacio, colas->socket_km->socket_km);
       espacio = *aux;
       free(aux);
       return espacio;
       break;
-    case OP_NUEVO_MEMORY_STICK:
-      free(recibir_string(colas->socket_km->socket_km));
+    case OP_NEW_MEMORY_STICK:
+      free(receive_string(colas->socket_km->socket_km));
       crear_hilo_rutina_des_suspension(colas);
       return recibir_tamanio(colas);
       break;
-    case OP_MEMORIA_CORRUPTA:
+    case OP_MEMORY_CORRUPTED:
       cerrar_kernel_scheduler(colas->socket_servidor, colas->logger,
                               MC_MEMORIA_CORRUPTA, -1);
       break;
@@ -1771,8 +1770,8 @@ static int recibir_tamanio_sin_logger(t_colas* colas)
 
 static int tamanio_proceso_sin_mutex_ni_logger(t_colas* colas, uint32_t pid)
 {
-  if (!(enviar_buffer(OP_PEDIR_TAMANIO_PROCESO, &pid, sizeof(uint32_t),
-                      colas->socket_km->socket_km)))
+  if (!(send_buffer(OP_REQUEST_PROCESS_SIZE, &pid, sizeof(uint32_t),
+                    colas->socket_km->socket_km)))
   {
     cerrar_kernel_scheduler(colas->socket_servidor, colas->logger,
                             MC_ERROR_ENVIO_KERNEL_MEMORY,
@@ -1866,23 +1865,23 @@ static void crear_hilo_desbloquear_cola_ready(t_colas* colas)
 static bool termino_compactacion(t_colas* colas)
 {
   int op_code = -1;
-  op_code = recibir_operacion(colas->socket_km->socket_km);
+  op_code = receive_op_code(colas->socket_km->socket_km);
   switch (op_code)
   {
-    case OP_NUEVO_MEMORY_STICK:
-      free(recibir_string(colas->socket_km->socket_km));
+    case OP_NEW_MEMORY_STICK:
+      free(receive_string(colas->socket_km->socket_km));
       crear_hilo_rutina_des_suspension(colas);
       return termino_compactacion(colas);
-    case OP_COMPACTACION_FINALIZADA:
-      free(recibir_string(colas->socket_km->socket_km));
+    case OP_COMPACTION_DONE:
+      free(receive_string(colas->socket_km->socket_km));
       return true;
-    case OP_MEMORIA_CORRUPTA:
-      free(recibir_string(colas->socket_km->socket_km));
+    case OP_MEMORY_CORRUPTED:
+      free(receive_string(colas->socket_km->socket_km));
       cerrar_kernel_scheduler(colas->socket_servidor, colas->logger,
                               MC_MEMORIA_CORRUPTA, -1);
       return false;
     default:
-      free(recibir_string(colas->socket_km->socket_km));
+      free(receive_string(colas->socket_km->socket_km));
       cerrar_kernel_scheduler(colas->socket_servidor, colas->logger,
                               MC_FALLO_CONEXION_KERNEL_MEMORY, -1);
       return false;
@@ -1891,8 +1890,8 @@ static bool termino_compactacion(t_colas* colas)
 
 static void compactacion(t_colas* colas)
 {
-  if (!(enviar_string(OP_PUEDE_COMPACTAR, "Iniciar compactación",
-                      colas->socket_km->socket_km)))
+  if (!(send_string(OP_CAN_COMPACT, "Iniciar compactación",
+                    colas->socket_km->socket_km)))
   {
     cerrar_kernel_scheduler(colas->socket_servidor, colas->logger,
                             MC_ERROR_ENVIO_KERNEL_MEMORY,
@@ -1909,14 +1908,14 @@ static void compactacion(t_colas* colas)
 static bool avisar_nuevo_proceso(t_colas* colas, char* archivo_instrucciones,
                                  uint32_t pid)
 {
-  t_paquete* paquete = crear_paquete(OP_NUEVO_PROCESO);
-  agregar_string_a_paquete(paquete, archivo_instrucciones);
-  agregar_a_paquete(paquete, &pid, sizeof(uint32_t));
+  t_packet* packet = create_packet(OP_NEW_PROCESS);
+  packet_append_string(packet, archivo_instrucciones);
+  packet_append(packet, &pid, sizeof(uint32_t));
 
   pthread_mutex_lock(&(colas->socket_km->mutex_socket));
-  bool ret = enviar_paquete(paquete, colas->socket_km->socket_km);
+  bool ret = send_packet(packet, colas->socket_km->socket_km);
 
-  eliminar_paquete(paquete);
+  destroy_packet(packet);
 
   if (!ret)
   {
@@ -1931,27 +1930,27 @@ static bool avisar_nuevo_proceso(t_colas* colas, char* archivo_instrucciones,
   bool seguir_operando = true;
   while (seguir_operando)
   {
-    int op_code = recibir_operacion(colas->socket_km->socket_km);
+    int op_code = receive_op_code(colas->socket_km->socket_km);
     switch (op_code)
     {
-      case OP_PROCESO_INICIADO:
-        free(recibir_string(colas->socket_km->socket_km));
+      case OP_PROCESS_STARTED:
+        free(receive_string(colas->socket_km->socket_km));
         ret = true;
         seguir_operando = false;
         break;
-      case OP_MEMORIA_CORRUPTA:
-        free(recibir_string(colas->socket_km->socket_km));
+      case OP_MEMORY_CORRUPTED:
+        free(receive_string(colas->socket_km->socket_km));
         cerrar_kernel_scheduler(colas->socket_servidor, colas->logger,
                                 MC_MEMORIA_CORRUPTA, -1);
         seguir_operando = false;
         break;
-      case OP_NUEVO_MEMORY_STICK:
-        free(recibir_string(colas->socket_km->socket_km));
+      case OP_NEW_MEMORY_STICK:
+        free(receive_string(colas->socket_km->socket_km));
         crear_hilo_rutina_des_suspension(colas);
         seguir_operando = true;
         break;
       default:
-        free(recibir_string(colas->socket_km->socket_km));
+        free(receive_string(colas->socket_km->socket_km));
         cerrar_kernel_scheduler(colas->socket_servidor, colas->logger,
                                 MC_FALLO_CONEXION_KERNEL_MEMORY, -1);
         seguir_operando = false;

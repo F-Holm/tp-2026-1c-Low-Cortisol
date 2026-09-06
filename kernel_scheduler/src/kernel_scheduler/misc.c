@@ -161,7 +161,7 @@ void* get_mutex_bloqueante(t_pcb* pcb)
 
 bool responder_handshake(int socket_fd, int id_modulo, t_log* logger)
 {
-  if (!enviar_handshake(id_modulo, socket_fd))
+  if (!send_handshake(id_modulo, socket_fd))
   {
     log_error(logger, "## Error en el envio del Handshake con %s",
               HANDSHAKE_MSG[id_modulo]);
@@ -266,18 +266,18 @@ static void comprobar_motivo_cierre(int* motivo_cierre, int socket_km)
   bool seguir_operando = true;
   while (seguir_operando)
   {
-    switch (recibir_operacion(socket_km))
+    switch (receive_op_code(socket_km))
     {
       case OP_CODE_ERROR:
         *motivo_cierre = MC_FALLO_CONEXION_KERNEL_MEMORY;
         seguir_operando = false;
         break;
-      case OP_MEMORIA_CORRUPTA:
+      case OP_MEMORY_CORRUPTED:
         *motivo_cierre = MC_MEMORIA_CORRUPTA;
         seguir_operando = false;
         break;
       default:
-        free(recibir_string(socket_km));
+        free(receive_string(socket_km));
         break;
     }
   }
@@ -290,7 +290,7 @@ static void avisar_cierre_kernel_memory(int motivo_cierre, int socket_km,
   {
     log_info(logger,
              "Avisando al Kernel Memory del cierre del Kernel Scheduler");
-    enviar_string(OP_CIERRE_KERNEL_SCHEDULER,
-                  "No hay más procesos para ejecutar", socket_km);
+    send_string(OP_KERNEL_SCHEDULER_SHUTDOWN,
+                "No hay más procesos para ejecutar", socket_km);
   }
 }
