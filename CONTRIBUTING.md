@@ -1,64 +1,69 @@
-# Guía de Contribución (CONTRIBUTING.md)
+# Contributing guide
 
-## 1. Normas de Estilo de Código (C)
+## 1. C code style
 
-| Elemento | Ejemplo |
+| Element | Example |
 | :--- | :--- |
-| **Constantes y Macros** | `NOMBRE_ELEMENTO` |
-| **Variables y Funciones** | `nombre_elemento` |
-| **Structs y Typedefs** | `t_nombre_elemento` |
-| **Headers** | `nombre_elemento.h` |
-| **Archivos de código** | `nombre_elemento.c` |
+| **Constants and macros** | `ELEMENT_NAME` |
+| **Variables and functions** | `element_name` |
+| **Structs and typedefs** | `t_element_name` |
+| **Headers** | `element_name.h` |
+| **Source files** | `element_name.c` |
+
+Formatting is enforced by `.clang-format`; run `make format` before committing.
 
 ---
 
-## 2. Comandos de Make
+## 2. Make targets
 
-### Compilación
+### Building
 
-| Comando | Descripción |
+| Command | Description |
 | :--- | :--- |
-| `make` o `make all` | Es lo mismo que hacer `make debug`. |
-| `make debug` | Compila el proyecto completo en debug. |
-| `make release` | Compila el proyecto completo en release. |
-| `make clean` | Elimina todos los archivos objeto (`.o`) y los binarios generados. |
-| `make logs` | Elimina todos los logs generados. |
-| `make test` | Compila y ejecuta los tests unitarios de cada módulo. |
-| `make format` | Ejecuta clang-format para darle formato estándar a todo el código. |
+| `make` / `make all` | Same as `make debug`. |
+| `make debug` | Build the whole project in debug mode. |
+| `make release` | Build the whole project in release mode. |
+| `make <module>` | Build a single module. |
+| `make clean` | Remove object files and generated binaries. |
+| `make logs` | Remove generated log files. |
+| `make test` | Build and run each module's unit tests. |
+| `make format` | Run clang-format over the whole codebase. |
 
-### Pruebas end-to-end
+### End-to-end tests
 
-Cada directorio dentro de `tests/` (menos `pseudocode/`) es un escenario: contiene
-sus seis archivos `<modulo>.conf` y un `test.mk` con sus parámetros.
+Every directory under `tests/` (except `pseudocode/`) is a scenario: it holds
+its six `<module>.conf` files and a `test.mk` with its parameters.
 
-| Comando | Descripción |
+| Command | Description |
 | :--- | :--- |
-| `make <escenario>` | Compila y lanza el escenario indicado. |
-| `make <escenario> MODE=memcheck` | Igual, con cada proceso bajo Valgrind memcheck. |
-| `make <escenario> MODE=helgrind` | Igual, con cada proceso bajo Valgrind helgrind. |
-| `make run` | Alias de `make full`. |
-| `make kill` | Detiene todos los procesos del sistema. |
+| `make <scenario>` | Build and launch the given scenario. |
+| `make <scenario> MODE=memcheck` | Same, with every process under Valgrind memcheck. |
+| `make <scenario> MODE=helgrind` | Same, with every process under Valgrind helgrind. |
+| `make run` | Alias for `make full`. |
+| `make kill` | Stop every process of the system. |
 
-Escenarios disponibles: `base`, `base2`, `pcp`, `mem-best`, `mem-worst`, `pmp`,
+Available scenarios: `base`, `base2`, `pcp`, `mem-best`, `mem-worst`, `pmp`,
 `pmp-det`, `pmp-v2`, `pmp-det-v2`, `php`, `php-v2`, `es3-1`, `es3-2`, `es3-3`,
 `es3-4`, `full`.
 
-Los logs de cada proceso quedan en `./output/`.
+Each process's log is written to `./output/`.
 
 ---
 
-## 3. Comentarios
+## 3. Comments
 
-Cada función debe estar declarada en un header con el mismo nombre que el archivo de código donde se implementa.
+Every function must be declared in a header with the same name as the source
+file where it is implemented.
 
-Agregar comentarios con el formato que tiene el ejemplo de abajo antes de la declaración de cada función en los headers.
+Add a comment in the format below before each function declaration in the
+headers.
 
 ```c
 /**
- * @brief Imprime un saludo por consola
- * @param quien Módulo desde donde se llama a la función
- * @return No devuelve nada
- * @note liberar memoria dinámica del ...
+ * @brief Prints a greeting to the console
+ * @param who Module the call comes from
+ * @return Nothing
+ * @note free the dynamic memory of ...
  */
-void saludar(char* quien);
+void greet(char* who);
 ```
