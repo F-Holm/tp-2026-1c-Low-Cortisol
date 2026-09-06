@@ -10,22 +10,21 @@
 #include "utils/log.h"
 #include "utils/string.h"
 
-bool recibir_tamanio_maximo_segmento(t_cpu* cpu)
+bool receive_max_segment_size(t_cpu* cpu)
 {
-  int codigo_operacion = recibir_operacion(cpu->socket_kernel_memory);
-  if (codigo_operacion == OP_TAMANIO_MAX_SEG)
+  int op_code = recibir_operacion(cpu->socket_kernel_memory);
+  if (op_code == OP_TAMANIO_MAX_SEG)
   {
     int size;
     void* buffer = recibir_buffer(&size, cpu->socket_kernel_memory);
-    cpu->tamanio_max_segmento = *(int*)buffer;
+    cpu->max_segment_size = *(int*)buffer;
     free(buffer);
-    log_info(cpu->logger, "Tamaño máximo de segmento recibido: %u",
-             cpu->tamanio_max_segmento);
+    log_info(cpu->logger, "Maximum segment size received: %u",
+             cpu->max_segment_size);
   }
   else
   {
-    log_error(cpu->logger, "## Código de operación erroneo: %d",
-              codigo_operacion);
+    log_error(cpu->logger, "## Wrong operation code: %d", op_code);
     int size;
     free(recibir_buffer(&size, cpu->socket_kernel_memory));
     return false;
@@ -33,45 +32,43 @@ bool recibir_tamanio_maximo_segmento(t_cpu* cpu)
   return true;
 }
 
-bool manejar_paquete(t_cpu* cpu, t_list* lista_paquete, char ip_stick[16],
-                     char puerto_stick[6], uint32_t* tamanio)
+bool parse_stick_packet(t_cpu* cpu, t_list* packet, char stick_ip[16],
+                        char stick_port[6], uint32_t* size)
 {
-  if (list_size(lista_paquete) != 3)
+  if (list_size(packet) != 3)
   {
-    log_error(
-        cpu->logger,
-        "## Error en la recepción de la IP ,puerto y tamaño del Memory stick");
-    log_error(cpu->logger, "## size: %d | expected size 3",
-              list_size(lista_paquete));
-    list_destroy_and_destroy_elements(lista_paquete, free);
+    log_error(cpu->logger,
+              "## Bad memory stick packet: expected IP, port and size");
+    log_error(cpu->logger, "## size: %d | expected size 3", list_size(packet));
+    list_destroy_and_destroy_elements(packet, free);
     return false;
   }
-  strcpy(ip_stick, list_get(lista_paquete, 0));
-  strcpy(puerto_stick, list_get(lista_paquete, 1));
-  *tamanio = *(int*)list_get(lista_paquete, 2);
-  list_destroy_and_destroy_elements(lista_paquete, free);
-  log_info(cpu->logger, "IP: %s | Puerto: %s", ip_stick, puerto_stick);
+  strcpy(stick_ip, list_get(packet, 0));
+  strcpy(stick_port, list_get(packet, 1));
+  *size = *(int*)list_get(packet, 2);
+  list_destroy_and_destroy_elements(packet, free);
+  log_info(cpu->logger, "IP: %s | Port: %s", stick_ip, stick_port);
   return true;
 }
 
-bool escuchar_kernel_memory(t_cpu* cpu)
+bool listen_kernel_memory(t_cpu* cpu)
 {
-  bool seguir = true;
-  while (seguir)
+  bool keep_going = true;
+  while (keep_going)
   {
-    int codigo_operacion = recibir_operacion(cpu->socket_kernel_memory);
-    switch (codigo_operacion)
+    int op_code = recibir_operacion(cpu->socket_kernel_memory);
+    switch (op_code)
     {
       case OP_TABLA_DE_SEGMENTOS:
-        seguir = false;
+        keep_going = false;
         break;
 
       case OP_ENVIAR_CONTEXTO:
-        seguir = false;
+        keep_going = false;
         break;
 
       case OP_ENVIAR_INSTRUCCION:
-        seguir = false;
+        keep_going = false;
         break;
 
       case OP_PAQUETE:
@@ -80,19 +77,18 @@ bool escuchar_kernel_memory(t_cpu* cpu)
         break;
 
       case OP_CODE_ERROR:
-        log_error(cpu->logger, "## Kernel Memory desconectado");
+        log_error(cpu->logger, "## Kernel Memory disconnected");
         return false;
 
       default:
-        log_error(cpu->logger, "## Codigo de operacion no reconocido: %d",
-                  codigo_operacion);
+        log_error(cpu->logger, "## Unrecognized operation code: %d", op_code);
         return false;
     }
   }
   return true;
 }
 
-void manejo_instrucciones(t_cpu* cpu)
+void run_instruction_loop(t_cpu* cpu)
 {
   t_context* context = malloc(sizeof(t_context));
   context->segment_changed = false;
@@ -101,31 +97,31 @@ void manejo_instrucciones(t_cpu* cpu)
 
   while (true)
   {
-    pid = recibir_pid_kernel_scheduler(cpu);
+    pid = receive_pid(cpu);
     if (pid == UINT32_MAX)
       break;
 
-    if (!pedir_contexto_kernel_memory(cpu, pid))
+    if (!request_context(cpu, pid))
     {
-      log_error(cpu->logger, "## Fallo en la petición del context");
+      log_error(cpu->logger, "## Failed to request the context");
       break;
     }
-    log_info(cpu->logger, "context pedido correctamente");
+    log_info(cpu->logger, "Context requested successfully");
 
-    if (escuchar_kernel_memory(cpu))
-      context->registers = recibir_contexto_kernel_memory(cpu);
+    if (listen_kernel_memory(cpu))
+      context->registers = receive_context(cpu);
     else
       break;
 
-    if (escuchar_kernel_memory(cpu))
-      context->segment_table = recibir_tabla_segmentos(cpu, context);
+    if (listen_kernel_memory(cpu))
+      context->segment_table = receive_segment_table(cpu, context);
     else
     {
       free(context->registers);
       break;
     }
 
-    if (!ejecutar_ciclo_instruccion(cpu, pid, context))
+    if (!run_instruction_cycle(cpu, pid, context))
     {
       free(context->registers);
       break;
@@ -136,263 +132,255 @@ void manejo_instrucciones(t_cpu* cpu)
   free(context);
 }
 
-uint32_t recibir_pid_kernel_scheduler(t_cpu* cpu)
+uint32_t receive_pid(t_cpu* cpu)
 {
-  int codigo_operacion = recibir_operacion(cpu->socket_kernel_scheduler);
+  int op_code = recibir_operacion(cpu->socket_kernel_scheduler);
   uint32_t pid = UINT32_MAX;
-  if (codigo_operacion == OP_CONTINUAR_PROCESO)
+  if (op_code == OP_CONTINUAR_PROCESO)
   {
     int size;
     void* buffer = recibir_buffer(&size, cpu->socket_kernel_scheduler);
     pid = *(uint32_t*)buffer;
     free(buffer);
 
-    log_info(cpu->logger, "PID recibido: %u - Iniciando ciclo de instrucción",
-             pid);
+    log_info(cpu->logger, "PID %u received - starting instruction cycle", pid);
   }
-  else if (codigo_operacion == 0)
+  else if (op_code == 0)
   {
-    log_info(cpu->logger, "Scheduler desconectado, cerrando modulo");
+    log_info(cpu->logger, "Scheduler disconnected, shutting down");
   }
   else
   {
-    log_error(cpu->logger, "## Error al recibir el PID - Codigo recibido: %d",
-              codigo_operacion);
+    log_error(cpu->logger, "## Error receiving the PID - code received: %d",
+              op_code);
   }
   return pid;
 }
 
-bool pedir_contexto_kernel_memory(t_cpu* cpu, uint32_t pid)
+bool request_context(t_cpu* cpu, uint32_t pid)
 {
   return enviar_buffer(OP_PEDIR_CONTEXTO, &pid, sizeof(uint32_t),
                        cpu->socket_kernel_memory);
 }
 
-t_registros* recibir_contexto_kernel_memory(t_cpu* cpu)
+t_registros* receive_context(t_cpu* cpu)
 {
   int size;
   void* buffer = recibir_buffer(&size, cpu->socket_kernel_memory);
-  t_registros* registros = malloc(sizeof(t_registros));
-  memcpy(registros, buffer, size);
+  t_registros* registers = malloc(sizeof(t_registros));
+  memcpy(registers, buffer, size);
   free(buffer);
-  log_info(cpu->logger, "Registros del context recibidos");
-  return registros;
+  log_info(cpu->logger, "Context registers received");
+  return registers;
 }
 
-t_list* recibir_tabla_segmentos(t_cpu* cpu, t_context* context)
+t_list* receive_segment_table(t_cpu* cpu, t_context* context)
 {
   list_destroy_and_destroy_elements(context->segment_table, free);
-  log_info(cpu->logger, "Esperando tabla de segmentos");
-  t_list* tabla_segmentos = recibir_paquete(cpu->socket_kernel_memory);
-  log_info(cpu->logger,
-           "Tabla de segmentos recibida - Cantidad de segmentos: %d",
-           list_size(tabla_segmentos));
-  return tabla_segmentos;
+  log_info(cpu->logger, "Waiting for the segment table");
+  t_list* segment_table = recibir_paquete(cpu->socket_kernel_memory);
+  log_info(cpu->logger, "Segment table received - segment count: %d",
+           list_size(segment_table));
+  return segment_table;
 }
 
-bool ejecutar_ciclo_instruccion(t_cpu* cpu, uint32_t pid, t_context* context)
+bool run_instruction_cycle(t_cpu* cpu, uint32_t pid, t_context* context)
 {
-  bool seguir = true;
-  t_bool_extendido syscall = 1;
-  t_bool_extendido interrupt = 1;
-  while (seguir)
+  bool keep_going = true;
+  t_extended_bool syscall = 1;
+  t_extended_bool interrupt = 1;
+  while (keep_going)
   {
-    char* instruccion_KM = etapa_fetch(cpu, pid, context->registers->PC);
+    char* raw_instruction = fetch_stage(cpu, pid, context->registers->PC);
 
-    if (!instruccion_KM)
+    if (!raw_instruction)
       return false;
 
     log_info(cpu->logger, "## PID: %u - FETCH - Program Counter: %u", pid,
              context->registers->PC);
 
-    t_instruccion* instruccion = etapa_decode(instruccion_KM);
+    t_instruction* instruction = decode_stage(raw_instruction);
 
-    uint32_t pc_inicial = context->registers->PC;
-    log_info(cpu->logger, "## PID: %u - Ejecutando: %s ", pid, instruccion_KM);
-    free(instruccion_KM);
+    uint32_t initial_pc = context->registers->PC;
+    log_info(cpu->logger, "## PID: %u - Running: %s ", pid, raw_instruction);
+    free(raw_instruction);
 
-    syscall = etapa_execute(cpu, context, instruccion, pid);
-    if (syscall == BE_ERROR)
+    syscall = execute_stage(cpu, context, instruction, pid);
+    if (syscall == EB_ERROR)
     {
-      destruir_instruccion(instruccion);
+      destruir_instruccion(instruction);
       return false;
     }
 
-    if (pc_inicial == context->registers->PC)
+    if (initial_pc == context->registers->PC)
       context->registers->PC++;
 
     if (syscall)
     {
       if (!enviar_string(OP_CICLO_CPU_OK, "OK", cpu->socket_kernel_scheduler))
       {
-        log_error(cpu->logger, "## Error en la confirmación del fin de ciclo");
-        destruir_instruccion(instruccion);
+        log_error(cpu->logger, "## Error confirming the end of the cycle");
+        destruir_instruccion(instruction);
         return false;
       }
     }
-    log_info(cpu->logger, "Scheduler notificado del fin de ciclo");
+    log_info(cpu->logger, "Scheduler notified of the end of the cycle");
     interrupt = check_interrupt(cpu, pid);
-    if (interrupt == BE_ERROR)
+    if (interrupt == EB_ERROR)
     {
-      destruir_instruccion(instruccion);
+      destruir_instruccion(instruction);
       return false;
     }
 
-    if (context->segment_changed && interrupt != BE_SIN_TABLA)
+    if (context->segment_changed && interrupt != EB_NO_TABLE)
     {
-      if (!actualizar_tabla_segmentos(cpu, pid, context))
+      if (!update_segment_table(cpu, pid, context))
       {
-        destruir_instruccion(instruccion);
+        destruir_instruccion(instruction);
         return false;
       }
 
       context->segment_changed = false;
     }
 
-    seguir = interrupt;
+    keep_going = interrupt;
 
-    if (interrupt == BE_SIN_TABLA)
+    if (interrupt == EB_NO_TABLE)
     {
       context->segment_changed = false;
-      seguir = false;
+      keep_going = false;
     }
-    destruir_instruccion(instruccion);
+    destruir_instruccion(instruction);
   }
-  return enviar_contexto_actualizado(cpu, pid, context->registers);
+  return send_updated_context(cpu, pid, context->registers);
 }
 
-char* etapa_fetch(t_cpu* cpu, uint32_t pid, uint32_t pc)
+char* fetch_stage(t_cpu* cpu, uint32_t pid, uint32_t pc)
 {
-  if (!pedir_instruccion_kernel_memory(cpu, pid, pc) ||
-      !escuchar_kernel_memory(cpu))
+  if (!request_instruction(cpu, pid, pc) || !listen_kernel_memory(cpu))
     return NULL;
 
-  return recibir_instruccion_kernel_memory(cpu);
+  return receive_instruction(cpu);
 }
 
-bool pedir_instruccion_kernel_memory(t_cpu* cpu, uint32_t pid, uint32_t pc)
+bool request_instruction(t_cpu* cpu, uint32_t pid, uint32_t pc)
 {
   t_paquete* paquete = crear_paquete(OP_SIGUIENTE_INSTRUCCION);
   agregar_a_paquete(paquete, &pid, sizeof(uint32_t));
   agregar_a_paquete(paquete, &pc, sizeof(uint32_t));
   if (!enviar_paquete(paquete, cpu->socket_kernel_memory))
   {
-    log_error(cpu->logger, "## error en la petición de la instrucción");
+    log_error(cpu->logger, "## Error requesting the instruction");
     return false;
   }
-  log_info(cpu->logger, "Instrucción pedida correctamente");
+  log_info(cpu->logger, "Instruction requested successfully");
   eliminar_paquete(paquete);
   return true;
 }
 
-char* recibir_instruccion_kernel_memory(t_cpu* cpu)
+char* receive_instruction(t_cpu* cpu)
 {
   return recibir_string(cpu->socket_kernel_memory);
 }
 
-t_instruccion* etapa_decode(char* instruccion_KM)
+t_instruction* decode_stage(char* raw_instruction)
 {
-  t_instruccion* instruccion = malloc(sizeof(t_instruccion));
-  instruccion->cantidad_parametros = 0;
+  t_instruction* instruction = malloc(sizeof(t_instruction));
+  instruction->parameter_count = 0;
 
-  char** partes = string_split(instruccion_KM, " ");
+  char** parts = string_split(raw_instruction, " ");
 
-  instruccion->nombre = strdup(partes[0]);
+  instruction->name = strdup(parts[0]);
 
-  for (int i = 1; partes[i] != NULL; i++)
+  for (int i = 1; parts[i] != NULL; i++)
   {
-    instruccion->parametros[i - 1] = strdup(partes[i]);
-    instruccion->cantidad_parametros++;
+    instruction->parameters[i - 1] = strdup(parts[i]);
+    instruction->parameter_count++;
   }
 
-  // libero instriccion
-  for (int i = 0; partes[i] != NULL; i++)
-    free(partes[i]);
-  free(partes);
+  for (int i = 0; parts[i] != NULL; i++)
+    free(parts[i]);
+  free(parts);
 
-  return instruccion;
+  return instruction;
 }
 
-t_bool_extendido etapa_execute(t_cpu* cpu, t_context* context,
-                               t_instruccion* instruccion, uint32_t pid)
+t_extended_bool execute_stage(t_cpu* cpu, t_context* context,
+                              t_instruction* instruction, uint32_t pid)
 {
-  t_handler handler = dictionary_get(cpu->handlers, instruccion->nombre);
+  t_handler handler = dictionary_get(cpu->handlers, instruction->name);
 
   if (handler == NULL)
   {
-    log_error(cpu->logger, "## instruccion desconocida: %s",
-              instruccion->nombre);
-    return BE_ERROR;
+    log_error(cpu->logger, "## Unknown instruction: %s", instruction->name);
+    return EB_ERROR;
   }
 
-  return handler(cpu, context, instruccion, pid);
+  return handler(cpu, context, instruction, pid);
 }
 
-t_bool_extendido check_interrupt(t_cpu* cpu, uint32_t pid)
+t_extended_bool check_interrupt(t_cpu* cpu, uint32_t pid)
 {
-  int codigo = recibir_operacion(cpu->socket_kernel_scheduler);
+  int code = recibir_operacion(cpu->socket_kernel_scheduler);
 
-  if (codigo == OP_INTERRUPCION)
+  if (code == OP_INTERRUPCION)
   {
-    log_info(cpu->logger, "## Interrupción recibida");
-    char* interrucpcion_recibida = recibir_string(cpu->socket_kernel_scheduler);
-    log_info(cpu->logger, "Razon de la interrupcion: %s ",
-             interrucpcion_recibida);
+    log_info(cpu->logger, "## Interrupt received");
+    char* interrupt_reason = recibir_string(cpu->socket_kernel_scheduler);
+    log_info(cpu->logger, "Interrupt reason: %s ", interrupt_reason);
 
-    if ((strcmp(interrucpcion_recibida,
+    if ((strcmp(interrupt_reason,
                 "no hay memoria suficiente para esa instrucción")) == 0)
     {
-      free(interrucpcion_recibida);
-      return BE_SIN_TABLA;
+      free(interrupt_reason);
+      return EB_NO_TABLE;
     }
-    free(interrucpcion_recibida);
-    return BE_FALSE;
+    free(interrupt_reason);
+    return EB_FALSE;
   }
-  else if (codigo == OP_SIN_INTERRUPCION)
+  else if (code == OP_SIN_INTERRUPCION)
   {
-    log_info(cpu->logger, "Sin interrupción");
+    log_info(cpu->logger, "No interrupt");
     free(recibir_string(cpu->socket_kernel_scheduler));
-    return BE_TRUE;
+    return EB_TRUE;
   }
-  else if (codigo == OP_CODE_ERROR)
+  else if (code == OP_CODE_ERROR)
   {
-    log_info(cpu->logger, "Kernel Scheduler desconectado");
-    return BE_ERROR;
+    log_info(cpu->logger, "Kernel Scheduler disconnected");
+    return EB_ERROR;
   }
-  log_error(cpu->logger, "## Operacion no reconocida: %d", codigo);
-  return BE_ERROR;
+  log_error(cpu->logger, "## Unrecognized operation: %d", code);
+  return EB_ERROR;
 }
 
-bool enviar_contexto_actualizado(t_cpu* cpu, uint32_t pid,
-                                 t_registros* contexto_actualizado)
+bool send_updated_context(t_cpu* cpu, uint32_t pid, t_registros* updated_context)
 {
   t_paquete* paquete = crear_paquete(OP_CONTEXTO_ACTUALIZADO);
   agregar_a_paquete(paquete, &pid, sizeof(uint32_t));
-  agregar_a_paquete(paquete, contexto_actualizado, sizeof(t_registros));
+  agregar_a_paquete(paquete, updated_context, sizeof(t_registros));
   if (!enviar_paquete(paquete, cpu->socket_kernel_memory))
   {
-    log_error(cpu->logger, "## error en el envio del context actualizado");
+    log_error(cpu->logger, "## Error sending the updated context");
     return false;
   }
-  log_info(cpu->logger, "Envio correcto del context actualizado");
+  log_info(cpu->logger, "Updated context sent successfully");
   eliminar_paquete(paquete);
   return true;
 }
 
-bool actualizar_tabla_segmentos(t_cpu* cpu, uint32_t pid, t_context* context)
+bool update_segment_table(t_cpu* cpu, uint32_t pid, t_context* context)
 {
-  log_info(cpu->logger, "Pidiendo la tabla de segmentos actualizada");
+  log_info(cpu->logger, "Requesting the updated segment table");
   if (!enviar_buffer(OP_TABLA_SEG_ACTUALIZADA, &pid, sizeof(uint32_t),
                      cpu->socket_kernel_memory))
   {
-    log_error(cpu->logger,
-              "## Fallo en la petición para actualizar tabla de segmentos");
+    log_error(cpu->logger, "## Failed to request the segment table update");
     return false;
   }
 
-  if (!escuchar_kernel_memory(cpu))
+  if (!listen_kernel_memory(cpu))
     return false;
-  context->segment_table = recibir_tabla_segmentos(cpu, context);
-  log_info(cpu->logger, "Tabla actualizada correctamente");
+  context->segment_table = receive_segment_table(cpu, context);
+  log_info(cpu->logger, "Segment table updated successfully");
   return true;
 }

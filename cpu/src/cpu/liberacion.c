@@ -11,19 +11,19 @@ void iterator_close_socket(void* value)
   free(value);
 }
 
-void destruir_instruccion(t_instruccion* instrucion)
+void destruir_instruccion(t_instruction* instruction)
 {
-  free(instrucion->nombre);
-  for (int i = 0; i < instrucion->cantidad_parametros; i++)
-    free(instrucion->parametros[i]);
-  free(instrucion);
+  free(instruction->name);
+  for (int i = 0; i < instruction->parameter_count; i++)
+    free(instruction->parameters[i]);
+  free(instruction);
 }
 
 void destruir_memory_stick(void* value)
 {
   t_memory_stick_info* stick = (t_memory_stick_info*)value;
-  if (stick->socket_MS > 0)
-    close(stick->socket_MS);
+  if (stick->socket_ms > 0)
+    close(stick->socket_ms);
   free(stick);
 }
 

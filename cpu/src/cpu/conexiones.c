@@ -89,7 +89,7 @@ bool conectar_memory_stick(t_cpu* cpu)
   int nuevo_socket;
   uint32_t tamanio_recibido;
 
-  if (!manejar_paquete(cpu, lista_paquete, ip_stick, puerto_stick,
+  if (!parse_stick_packet(cpu, lista_paquete, ip_stick, puerto_stick,
                        &tamanio_recibido))
     return false;
 
@@ -118,8 +118,8 @@ bool conectar_memory_stick(t_cpu* cpu)
   }
 
   t_memory_stick_info* nuevo_stick = malloc(sizeof(t_memory_stick_info));
-  nuevo_stick->socket_MS = nuevo_socket;
-  nuevo_stick->tamanio = tamanio_recibido;
+  nuevo_stick->socket_ms = nuevo_socket;
+  nuevo_stick->size = tamanio_recibido;
   nuevo_stick->offset = calcular_offset(cpu->memory_sticks);
 
   list_add(cpu->memory_sticks, nuevo_stick);
@@ -133,7 +133,7 @@ uint32_t calcular_offset(t_list* sticks)
   for (int i = 0; i < list_size(sticks); i++)
   {
     t_memory_stick_info* stick = list_get(sticks, i);
-    offset += stick->tamanio;
+    offset += stick->size;
   }
   return offset;
 }

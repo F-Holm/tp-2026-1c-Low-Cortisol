@@ -10,8 +10,8 @@
 uint32_t mmu(t_cpu* cpu, t_context* context, uint32_t dir_logica,
              uint32_t tamanio, uint32_t pid)
 {
-  uint32_t num_segmento = dir_logica / cpu->tamanio_max_segmento;
-  uint32_t desplazamiento = dir_logica % cpu->tamanio_max_segmento;
+  uint32_t num_segmento = dir_logica / cpu->max_segment_size;
+  uint32_t desplazamiento = dir_logica % cpu->max_segment_size;
 
   t_segmento* segmento =
       buscar_segmento_por_id(context->segment_table, num_segmento);
@@ -66,7 +66,7 @@ t_memory_stick_info* encontrar_stick(t_cpu* cpu, uint32_t dir_fisica)
   {
     t_memory_stick_info* stick = list_get(cpu->memory_sticks, i);
     if (dir_fisica >= stick->offset &&
-        dir_fisica < stick->offset + stick->tamanio)
+        dir_fisica < stick->offset + stick->size)
       return stick;
   }
   return NULL;
@@ -89,7 +89,7 @@ void* leer_memoria(t_cpu* cpu, uint32_t dir_fisica, uint32_t tamanio)
     }
 
     uint32_t dir_en_stick = (dir_fisica + bytes_leidos) - stick->offset;
-    uint32_t bytes_disponibles = stick->tamanio - dir_en_stick;
+    uint32_t bytes_disponibles = stick->size - dir_en_stick;
     uint32_t bytes_a_leer;
 
     // veo si me alcanza con el stick o si necesito otro
@@ -125,7 +125,7 @@ bool solicitar_lectura_MS(t_cpu* cpu, t_memory_stick_info* stick,
   agregar_a_paquete(paquete, &dir_en_stick, sizeof(uint32_t));
   agregar_a_paquete(paquete, &bytes_a_leer, sizeof(uint32_t));
 
-  if (!enviar_paquete(paquete, stick->socket_MS))
+  if (!enviar_paquete(paquete, stick->socket_ms))
   {
     log_error(cpu->logger, "## Error en el envio de la lectura al MS");
     avisar_bsod(cpu);
@@ -138,11 +138,11 @@ bool solicitar_lectura_MS(t_cpu* cpu, t_memory_stick_info* stick,
 
 char* confirmacion_letura_MS(t_cpu* cpu, t_memory_stick_info* stick)
 {
-  int codigo_op = recibir_operacion(stick->socket_MS);
+  int codigo_op = recibir_operacion(stick->socket_ms);
   if (codigo_op == OP_MEMORY_STICK_LEIDO)
   {
     log_info(cpu->logger, "Lectura realizada");
-    return recibir_string(stick->socket_MS);
+    return recibir_string(stick->socket_ms);
   }
   else
   {
@@ -170,7 +170,7 @@ bool escribir_memoria(t_cpu* cpu, uint32_t dir_fisica, void* datos_a_escribir,
     }
 
     uint32_t dir_en_stick = (dir_fisica + bytes_escritos) - stick->offset;
-    uint32_t bytes_disponibles = stick->tamanio - dir_en_stick;
+    uint32_t bytes_disponibles = stick->size - dir_en_stick;
     uint32_t bytes_a_escribir;
 
     if (bytes_disponibles < (tamanio - bytes_escritos))
@@ -199,7 +199,7 @@ bool solicitar_escritura_MS(t_cpu* cpu, t_memory_stick_info* stick,
   agregar_a_paquete(paquete, &dir_en_stick, sizeof(uint32_t));
   agregar_a_paquete(paquete, datos, bytes_a_escribir);
   agregar_a_paquete(paquete, &bytes_a_escribir, sizeof(uint32_t));
-  if (!enviar_paquete(paquete, stick->socket_MS))
+  if (!enviar_paquete(paquete, stick->socket_ms))
   {
     log_error(cpu->logger, "## Error en el envio de la escritura al MS");
     avisar_bsod(cpu);
@@ -213,8 +213,8 @@ bool solicitar_escritura_MS(t_cpu* cpu, t_memory_stick_info* stick,
 
 bool confirmacion_escritura_MS(t_cpu* cpu, t_memory_stick_info* stick)
 {
-  int codigo_op = recibir_operacion(stick->socket_MS);
-  free(recibir_string(stick->socket_MS));
+  int codigo_op = recibir_operacion(stick->socket_ms);
+  free(recibir_string(stick->socket_ms));
   if (codigo_op == OP_MEMORY_STICK_ESCRITO)
   {
     log_info(cpu->logger, "Escritura realizada");

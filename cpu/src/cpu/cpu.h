@@ -14,7 +14,7 @@ typedef struct
   char* id;
   int socket_kernel_memory;
   int socket_kernel_scheduler;
-  uint32_t tamanio_max_segmento;
+  uint32_t max_segment_size;
 
   t_list* memory_sticks;
   t_dictionary* handlers;
@@ -24,43 +24,45 @@ typedef struct
 
 typedef struct
 {
-  char* nombre;
-  char* parametros[3];
-  int cantidad_parametros;
-} t_instruccion;
+  char* name;
+  char* parameters[3];
+  int parameter_count;
+} t_instruction;
 
 typedef struct
 {
-  int socket_MS;
-  uint32_t tamanio;
+  int socket_ms;
+  uint32_t size;
   uint32_t offset;
 } t_memory_stick_info;
 
+// A boolean plus the two out-of-band results the instruction cycle needs:
+// EB_ERROR (fatal, abort) and EB_NO_TABLE (kernel memory reported the segment
+// table is gone).
 typedef enum
 {
-  BE_FALSE,
-  BE_TRUE,
-  BE_ERROR,
-  BE_SIN_TABLA
-} t_bool_extendido;
+  EB_FALSE,
+  EB_TRUE,
+  EB_ERROR,
+  EB_NO_TABLE
+} t_extended_bool;
 
-bool recibir_tamanio_maximo_segmento(t_cpu* cpu);
-bool escuchar_kernel_memory(t_cpu* arg);
-bool manejar_paquete(t_cpu* cpu, t_list* lista_paquete, char ip_stick[16],
-                     char puerto_stick[6], uint32_t* tamanio);
-void manejo_instrucciones(t_cpu* cpu);
-uint32_t recibir_pid_kernel_scheduler(t_cpu* cpu);
-bool pedir_contexto_kernel_memory(t_cpu* cpu, uint32_t pid);
-t_registros* recibir_contexto_kernel_memory(t_cpu* cpu);
-t_list* recibir_tabla_segmentos(t_cpu* cpu, t_context* context);
-bool ejecutar_ciclo_instruccion(t_cpu* cpu, uint32_t pid, t_context* context);
-char* etapa_fetch(t_cpu* cpu, uint32_t pid, uint32_t pc);
-bool pedir_instruccion_kernel_memory(t_cpu* cpu, uint32_t pid, uint32_t pc);
-char* recibir_instruccion_kernel_memory(t_cpu* cpu);
-t_instruccion* etapa_decode(char* instruccion_KM);
-t_bool_extendido etapa_execute(t_cpu* cpu, t_context* context,
-                               t_instruccion* instruccion, uint32_t pid);
-t_bool_extendido check_interrupt(t_cpu* cpu, uint32_t pid);
-bool enviar_contexto_actualizado(t_cpu* cpu, uint32_t pid,
-                                 t_registros* contexto_actualizado);
-bool actualizar_tabla_segmentos(t_cpu* cpu, uint32_t pid, t_context* context);
+bool receive_max_segment_size(t_cpu* cpu);
+bool listen_kernel_memory(t_cpu* cpu);
+bool parse_stick_packet(t_cpu* cpu, t_list* packet, char stick_ip[16],
+                        char stick_port[6], uint32_t* size);
+void run_instruction_loop(t_cpu* cpu);
+uint32_t receive_pid(t_cpu* cpu);
+bool request_context(t_cpu* cpu, uint32_t pid);
+t_registros* receive_context(t_cpu* cpu);
+t_list* receive_segment_table(t_cpu* cpu, t_context* context);
+bool run_instruction_cycle(t_cpu* cpu, uint32_t pid, t_context* context);
+char* fetch_stage(t_cpu* cpu, uint32_t pid, uint32_t pc);
+bool request_instruction(t_cpu* cpu, uint32_t pid, uint32_t pc);
+char* receive_instruction(t_cpu* cpu);
+t_instruction* decode_stage(char* raw_instruction);
+t_extended_bool execute_stage(t_cpu* cpu, t_context* context,
+                              t_instruction* instruction, uint32_t pid);
+t_extended_bool check_interrupt(t_cpu* cpu, uint32_t pid);
+bool send_updated_context(t_cpu* cpu, uint32_t pid, t_registros* updated_context);
+bool update_segment_table(t_cpu* cpu, uint32_t pid, t_context* context);

@@ -61,7 +61,7 @@ int main(int argc, char* argv[])
     return EXIT_FAILURE;
   }
   log_info(cpu->logger, "Socket KM: %d", cpu->socket_kernel_memory);
-  if (!recibir_tamanio_maximo_segmento(cpu))
+  if (!receive_max_segment_size(cpu))
   {
     cerrar_modulo(cpu);
     return EXIT_FAILURE;
@@ -71,7 +71,7 @@ int main(int argc, char* argv[])
   cpu->handlers = dictionary_create();
   iniciar_diccionario(cpu->handlers);
 
-  manejo_instrucciones(cpu);
+  run_instruction_loop(cpu);
 
   cerrar_modulo(cpu);
 
