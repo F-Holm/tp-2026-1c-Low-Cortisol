@@ -1,20 +1,24 @@
-# Resultados
+# Expected results
 
-## Pruebas Finales
+## Final tests
 
-Remitirse al contenido del [Documento de Pruebas Finales](https://faq.utnso.com.ar/plug-n-pray-pruebas)
+See `../final-tests-guide.pdf` and the per-scenario `README.md` under
+`tests/<scenario>/`.
 
-## Pruebas Preliminares
+## Preliminary scripts
 
-Dentro de este archivo se encontrará una breve descripción de los resultados esperados en las pruebas.
+A short description of what each preliminary script is meant to show.
 
-### Planificación Preliminar
-Esta prueba busca validar que pueden planificar procesos en corto plazo, sin incluir nada relacionado a la memoria.
-Debe iniciar todo el TP y conectar 1 sola CPU.
-Si el parámetro de `SUSPENSION_TIMEOUT` es suficientemente alto no deberían encontrar dicha casuistica. En caso de que quieran validar dicha chasuistica, pueden simplemente poner un valor menor a 20000 y al menos los procesos creados con el script `PLANI_PRE_1.prc` deberían intentar suspenderse.
+### Short-term scheduling (`SCHED_PRE_*`)
 
-### Memoria Preliminar
-Teniendo conectado al menos 1 memory stick de 256 bytes alcanza para hacer la prueba, el valor del `SEGMENT_MAX_SIZE` debe ser de 128
-La idea de esta prueba es crear segmentos, escribir en ellos, leer su contenido y eliminar algunos.
-Adicionalmente pueden probar con varios memory stick de menor tamaño para validar los segmentos que se encuentren en varios Memory Stick.
-El proceso `MEMORIA_PRE_3.prc` finaliza rapidamente por segmentation fault.
+Validates short-term process scheduling with nothing memory-related involved.
+Start the whole system with a single CPU connected. If `SUSPENSION_TIMEOUT` is
+high enough this case is never hit; to exercise suspension, set it below 20000
+and at least the processes spawned from `SCHED_PRE_1.prc` should try to suspend.
+
+### Preliminary memory (`MEM_PRE_*`)
+
+A single 256-byte memory stick with `SEGMENT_MAX_SIZE=128` is enough. The script
+creates segments, writes to them, reads them back and deletes some of them. You
+can also run several smaller memory sticks to exercise segments that span more
+than one stick. `MEM_PRE_3.prc` ends quickly with a segmentation fault.
