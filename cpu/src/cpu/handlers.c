@@ -5,69 +5,69 @@
 #include "cpu/cpu.h"
 #include "cpu/liberacion.h"
 #include "cpu/memoria.h"
-#include "cpu/registros.h"
+#include "cpu/registers.h"
 #include "utils/syscalls.h"
 #include "utils/log.h"
 
 /*             INSTRUCCIONES BASICAS MANEJADAS POR CPU           */
 
-t_bool_extendido handler_noop(t_cpu* cpu, t_contexto* contexto,
+t_bool_extendido handler_noop(t_cpu* cpu, t_context* context,
                               t_instruccion* instruccion, uint32_t pid)
 {
   return BE_TRUE;
 }
 
-t_bool_extendido handler_set(t_cpu* cpu, t_contexto* contexto,
+t_bool_extendido handler_set(t_cpu* cpu, t_context* context,
                              t_instruccion* instruccion, uint32_t pid)
 {
   char* registro = instruccion->parametros[0];
   uint32_t valor = atoi(instruccion->parametros[1]);
-  set_registro(contexto->registros, registro, valor);
+  set_register(context->registers, registro, valor);
   return BE_TRUE;
 }
 
-t_bool_extendido handler_sum(t_cpu* cpu, t_contexto* contexto,
+t_bool_extendido handler_sum(t_cpu* cpu, t_context* context,
                              t_instruccion* instruccion, uint32_t pid)
 {
   char* registro_destino = instruccion->parametros[0];
   uint32_t resultado =
-      get_registro(contexto->registros, registro_destino) +
-      get_registro(contexto->registros, instruccion->parametros[1]);
+      get_register(context->registers, registro_destino) +
+      get_register(context->registers, instruccion->parametros[1]);
 
-  set_registro(contexto->registros, registro_destino, resultado);
+  set_register(context->registers, registro_destino, resultado);
   return BE_TRUE;
 }
 
-t_bool_extendido handler_sub(t_cpu* cpu, t_contexto* contexto,
+t_bool_extendido handler_sub(t_cpu* cpu, t_context* context,
                              t_instruccion* instruccion, uint32_t pid)
 {
   char* registro_destino = instruccion->parametros[0];
   uint32_t resultado =
-      get_registro(contexto->registros, registro_destino) -
-      get_registro(contexto->registros, instruccion->parametros[1]);
+      get_register(context->registers, registro_destino) -
+      get_register(context->registers, instruccion->parametros[1]);
 
-  set_registro(contexto->registros, registro_destino, resultado);
+  set_register(context->registers, registro_destino, resultado);
   return BE_TRUE;
 }
 
-t_bool_extendido handler_jnz(t_cpu* cpu, t_contexto* contexto,
+t_bool_extendido handler_jnz(t_cpu* cpu, t_context* context,
                              t_instruccion* instruccion, uint32_t pid)
 {
   uint32_t valor_registro =
-      get_registro(contexto->registros, instruccion->parametros[0]);
+      get_register(context->registers, instruccion->parametros[0]);
   if (valor_registro != 0)
-    set_registro(contexto->registros, "PC", atoi(instruccion->parametros[1]));
+    set_register(context->registers, "PC", atoi(instruccion->parametros[1]));
 
   return BE_TRUE;
 }
 
 /*             INSTRUCCIONES CON MODIFICACION DE MEMORIA           */
 
-t_bool_extendido handler_mov_in(t_cpu* cpu, t_contexto* contexto,
+t_bool_extendido handler_mov_in(t_cpu* cpu, t_context* context,
                                 t_instruccion* instruccion, uint32_t pid)
 {
   uint32_t dir_fisica =
-      mmu(cpu, contexto, contexto->registros->SI, sizeof(uint32_t), pid);
+      mmu(cpu, context, context->registers->SI, sizeof(uint32_t), pid);
 
   if (dir_fisica == DIR_INVALIDA)
     return BE_FALSE;
@@ -81,7 +81,7 @@ t_bool_extendido handler_mov_in(t_cpu* cpu, t_contexto* contexto,
 
   free(dato_leido);
 
-  set_registro(contexto->registros, instruccion->parametros[0], valor);
+  set_register(context->registers, instruccion->parametros[0], valor);
 
   log_info(cpu->logger,
            "PID: %u - Acción: LEER - Dirección Física: %u - Valor: %u", pid,
@@ -89,13 +89,13 @@ t_bool_extendido handler_mov_in(t_cpu* cpu, t_contexto* contexto,
   return BE_TRUE;
 }
 
-t_bool_extendido handler_mov_out(t_cpu* cpu, t_contexto* contexto,
+t_bool_extendido handler_mov_out(t_cpu* cpu, t_context* context,
                                  t_instruccion* instruccion, uint32_t pid)
 {
   uint32_t valor =
-      get_registro(contexto->registros, instruccion->parametros[0]);
+      get_register(context->registers, instruccion->parametros[0]);
   uint32_t dir_fisica =
-      mmu(cpu, contexto, contexto->registros->DI, sizeof(uint32_t), pid);
+      mmu(cpu, context, context->registers->DI, sizeof(uint32_t), pid);
 
   if (dir_fisica == DIR_INVALIDA)
     return BE_FALSE;
@@ -112,21 +112,21 @@ t_bool_extendido handler_mov_out(t_cpu* cpu, t_contexto* contexto,
   return BE_TRUE;
 }
 
-t_bool_extendido handler_copy_mem(t_cpu* cpu, t_contexto* contexto,
+t_bool_extendido handler_copy_mem(t_cpu* cpu, t_context* context,
                                   t_instruccion* instruccion, uint32_t pid)
 {
   uint32_t cant_bytes =
-      get_registro(contexto->registros, instruccion->parametros[0]);
+      get_register(context->registers, instruccion->parametros[0]);
 
   uint32_t direccion_SI =
-      mmu(cpu, contexto, contexto->registros->SI, sizeof(uint32_t), pid);
+      mmu(cpu, context, context->registers->SI, sizeof(uint32_t), pid);
   if (direccion_SI == DIR_INVALIDA)
     return BE_FALSE;
   else if (direccion_SI == DIR_INVALIDA - 1)
     return BE_ERROR;
 
   uint32_t direccion_DI =
-      mmu(cpu, contexto, contexto->registros->DI, sizeof(uint32_t), pid);
+      mmu(cpu, context, context->registers->DI, sizeof(uint32_t), pid);
   if (direccion_DI == DIR_INVALIDA)
     return BE_TRUE;
   else if (direccion_DI == DIR_INVALIDA - 1)
@@ -154,7 +154,7 @@ t_bool_extendido handler_copy_mem(t_cpu* cpu, t_contexto* contexto,
 
 /*             SYSCALLS(MANEJADAS POR SCHEDULER)           */
 
-t_bool_extendido handler_mutex_create(t_cpu* cpu, t_contexto* contexto,
+t_bool_extendido handler_mutex_create(t_cpu* cpu, t_context* context,
                                       t_instruccion* instruccion, uint32_t pid)
 {
   if (enviar_string(OP_SYSCALL_MUTEX_CREATE, instruccion->parametros[0],
@@ -171,7 +171,7 @@ t_bool_extendido handler_mutex_create(t_cpu* cpu, t_contexto* contexto,
   return BE_FALSE;
 }
 
-t_bool_extendido handler_mutex_lock(t_cpu* cpu, t_contexto* contexto,
+t_bool_extendido handler_mutex_lock(t_cpu* cpu, t_context* context,
                                     t_instruccion* instruccion, uint32_t pid)
 {
   if (enviar_string(OP_SYSCALL_MUTEX_LOCK, instruccion->parametros[0],
@@ -188,7 +188,7 @@ t_bool_extendido handler_mutex_lock(t_cpu* cpu, t_contexto* contexto,
   return BE_FALSE;
 }
 
-t_bool_extendido handler_mutex_unlock(t_cpu* cpu, t_contexto* contexto,
+t_bool_extendido handler_mutex_unlock(t_cpu* cpu, t_context* context,
                                       t_instruccion* instruccion, uint32_t pid)
 {
   if (enviar_string(OP_SYSCALL_MUTEX_UNLOCK, instruccion->parametros[0],
@@ -205,7 +205,7 @@ t_bool_extendido handler_mutex_unlock(t_cpu* cpu, t_contexto* contexto,
   return BE_FALSE;
 }
 
-t_bool_extendido handler_mem_alloc(t_cpu* cpu, t_contexto* contexto,
+t_bool_extendido handler_mem_alloc(t_cpu* cpu, t_context* context,
                                    t_instruccion* instruccion, uint32_t pid)
 {
   t_syscall_memory* datos_syscall;
@@ -228,11 +228,11 @@ t_bool_extendido handler_mem_alloc(t_cpu* cpu, t_contexto* contexto,
     free(datos_syscall);
     return BE_ERROR;
   }
-  contexto->cambio_segmento = BE_TRUE;
+  context->segment_changed = BE_TRUE;
   return BE_FALSE;
 }
 
-t_bool_extendido handler_mem_free(t_cpu* cpu, t_contexto* contexto,
+t_bool_extendido handler_mem_free(t_cpu* cpu, t_context* context,
                                   t_instruccion* instruccion, uint32_t pid)
 {
   t_syscall_memory* datos_syscall;
@@ -255,11 +255,11 @@ t_bool_extendido handler_mem_free(t_cpu* cpu, t_contexto* contexto,
     free(datos_syscall);
     return BE_ERROR;
   }
-  contexto->cambio_segmento = BE_TRUE;
+  context->segment_changed = BE_TRUE;
   return BE_FALSE;
 }
 
-t_bool_extendido handler_sleep(t_cpu* cpu, t_contexto* contexto,
+t_bool_extendido handler_sleep(t_cpu* cpu, t_context* context,
                                t_instruccion* instruccion, uint32_t pid)
 {
   t_peticion_sleep* datos_syscall;
@@ -284,7 +284,7 @@ t_bool_extendido handler_sleep(t_cpu* cpu, t_contexto* contexto,
   return BE_FALSE;
 }
 
-t_bool_extendido handler_stdout(t_cpu* cpu, t_contexto* contexto,
+t_bool_extendido handler_stdout(t_cpu* cpu, t_context* context,
                                 t_instruccion* instruccion, uint32_t pid)
 {
   t_peticion_stdout* datos_syscall;
@@ -292,9 +292,9 @@ t_bool_extendido handler_stdout(t_cpu* cpu, t_contexto* contexto,
 
   datos_syscall->pid = pid;
   datos_syscall->direccion_logica =
-      get_registro(contexto->registros, instruccion->parametros[0]);
+      get_register(context->registers, instruccion->parametros[0]);
   datos_syscall->tamanio_a_escribir =
-      get_registro(contexto->registros, instruccion->parametros[1]);
+      get_register(context->registers, instruccion->parametros[1]);
 
   if (enviar_buffer(OP_SYSCALL_STDOUT, datos_syscall, sizeof(t_peticion_stdout),
                     cpu->socket_kernel_scheduler))
@@ -312,7 +312,7 @@ t_bool_extendido handler_stdout(t_cpu* cpu, t_contexto* contexto,
   return BE_FALSE;
 }
 
-t_bool_extendido handler_stdin(t_cpu* cpu, t_contexto* contexto,
+t_bool_extendido handler_stdin(t_cpu* cpu, t_context* context,
                                t_instruccion* instruccion, uint32_t pid)
 {
   t_peticion_stdin* datos_syscall;
@@ -320,9 +320,9 @@ t_bool_extendido handler_stdin(t_cpu* cpu, t_contexto* contexto,
 
   datos_syscall->pid = pid;
   datos_syscall->direccion_logica =
-      get_registro(contexto->registros, instruccion->parametros[0]);
+      get_register(context->registers, instruccion->parametros[0]);
   datos_syscall->tamanio_a_leer =
-      get_registro(contexto->registros, instruccion->parametros[1]);
+      get_register(context->registers, instruccion->parametros[1]);
 
   if (enviar_buffer(OP_SYSCALL_STDIN, datos_syscall, sizeof(t_peticion_stdin),
                     cpu->socket_kernel_scheduler))
@@ -340,7 +340,7 @@ t_bool_extendido handler_stdin(t_cpu* cpu, t_contexto* contexto,
   return BE_FALSE;
 }
 
-t_bool_extendido handler_init_proc(t_cpu* cpu, t_contexto* contexto,
+t_bool_extendido handler_init_proc(t_cpu* cpu, t_context* context,
                                    t_instruccion* instruccion, uint32_t pid)
 {
   int prioridad = atoi(instruccion->parametros[1]);
@@ -364,7 +364,7 @@ t_bool_extendido handler_init_proc(t_cpu* cpu, t_contexto* contexto,
   return BE_FALSE;
 }
 
-t_bool_extendido handler_exit(t_cpu* cpu, t_contexto* contexto,
+t_bool_extendido handler_exit(t_cpu* cpu, t_context* context,
                               t_instruccion* instruccion, uint32_t pid)
 {
   if (enviar_string(OP_SYSCALL_EXIT, "PROCESO TERMINADO",

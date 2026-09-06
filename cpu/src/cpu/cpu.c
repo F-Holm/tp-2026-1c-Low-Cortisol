@@ -6,7 +6,7 @@
 #include "cpu/conexiones.h"
 #include "cpu/handlers.h"
 #include "cpu/liberacion.h"
-#include "cpu/registros.h"
+#include "cpu/registers.h"
 #include "utils/log.h"
 #include "utils/string.h"
 
@@ -94,10 +94,10 @@ bool escuchar_kernel_memory(t_cpu* cpu)
 
 void manejo_instrucciones(t_cpu* cpu)
 {
-  t_contexto* contexto = malloc(sizeof(t_contexto));
-  contexto->cambio_segmento = false;
+  t_context* context = malloc(sizeof(t_context));
+  context->segment_changed = false;
   uint32_t pid;
-  contexto->tablaDeSegmentos = list_create();
+  context->segment_table = list_create();
 
   while (true)
   {
@@ -107,33 +107,33 @@ void manejo_instrucciones(t_cpu* cpu)
 
     if (!pedir_contexto_kernel_memory(cpu, pid))
     {
-      log_error(cpu->logger, "## Fallo en la petición del contexto");
+      log_error(cpu->logger, "## Fallo en la petición del context");
       break;
     }
-    log_info(cpu->logger, "contexto pedido correctamente");
+    log_info(cpu->logger, "context pedido correctamente");
 
     if (escuchar_kernel_memory(cpu))
-      contexto->registros = recibir_contexto_kernel_memory(cpu);
+      context->registers = recibir_contexto_kernel_memory(cpu);
     else
       break;
 
     if (escuchar_kernel_memory(cpu))
-      contexto->tablaDeSegmentos = recibir_tabla_segmentos(cpu, contexto);
+      context->segment_table = recibir_tabla_segmentos(cpu, context);
     else
     {
-      free(contexto->registros);
+      free(context->registers);
       break;
     }
 
-    if (!ejecutar_ciclo_instruccion(cpu, pid, contexto))
+    if (!ejecutar_ciclo_instruccion(cpu, pid, context))
     {
-      free(contexto->registros);
+      free(context->registers);
       break;
     }
-    free(contexto->registros);
+    free(context->registers);
   }
-  list_destroy_and_destroy_elements(contexto->tablaDeSegmentos, free);
-  free(contexto);
+  list_destroy_and_destroy_elements(context->segment_table, free);
+  free(context);
 }
 
 uint32_t recibir_pid_kernel_scheduler(t_cpu* cpu)
@@ -175,13 +175,13 @@ t_registros* recibir_contexto_kernel_memory(t_cpu* cpu)
   t_registros* registros = malloc(sizeof(t_registros));
   memcpy(registros, buffer, size);
   free(buffer);
-  log_info(cpu->logger, "Registros del contexto recibidos");
+  log_info(cpu->logger, "Registros del context recibidos");
   return registros;
 }
 
-t_list* recibir_tabla_segmentos(t_cpu* cpu, t_contexto* contexto)
+t_list* recibir_tabla_segmentos(t_cpu* cpu, t_context* context)
 {
-  list_destroy_and_destroy_elements(contexto->tablaDeSegmentos, free);
+  list_destroy_and_destroy_elements(context->segment_table, free);
   log_info(cpu->logger, "Esperando tabla de segmentos");
   t_list* tabla_segmentos = recibir_paquete(cpu->socket_kernel_memory);
   log_info(cpu->logger,
@@ -190,36 +190,36 @@ t_list* recibir_tabla_segmentos(t_cpu* cpu, t_contexto* contexto)
   return tabla_segmentos;
 }
 
-bool ejecutar_ciclo_instruccion(t_cpu* cpu, uint32_t pid, t_contexto* contexto)
+bool ejecutar_ciclo_instruccion(t_cpu* cpu, uint32_t pid, t_context* context)
 {
   bool seguir = true;
   t_bool_extendido syscall = 1;
   t_bool_extendido interrupt = 1;
   while (seguir)
   {
-    char* instruccion_KM = etapa_fetch(cpu, pid, contexto->registros->PC);
+    char* instruccion_KM = etapa_fetch(cpu, pid, context->registers->PC);
 
     if (!instruccion_KM)
       return false;
 
     log_info(cpu->logger, "## PID: %u - FETCH - Program Counter: %u", pid,
-             contexto->registros->PC);
+             context->registers->PC);
 
     t_instruccion* instruccion = etapa_decode(instruccion_KM);
 
-    uint32_t pc_inicial = contexto->registros->PC;
+    uint32_t pc_inicial = context->registers->PC;
     log_info(cpu->logger, "## PID: %u - Ejecutando: %s ", pid, instruccion_KM);
     free(instruccion_KM);
 
-    syscall = etapa_execute(cpu, contexto, instruccion, pid);
+    syscall = etapa_execute(cpu, context, instruccion, pid);
     if (syscall == BE_ERROR)
     {
       destruir_instruccion(instruccion);
       return false;
     }
 
-    if (pc_inicial == contexto->registros->PC)
-      contexto->registros->PC++;
+    if (pc_inicial == context->registers->PC)
+      context->registers->PC++;
 
     if (syscall)
     {
@@ -238,27 +238,27 @@ bool ejecutar_ciclo_instruccion(t_cpu* cpu, uint32_t pid, t_contexto* contexto)
       return false;
     }
 
-    if (contexto->cambio_segmento && interrupt != BE_SIN_TABLA)
+    if (context->segment_changed && interrupt != BE_SIN_TABLA)
     {
-      if (!actualizar_tabla_segmentos(cpu, pid, contexto))
+      if (!actualizar_tabla_segmentos(cpu, pid, context))
       {
         destruir_instruccion(instruccion);
         return false;
       }
 
-      contexto->cambio_segmento = false;
+      context->segment_changed = false;
     }
 
     seguir = interrupt;
 
     if (interrupt == BE_SIN_TABLA)
     {
-      contexto->cambio_segmento = false;
+      context->segment_changed = false;
       seguir = false;
     }
     destruir_instruccion(instruccion);
   }
-  return enviar_contexto_actualizado(cpu, pid, contexto->registros);
+  return enviar_contexto_actualizado(cpu, pid, context->registers);
 }
 
 char* etapa_fetch(t_cpu* cpu, uint32_t pid, uint32_t pc)
@@ -313,7 +313,7 @@ t_instruccion* etapa_decode(char* instruccion_KM)
   return instruccion;
 }
 
-t_bool_extendido etapa_execute(t_cpu* cpu, t_contexto* contexto,
+t_bool_extendido etapa_execute(t_cpu* cpu, t_context* context,
                                t_instruccion* instruccion, uint32_t pid)
 {
   t_handler handler = dictionary_get(cpu->handlers, instruccion->nombre);
@@ -325,7 +325,7 @@ t_bool_extendido etapa_execute(t_cpu* cpu, t_contexto* contexto,
     return BE_ERROR;
   }
 
-  return handler(cpu, contexto, instruccion, pid);
+  return handler(cpu, context, instruccion, pid);
 }
 
 t_bool_extendido check_interrupt(t_cpu* cpu, uint32_t pid)
@@ -371,15 +371,15 @@ bool enviar_contexto_actualizado(t_cpu* cpu, uint32_t pid,
   agregar_a_paquete(paquete, contexto_actualizado, sizeof(t_registros));
   if (!enviar_paquete(paquete, cpu->socket_kernel_memory))
   {
-    log_error(cpu->logger, "## error en el envio del contexto actualizado");
+    log_error(cpu->logger, "## error en el envio del context actualizado");
     return false;
   }
-  log_info(cpu->logger, "Envio correcto del contexto actualizado");
+  log_info(cpu->logger, "Envio correcto del context actualizado");
   eliminar_paquete(paquete);
   return true;
 }
 
-bool actualizar_tabla_segmentos(t_cpu* cpu, uint32_t pid, t_contexto* contexto)
+bool actualizar_tabla_segmentos(t_cpu* cpu, uint32_t pid, t_context* context)
 {
   log_info(cpu->logger, "Pidiendo la tabla de segmentos actualizada");
   if (!enviar_buffer(OP_TABLA_SEG_ACTUALIZADA, &pid, sizeof(uint32_t),
@@ -392,7 +392,7 @@ bool actualizar_tabla_segmentos(t_cpu* cpu, uint32_t pid, t_contexto* contexto)
 
   if (!escuchar_kernel_memory(cpu))
     return false;
-  contexto->tablaDeSegmentos = recibir_tabla_segmentos(cpu, contexto);
+  context->segment_table = recibir_tabla_segmentos(cpu, context);
   log_info(cpu->logger, "Tabla actualizada correctamente");
   return true;
 }

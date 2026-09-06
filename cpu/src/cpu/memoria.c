@@ -5,16 +5,16 @@
 #include "cpu/conexiones.h"
 #include "cpu/cpu.h"
 #include "cpu/liberacion.h"
-#include "cpu/registros.h"
+#include "cpu/registers.h"
 
-uint32_t mmu(t_cpu* cpu, t_contexto* contexto, uint32_t dir_logica,
+uint32_t mmu(t_cpu* cpu, t_context* context, uint32_t dir_logica,
              uint32_t tamanio, uint32_t pid)
 {
   uint32_t num_segmento = dir_logica / cpu->tamanio_max_segmento;
   uint32_t desplazamiento = dir_logica % cpu->tamanio_max_segmento;
 
   t_segmento* segmento =
-      buscar_segmento_por_id(contexto->tablaDeSegmentos, num_segmento);
+      buscar_segmento_por_id(context->segment_table, num_segmento);
 
   if (segmento == NULL)
   {

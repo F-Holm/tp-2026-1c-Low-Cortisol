@@ -6,7 +6,7 @@
 
 #define DIR_INVALIDA UINT32_MAX
 
-uint32_t mmu(t_cpu* cpu, t_contexto* contexto, uint32_t dir_logica,
+uint32_t mmu(t_cpu* cpu, t_context* context, uint32_t dir_logica,
              uint32_t tamanio, uint32_t pid);
 t_segmento* buscar_segmento_por_id(t_list* tablaSegmentos,
                                    uint32_t num_segmento);
