@@ -7,7 +7,6 @@
 #include "cpu/handlers.h"
 #include "cpu/liberacion.h"
 #include "cpu/registros.h"
-#include "utils/kernel_memory_cpu.h"
 #include "utils/log.h"
 #include "utils/string.h"
 

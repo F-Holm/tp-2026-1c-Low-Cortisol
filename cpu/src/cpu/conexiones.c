@@ -4,7 +4,6 @@
 
 #include "cpu/cpu.h"
 #include "cpu/liberacion.h"
-#include "utils/kernel_memory_cpu.h"
 #include "utils/log.h"
 
 bool iniciar_conexion_scheduler(t_cpu* cpu)

@@ -7,7 +7,6 @@
 #include "kernel_memory/servidor.h"
 #include "utils/collections/list.h"
 #include "utils/config.h"
-#include "utils/kernel_memory_cpu.h"
 #include "utils/log.h"
 #include "utils/msg.h"
 
