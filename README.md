@@ -1,6 +1,7 @@
-# tp-scaffold
+# Operating System Simulator
 
-Starting point for an Operating Systems course project at UTN FRBA.
+A simplified take on a project that began as a *Trabajo Práctico* (course
+assignment) for the Operating Systems course at UTN FRBA.
 
 ## Dependencies
 
