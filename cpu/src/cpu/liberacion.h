@@ -3,7 +3,7 @@
 #include "cpu/cpu.h"
 #include "utils/config.h"
 #include "utils/log.h"
-#include "utils/registros.h"
+#include "utils/registros_cpu.h"
 
 void cerrar_modulo(t_cpu* cpu);
 void destruir_instruccion(t_instruccion* instrucion);

@@ -7,7 +7,7 @@
 #include "utils/collections/list.h"
 #include "utils/config.h"
 #include "utils/msg.h"
-#include "utils/registros.h"
+#include "utils/registros_cpu.h"
 
 typedef struct
 {

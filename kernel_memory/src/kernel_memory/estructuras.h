@@ -4,7 +4,7 @@
 
 #include "utils/collections/list.h"
 #include "utils/log.h"
-#include "utils/registros.h"
+#include "utils/registros_cpu.h"
 
 typedef enum
 {

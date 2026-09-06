@@ -3,7 +3,7 @@
 #include <stdio.h>
 
 #include "utils/collections/list.h"
-#include "utils/registros.h"
+#include "utils/registros_cpu.h"
 
 typedef struct
 {

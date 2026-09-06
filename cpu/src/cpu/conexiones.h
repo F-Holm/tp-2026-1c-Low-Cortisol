@@ -5,7 +5,7 @@
 #include "cpu/cpu.h"
 #include "utils/config.h"
 #include "utils/msg.h"
-#include "utils/registros.h"
+#include "utils/registros_cpu.h"
 
 bool iniciar_conexion_kmemory(t_cpu* cpu);
 bool iniciar_conexion_scheduler(t_cpu* cpu);
