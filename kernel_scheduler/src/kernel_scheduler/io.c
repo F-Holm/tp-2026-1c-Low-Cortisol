@@ -6,7 +6,7 @@
 #include "kernel_scheduler/misc.h"
 #include "kernel_scheduler/queue.h"
 #include "utils/io.h"
-#include "utils/kernel_scheduler_cpu.h"
+#include "utils/syscalls.h"
 #include "utils/msg.h"
 #include "utils/registros.h"
 

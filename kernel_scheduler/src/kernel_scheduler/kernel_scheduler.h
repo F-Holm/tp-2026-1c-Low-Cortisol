@@ -11,7 +11,7 @@
 #include "kernel_scheduler/queue.h"
 #include "utils/collections/list.h"
 #include "utils/config.h"
-#include "utils/kernel_scheduler_cpu.h"
+#include "utils/syscalls.h"
 #include "utils/log.h"
 #include "utils/registros.h"
 

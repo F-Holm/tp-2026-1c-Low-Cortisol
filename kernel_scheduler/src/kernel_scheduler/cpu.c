@@ -9,7 +9,7 @@
 #include "misc.h"
 #include "utils/collections/list.h"
 #include "utils/io.h"
-#include "utils/kernel_scheduler_cpu.h"
+#include "utils/syscalls.h"
 #include "utils/msg.h"
 
 const char* const MOTIVOS_DESALOJO[13] = {
