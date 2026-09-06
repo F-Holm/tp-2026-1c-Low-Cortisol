@@ -3,9 +3,9 @@
 #include <limits.h>
 #include <stdio.h>
 
+#include "cpu/cleanup.h"
 #include "cpu/connections.h"
 #include "cpu/handlers.h"
-#include "cpu/cleanup.h"
 #include "cpu/registers.h"
 #include "utils/log.h"
 #include "utils/string.h"
@@ -265,16 +265,16 @@ char* fetch_stage(t_cpu* cpu, uint32_t pid, uint32_t pc)
 
 bool request_instruction(t_cpu* cpu, uint32_t pid, uint32_t pc)
 {
-  t_paquete* paquete = crear_paquete(OP_SIGUIENTE_INSTRUCCION);
-  agregar_a_paquete(paquete, &pid, sizeof(uint32_t));
-  agregar_a_paquete(paquete, &pc, sizeof(uint32_t));
-  if (!enviar_paquete(paquete, cpu->socket_kernel_memory))
+  t_paquete* packet = crear_paquete(OP_SIGUIENTE_INSTRUCCION);
+  agregar_a_paquete(packet, &pid, sizeof(uint32_t));
+  agregar_a_paquete(packet, &pc, sizeof(uint32_t));
+  if (!enviar_paquete(packet, cpu->socket_kernel_memory))
   {
     log_error(cpu->logger, "## Error requesting the instruction");
     return false;
   }
   log_info(cpu->logger, "Instruction requested successfully");
-  eliminar_paquete(paquete);
+  eliminar_paquete(packet);
   return true;
 }
 
@@ -353,18 +353,19 @@ t_extended_bool check_interrupt(t_cpu* cpu, uint32_t pid)
   return EB_ERROR;
 }
 
-bool send_updated_context(t_cpu* cpu, uint32_t pid, t_registros* updated_context)
+bool send_updated_context(t_cpu* cpu, uint32_t pid,
+                          t_registros* updated_context)
 {
-  t_paquete* paquete = crear_paquete(OP_CONTEXTO_ACTUALIZADO);
-  agregar_a_paquete(paquete, &pid, sizeof(uint32_t));
-  agregar_a_paquete(paquete, updated_context, sizeof(t_registros));
-  if (!enviar_paquete(paquete, cpu->socket_kernel_memory))
+  t_paquete* packet = crear_paquete(OP_CONTEXTO_ACTUALIZADO);
+  agregar_a_paquete(packet, &pid, sizeof(uint32_t));
+  agregar_a_paquete(packet, updated_context, sizeof(t_registros));
+  if (!enviar_paquete(packet, cpu->socket_kernel_memory))
   {
     log_error(cpu->logger, "## Error sending the updated context");
     return false;
   }
   log_info(cpu->logger, "Updated context sent successfully");
-  eliminar_paquete(paquete);
+  eliminar_paquete(packet);
   return true;
 }
 

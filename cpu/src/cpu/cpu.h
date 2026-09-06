@@ -64,5 +64,6 @@ t_instruction* decode_stage(char* raw_instruction);
 t_extended_bool execute_stage(t_cpu* cpu, t_context* context,
                               t_instruction* instruction, uint32_t pid);
 t_extended_bool check_interrupt(t_cpu* cpu, uint32_t pid);
-bool send_updated_context(t_cpu* cpu, uint32_t pid, t_registros* updated_context);
+bool send_updated_context(t_cpu* cpu, uint32_t pid,
+                          t_registros* updated_context);
 bool update_segment_table(t_cpu* cpu, uint32_t pid, t_context* context);

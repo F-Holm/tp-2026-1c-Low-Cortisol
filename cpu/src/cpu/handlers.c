@@ -2,8 +2,8 @@
 
 #include <stdio.h>
 
-#include "cpu/cpu.h"
 #include "cpu/cleanup.h"
+#include "cpu/cpu.h"
 #include "cpu/memory.h"
 #include "cpu/registers.h"
 #include "utils/log.h"
@@ -30,8 +30,9 @@ t_extended_bool handler_sum(t_cpu* cpu, t_context* context,
                             t_instruction* instruction, uint32_t pid)
 {
   char* dest_reg = instruction->parameters[0];
-  uint32_t result = get_register(context->registers, dest_reg) +
-                    get_register(context->registers, instruction->parameters[1]);
+  uint32_t result =
+      get_register(context->registers, dest_reg) +
+      get_register(context->registers, instruction->parameters[1]);
 
   set_register(context->registers, dest_reg, result);
   return EB_TRUE;
@@ -41,8 +42,9 @@ t_extended_bool handler_sub(t_cpu* cpu, t_context* context,
                             t_instruction* instruction, uint32_t pid)
 {
   char* dest_reg = instruction->parameters[0];
-  uint32_t result = get_register(context->registers, dest_reg) -
-                    get_register(context->registers, instruction->parameters[1]);
+  uint32_t result =
+      get_register(context->registers, dest_reg) -
+      get_register(context->registers, instruction->parameters[1]);
 
   set_register(context->registers, dest_reg, result);
   return EB_TRUE;
@@ -212,8 +214,8 @@ t_extended_bool handler_mem_alloc(t_cpu* cpu, t_context* context,
   syscall_data->id_segmento = atoi(instruction->parameters[0]);
   syscall_data->tamanio = atoi(instruction->parameters[1]);
 
-  if (enviar_buffer(OP_SYSCALL_MEM_ALLOC, syscall_data, sizeof(t_syscall_memory),
-                    cpu->socket_kernel_scheduler))
+  if (enviar_buffer(OP_SYSCALL_MEM_ALLOC, syscall_data,
+                    sizeof(t_syscall_memory), cpu->socket_kernel_scheduler))
   {
     log_info(cpu->logger, "Syscall sent to the kernel scheduler");
     free(syscall_data);

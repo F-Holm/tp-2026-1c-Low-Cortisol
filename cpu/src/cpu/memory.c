@@ -78,8 +78,7 @@ void* read_memory(t_cpu* cpu, uint32_t physical_address, uint32_t size)
 
   while (read_bytes < size)
   {
-    t_memory_stick_info* stick =
-        find_stick(cpu, physical_address + read_bytes);
+    t_memory_stick_info* stick = find_stick(cpu, physical_address + read_bytes);
     if (stick == NULL)
     {
       log_error(cpu->logger, "## Memory Stick not found");
@@ -87,8 +86,7 @@ void* read_memory(t_cpu* cpu, uint32_t physical_address, uint32_t size)
       return NULL;
     }
 
-    uint32_t address_in_stick =
-        (physical_address + read_bytes) - stick->offset;
+    uint32_t address_in_stick = (physical_address + read_bytes) - stick->offset;
     uint32_t available_bytes = stick->size - address_in_stick;
     uint32_t bytes_to_read;
 
@@ -121,18 +119,18 @@ void* read_memory(t_cpu* cpu, uint32_t physical_address, uint32_t size)
 bool request_read(t_cpu* cpu, t_memory_stick_info* stick,
                   uint32_t address_in_stick, uint32_t bytes_to_read)
 {
-  t_paquete* paquete = crear_paquete(OP_MEMORY_STICK_LEER);
-  agregar_a_paquete(paquete, &address_in_stick, sizeof(uint32_t));
-  agregar_a_paquete(paquete, &bytes_to_read, sizeof(uint32_t));
+  t_paquete* packet = crear_paquete(OP_MEMORY_STICK_LEER);
+  agregar_a_paquete(packet, &address_in_stick, sizeof(uint32_t));
+  agregar_a_paquete(packet, &bytes_to_read, sizeof(uint32_t));
 
-  if (!enviar_paquete(paquete, stick->socket_ms))
+  if (!enviar_paquete(packet, stick->socket_ms))
   {
     log_error(cpu->logger, "## Error sending the read request to the MS");
     notify_bsod(cpu);
     return false;
   }
   log_info(cpu->logger, "Read requested from the MS");
-  eliminar_paquete(paquete);
+  eliminar_paquete(packet);
   return true;
 }
 
@@ -194,19 +192,19 @@ bool request_write(t_cpu* cpu, t_memory_stick_info* stick,
                    uint32_t address_in_stick, void* data,
                    uint32_t bytes_to_write)
 {
-  t_paquete* paquete = crear_paquete(OP_MEMORY_STICK_ESCRIBIR);
-  agregar_a_paquete(paquete, &address_in_stick, sizeof(uint32_t));
-  agregar_a_paquete(paquete, data, bytes_to_write);
-  agregar_a_paquete(paquete, &bytes_to_write, sizeof(uint32_t));
-  if (!enviar_paquete(paquete, stick->socket_ms))
+  t_paquete* packet = crear_paquete(OP_MEMORY_STICK_ESCRIBIR);
+  agregar_a_paquete(packet, &address_in_stick, sizeof(uint32_t));
+  agregar_a_paquete(packet, data, bytes_to_write);
+  agregar_a_paquete(packet, &bytes_to_write, sizeof(uint32_t));
+  if (!enviar_paquete(packet, stick->socket_ms))
   {
     log_error(cpu->logger, "## Error sending the write request to the MS");
     notify_bsod(cpu);
-    eliminar_paquete(paquete);
+    eliminar_paquete(packet);
     return false;
   }
   log_info(cpu->logger, "Write requested from the MS");
-  eliminar_paquete(paquete);
+  eliminar_paquete(packet);
   return true;
 }
 
