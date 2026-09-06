@@ -6,9 +6,8 @@ assignment) for the Operating Systems course at UTN FRBA.
 ## Dependencies
 
 The project ships its own implementation of the utilities it needs in the
-`utils` module, so it no longer depends on the cátedra's `so-commons-library`.
-The only dependencies are system libraries (`pthread`, `readline`, `m`),
-available in any standard GCC installation.
+`utils` module. The only dependencies are system libraries (`pthread`,
+`readline`, `m`), available in any standard GCC installation.
 
 ## Building and running
 
