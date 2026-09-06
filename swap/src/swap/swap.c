@@ -1,5 +1,8 @@
 #include "swap/swap.h"
 
+static bool init_swap_file(t_swap* swap);
+static void seek_block(FILE* swap_file, int block_number, int block_size);
+
 void close_swap(t_swap* swap, t_config* config)
 {
   close(swap->socket_swap);
@@ -7,8 +10,6 @@ void close_swap(t_swap* swap, t_config* config)
   log_destroy(swap->logger);
   config_destroy(config);
 }
-
-static bool init_swap_file(t_swap* swap);
 
 bool init_config(t_swap* swap, t_config* config)
 {
@@ -84,6 +85,22 @@ bool connect_to_kernel_memory(t_swap* swap, t_config* config)
   return true;
 }
 
+void write_block(FILE* swap_file, int block_number, int block_size,
+                 char* content)
+{
+  seek_block(swap_file, block_number, block_size);
+  fwrite(content, block_size, 1, swap_file);
+  fflush(swap_file);
+}
+
+void read_block(FILE* swap_file, int block_number, int block_size,
+                char* content)
+{
+  seek_block(swap_file, block_number, block_size);
+  if (fread(content, block_size, 1, swap_file) != 1)
+    return;
+}
+
 static bool init_swap_file(t_swap* swap)
 {
   FILE* swap_file = fopen(swap->swap_file_path, "wb+");
@@ -105,20 +122,4 @@ static bool init_swap_file(t_swap* swap)
 static void seek_block(FILE* swap_file, int block_number, int block_size)
 {
   fseek(swap_file, block_number * block_size, 0);
-}
-
-void write_block(FILE* swap_file, int block_number, int block_size,
-                 char* content)
-{
-  seek_block(swap_file, block_number, block_size);
-  fwrite(content, block_size, 1, swap_file);
-  fflush(swap_file);
-}
-
-void read_block(FILE* swap_file, int block_number, int block_size,
-                char* content)
-{
-  seek_block(swap_file, block_number, block_size);
-  if (fread(content, block_size, 1, swap_file) != 1)
-    return;
 }
