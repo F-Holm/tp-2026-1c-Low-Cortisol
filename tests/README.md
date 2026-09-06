@@ -11,7 +11,6 @@ process, memory stick sizes, CPU count, CPU stagger).
 make <scenario>                 # build + launch
 make <scenario> MODE=memcheck   # every process under Valgrind memcheck
 make <scenario> MODE=helgrind   # every process under Valgrind helgrind
-make run                        # alias for `make full`
 make kill                       # stop everything
 ```
 

@@ -6,7 +6,7 @@ MODULES = cpu io kernel_memory kernel_scheduler memory_stick swap utils
 # the six <module>.conf files it runs with and a test.mk declaring its
 # parameters. Launch one with `make <scenario>` (e.g. `make base`); add
 # `MODE=memcheck` or `MODE=helgrind` to run every process under Valgrind.
-# `make run` is an alias for `make full`. Stop everything with `make kill`.
+# `make full` launches the full-system scenario. Stop everything with `make kill`.
 
 E2E_TESTS := $(filter-out pseudocode,$(patsubst tests/%/,%,$(wildcard tests/*/)))
 
@@ -18,7 +18,7 @@ VALGRIND_memcheck := valgrind --tool=memcheck --leak-check=full --show-leak-kind
 VALGRIND_helgrind := valgrind --tool=helgrind --history-level=full --trace-children=yes
 VALGRIND         := $(VALGRIND_$(MODE))
 
-.PHONY: all debug release test clean logs format run kill $(E2E_TESTS) $(MODULES)
+.PHONY: all debug release test clean logs format kill $(E2E_TESTS) $(MODULES)
 
 all: $(MODULES)
 
@@ -50,16 +50,11 @@ logs:
 format:
 	find . -iname "*.c" -o -iname "*.h" | grep -v "tests/" | xargs clang-format -i --style=file
 
-# Load the parameters of the scenario being launched (`run` maps to `full`).
+# Load the parameters of the scenario being launched.
 ACTIVE_TEST := $(firstword $(filter $(MAKECMDGOALS),$(E2E_TESTS)))
-ifneq ($(filter run,$(MAKECMDGOALS)),)
-ACTIVE_TEST := full
-endif
 ifneq ($(ACTIVE_TEST),)
 include tests/$(ACTIVE_TEST)/test.mk
 endif
-
-run: full
 
 $(E2E_TESTS): all logs
 	@mkdir -p output

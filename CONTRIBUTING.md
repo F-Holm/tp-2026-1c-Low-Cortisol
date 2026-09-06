@@ -39,7 +39,6 @@ its six `<module>.conf` files and a `test.mk` with its parameters.
 | `make <scenario>` | Build and launch the given scenario. |
 | `make <scenario> MODE=memcheck` | Same, with every process under Valgrind memcheck. |
 | `make <scenario> MODE=helgrind` | Same, with every process under Valgrind helgrind. |
-| `make run` | Alias for `make full`. |
 | `make kill` | Stop every process of the system. |
 
 Available scenarios: `base`, `base2`, `pcp`, `mem-best`, `mem-worst`, `pmp`,
