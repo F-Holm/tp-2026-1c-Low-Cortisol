@@ -2,13 +2,13 @@ MODULES = cpu io kernel_memory kernel_scheduler memory_stick swap utils
 
 # ─── End-to-end test scenarios ───────────────────────────────────────────────
 #
-# Every directory under tests/ (except pseudocodigo/) is a scenario. It holds
+# Every directory under tests/ (except pseudocode/) is a scenario. It holds
 # the six <module>.conf files it runs with and a test.mk declaring its
 # parameters. Launch one with `make <scenario>` (e.g. `make base`); add
 # `MODE=memcheck` or `MODE=helgrind` to run every process under Valgrind.
 # `make run` is an alias for `make full`. Stop everything with `make kill`.
 
-E2E_TESTS := $(filter-out pseudocodigo,$(patsubst tests/%/,%,$(wildcard tests/*/)))
+E2E_TESTS := $(filter-out pseudocode,$(patsubst tests/%/,%,$(wildcard tests/*/)))
 
 SLEEP_TIME  ?= 0.1
 ESPERA_CPUS ?= 40
@@ -76,7 +76,7 @@ $(E2E_TESTS): all logs
 	done
 	$(VALGRIND) ./io/bin/io tests/$@/io.conf SLEEP > output/io_sleep.log 2>&1 &
 	@sleep $(SLEEP_TIME)
-	$(VALGRIND) ./io/bin/io tests/$@/io.conf STDIN < tests/pseudocodigo/entradas_io_stdin.txt > output/io_stdin.log 2>&1 &
+	$(VALGRIND) ./io/bin/io tests/$@/io.conf STDIN < tests/pseudocode/stdin_input.txt > output/io_stdin.log 2>&1 &
 	@sleep $(SLEEP_TIME)
 	$(VALGRIND) ./io/bin/io tests/$@/io.conf STDOUT > output/io_stdout.log 2>&1 &
 	@sleep $(SLEEP_TIME)
