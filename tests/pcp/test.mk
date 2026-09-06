@@ -1,0 +1,4 @@
+INITIAL_PROCESS := PCP.prc
+STICK_SIZES     := 256
+CPU_COUNT       := 1
+CPU_STAGGER     :=

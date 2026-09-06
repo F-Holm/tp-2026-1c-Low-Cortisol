@@ -1,0 +1,4 @@
+INITIAL_PROCESS := PMP_v2.prc
+STICK_SIZES     := 16 16 32 64
+CPU_COUNT       := 1
+CPU_STAGGER     :=
