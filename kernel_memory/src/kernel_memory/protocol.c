@@ -1,5 +1,11 @@
 #include "kernel_memory/protocol.h"
 
+static t_hole hole_selection_algorithm(
+    uint32_t size, t_list* current_holes, t_log* logger,
+    t_allocation_strategy allocation_strategy);
+static void update_hole_table(t_main_memory* main_memory, t_hole chosen_hole,
+                              uint32_t size);
+
 void list_add_mtx(t_list* list, pthread_mutex_t* mutex, void* element)
 {
   pthread_mutex_lock(mutex);
@@ -216,60 +222,6 @@ t_main_memory* add_total_memory(t_main_memory* main_memory, int memory_total)
 
   pthread_mutex_unlock(main_memory->main_memory_mutex);
   return main_memory;
-}
-
-static t_hole hole_selection_algorithm(
-    uint32_t size, t_list* current_holes, t_log* logger,
-    t_allocation_strategy allocation_strategy)
-{
-  t_hole chosen_hole = {-1, -1};
-  t_list_iterator* iterator = list_iterator_create(current_holes);
-  while (list_iterator_has_next(iterator))
-  {
-    t_hole* current_hole = list_iterator_next(iterator);
-    if (current_hole->size >= size)
-    {
-      switch (allocation_strategy)
-      {
-        case BEST:
-          if (chosen_hole.size == -1 || chosen_hole.size > current_hole->size)
-            chosen_hole = *current_hole;
-          break;
-        case WORST:
-          if (chosen_hole.size == -1 || chosen_hole.size < current_hole->size)
-            chosen_hole = *current_hole;
-          break;
-      }
-    }
-  }
-  list_iterator_destroy(iterator);
-  if (chosen_hole.size == -1)
-  {
-    log_info(logger, "No available holes");
-  }
-  return chosen_hole;
-}
-
-static void update_hole_table(t_main_memory* main_memory, t_hole chosen_hole,
-                              uint32_t size)
-{
-  t_list_iterator* iterator = list_iterator_create(main_memory->holes);
-  while (list_iterator_has_next(iterator))
-  {
-    t_hole* current_hole = list_iterator_next(iterator);
-    if (current_hole->base == chosen_hole.base)
-    {
-      current_hole->size -= size;
-      current_hole->base += size;
-      if (current_hole->size == 0)
-      {
-        list_iterator_remove(iterator);
-        free(current_hole);
-      }
-      break;
-    }
-  }
-  list_iterator_destroy(iterator);
 }
 
 t_hole select_hole(uint32_t size, t_log* logger, t_main_memory* memory)
@@ -585,6 +537,7 @@ bool hole_before_segment(int base_segment, int final_segment, t_list* holes)
   list_iterator_destroy(iterator);
   return found;
 }
+
 bool hole_after_segment(int base_segment, int final_segment, t_list* holes)
 {
   t_list_iterator* iterator = list_iterator_create(holes);
@@ -872,4 +825,58 @@ bool write_to_sticks(int pid, int physical_address, int bytes_to_read,
 
   pthread_mutex_unlock(socket_list_mutex);
   return ok;
+}
+
+static t_hole hole_selection_algorithm(
+    uint32_t size, t_list* current_holes, t_log* logger,
+    t_allocation_strategy allocation_strategy)
+{
+  t_hole chosen_hole = {-1, -1};
+  t_list_iterator* iterator = list_iterator_create(current_holes);
+  while (list_iterator_has_next(iterator))
+  {
+    t_hole* current_hole = list_iterator_next(iterator);
+    if (current_hole->size >= size)
+    {
+      switch (allocation_strategy)
+      {
+        case BEST:
+          if (chosen_hole.size == -1 || chosen_hole.size > current_hole->size)
+            chosen_hole = *current_hole;
+          break;
+        case WORST:
+          if (chosen_hole.size == -1 || chosen_hole.size < current_hole->size)
+            chosen_hole = *current_hole;
+          break;
+      }
+    }
+  }
+  list_iterator_destroy(iterator);
+  if (chosen_hole.size == -1)
+  {
+    log_info(logger, "No available holes");
+  }
+  return chosen_hole;
+}
+
+static void update_hole_table(t_main_memory* main_memory, t_hole chosen_hole,
+                              uint32_t size)
+{
+  t_list_iterator* iterator = list_iterator_create(main_memory->holes);
+  while (list_iterator_has_next(iterator))
+  {
+    t_hole* current_hole = list_iterator_next(iterator);
+    if (current_hole->base == chosen_hole.base)
+    {
+      current_hole->size -= size;
+      current_hole->base += size;
+      if (current_hole->size == 0)
+      {
+        list_iterator_remove(iterator);
+        free(current_hole);
+      }
+      break;
+    }
+  }
+  list_iterator_destroy(iterator);
 }

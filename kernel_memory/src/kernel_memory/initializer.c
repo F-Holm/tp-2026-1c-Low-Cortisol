@@ -1,5 +1,8 @@
 #include "kernel_memory/initializer.h"
 
+static void init_block_list(t_swap_data* swap_data);
+static int count_instructions(FILE* f);
+
 t_kernel_memory_data* init_kernel_memory_data(
     int socket_kernel_memory, char* scripts_basepath, int instruction_delay,
     int compaction_delay, int segment_max_size,
@@ -92,21 +95,6 @@ t_stick_data* init_stick_data(int socket_stick, t_log* logger,
   return stick_data;
 }
 
-static void init_block_list(t_swap_data* swap_data)
-{
-  int block_count = swap_data->swap_size / swap_data->block_size;
-  for (int i = 0; i < block_count; i++)
-  {
-    t_block_data* block = malloc(sizeof(t_block_data));
-    block->block_number = i;
-    block->pid = -1;
-    block->segment_number = -1;
-    block->segment_block_number = -1;
-    block->segment_size = -1;
-    list_add(swap_data->block_list, block);
-  }
-}
-
 t_swap_data* init_swap_data(int socket_swap, t_log* logger)
 {
   t_swap_data* swap_data = malloc(sizeof(t_swap_data));
@@ -127,16 +115,6 @@ t_swap_data* init_swap_data(int socket_swap, t_log* logger)
   swap_data->block_list = list_create();
   init_block_list(swap_data);
   return swap_data;
-}
-
-int count_instructions(FILE* f)
-{
-  int counter = 0;
-  char line[256];
-  while (fgets(line, sizeof(line), f))
-    counter++;
-  rewind(f);
-  return counter;
 }
 
 t_process* init_process(u_int32_t pid, char* relative_path,
@@ -208,4 +186,29 @@ t_main_memory* init_main_memory(int max_segment_size,
   memory->allocation_strategy = allocation_strategy;
   memory->holes = list_create();
   return memory;
+}
+
+static void init_block_list(t_swap_data* swap_data)
+{
+  int block_count = swap_data->swap_size / swap_data->block_size;
+  for (int i = 0; i < block_count; i++)
+  {
+    t_block_data* block = malloc(sizeof(t_block_data));
+    block->block_number = i;
+    block->pid = -1;
+    block->segment_number = -1;
+    block->segment_block_number = -1;
+    block->segment_size = -1;
+    list_add(swap_data->block_list, block);
+  }
+}
+
+static int count_instructions(FILE* f)
+{
+  int counter = 0;
+  char line[256];
+  while (fgets(line, sizeof(line), f))
+    counter++;
+  rewind(f);
+  return counter;
 }
