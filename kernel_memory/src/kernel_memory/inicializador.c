@@ -145,7 +145,7 @@ t_proceso* inicializar_proceso(u_int32_t pid, char* path_relativo,
   proceso->path_instrucciones = path_relativo;
   proceso->segmentos = list_create();
   memset(&proceso->registro, 0,
-         sizeof(t_registros));  // pone todos los campos de registro en 0
+         sizeof(t_registers));  // pone todos los campos de registro en 0
 
   int largo = strlen(scripts_basepath) + strlen(path_relativo) + 2;
   char* path_completo = malloc(largo);

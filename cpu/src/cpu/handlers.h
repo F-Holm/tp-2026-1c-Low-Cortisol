@@ -3,7 +3,7 @@
 #include <stdio.h>
 
 #include "cpu/cpu.h"
-#include "utils/registros_cpu.h"
+#include "utils/registers_cpu.h"
 
 typedef t_extended_bool (*t_handler)(t_cpu*, t_context*, t_instruction*,
                                      uint32_t);

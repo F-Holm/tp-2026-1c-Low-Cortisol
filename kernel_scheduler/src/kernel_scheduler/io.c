@@ -8,7 +8,7 @@
 #include "utils/io.h"
 #include "utils/syscalls.h"
 #include "utils/msg.h"
-#include "utils/registros_cpu.h"
+#include "utils/registers_cpu.h"
 
 // Funciones de comunicacion de syscalls IO
 static bool envio_stdout(t_io* io_out, t_stdout* peticion, char* buffer);

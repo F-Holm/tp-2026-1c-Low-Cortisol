@@ -7,7 +7,7 @@
 #include "utils/collections/list.h"
 #include "utils/config.h"
 #include "utils/msg.h"
-#include "utils/registros_cpu.h"
+#include "utils/registers_cpu.h"
 
 typedef struct
 {
@@ -54,7 +54,7 @@ bool parse_stick_packet(t_cpu* cpu, t_list* packet, char stick_ip[16],
 void run_instruction_loop(t_cpu* cpu);
 uint32_t receive_pid(t_cpu* cpu);
 bool request_context(t_cpu* cpu, uint32_t pid);
-t_registros* receive_context(t_cpu* cpu);
+t_registers* receive_context(t_cpu* cpu);
 t_list* receive_segment_table(t_cpu* cpu, t_context* context);
 bool run_instruction_cycle(t_cpu* cpu, uint32_t pid, t_context* context);
 char* fetch_stage(t_cpu* cpu, uint32_t pid, uint32_t pc);
@@ -65,5 +65,5 @@ t_extended_bool execute_stage(t_cpu* cpu, t_context* context,
                               t_instruction* instruction, uint32_t pid);
 t_extended_bool check_interrupt(t_cpu* cpu, uint32_t pid);
 bool send_updated_context(t_cpu* cpu, uint32_t pid,
-                          t_registros* updated_context);
+                          t_registers* updated_context);
 bool update_segment_table(t_cpu* cpu, uint32_t pid, t_context* context);

@@ -13,7 +13,7 @@
 #include "utils/config.h"
 #include "utils/syscalls.h"
 #include "utils/log.h"
-#include "utils/registros_cpu.h"
+#include "utils/registers_cpu.h"
 
 extern const char* const ALGORITMOS_PLANIFICACION[3];
 

@@ -8,7 +8,7 @@
 
 uint32_t mmu(t_cpu* cpu, t_context* context, uint32_t logical_address,
              uint32_t size, uint32_t pid);
-t_segmento* find_segment_by_id(t_list* segment_table, uint32_t segment_number);
+t_segment* find_segment_by_id(t_list* segment_table, uint32_t segment_number);
 bool notify_seg_fault(t_cpu* cpu, uint32_t pid);
 t_memory_stick_info* find_stick(t_cpu* cpu, uint32_t physical_address);
 void* read_memory(t_cpu* cpu, uint32_t physical_address, uint32_t size);

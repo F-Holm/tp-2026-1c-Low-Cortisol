@@ -163,11 +163,11 @@ bool request_context(t_cpu* cpu, uint32_t pid)
                        cpu->socket_kernel_memory);
 }
 
-t_registros* receive_context(t_cpu* cpu)
+t_registers* receive_context(t_cpu* cpu)
 {
   int size;
   void* buffer = recibir_buffer(&size, cpu->socket_kernel_memory);
-  t_registros* registers = malloc(sizeof(t_registros));
+  t_registers* registers = malloc(sizeof(t_registers));
   memcpy(registers, buffer, size);
   free(buffer);
   log_info(cpu->logger, "Context registers received");
@@ -354,11 +354,11 @@ t_extended_bool check_interrupt(t_cpu* cpu, uint32_t pid)
 }
 
 bool send_updated_context(t_cpu* cpu, uint32_t pid,
-                          t_registros* updated_context)
+                          t_registers* updated_context)
 {
   t_paquete* packet = crear_paquete(OP_CONTEXTO_ACTUALIZADO);
   agregar_a_paquete(packet, &pid, sizeof(uint32_t));
-  agregar_a_paquete(packet, updated_context, sizeof(t_registros));
+  agregar_a_paquete(packet, updated_context, sizeof(t_registers));
   if (!enviar_paquete(packet, cpu->socket_kernel_memory))
   {
     log_error(cpu->logger, "## Error sending the updated context");

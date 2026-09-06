@@ -5,7 +5,7 @@
 #include "cpu/cpu.h"
 #include "utils/config.h"
 #include "utils/msg.h"
-#include "utils/registros_cpu.h"
+#include "utils/registers_cpu.h"
 
 bool connect_to_kernel_memory(t_cpu* cpu);
 bool connect_to_kernel_scheduler(t_cpu* cpu);

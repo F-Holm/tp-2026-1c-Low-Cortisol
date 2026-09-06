@@ -18,7 +18,7 @@
 #include "utils/syscalls.h"
 #include "utils/log.h"
 #include "utils/msg.h"
-#include "utils/registros_cpu.h"
+#include "utils/registers_cpu.h"
 
 bool io_tipo_stdin(t_modulo_io* sio);
 bool io_tipo_stdout(t_modulo_io* sio);

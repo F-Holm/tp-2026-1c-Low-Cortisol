@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "utils/registros_cpu.h"
+#include "utils/registers_cpu.h"
 
 typedef struct
 {

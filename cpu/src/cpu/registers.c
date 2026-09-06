@@ -5,7 +5,7 @@
 
 #include "cpu/cpu.h"
 
-uint32_t get_register(t_registros* registers, char* register_name)
+uint32_t get_register(t_registers* registers, char* register_name)
 {
   if (strcmp(register_name, "PC") == 0)
     return registers->PC;
@@ -33,7 +33,7 @@ uint32_t get_register(t_registros* registers, char* register_name)
   return 0;
 }
 
-void set_register(t_registros* registers, char* register_name, uint32_t value)
+void set_register(t_registers* registers, char* register_name, uint32_t value)
 {
   if (strcmp(register_name, "PC") == 0)
   {

@@ -187,7 +187,7 @@ void* escucha_scheduler(void* ptr)
               list_iterator_create(lista_segmentos);
           while (list_iterator_has_next(iterador_segmentos))
           {
-            t_segmento* segmento = list_iterator_next(iterador_segmentos);
+            t_segment* segmento = list_iterator_next(iterador_segmentos);
             eliminar_segmento(segmento->id, proceso_a_terminar->pid,
                               datos_scheduler->memoria_principal,
                               datos_scheduler->logger);
@@ -336,7 +336,7 @@ void* escucha_cpu(void* ptr)
                  datos_cpu->instruction_delay);
         usleep(datos_cpu->instruction_delay * 1000);
         enviar_buffer(OP_ENVIAR_CONTEXTO, &proceso->registro,
-                      sizeof(t_registros), datos_cpu->socket_cpu);
+                      sizeof(t_registers), datos_cpu->socket_cpu);
         log_info(datos_cpu->logger, "Enviando tabla de segmentos");
         t_paquete* tabla_segmentos_proceso =
             crear_paquete(OP_TABLA_DE_SEGMENTOS);
@@ -356,7 +356,7 @@ void* escucha_cpu(void* ptr)
       {
         t_list* paquete = recibir_paquete(datos_cpu->socket_cpu);
         uint32_t pid = *(uint32_t*)list_get(paquete, 0);
-        t_registros registros = *(t_registros*)list_get(paquete, 1);
+        t_registers registros = *(t_registers*)list_get(paquete, 1);
         t_proceso* proceso =
             buscar_proceso(datos_cpu->procesos, datos_cpu->mutex_procesos, pid);
         if (proceso != NULL)

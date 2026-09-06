@@ -13,7 +13,7 @@ uint32_t mmu(t_cpu* cpu, t_context* context, uint32_t logical_address,
   uint32_t segment_number = logical_address / cpu->max_segment_size;
   uint32_t offset = logical_address % cpu->max_segment_size;
 
-  t_segmento* segment =
+  t_segment* segment =
       find_segment_by_id(context->segment_table, segment_number);
 
   if (segment == NULL)
@@ -33,9 +33,9 @@ uint32_t mmu(t_cpu* cpu, t_context* context, uint32_t logical_address,
   return segment->base + offset;
 }
 
-t_segmento* find_segment_by_id(t_list* segment_table, uint32_t segment_number)
+t_segment* find_segment_by_id(t_list* segment_table, uint32_t segment_number)
 {
-  t_segmento* segment = NULL;
+  t_segment* segment = NULL;
   for (int i = 0; i < list_size(segment_table); i++)
   {
     segment = list_get(segment_table, i);

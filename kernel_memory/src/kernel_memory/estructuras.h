@@ -4,7 +4,7 @@
 
 #include "utils/collections/list.h"
 #include "utils/log.h"
-#include "utils/registros_cpu.h"
+#include "utils/registers_cpu.h"
 
 typedef enum
 {
@@ -103,7 +103,7 @@ typedef struct
   char** instrucciones;
   int cant_instrucciones;
   t_list* segmentos;
-  t_registros registro;
+  t_registers registro;
 } t_proceso;
 
 typedef struct

@@ -15,7 +15,7 @@ static int seleccionar_bloque_libre(t_datos_swap* datos_swap)
   return -1;
 }
 
-static int agregar_bloque_lista_swap(t_segmento* segmento, int contador,
+static int agregar_bloque_lista_swap(t_segment* segmento, int contador,
                                      t_datos_swap* datos_swap, t_log* logger)
 /*retorna el numero de bloque agregado o -1 si no se pudo agregar*/
 {
@@ -74,7 +74,7 @@ void eliminar_segmentos_del_proceso(t_list* segmentos_a_eliminar, uint32_t pid,
   t_list_iterator* it = list_iterator_create(segmentos_a_eliminar);
   while (list_iterator_has_next(it))
   {
-    t_segmento* seg = list_iterator_next(it);
+    t_segment* seg = list_iterator_next(it);
     eliminar_segmento(seg->id, pid, datos_scheduler->memoria_principal,
                       datos_scheduler->logger);
   }
@@ -99,7 +99,7 @@ void suspender_proceso(t_proceso* proceso_a_suspender,
       list_iterator_create(datos_scheduler->memoria_principal->segmentos);
   while (list_iterator_has_next(iterador))
   {
-    t_segmento* segmento_actual = list_iterator_next(iterador);
+    t_segment* segmento_actual = list_iterator_next(iterador);
     if (segmento_actual->pid == proceso_a_suspender->pid)
     {
       int cant_bloques_x_segmento =
@@ -286,7 +286,7 @@ static int calcular_direccion_con_offset(int tamanio_bloque,
                                          t_memoria_principal* memoria_principal,
                                          uint32_t pid, t_datos_bloque* bloque)
 {
-  t_segmento* segmento =
+  t_segment* segmento =
       buscar_segmento(memoria_principal, pid, bloque->num_segmento);
   return (segmento->base + tamanio_bloque * bloque->num_bloque_del_segmento);
 }
