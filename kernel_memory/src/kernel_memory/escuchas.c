@@ -34,7 +34,7 @@ void* escucha_scheduler(void* ptr)
         t_syscall_memory* syscall = (t_syscall_memory*)recibir_buffer(
             &a, datos_scheduler->socket_scheduler);
 
-        if (syscall->tamanio >
+        if (syscall->size >
             datos_scheduler->memoria_principal->tamanio_maximo_segmento)
         {
           log_info(
@@ -48,7 +48,7 @@ void* escucha_scheduler(void* ptr)
         }
         else
         {
-          crear_segmento(syscall->id_segmento, syscall->pid, syscall->tamanio,
+          crear_segmento(syscall->segment_id, syscall->pid, syscall->size,
                          datos_scheduler->memoria_principal,
                          datos_scheduler->socket_scheduler,
                          datos_scheduler->logger);
@@ -62,7 +62,7 @@ void* escucha_scheduler(void* ptr)
         int a;
         t_syscall_memory* syscall = (t_syscall_memory*)recibir_buffer(
             &a, datos_scheduler->socket_scheduler);
-        eliminar_segmento(syscall->id_segmento, syscall->pid,
+        eliminar_segmento(syscall->segment_id, syscall->pid,
                           datos_scheduler->memoria_principal,
                           datos_scheduler->logger);
         log_info(datos_scheduler->logger, "se ha eliminado correctamente");
@@ -77,12 +77,12 @@ void* escucha_scheduler(void* ptr)
                  "Llego una syscall de PETICION_IO_STDIN");
         t_list* paquete_stdin =
             recibir_paquete(datos_scheduler->socket_scheduler);
-        t_peticion_stdin* peticion_stdin =
-            (t_peticion_stdin*)list_get(paquete_stdin, 0);
+        t_stdin_request* peticion_stdin =
+            (t_stdin_request*)list_get(paquete_stdin, 0);
         char* buffer_escribir = (char*)list_get(paquete_stdin, 1);
         int dir_fisica = traducir_direccion_logica(
-            peticion_stdin->pid, peticion_stdin->direccion_logica,
-            peticion_stdin->tamanio_a_leer, datos_scheduler->memoria_principal,
+            peticion_stdin->pid, peticion_stdin->logical_address,
+            peticion_stdin->bytes_to_read, datos_scheduler->memoria_principal,
             datos_scheduler->logger);
         if (dir_fisica == -1)
         {
@@ -95,9 +95,9 @@ void* escucha_scheduler(void* ptr)
                  "## PID: %u - Escritura - "
                  "Dir. Fisica: %u - Tamaño: %d",
                  peticion_stdin->pid, dir_fisica,
-                 peticion_stdin->tamanio_a_leer);
+                 peticion_stdin->bytes_to_read);
 
-        int tamanio_pedido = peticion_stdin->tamanio_a_leer;
+        int tamanio_pedido = peticion_stdin->bytes_to_read;
         char* buffer_seguro = calloc(tamanio_pedido, sizeof(char));
 
         size_t bytes_validos = strnlen(buffer_escribir, tamanio_pedido);
@@ -127,17 +127,17 @@ void* escucha_scheduler(void* ptr)
         log_info(datos_scheduler->logger,
                  "Llego una syscall de PETICION_IO_STDOUT");
         int size;
-        t_peticion_stdout* peticion_stdout = (t_peticion_stdout*)recibir_buffer(
+        t_stdout_request* peticion_stdout = (t_stdout_request*)recibir_buffer(
             &size, datos_scheduler->socket_scheduler);
         int dir_fisica = traducir_direccion_logica(
-            peticion_stdout->pid, peticion_stdout->direccion_logica,
-            peticion_stdout->tamanio_a_escribir,
+            peticion_stdout->pid, peticion_stdout->logical_address,
+            peticion_stdout->bytes_to_write,
             datos_scheduler->memoria_principal, datos_scheduler->logger);
         log_info(datos_scheduler->logger,
                  "## PID: %u - Lectura - "
                  "Dir. Fisica: %u - Tamaño: %d",
                  peticion_stdout->pid, dir_fisica,
-                 peticion_stdout->tamanio_a_escribir);
+                 peticion_stdout->bytes_to_write);
         if (dir_fisica == -1)
         {
           enviar_string(OP_RESPUESTA_STDOUT, "Segmentation Fault",
@@ -146,7 +146,7 @@ void* escucha_scheduler(void* ptr)
           break;
         }
         char* buffer = leer_de_sticks(
-            dir_fisica, peticion_stdout->tamanio_a_escribir,
+            dir_fisica, peticion_stdout->bytes_to_write,
             datos_scheduler->sticks_conectados,
             datos_scheduler->mutex_lista_sockets, datos_scheduler->logger,
             datos_scheduler->socket_scheduler);

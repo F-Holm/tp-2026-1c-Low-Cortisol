@@ -387,7 +387,7 @@ static void manejar_syscall_memory_free(t_datos_syscall* datos)
 static void manejar_syscall_io_sleep(t_datos_syscall* datos)
 {
   int size;
-  t_peticion_sleep* peticion = recibir_buffer(&size, datos->datos->socket_fd);
+  t_sleep_request* peticion = recibir_buffer(&size, datos->datos->socket_fd);
   datos->motivo_desalojo = MD_IO;
   if (!procesar_nuevo_io(peticion, &(datos->datos->estructuras_io[E_SLEEP]),
                          datos->pcb))
@@ -403,7 +403,7 @@ static void manejar_syscall_io_sleep(t_datos_syscall* datos)
 static void manejar_syscall_io_stdout(t_datos_syscall* datos)
 {
   int size;
-  t_peticion_stdout* peticion = recibir_buffer(&size, datos->datos->socket_fd);
+  t_stdout_request* peticion = recibir_buffer(&size, datos->datos->socket_fd);
   datos->motivo_desalojo = MD_IO;
   if (!procesar_nuevo_io(peticion, &(datos->datos->estructuras_io[E_STDOUT]),
                          datos->pcb))
@@ -419,7 +419,7 @@ static void manejar_syscall_io_stdout(t_datos_syscall* datos)
 static void manejar_syscall_io_stdin(t_datos_syscall* datos)
 {
   int size;
-  t_peticion_stdin* peticion = recibir_buffer(&size, datos->datos->socket_fd);
+  t_stdin_request* peticion = recibir_buffer(&size, datos->datos->socket_fd);
   datos->motivo_desalojo = MD_IO;
   if (!procesar_nuevo_io(peticion, &(datos->datos->estructuras_io[E_STDIN]),
                          datos->pcb))

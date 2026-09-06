@@ -35,19 +35,19 @@ typedef struct
 typedef struct
 {
   t_pcb* pcb;
-  t_peticion_stdin* peticion;
+  t_stdin_request* peticion;
 } t_stdin;
 
 typedef struct
 {
   t_pcb* pcb;
-  t_peticion_stdout* peticion;
+  t_stdout_request* peticion;
 } t_stdout;
 
 typedef struct
 {
   t_pcb* pcb;
-  t_peticion_sleep* peticion;
+  t_sleep_request* peticion;
 } t_sleep;
 
 t_io* crear_estructuras_io(void);

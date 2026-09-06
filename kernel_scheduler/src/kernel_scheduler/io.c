@@ -153,7 +153,7 @@ void cerrar_io(t_io* io)
 
 static bool envio_stdout(t_io* io_out, t_stdout* peticion, char* buffer)
 {
-  int peticion_size = sizeof(t_peticion_stdout);
+  int peticion_size = sizeof(t_stdout_request);
   t_paquete* paquete = crear_paquete(OP_PETICION_IO_STDOUT);
   agregar_a_paquete(paquete, peticion->peticion, peticion_size);
   agregar_string_a_paquete(paquete, buffer);
@@ -171,7 +171,7 @@ static bool envio_stdout(t_io* io_out, t_stdout* peticion, char* buffer)
 
 static bool peticion_stdout_km(t_stdout* peticion, t_io* io_out)
 {
-  int peticion_size = sizeof(t_peticion_stdout);
+  int peticion_size = sizeof(t_stdout_request);
   bool envio = enviar_buffer(OP_PETICION_IO_STDOUT, peticion->peticion,
                              peticion_size, io_out->socket_km->socket_km);
   if (!envio)
@@ -184,7 +184,7 @@ static bool peticion_stdout_km(t_stdout* peticion, t_io* io_out)
 
 static bool envio_stdin(t_stdin* peticion, t_io* io_in, char* buffer)
 {
-  int peticion_size = sizeof(t_peticion_stdin);
+  int peticion_size = sizeof(t_stdin_request);
   t_paquete* paquete = crear_paquete(OP_PETICION_IO_STDIN);
   agregar_a_paquete(paquete, peticion->peticion, peticion_size);
   agregar_string_a_paquete(paquete, buffer);
@@ -201,7 +201,7 @@ static bool envio_stdin(t_stdin* peticion, t_io* io_in, char* buffer)
 
 static bool comunicacion_io_stdin(t_stdin* peticion, t_io* io_in, char** buffer)
 {
-  int peticion_size = sizeof(t_peticion_stdin);
+  int peticion_size = sizeof(t_stdin_request);
   bool envio = enviar_buffer(OP_PETICION_IO_STDIN, peticion->peticion,
                              peticion_size, io_in->socket_io);
   if (!envio)
@@ -230,7 +230,7 @@ static bool comunicacion_io_stdin(t_stdin* peticion, t_io* io_in, char** buffer)
 
 static bool comunicacion_io_sleep(t_sleep* peticion, t_io* io_sleep)
 {
-  int peticion_size = sizeof(t_peticion_sleep);
+  int peticion_size = sizeof(t_sleep_request);
   bool envio = enviar_buffer(OP_PETICION_IO_SLEEP, peticion->peticion,
                              peticion_size, io_sleep->socket_io);
   if (!envio)
