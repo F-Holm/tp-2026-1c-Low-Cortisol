@@ -67,3 +67,50 @@ headers.
  */
 void greet(char* who);
 ```
+
+---
+
+## 4. Commit messages
+
+Commit messages follow [Conventional Commits](https://www.conventionalcommits.org)
+and are written in English.
+
+```
+<type>(<scope>): <summary>
+
+<optional body>
+```
+
+- **type** — one of:
+
+  | type | when |
+  | :--- | :--- |
+  | `feat` | new functionality |
+  | `fix` | bug fix |
+  | `refactor` | behaviour-preserving code change |
+  | `perf` | performance improvement |
+  | `style` | formatting only (no code change) |
+  | `docs` | documentation only |
+  | `test` | tests or test fixtures |
+  | `build` | Makefile, build flags, tooling |
+  | `chore` | anything else (repo housekeeping) |
+
+- **scope** *(optional)* — the module or area touched: `utils`, `cpu`,
+  `kernel_scheduler`, … Omit it when the change is repo-wide.
+- **summary** — imperative mood, lowercase, no trailing period, ≤ 72 characters
+  (`add own dictionary implementation`, not `Added a dictionary` or
+  `adds dictionary.`).
+- **body** *(optional)* — separated by a blank line, wrapped at ~72 columns.
+  Explain *what* changed and *why*, not *how* (the diff already shows how).
+
+Keep each commit to **one logical change** so history stays bisectable; split
+unrelated changes into separate commits.
+
+Examples:
+
+```
+feat(utils): add own linked list implementation
+fix(kernel-scheduler): fix transitive priority inheritance
+refactor: drop the SO commons library in favor of utils
+docs: translate CONTRIBUTING to English
+```
