@@ -56,9 +56,9 @@ extern const char* const SYSCALL_NAMES[10];
 
 bool handle_new_cpu(int socket_cpu, t_list* list_sockets_cpu,
                     pthread_mutex_t* mutex_list_sockets_cpu,
-                    pthread_cond_t* cond_fin_cpu, t_log* logger,
+                    pthread_cond_t* cpu_done_cond, t_log* logger,
                     t_mutex_list* mutex_list, t_queues* queues, t_io* io,
                     t_kernel_memory_socket* km_socket, int server_socket);
 void close_cpu(t_list* list_sockets_cpu,
                pthread_mutex_t* mutex_list_sockets_cpu,
-               pthread_cond_t* cond_fin_cpu, t_queues* queues);
+               pthread_cond_t* cpu_done_cond, t_queues* queues);

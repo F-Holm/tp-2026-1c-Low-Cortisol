@@ -22,8 +22,7 @@ bool allocate_memory(t_syscall_memory* mem_alloc, t_queues* queues)
 
   if (!comms)
   {
-    log_error(queues->logger,
-              "Error in the communication with the Kernel Memory");
+    log_error(queues->logger, "Error communicating with Kernel Memory");
     close_kernel_scheduler(queues->server_socket, queues->logger,
                            SR_KERNEL_MEMORY_SEND_ERROR,
                            queues->km_socket->km_socket);
@@ -45,8 +44,7 @@ bool free_memory(t_syscall_memory* mem_free, t_queues* queues)
 
   if (!comms)
   {
-    log_error(queues->logger,
-              "Error in the communication with the Kernel Memory");
+    log_error(queues->logger, "Error communicating with Kernel Memory");
     close_kernel_scheduler(queues->server_socket, queues->logger,
                            SR_KERNEL_MEMORY_SEND_ERROR,
                            queues->km_socket->km_socket);
@@ -56,7 +54,7 @@ bool free_memory(t_syscall_memory* mem_free, t_queues* queues)
 
   // Now wait for the km to send the "OK"
   comms = response_km_mem_free(queues);
-  create_thread_routine_resume_suspension(queues);
+  create_resumption_routine_thread(queues);
   pthread_mutex_unlock(&(queues->km_socket->socket_mutex));
   return comms;
 }
@@ -86,7 +84,7 @@ static bool response_km_mem_alloc(t_queues* queues)
       return response_km_mem_alloc(queues);
     case OP_NEW_MEMORY_STICK:
       free(receive_string(queues->km_socket->km_socket));
-      create_thread_routine_resume_suspension(queues);
+      create_resumption_routine_thread(queues);
       return response_km_mem_alloc(queues);
     default:
       free(receive_string(queues->km_socket->km_socket));
@@ -120,7 +118,7 @@ static bool response_km_mem_free(t_queues* queues)
       return true;
     case OP_NEW_MEMORY_STICK:
       free(receive_string(queues->km_socket->km_socket));
-      create_thread_routine_resume_suspension(queues);
+      create_resumption_routine_thread(queues);
       return response_km_mem_free(queues);
     default:
       free(receive_string(queues->km_socket->km_socket));

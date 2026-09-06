@@ -8,18 +8,18 @@
 const char* const PROCESS_END_REASONS[9] = {
     "invalid priority",
     "instruction EXIT",
-    "shutdown of the sistema",
+    "system shutdown",
     "io failure",
-    "there are not enough memory available",
+    "not enough memory available",
     "segmentation fault",
     "a mutex with that name already exists",
     "no mutex with that name exists",
     "this process cannot unlock this mutex"};
 
 static t_counter* create_counter(void);
-static void sumar_counter(t_counter* counter);
-static void sumar_counter_threads(t_queues* queues);
-static void restar_counter_threads(t_queues* queues);
+static void increment_counter(t_counter* counter);
+static void increment_thread_counter(t_queues* queues);
+static void decrement_thread_counter(t_queues* queues);
 static void wait_counter_threads(t_queues* queues);
 static void destroy_counter(t_counter* counter);
 static void destroy_counter_threads(t_queues* queues);
@@ -31,9 +31,9 @@ static void init_list(t_blocking_list* list);
 static t_suspended_thread* init_data_thread_suspended(t_queues* queues);
 static void init_data_thread_suspender(t_queues* queues,
                                        int suspension_timeout);
-static void init_data_thread_resume_suspender(t_queues* queues);
+static void init_data_thread_resumer(t_queues* queues);
 static void start_thread_suspender(t_queues* queues);
-static void start_thread_resume_suspender(t_queues* queues);
+static void start_thread_resumer(t_queues* queues);
 static void start_threads_suspended(t_queues* queues, int suspension_timeout);
 static void destroy_queue_ready(t_ready_queue* queue);
 static void destroy_list_exec(t_execute_list* list);
@@ -43,7 +43,7 @@ static void terminate_thread_suspended(t_suspended_thread* data,
 static void wait_thread_suspended(t_suspended_thread* data);
 static void destroy_thread_suspended(t_suspended_thread* data);
 static void destroy_thread_suspender(t_suspender_thread* data);
-static void destroy_thread_resume_suspender(t_resumer_thread* data);
+static void destroy_thread_resumer(t_resumer_thread* data);
 static void terminate_threads_suspended(t_queues* queues);
 static void destroy_threads_suspended(t_queues* queues);
 static void terminate_routines(t_queues* queues);
@@ -91,27 +91,27 @@ static void lock_thread_suspended(t_suspended_thread* data,
 static void unlock_thread_suspended(t_suspended_thread* data);
 static void wait_unlock(t_suspended_thread* data);
 static t_pcb* get_process_blocked(t_queues* queues, t_suspender_thread* data);
-static void suspender_process(t_queues* queues, t_suspender_thread* data,
-                              t_pcb* process);
+static void run_suspend_process(t_queues* queues, t_suspender_thread* data,
+                                t_pcb* process);
 static void wait_process_blocked(t_queues* queues, t_suspender_thread* data);
 static t_pcb* get_process_susp_ready(t_queues* queues, t_resumer_thread* data);
 static void resume_suspended_process(t_queues* queues, t_resumer_thread* data,
                                      t_pcb* process);
 static void wait_process_susp_ready(t_queues* queues, t_resumer_thread* data);
 static void* thread_suspender(void* data_void);
-static void* thread_resume_suspender(void* data_void);
+static void* thread_resumer(void* data_void);
 // total lock/unlock functions
 static void lock_total(t_queues* queues);
 static bool fits_process(t_queues* queues, t_pcb* process);
 static bool is_empty(t_blocking_list* list);
 static bool remove_of_the_list(t_queues* queues);
-static void routine_resume_suspension(t_queues* queues);
+static void resumption_routine(t_queues* queues);
 static int receive_space(t_queues* queues);
 static int receive_size(t_queues* queues);
 static int receive_size_no_logger(t_queues* queues);
-static int size_process_no_mutex_no_logger(t_queues* queues, uint32_t pid);
-static int size_process_no_logger(t_queues* queues, uint32_t pid);
-static void* thread_routine_resume_suspension(void* data_resume_suspension);
+static int process_size_no_mutex_no_logger(t_queues* queues, uint32_t pid);
+static int process_size_no_logger(t_queues* queues, uint32_t pid);
+static void* resumption_routine_thread(void* data_resume_suspension);
 static bool set_is_resuming(t_queues* queues, bool new_state);
 static bool set_is_compacting(t_queues* queues, bool new_state);
 // COMPACTION ROUTINE
@@ -221,7 +221,7 @@ void terminate_queue_ready(t_ready_queue* ready)
   pthread_mutex_unlock(&(ready->queue_mutex));
 }
 
-void update_priordad_mas_baja_exec(t_execute_list* exec)
+void update_lowest_exec_priority(t_execute_list* exec)
 {
   pthread_mutex_lock(&(exec->list_mutex));
   exec->lowest_priority = 0;
@@ -264,7 +264,7 @@ void wait_queue_exec_empty_with_syscalls(t_queues* queues)
   pthread_mutex_unlock(&(queues->exec.list_mutex));
 }
 
-bool can_suspender(t_pcb* pcb, int suspension_timeout)
+bool can_suspend(t_pcb* pcb, int suspension_timeout)
 {
   return time_diff(millis(), pcb->blocked_time) >= suspension_timeout;
 }
@@ -524,7 +524,7 @@ int space_available(t_queues* queues, uint32_t pid)
   return space;
 }
 
-int size_process_no_mutex(t_queues* queues, uint32_t pid)
+int process_size_no_mutex(t_queues* queues, uint32_t pid)
 {
   if (!(send_buffer(OP_REQUEST_PROCESS_SIZE, &pid, sizeof(uint32_t),
                     queues->km_socket->km_socket)))
@@ -538,16 +538,16 @@ int size_process_no_mutex(t_queues* queues, uint32_t pid)
   return receive_size(queues);
 }
 
-int size_process(t_queues* queues, uint32_t pid)
+int process_size(t_queues* queues, uint32_t pid)
 {
   pthread_mutex_lock(&(queues->km_socket->socket_mutex));
-  int space = size_process_no_mutex(queues, pid);
+  int space = process_size_no_mutex(queues, pid);
   pthread_mutex_unlock(&(queues->km_socket->socket_mutex));
   return space;
 }
 
 // used for freed memory, a new stick or the end of compaction
-void create_thread_routine_resume_suspension(t_queues* queues)
+void create_resumption_routine_thread(t_queues* queues)
 {
   if (is_compacting(queues) || set_is_resuming(queues, true))
   {
@@ -555,18 +555,14 @@ void create_thread_routine_resume_suspension(t_queues* queues)
   }
 
   pthread_t thread;
-  if (pthread_create(&thread, NULL, thread_routine_resume_suspension, queues) !=
-      0)
+  if (pthread_create(&thread, NULL, resumption_routine_thread, queues) != 0)
   {
-    log_error(queues->logger,
-              "Error in the creation the thread of the routine of "
-              "resumption");
+    log_error(queues->logger, "Error creating the resumption routine thread");
   }
   else
   {
     pthread_detach(thread);
-    log_info(queues->logger,
-             "Thread of the routine of resumption started successfully");
+    log_info(queues->logger, "Resumption routine thread started successfully");
   }
 }
 
@@ -584,7 +580,7 @@ void routine_compaction(t_queues* queues)
     compaction(queues);
     set_is_compacting(queues, false);
     create_thread_unlock_queue_ready(queues);
-    create_thread_routine_resume_suspension(queues);
+    create_resumption_routine_thread(queues);
   }
   pthread_mutex_unlock(&(queues->routine_mutex));
 }
@@ -607,12 +603,12 @@ bool is_resuming(t_queues* queues)
   return ret;
 }
 
-void sumar_counter_syscalls(t_queues* queues)
+void increment_syscall_counter(t_queues* queues)
 {
-  sumar_counter(queues->syscall_counter);
+  increment_counter(queues->syscall_counter);
 }
 
-void restar_counter_syscalls(t_queues* queues)
+void decrement_syscall_counter(t_queues* queues)
 {
   pthread_mutex_lock(&(queues->syscall_counter->counter_mutex));
   queues->syscall_counter->count--;
@@ -628,19 +624,19 @@ static t_counter* create_counter(void)
   return counter;
 }
 
-static void sumar_counter(t_counter* counter)
+static void increment_counter(t_counter* counter)
 {
   pthread_mutex_lock(&(counter->counter_mutex));
   counter->count++;
   pthread_mutex_unlock(&(counter->counter_mutex));
 }
 
-static void sumar_counter_threads(t_queues* queues)
+static void increment_thread_counter(t_queues* queues)
 {
-  sumar_counter(queues->thread_counter);
+  increment_counter(queues->thread_counter);
 }
 
-static void restar_counter_threads(t_queues* queues)
+static void decrement_thread_counter(t_queues* queues)
 {
   pthread_mutex_lock(&(queues->thread_counter->counter_mutex));
   queues->thread_counter->count--;
@@ -754,7 +750,7 @@ static void init_data_thread_suspender(t_queues* queues, int suspension_timeout)
   queues->suspension_data->suspender_thread_data = data;
 }
 
-static void init_data_thread_resume_suspender(t_queues* queues)
+static void init_data_thread_resumer(t_queues* queues)
 {
   t_resumer_thread* data = malloc(sizeof(t_resumer_thread));
   data->data = init_data_thread_suspended(queues);
@@ -768,7 +764,7 @@ static void start_thread_suspender(t_queues* queues)
           &(queues->suspension_data->suspender_thread_data->data->thread), NULL,
           thread_suspender, queues) != 0)
   {
-    log_error(queues->logger, "Error in the creation the suspender thread");
+    log_error(queues->logger, "Error creating the suspender thread");
   }
   else
   {
@@ -776,13 +772,13 @@ static void start_thread_suspender(t_queues* queues)
   }
 }
 
-static void start_thread_resume_suspender(t_queues* queues)
+static void start_thread_resumer(t_queues* queues)
 {
   if (pthread_create(
           &(queues->suspension_data->resumer_thread_data->data->thread), NULL,
-          thread_resume_suspender, queues) != 0)
+          thread_resumer, queues) != 0)
   {
-    log_error(queues->logger, "Error in the creation the thread resume");
+    log_error(queues->logger, "Error creating the resumer thread");
   }
   else
   {
@@ -794,9 +790,9 @@ static void start_threads_suspended(t_queues* queues, int suspension_timeout)
 {
   queues->suspension_data = malloc(sizeof(t_suspension_data));
   init_data_thread_suspender(queues, suspension_timeout);
-  init_data_thread_resume_suspender(queues);
+  init_data_thread_resumer(queues);
   start_thread_suspender(queues);
-  start_thread_resume_suspender(queues);
+  start_thread_resumer(queues);
 }
 
 static void destroy_queue_ready(t_ready_queue* queue)
@@ -859,7 +855,7 @@ static void destroy_thread_suspender(t_suspender_thread* data)
   free(data);
 }
 
-static void destroy_thread_resume_suspender(t_resumer_thread* data)
+static void destroy_thread_resumer(t_resumer_thread* data)
 {
   destroy_thread_suspended(data->data);
   free(data);
@@ -878,7 +874,7 @@ static void terminate_threads_suspended(t_queues* queues)
 static void destroy_threads_suspended(t_queues* queues)
 {
   destroy_thread_suspender(queues->suspension_data->suspender_thread_data);
-  destroy_thread_resume_suspender(queues->suspension_data->resumer_thread_data);
+  destroy_thread_resumer(queues->suspension_data->resumer_thread_data);
   free(queues->suspension_data);
 }
 
@@ -996,12 +992,12 @@ static void transition_to_exit(t_pcb* pcb, t_queues* queues, int reason)
 
   if (reason != PER_SYSTEM_SHUTDOWN && reason != PER_INVALID_PRIORITY)
   {
-    bool run_resume_suspension_routine = size_process(queues, pcb->pid) > 0;
+    bool run_resumption_routine = process_size(queues, pcb->pid) > 0;
     if (notify_terminate_process(queues->km_socket, pcb->pid,
                                  queues->server_socket, queues->logger) &&
-        run_resume_suspension_routine)
+        run_resumption_routine)
     {
-      create_thread_routine_resume_suspension(queues);
+      create_resumption_routine_thread(queues);
     }
   }
   log_transition_to_exit(queues->logger, pcb->pid, reason);
@@ -1082,7 +1078,7 @@ static void transition_take_exec(t_pcb* pcb, t_execute_list* exec,
   pthread_mutex_unlock(&(exec->list_mutex));
   if (exec->preemption)
   {
-    update_priordad_mas_baja_exec(exec);
+    update_lowest_exec_priority(exec);
   }
 }
 
@@ -1181,7 +1177,7 @@ static bool receive_suspend_process_response(t_queues* queues)
       break;
     case OP_NEW_MEMORY_STICK:
       free(receive_string(queues->km_socket->km_socket));
-      create_thread_routine_resume_suspension(queues);
+      create_resumption_routine_thread(queues);
       return receive_suspend_process_response(queues);
     case OP_MEMORY_CORRUPTED:
       close_kernel_scheduler(queues->server_socket, queues->logger,
@@ -1225,8 +1221,7 @@ static void transition_block_susp_block_no_mutex(t_pcb* pcb, t_queues* queues)
 
   if (!notify_process_suspended(pcb, queues))
   {
-    log_info(queues->logger, "Could not could suspender the process %u",
-             pcb->pid);
+    log_info(queues->logger, "Could not suspend process %u", pcb->pid);
     return;
   }
 
@@ -1279,7 +1274,7 @@ static bool notify_process_resume_suspended(t_pcb* pcb, t_queues* queues)
 
 static bool can_resume_suspended(t_pcb* pcb, t_queues* queues)
 {
-  return space_available(queues, pcb->pid) >= size_process(queues, pcb->pid);
+  return space_available(queues, pcb->pid) >= process_size(queues, pcb->pid);
 }
 
 static bool transition_susp_ready_no_mutex(t_pcb* pcb, t_queues* queues)
@@ -1391,7 +1386,7 @@ static t_pcb* get_process_blocked(t_queues* queues, t_suspender_thread* data)
   while (list_iterator_has_next(iterador))
   {
     process = list_iterator_next(iterador);
-    size_in_memory = size_process_no_logger(queues, process->pid);
+    size_in_memory = process_size_no_logger(queues, process->pid);
     if (size_in_memory > 0)
     {
       incrementar_instances_active_pcb(process);
@@ -1412,8 +1407,8 @@ static t_pcb* get_process_blocked(t_queues* queues, t_suspender_thread* data)
   return process;
 }
 
-static void suspender_process(t_queues* queues, t_suspender_thread* data,
-                              t_pcb* process)
+static void run_suspend_process(t_queues* queues, t_suspender_thread* data,
+                                t_pcb* process)
 {
   pthread_mutex_unlock(&(data->data->state_mutex));
   pthread_mutex_lock(&(process->state_mutex));
@@ -1525,7 +1520,7 @@ static void* thread_suspender(void* data_void)
         t_pcb* process = get_process_blocked(queues, data);
         if (process != NULL)
         {
-          suspender_process(queues, data, process);
+          run_suspend_process(queues, data, process);
         }
         break;
       case HS_WAITING_PROCESS:
@@ -1543,7 +1538,7 @@ static void* thread_suspender(void* data_void)
   return NULL;
 }
 
-static void* thread_resume_suspender(void* data_void)
+static void* thread_resumer(void* data_void)
 {
   t_queues* queues = (t_queues*)data_void;
   t_resumer_thread* data = queues->suspension_data->resumer_thread_data;
@@ -1595,7 +1590,7 @@ static bool fits_process(t_queues* queues, t_pcb* process)
       return false;
     case OP_NEW_MEMORY_STICK:
       free(receive_string(queues->km_socket->km_socket));
-      create_thread_routine_resume_suspension(queues);
+      create_resumption_routine_thread(queues);
       return fits_process(queues, process);
     case OP_MEMORY_CORRUPTED:
       free(receive_string(queues->km_socket->km_socket));
@@ -1635,7 +1630,7 @@ static bool remove_of_the_list(t_queues* queues)
   return true;
 }
 
-static void routine_resume_suspension(t_queues* queues)
+static void resumption_routine(t_queues* queues)
 {
   bool keep_running = true;
 
@@ -1663,11 +1658,11 @@ static int receive_space(t_queues* queues)
       int* aux = receive_buffer(&space, queues->km_socket->km_socket);
       space = *aux;
       free(aux);
-      log_info(queues->logger, "Espacio available: %d", space);
+      log_info(queues->logger, "Space available: %d", space);
       return space;
     case OP_NEW_MEMORY_STICK:
       free(receive_string(queues->km_socket->km_socket));
-      create_thread_routine_resume_suspension(queues);
+      create_resumption_routine_thread(queues);
       return receive_space(queues);
       break;
     case OP_MEMORY_CORRUPTED:
@@ -1693,12 +1688,12 @@ static int receive_size(t_queues* queues)
       int* aux = receive_buffer(&space, queues->km_socket->km_socket);
       space = *aux;
       free(aux);
-      log_info(queues->logger, "Size process: %d", space);
+      log_info(queues->logger, "Process size: %d", space);
       return space;
       break;
     case OP_NEW_MEMORY_STICK:
       free(receive_string(queues->km_socket->km_socket));
-      create_thread_routine_resume_suspension(queues);
+      create_resumption_routine_thread(queues);
       return receive_size(queues);
       break;
     case OP_MEMORY_CORRUPTED:
@@ -1728,7 +1723,7 @@ static int receive_size_no_logger(t_queues* queues)
       break;
     case OP_NEW_MEMORY_STICK:
       free(receive_string(queues->km_socket->km_socket));
-      create_thread_routine_resume_suspension(queues);
+      create_resumption_routine_thread(queues);
       return receive_size(queues);
       break;
     case OP_MEMORY_CORRUPTED:
@@ -1743,7 +1738,7 @@ static int receive_size_no_logger(t_queues* queues)
   return -1;
 }
 
-static int size_process_no_mutex_no_logger(t_queues* queues, uint32_t pid)
+static int process_size_no_mutex_no_logger(t_queues* queues, uint32_t pid)
 {
   if (!(send_buffer(OP_REQUEST_PROCESS_SIZE, &pid, sizeof(uint32_t),
                     queues->km_socket->km_socket)))
@@ -1757,29 +1752,29 @@ static int size_process_no_mutex_no_logger(t_queues* queues, uint32_t pid)
   return receive_size_no_logger(queues);
 }
 
-static int size_process_no_logger(t_queues* queues, uint32_t pid)
+static int process_size_no_logger(t_queues* queues, uint32_t pid)
 {
   pthread_mutex_lock(&(queues->km_socket->socket_mutex));
-  int space = size_process_no_mutex_no_logger(queues, pid);
+  int space = process_size_no_mutex_no_logger(queues, pid);
   pthread_mutex_unlock(&(queues->km_socket->socket_mutex));
   return space;
 }
 
-static void* thread_routine_resume_suspension(void* data_resume_suspension)
+static void* resumption_routine_thread(void* data_resume_suspension)
 {
   t_queues* queues = (t_queues*)data_resume_suspension;
-  sumar_counter_threads(queues);
+  increment_thread_counter(queues);
   pthread_mutex_lock(&(queues->routine_mutex));
   if (!queues->terminate_routines)
   {
     lock_threads_suspended(queues);
-    routine_resume_suspension(queues);
+    resumption_routine(queues);
     set_is_resuming(queues, false);
     unlock_threads_suspended(queues);
     log_info(queues->logger, "Resume-suspension routine ended");
   }
   pthread_mutex_unlock(&(queues->routine_mutex));
-  restar_counter_threads(queues);
+  decrement_thread_counter(queues);
   return NULL;
 }
 
@@ -1807,7 +1802,7 @@ static bool set_is_compacting(t_queues* queues, bool new_state)
 static void* thread_unlock_queue_ready(void* args)
 {
   t_queues* queues = (t_queues*)args;
-  sumar_counter_threads(queues);
+  increment_thread_counter(queues);
 
   wait_queue_exec_empty(queues);
 
@@ -1817,7 +1812,7 @@ static void* thread_unlock_queue_ready(void* args)
     unlock_queue_ready(&(queues->ready));
   }
   pthread_mutex_unlock(&(queues->compaction_active_mutex));
-  restar_counter_threads(queues);
+  decrement_thread_counter(queues);
   return NULL;
 }
 
@@ -1826,8 +1821,7 @@ static void create_thread_unlock_queue_ready(t_queues* queues)
   pthread_t thread;
   if (pthread_create(&thread, NULL, thread_unlock_queue_ready, queues) != 0)
   {
-    log_error(queues->logger,
-              "Error in the creation the thread of ready-queue unblock");
+    log_error(queues->logger, "Error creating the ready-queue unblock thread");
   }
   else
   {
@@ -1845,7 +1839,7 @@ static bool compaction_finished(t_queues* queues)
   {
     case OP_NEW_MEMORY_STICK:
       free(receive_string(queues->km_socket->km_socket));
-      create_thread_routine_resume_suspension(queues);
+      create_resumption_routine_thread(queues);
       return compaction_finished(queues);
     case OP_COMPACTION_DONE:
       free(receive_string(queues->km_socket->km_socket));
@@ -1921,7 +1915,7 @@ static bool notify_new_process(t_queues* queues, char* instructions_file,
         break;
       case OP_NEW_MEMORY_STICK:
         free(receive_string(queues->km_socket->km_socket));
-        create_thread_routine_resume_suspension(queues);
+        create_resumption_routine_thread(queues);
         keep_running = true;
         break;
       default:

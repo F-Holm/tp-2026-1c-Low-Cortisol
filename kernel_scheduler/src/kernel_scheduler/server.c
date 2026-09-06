@@ -10,7 +10,7 @@
 
 static void close_thread_listen(t_io* io, t_list* list_sockets_cpu,
                                 pthread_mutex_t* mutex_list_sockets_cpu,
-                                pthread_cond_t* cond_fin_cpu,
+                                pthread_cond_t* cpu_done_cond,
                                 t_listen_server_data* data);
 
 int create_socket_server(char* port, t_log* logger)
@@ -18,7 +18,7 @@ int create_socket_server(char* port, t_log* logger)
   int ret = start_server(port);
   if (ret <= 0)
   {
-    log_error(logger, "Error in the creation of the server");
+    log_error(logger, "Error creating the server");
     return -1;
   }
   log_info(logger, "Server created successfully");
@@ -44,15 +44,15 @@ void server_listen(t_listen_server_data* data)
   t_io* io = create_estructuras_io();
   t_list* list_sockets_cpu = list_create();
   pthread_mutex_t mutex_list_sockets_cpu;
-  pthread_cond_t cond_fin_cpu;
+  pthread_cond_t cpu_done_cond;
 
   pthread_mutex_init(&mutex_list_sockets_cpu, NULL);
-  pthread_cond_init(&cond_fin_cpu, NULL);
+  pthread_cond_init(&cpu_done_cond, NULL);
 
   transition_new_ready(data->queues, data->initial_process_path, 0);
   while (true)
   {
-    bool manejo_exitoso = true;
+    bool handled_ok = true;
     int socket_fd = accept(data->socket_server, NULL, NULL);
     if (socket_fd <= 0)
     {
@@ -62,37 +62,37 @@ void server_listen(t_listen_server_data* data)
     switch (receive_handshake(socket_fd))
     {
       case MID_CPU:
-        manejo_exitoso = handle_new_cpu(
-            socket_fd, list_sockets_cpu, &mutex_list_sockets_cpu, &cond_fin_cpu,
-            data->logger, data->mutex_list, data->queues, io, data->km_socket,
-            data->socket_server);
+        handled_ok = handle_new_cpu(
+            socket_fd, list_sockets_cpu, &mutex_list_sockets_cpu,
+            &cpu_done_cond, data->logger, data->mutex_list, data->queues, io,
+            data->km_socket, data->socket_server);
         break;
       case MID_IO:
-        manejo_exitoso = handle_new_io(io, socket_fd, data->queues, false,
-                                       data->socket_server);
+        handled_ok = handle_new_io(io, socket_fd, data->queues, false,
+                                   data->socket_server);
         break;
       default:
         log_info(data->logger, "Invalid handshake received");
-        manejo_exitoso = false;
+        handled_ok = false;
         break;
     }
-    if (!manejo_exitoso)
+    if (!handled_ok)
     {
       close(socket_fd);
     }
   }
 
   close_thread_listen(io, list_sockets_cpu, &mutex_list_sockets_cpu,
-                      &cond_fin_cpu, data);
+                      &cpu_done_cond, data);
 }
 
 static void close_thread_listen(t_io* io, t_list* list_sockets_cpu,
                                 pthread_mutex_t* mutex_list_sockets_cpu,
-                                pthread_cond_t* cond_fin_cpu,
+                                pthread_cond_t* cpu_done_cond,
                                 t_listen_server_data* data)
 {
   log_info(data->logger, "Closing server");
-  close_cpu(list_sockets_cpu, mutex_list_sockets_cpu, cond_fin_cpu,
+  close_cpu(list_sockets_cpu, mutex_list_sockets_cpu, cpu_done_cond,
             data->queues);
   close_io(io);
   log_info(data->logger, "Server closed");

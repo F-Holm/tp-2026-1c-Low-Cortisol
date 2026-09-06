@@ -147,11 +147,11 @@ void unlock_queue_ready(t_ready_queue* ready);
 bool queue_ready_terminated(t_ready_queue* ready);
 void terminate_queue_ready(t_ready_queue* ready);
 
-void update_priordad_mas_baja_exec(t_execute_list* exec);
+void update_lowest_exec_priority(t_execute_list* exec);
 void wait_queue_exec_empty(t_queues* queues);
 void wait_queue_exec_empty_with_syscalls(t_queues* queues);
 
-bool can_suspender(t_pcb* pcb, int suspension_timeout);
+bool can_suspend(t_pcb* pcb, int suspension_timeout);
 void update_priority(t_pcb* pcb, t_queues* queues);
 
 // transition_ready_exec: not implemented, only logs for now. Use the
@@ -184,15 +184,15 @@ void unlock_threads_suspended(t_queues* queues);
 // kernel_memory query functions
 int space_available_no_mutex(t_queues* queues, uint32_t pid);
 int space_available(t_queues* queues, uint32_t pid);
-int size_process_no_mutex(t_queues* queues, uint32_t pid);
-int size_process(t_queues* queues, uint32_t pid);
+int process_size_no_mutex(t_queues* queues, uint32_t pid);
+int process_size(t_queues* queues, uint32_t pid);
 
 // routine functions
-void create_thread_routine_resume_suspension(t_queues* queues);
+void create_resumption_routine_thread(t_queues* queues);
 void routine_compaction(t_queues* queues);
 bool is_compacting(t_queues* queues);
 bool is_resuming(t_queues* queues);
 
-// Contadores
-void sumar_counter_syscalls(t_queues* queues);
-void restar_counter_syscalls(t_queues* queues);
+// Counters
+void increment_syscall_counter(t_queues* queues);
+void decrement_syscall_counter(t_queues* queues);

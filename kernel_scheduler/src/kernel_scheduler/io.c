@@ -17,7 +17,7 @@ static bool send_stdin(t_stdin* request, t_io* io_in, char* buffer);
 static bool communication_io_stdin(t_stdin* request, t_io* io_in,
                                    char** buffer);
 static bool communication_io_sleep(t_sleep* request, t_io* io_sleep);
-// io finalization function
+// IO termination helper
 static void finalize_io(void* request, t_io* io, t_pcb* pcb);
 static bool io_sleep_f(t_sleep* request, t_io* io_sleep);
 static void free_request(void* request, t_io* io);
@@ -31,7 +31,7 @@ static bool handle_stdout(t_io* io);
 static bool handle_sleep(t_io* io);
 static bool handle_io(t_io* io);
 static void* io_thread(void* io_thread);
-static int get_tipo_io(int socket_fd, t_log* logger);
+static int get_io_type(int socket_fd, t_log* logger);
 static bool compare_priority_stdin(void* syscall1, void* syscall2);
 static bool compare_priority_stdout(void* syscall1, void* syscall2);
 static bool compare_priority_sleep(void* syscall1, void* syscall2);
@@ -58,7 +58,7 @@ bool handle_new_io(t_io io[3], int socket_fd, t_queues* queues,
   if (!respond_handshake(socket_fd, MID_KERNEL_SCHEDULER, queues->logger))
     return false;
 
-  int io_type = get_tipo_io(socket_fd, queues->logger);
+  int io_type = get_io_type(socket_fd, queues->logger);
   if (io_type == -1)
     return false;
 
@@ -69,7 +69,7 @@ bool handle_new_io(t_io io[3], int socket_fd, t_queues* queues,
     close(socket_fd);
     return false;
   }
-  // Preparo the t_io for create the thread
+  // Prepare the t_io to create the thread
   io[io_type].socket_io = socket_fd;
   io[io_type].current_process = NULL;
   io[io_type].socket_server = socket_server;
@@ -86,7 +86,7 @@ bool handle_new_io(t_io io[3], int socket_fd, t_queues* queues,
   if (pthread_create(&(io[io_type].io_thread), NULL, io_thread,
                      (void*)(&(io[io_type]))))
   {
-    log_error(queues->logger, "Error while create the thread for IO of type %s",
+    log_error(queues->logger, "Error creating the thread for IO of type %s",
               IO_TYPE_NAMES[io_type]);
     return false;
   }
@@ -162,8 +162,7 @@ static bool send_stdout(t_io* io_out, t_stdout* request, char* buffer)
   free(buffer);
   if (!send)
   {
-    log_error(io_out->logger,
-              "Error while send the response of Kernel Memory a IO");
+    log_error(io_out->logger, "Error sending Kernel Memory's response to IO");
     return false;
   }
   return true;
@@ -176,8 +175,7 @@ static bool request_stdout_km(t_stdout* request, t_io* io_out)
                           io_out->km_socket->km_socket);
   if (!send)
   {
-    log_error(io_out->logger,
-              "Error in the communication with the Kernel Memory");
+    log_error(io_out->logger, "Error communicating with Kernel Memory");
     return false;
   }
   return true;
@@ -193,7 +191,7 @@ static bool send_stdin(t_stdin* request, t_io* io_in, char* buffer)
   destroy_packet(packet);
   if (!send)
   {
-    log_error(io_in->logger, "Error in the send to Kernel memory");
+    log_error(io_in->logger, "Error sending to Kernel Memory");
     return false;
   }
   free(buffer);
@@ -207,12 +205,12 @@ static bool communication_io_stdin(t_stdin* request, t_io* io_in, char** buffer)
                           io_in->socket_io);
   if (!send)
   {
-    log_error(io_in->logger, "Error in the send to IO");
+    log_error(io_in->logger, "Error sending to IO");
 
     return false;
   }
 
-  // recibo the response of IO
+  // Receive the IO response
   int cod_op = receive_op_code(io_in->socket_io);
   if (cod_op == OP_CODE_ERROR)
   {
@@ -222,7 +220,7 @@ static bool communication_io_stdin(t_stdin* request, t_io* io_in, char** buffer)
 
   if (*buffer == NULL)
   {
-    log_error(io_in->logger, "Error while receive the response of IO");
+    log_error(io_in->logger, "Error receiving the IO response");
     free(*buffer);
     return false;
   }
@@ -236,7 +234,7 @@ static bool communication_io_sleep(t_sleep* request, t_io* io_sleep)
                           io_sleep->socket_io);
   if (!send)
   {
-    log_error(io_sleep->logger, "Error while send to IO");
+    log_error(io_sleep->logger, "Error sending to IO");
     return false;
   }
 
@@ -244,14 +242,14 @@ static bool communication_io_sleep(t_sleep* request, t_io* io_sleep)
   if (cod_op == OP_CODE_ERROR)
   {
     log_error(io_sleep->logger,
-              "Error in the response of IO a Kernel Scheduler");
+              "Error in IO's response to the Kernel Scheduler");
     return false;
   }
   char* response = receive_string(io_sleep->socket_io);
   if (strcmp(response, "OK") != 0)
   {
     log_error(io_sleep->logger,
-              "Error in the response of IO a Kernel Scheduler. Expected: OK");
+              "Error in IO's response to the Kernel Scheduler. Expected: OK");
     free(response);
     return false;
   }
@@ -259,14 +257,14 @@ static bool communication_io_sleep(t_sleep* request, t_io* io_sleep)
   return true;
 }
 
-// io finalization function
+// IO termination helper
 static void finalize_io(void* request, t_io* io, t_pcb* pcb)
 {
   pthread_mutex_lock(&(io->io_list->io_list_mutex));
   if (list_remove_element(io->io_list->io_list, request) == 0)
   {
     pthread_mutex_unlock(&(io->io_list->io_list_mutex));
-    log_error(io->logger, "Error while remove the process from the list of IO");
+    log_error(io->logger, "Error removing the process from the IO list");
     return;
   }
   pthread_mutex_unlock(&(io->io_list->io_list_mutex));
@@ -318,8 +316,8 @@ static void free_request(void* request, t_io* io)
 
 static void close_thread_io(t_io* io)
 {
-  bool chequear_io = check_close_thread(io);
-  if (!chequear_io)
+  bool should_close = check_close_thread(io);
+  if (!should_close)
   {
     pthread_mutex_lock(&(io->done_mutex));
     io->close_thread = true;
@@ -350,7 +348,7 @@ static bool chat_km_stdin(t_io* io_in)
       return false;
     case OP_NEW_MEMORY_STICK:
       free(receive_string(io_in->km_socket->km_socket));
-      create_thread_routine_resume_suspension(io_in->queues);
+      create_resumption_routine_thread(io_in->queues);
       return chat_km_stdin(io_in);
     case OP_STDIN_RESPONSE:
       free(receive_string(io_in->km_socket->km_socket));
@@ -372,7 +370,7 @@ static int io_stdin_f(t_stdin* request, t_io* io_in)
   {
     return false;
   }
-  // Le send the packet to the Kernel Memory for that escriba in the memory
+  // Send the packet to Kernel Memory so it writes to memory
   pthread_mutex_lock(&(io_in->km_socket->socket_mutex));
   send = send_stdin(request, io_in, buffer);
   if (!send)
@@ -408,7 +406,7 @@ static bool receive_km_stdout(t_io* io_out)
       return false;
     case OP_NEW_MEMORY_STICK:
       free(receive_string(io_out->km_socket->km_socket));
-      create_thread_routine_resume_suspension(io_out->queues);
+      create_resumption_routine_thread(io_out->queues);
       return receive_km_stdout(io_out);
     case OP_STDOUT_RESPONSE:
       return true;
@@ -434,7 +432,7 @@ static bool io_stdout_f(t_stdout* request, t_io* io_out)
     pthread_mutex_unlock(&(io_out->km_socket->socket_mutex));
     return false;
   }
-  // Recibo the response of Kernel Memory
+  // Receive the Kernel Memory response
   if (!(receive_km_stdout(io_out)))
   {
     pthread_mutex_unlock(&(io_out->km_socket->socket_mutex));
@@ -445,8 +443,7 @@ static bool io_stdout_f(t_stdout* request, t_io* io_out)
   pthread_mutex_unlock(&(io_out->km_socket->socket_mutex));
   if (buffer == NULL)
   {
-    log_error(io_out->logger,
-              "Error while receive the response of Kernel Memory");
+    log_error(io_out->logger, "Error receiving the Kernel Memory response");
     free(buffer);
     close_kernel_scheduler(io_out->socket_server, io_out->logger,
                            SR_KERNEL_MEMORY_CONNECTION_FAILURE, -1);
@@ -463,7 +460,7 @@ static bool io_stdout_f(t_stdout* request, t_io* io_out)
   cod_op = receive_op_code(io_out->socket_io);
   if (cod_op != OP_STDOUT_RESPONSE)
   {
-    log_error(io_out->logger, "Error in the response of IO a Kernel Scheduler");
+    log_error(io_out->logger, "Error in IO's response to the Kernel Scheduler");
     return false;
   }
   free(receive_string(io_out->socket_io));
@@ -477,8 +474,7 @@ static bool handle_stdin(t_io* io)
   pthread_mutex_unlock(&(io->io_list->io_list_mutex));
   if (request == NULL)
   {
-    log_error(io->logger,
-              "#Error while get the request from the list of stdin");
+    log_error(io->logger, "#Error getting the request from the stdin list");
     return false;
   }
   return io_stdin_f(request, io);
@@ -490,8 +486,7 @@ static bool handle_stdout(t_io* io)
   pthread_mutex_unlock(&(io->io_list->io_list_mutex));
   if (request == NULL)
   {
-    log_error(io->logger,
-              "Error while get the request from the list of stdout");
+    log_error(io->logger, "Error getting the request from the stdout list");
     return false;
   }
   return io_stdout_f(request, io);
@@ -503,7 +498,7 @@ static bool handle_sleep(t_io* io)
   pthread_mutex_unlock(&(io->io_list->io_list_mutex));
   if (request == NULL)
   {
-    log_error(io->logger, "Error while get the request from the list of sleep");
+    log_error(io->logger, "Error getting the request from the sleep list");
     return false;
   }
   return io_sleep_f(request, io);
@@ -554,7 +549,7 @@ static void* io_thread(void* io_thread)
     if (!(handle_io(io)))
     {
       seguir_atendiendo = false;
-      log_error(io->logger, "Error in the io operation of type %s",
+      log_error(io->logger, "IO operation of type %s failed",
                 IO_TYPE_NAMES[io->io_type]);
     }
   }
@@ -562,11 +557,11 @@ static void* io_thread(void* io_thread)
   return NULL;
 }
 
-static int get_tipo_io(int socket_fd, t_log* logger)
+static int get_io_type(int socket_fd, t_log* logger)
 {
   if (receive_op_code(socket_fd) != OP_IO_TYPE)
   {
-    log_error(logger, "Error in the tipo of operation. Expected: OP_IO_TYPE");
+    log_error(logger, "Wrong operation type. Expected: OP_IO_TYPE");
     return -1;
   }
 
@@ -585,7 +580,7 @@ static int get_tipo_io(int socket_fd, t_log* logger)
     free(buffer);
     return -1;
   }
-  log_info(logger, "IO of type %s conectada", buffer);
+  log_info(logger, "IO of type %s connected", buffer);
   free(buffer);
   return io_type;
 }

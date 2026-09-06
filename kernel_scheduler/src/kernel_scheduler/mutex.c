@@ -14,7 +14,7 @@ static void remove_priority_list(t_list* list, int priority);
 static bool remove_pcb_list(t_list* list, t_pcb* pcb);
 static bool has_higher_priority_than(void* p1, void* p2);
 static void insert_priority(t_pcb* pcb, int priority, t_log* logger);
-static void replace_priority(t_pcb* pcb, int priority_vieja, int priority_new,
+static void replace_priority(t_pcb* pcb, int old_priority, int priority_new,
                              t_queues* queues);
 static void propagate_priority_transitive(t_pcb* pcb, int priority_new,
                                           t_queues* queues);
@@ -142,14 +142,14 @@ static void insert_priority(t_pcb* pcb, int priority, t_log* logger)
   pthread_mutex_unlock(&(pcb->priority_mutex));
 }
 
-static void replace_priority(t_pcb* pcb, int priority_vieja, int priority_new,
+static void replace_priority(t_pcb* pcb, int old_priority, int priority_new,
                              t_queues* queues)
 {
   bool act = false;
   int* aux = malloc(sizeof(int));
   *aux = priority_new;
   pthread_mutex_lock(&(pcb->priority_mutex));
-  remove_priority_list(pcb->priority_list, priority_vieja);
+  remove_priority_list(pcb->priority_list, old_priority);
   list_add_sorted(pcb->priority_list, aux, has_higher_priority_than);
   int priority = *(int*)list_get(pcb->priority_list, 0);
   if (priority != pcb->priority)
@@ -258,7 +258,7 @@ static int mutex_lock(t_mutex* mutex, t_pcb* pcb)
       replace_priority(mutex->current_process, mutex->next_priority,
                        priority_pcb, mutex->queues);
       mutex->next_priority = priority_pcb;
-      update_priordad_mas_baja_exec(&(mutex->queues->exec));
+      update_lowest_exec_priority(&(mutex->queues->exec));
     }
     set_mutex_blocking(pcb, mutex);
     transition_exec_block(pcb, mutex->queues);
@@ -285,7 +285,7 @@ static int mutex_unlock(t_mutex* mutex, t_pcb* pcb)
   if (mutex->priority_active &&
       remove_priority(pcb, mutex->next_priority, mutex->queues->logger))
   {
-    update_priordad_mas_baja_exec(&(mutex->queues->exec));
+    update_lowest_exec_priority(&(mutex->queues->exec));
   }
   log_mutex_released(mutex->queues->logger, pcb->pid, mutex->id);
   if (mutex->state == 0)

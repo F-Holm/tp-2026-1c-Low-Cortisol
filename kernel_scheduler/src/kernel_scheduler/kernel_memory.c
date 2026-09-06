@@ -50,9 +50,8 @@ t_connection_check_thread* start_thread_check_connection_kernel_memory(
                      thread_check_connection_kernel_memory, data) != 0)
   {
     log_error(logger,
-              "Error in the creation the connection-check thread of the "
-              "connection with "
-              "Kernel Memory");
+              "Error creating the connection-check thread for the "
+              "Kernel Memory connection");
   }
   return data;
 }
@@ -73,7 +72,7 @@ static int connect_kernel_memory(char* ip, char* port, t_log* logger)
   int km_socket = create_connection(ip, port);
   if (km_socket <= 0)
   {
-    log_error(logger, "Error of connection with Kernel Memory");
+    log_error(logger, "Connection error with Kernel Memory");
     return -1;
   }
   log_info(logger, "## Connected to Kernel Memory");
@@ -84,13 +83,12 @@ static bool handshake_kernel_memory(int km_socket, t_log* logger)
 {
   if (!send_handshake(MID_KERNEL_SCHEDULER, km_socket))
   {
-    log_error(logger, "Error in the sending the handshake with Kernel Memory");
+    log_error(logger, "Error sending the handshake to Kernel Memory");
     return false;
   }
   if (receive_handshake(km_socket) != MID_KERNEL_MEMORY)
   {
-    log_error(logger,
-              "Error in the reception of the Handshake with Kernel Memory");
+    log_error(logger, "Error receiving the handshake from Kernel Memory");
     return false;
   }
   log_info(logger, "Handshake successful with Kernel Memory");

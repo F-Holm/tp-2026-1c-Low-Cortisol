@@ -11,7 +11,7 @@ const char* const STATE_NAMES[7] = {
 
 const char* const SHUTDOWN_REASONS[4] = {
     "Processes finished successfully", "BSOD: Corruption of memory detected",
-    "Error in the connection with Kernel Memory", "Error ofsconocido"};
+    "Connection error with Kernel Memory", "Unknown error"};
 
 static bool is_highest_priority(void* pcb1, void* pcb2);
 static void log_shutdown(t_log* logger, int reason_shutdown);
@@ -163,7 +163,7 @@ bool respond_handshake(int socket_fd, int id_module, t_log* logger)
 {
   if (!send_handshake(id_module, socket_fd))
   {
-    log_error(logger, "## Error in the sending the handshake with %s",
+    log_error(logger, "## Error sending the handshake to %s",
               HANDSHAKE_MSG[id_module]);
     return false;
   }
@@ -289,8 +289,7 @@ static void notify_shutdown_kernel_memory(int reason_shutdown, int km_socket,
   if (reason_shutdown == SR_NO_PROCESSES)
   {
     log_info(logger,
-             "Avisando to the Kernel Memory of the shutdown of the Kernel "
-             "Scheduler");
+             "Notifying Kernel Memory of the Kernel Scheduler shutdown");
     send_string(OP_KERNEL_SCHEDULER_SHUTDOWN, "No more processes to run",
                 km_socket);
   }

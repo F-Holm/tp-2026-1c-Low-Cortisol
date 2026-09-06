@@ -40,7 +40,7 @@ int main(int argc, char* argv[])
                           recursos.mutex_list, recursos.queues,
                           recursos.km_socket_mutex, initial_process_path);
 
-  // Empezar a escuchar server
+  // Start listening on the server
   server_listen(&data);
 
   // Release and close

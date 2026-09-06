@@ -18,8 +18,8 @@ const char* const PREEMPTION_REASONS[13] = {
     "preemption by process priority",
     "preemption by compaction",
     "process termination",
-    "first cycle of CPU",
-    "operation of IO",
+    "first CPU cycle",
+    "IO operation",
     "mutex blocked",
     "there is not enough memory for this instruction",
     "segmentation fault",
@@ -56,13 +56,13 @@ static void handle_syscall_io_stdout(t_syscall_data* data);
 static void handle_syscall_io_stdin(t_syscall_data* data);
 static void handle_syscall_start_process(t_syscall_data* data);
 static void handle_syscall_exit(t_syscall_data* data);
-static void handle_syscall_no_valid(t_syscall_data* data);
+static void handle_invalid_syscall(t_syscall_data* data);
 static bool send_pid(t_syscall_data* data);
 static void* handle_cpu_client(void* data_thread_cpu_void);
 static void iterator_shutdown(void* value);
 static t_cpu_thread* init_data_thread_cpu(
     int socket_cpu, t_list* list_sockets_cpu,
-    pthread_mutex_t* mutex_list_sockets_cpu, pthread_cond_t* cond_fin_cpu,
+    pthread_mutex_t* mutex_list_sockets_cpu, pthread_cond_t* cpu_done_cond,
     char* id_cpu, t_log* logger, t_mutex_list* mutex_list, t_queues* queues,
     t_io* io, t_kernel_memory_socket* km_socket, int server_socket);
 static bool create_thread_cpu(t_cpu_thread* data);
@@ -70,7 +70,7 @@ static char* get_id_cpu(int socket_cpu, t_log* logger);
 
 bool handle_new_cpu(int socket_cpu, t_list* list_sockets_cpu,
                     pthread_mutex_t* mutex_list_sockets_cpu,
-                    pthread_cond_t* cond_fin_cpu, t_log* logger,
+                    pthread_cond_t* cpu_done_cond, t_log* logger,
                     t_mutex_list* mutex_list, t_queues* queues, t_io* io,
                     t_kernel_memory_socket* km_socket, int server_socket)
 {
@@ -85,7 +85,7 @@ bool handle_new_cpu(int socket_cpu, t_list* list_sockets_cpu,
 
   // Initialize cpu thread data
   t_cpu_thread* data_thread_cpu = init_data_thread_cpu(
-      socket_cpu, list_sockets_cpu, mutex_list_sockets_cpu, cond_fin_cpu,
+      socket_cpu, list_sockets_cpu, mutex_list_sockets_cpu, cpu_done_cond,
       id_cpu, logger, mutex_list, queues, io, km_socket, server_socket);
 
   // Add socket to the list
@@ -109,16 +109,16 @@ bool handle_new_cpu(int socket_cpu, t_list* list_sockets_cpu,
 
 void close_cpu(t_list* list_sockets_cpu,
                pthread_mutex_t* mutex_list_sockets_cpu,
-               pthread_cond_t* cond_fin_cpu, t_queues* queues)
+               pthread_cond_t* cpu_done_cond, t_queues* queues)
 {
   terminate_queue_ready(&(queues->ready));
   pthread_mutex_lock(mutex_list_sockets_cpu);
   list_iterate(list_sockets_cpu, (void*)iterator_shutdown);
   while (!list_is_empty(list_sockets_cpu))
-    pthread_cond_wait(cond_fin_cpu, mutex_list_sockets_cpu);
+    pthread_cond_wait(cpu_done_cond, mutex_list_sockets_cpu);
   pthread_mutex_unlock(mutex_list_sockets_cpu);
   list_destroy(list_sockets_cpu);
-  pthread_cond_destroy(cond_fin_cpu);
+  pthread_cond_destroy(cpu_done_cond);
   pthread_mutex_destroy(mutex_list_sockets_cpu);
 }
 
@@ -210,7 +210,7 @@ static void manage_preemption_priority(t_syscall_data* data)
 
   if (new_pcb == NULL)
   {
-    log_error(data->data->logger, "Error in the preemption by priority");
+    log_error(data->data->logger, "Priority preemption failed");
     return;
   }
 
@@ -436,7 +436,7 @@ static void handle_syscall_exit(t_syscall_data* data)
   data->preemption_reason = PR_PROCESS_END;
 }
 
-static void handle_syscall_no_valid(t_syscall_data* data)
+static void handle_invalid_syscall(t_syscall_data* data)
 {
   data->keep_running = false;
 }
@@ -467,7 +467,7 @@ static void* handle_cpu_client(void* data_thread_cpu_void)
 {
   t_syscall_data data_syscall = {(t_cpu_thread*)data_thread_cpu_void, NULL,
                                  true, 0, PR_FIRST_CYCLE};
-  void (*funciones_syscalls[OP_SYSCALL_EXIT - OP_CPU_CYCLE_OK + 2])(
+  void (*syscall_handlers[OP_SYSCALL_EXIT - OP_CPU_CYCLE_OK + 2])(
       t_syscall_data*) = {
       handle_cycle_cpu_ok,          handle_segmentation_fault,
       handle_syscall_mutex_create,  handle_syscall_mutex_lock,
@@ -475,7 +475,7 @@ static void* handle_cpu_client(void* data_thread_cpu_void)
       handle_syscall_memory_free,   handle_syscall_io_sleep,
       handle_syscall_io_stdout,     handle_syscall_io_stdin,
       handle_syscall_start_process, handle_syscall_exit,
-      handle_syscall_no_valid};
+      handle_invalid_syscall};
 
   while (data_syscall.keep_running)
   {
@@ -504,13 +504,13 @@ static void* handle_cpu_client(void* data_thread_cpu_void)
 
     if (op_code >= OP_SYSCALL_MUTEX_CREATE && op_code <= OP_SYSCALL_EXIT)
     {
-      sumar_counter_syscalls(data_syscall.data->queues);
+      increment_syscall_counter(data_syscall.data->queues);
     }
     log_syscall(&data_syscall, op_code);
-    funciones_syscalls[op_code - OP_CPU_CYCLE_OK](&data_syscall);
+    syscall_handlers[op_code - OP_CPU_CYCLE_OK](&data_syscall);
     if (op_code >= OP_SYSCALL_MUTEX_CREATE && op_code <= OP_SYSCALL_EXIT)
     {
-      restar_counter_syscalls(data_syscall.data->queues);
+      decrement_syscall_counter(data_syscall.data->queues);
     }
 
     manage_queue_blocked(&data_syscall);
@@ -520,8 +520,7 @@ static void* handle_cpu_client(void* data_thread_cpu_void)
     if (!send_preemption(&data_syscall))
     {
       log_info(data_syscall.data->logger,
-               "CPU %s: Error while send the preemption",
-               data_syscall.data->id);
+               "CPU %s: Error sending the preemption", data_syscall.data->id);
       data_syscall.keep_running = false;
       break;
     }
@@ -559,7 +558,7 @@ static void iterator_shutdown(void* value)
 
 static t_cpu_thread* init_data_thread_cpu(
     int socket_cpu, t_list* list_sockets_cpu,
-    pthread_mutex_t* mutex_list_sockets_cpu, pthread_cond_t* cond_fin_cpu,
+    pthread_mutex_t* mutex_list_sockets_cpu, pthread_cond_t* cpu_done_cond,
     char* id_cpu, t_log* logger, t_mutex_list* mutex_list, t_queues* queues,
     t_io* io, t_kernel_memory_socket* km_socket, int server_socket)
 {
@@ -567,7 +566,7 @@ static t_cpu_thread* init_data_thread_cpu(
   data->socket_fd = socket_cpu;
   data->socket_list = list_sockets_cpu;
   data->socket_list_mutex = mutex_list_sockets_cpu;
-  data->done_cond = cond_fin_cpu;
+  data->done_cond = cpu_done_cond;
   data->id = id_cpu;
   data->logger = logger;
   data->mutex_list = mutex_list;
@@ -583,7 +582,7 @@ static bool create_thread_cpu(t_cpu_thread* data)
   pthread_t thread_cpu;
   if (pthread_create(&thread_cpu, NULL, handle_cpu_client, data) != 0)
   {
-    log_error(data->logger, "Error in the creation the thread of the CPU");
+    log_error(data->logger, "Error creating the CPU thread");
     return false;
   }
   pthread_detach(thread_cpu);
@@ -594,7 +593,7 @@ static char* get_id_cpu(int socket_cpu, t_log* logger)
 {
   if (receive_op_code(socket_cpu) != OP_ID_CPU)
   {
-    log_error(logger, "Error in the reception of the ID of the CPU");
+    log_error(logger, "Error receiving the CPU ID");
     return NULL;
   }
   char* id_cpu = receive_string(socket_cpu);
