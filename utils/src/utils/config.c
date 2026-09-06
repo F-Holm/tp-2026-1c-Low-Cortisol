@@ -6,35 +6,7 @@
 
 #include "utils/string.h"
 
-static void config_load_line(t_config* self, char* line)
-{
-  char* trimmed = string_duplicate(line);
-  string_trim(&trimmed);
-
-  if (string_is_empty(trimmed) || string_starts_with(trimmed, "#"))
-  {
-    free(trimmed);
-    return;
-  }
-
-  char* separator = strchr(trimmed, '=');
-  if (separator == NULL)
-  {
-    free(trimmed);
-    return;
-  }
-
-  *separator = '\0';
-  char* key = string_duplicate(trimmed);
-  char* value = string_duplicate(separator + 1);
-  string_trim(&key);
-  string_trim(&value);
-
-  dictionary_put(self->properties, key, value);
-
-  free(key);
-  free(trimmed);
-}
+static void config_load_line(t_config* self, char* line);
 
 t_config* config_create(char* path)
 {
@@ -80,4 +52,34 @@ int config_get_int_value(t_config* self, char* key)
 char** config_get_array_value(t_config* self, char* key)
 {
   return string_get_string_as_array(config_get_string_value(self, key));
+}
+
+static void config_load_line(t_config* self, char* line)
+{
+  char* trimmed = string_duplicate(line);
+  string_trim(&trimmed);
+
+  if (string_is_empty(trimmed) || string_starts_with(trimmed, "#"))
+  {
+    free(trimmed);
+    return;
+  }
+
+  char* separator = strchr(trimmed, '=');
+  if (separator == NULL)
+  {
+    free(trimmed);
+    return;
+  }
+
+  *separator = '\0';
+  char* key = string_duplicate(trimmed);
+  char* value = string_duplicate(separator + 1);
+  string_trim(&key);
+  string_trim(&value);
+
+  dictionary_put(self->properties, key, value);
+
+  free(key);
+  free(trimmed);
 }

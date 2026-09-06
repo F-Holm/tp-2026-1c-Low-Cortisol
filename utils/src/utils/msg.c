@@ -3,6 +3,9 @@
 const char* const HANDSHAKE_MSG[] = {"kernel_scheduler", "kernel_memory", "cpu",
                                      "memory_stick",     "swap",          "io"};
 
+static void create_buffer(t_packet* packet);
+static void* serialize_packet(t_packet* packet, int bytes);
+
 int create_connection(char* ip, char* port)
 {
   struct addrinfo hints;
@@ -73,13 +76,6 @@ int receive_op_code(int socket_fd)
   }
 }
 
-static void create_buffer(t_packet* packet)
-{
-  packet->buffer = malloc(sizeof(t_buffer));
-  packet->buffer->size = 0;
-  packet->buffer->stream = NULL;
-}
-
 void* receive_buffer(int* size, int socket_fd)
 {
   recv(socket_fd, size, sizeof(int), MSG_WAITALL);
@@ -92,24 +88,6 @@ void* receive_buffer(int* size, int socket_fd)
   recv(socket_fd, buffer, *size, MSG_WAITALL);
 
   return buffer;
-}
-
-static void* serialize_packet(t_packet* packet, int bytes)
-{
-  void* magic = malloc(bytes);
-  int offset = 0;
-
-  memcpy(magic + offset, &(packet->op_code), sizeof(int));
-  offset += sizeof(int);
-  memcpy(magic + offset, &(packet->buffer->size), sizeof(int));
-  offset += sizeof(int);
-  if (packet->buffer->stream != NULL)
-  {
-    memcpy(magic + offset, packet->buffer->stream, packet->buffer->size);
-  }
-  offset += packet->buffer->size;
-
-  return magic;
 }
 
 bool send_buffer(int op_code, void* buffer, int size, int socket_fd)
@@ -258,4 +236,29 @@ void destroy_packet(t_packet* packet)
   free(packet->buffer->stream);
   free(packet->buffer);
   free(packet);
+}
+
+static void create_buffer(t_packet* packet)
+{
+  packet->buffer = malloc(sizeof(t_buffer));
+  packet->buffer->size = 0;
+  packet->buffer->stream = NULL;
+}
+
+static void* serialize_packet(t_packet* packet, int bytes)
+{
+  void* magic = malloc(bytes);
+  int offset = 0;
+
+  memcpy(magic + offset, &(packet->op_code), sizeof(int));
+  offset += sizeof(int);
+  memcpy(magic + offset, &(packet->buffer->size), sizeof(int));
+  offset += sizeof(int);
+  if (packet->buffer->stream != NULL)
+  {
+    memcpy(magic + offset, packet->buffer->stream, packet->buffer->size);
+  }
+  offset += packet->buffer->size;
+
+  return magic;
 }

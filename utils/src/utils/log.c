@@ -16,6 +16,84 @@ static const char* const LEVEL_COLORS[] = {"\x1b[36m", "\x1b[32m", "",
                                            "\x1b[33m", "\x1b[31m"};
 static const char* const COLOR_RESET = "\x1b[0m";
 
+static long current_thread_id(void);
+static void format_timestamp(char* buffer, size_t size);
+static char* format_message(const char* template, va_list arguments);
+static bool is_level_enabled(t_log* logger, t_log_level level);
+static void log_write(t_log* logger, t_log_level level, const char* template,
+                      va_list arguments);
+
+t_log* log_create(char* file, char* program_name, bool is_active_console,
+                  t_log_level detail, bool is_thread_safe)
+{
+  FILE* opened = NULL;
+  if (file != NULL)
+  {
+    opened = fopen(file, "a");
+    if (opened == NULL)
+    {
+      return NULL;
+    }
+  }
+
+  t_log* logger = malloc(sizeof(t_log));
+  logger->file = opened;
+  logger->is_active_console = is_active_console;
+  logger->is_thread_safe = is_thread_safe;
+  logger->detail = detail;
+  logger->program_name = string_duplicate(program_name);
+  logger->pid = getpid();
+  pthread_mutex_init(&logger->mutex, NULL);
+  return logger;
+}
+
+void log_destroy(t_log* logger)
+{
+  if (logger->file != NULL)
+  {
+    fclose(logger->file);
+  }
+  pthread_mutex_destroy(&logger->mutex);
+  free(logger->program_name);
+  free(logger);
+}
+
+const char* log_level_as_string(t_log_level level)
+{
+  return LEVEL_NAMES[level];
+}
+
+t_log_level log_level_from_string(char* level)
+{
+  int amount = sizeof(LEVEL_NAMES) / sizeof(LEVEL_NAMES[0]);
+  for (int i = 0; i < amount; i++)
+  {
+    if (string_equals_ignore_case(level, LEVEL_NAMES[i]))
+    {
+      return i;
+    }
+  }
+  return -1;
+}
+
+// log_trace / log_debug / log_info / log_warning / log_error
+#define DEFINE_LOG_LEVEL(suffix, level)                      \
+  void log_##suffix(t_log* logger, const char* message, ...) \
+  {                                                          \
+    va_list arguments;                                       \
+    va_start(arguments, message);                            \
+    log_write(logger, level, message, arguments);            \
+    va_end(arguments);                                       \
+  }
+
+DEFINE_LOG_LEVEL(trace, LOG_LEVEL_TRACE)
+DEFINE_LOG_LEVEL(debug, LOG_LEVEL_DEBUG)
+DEFINE_LOG_LEVEL(info, LOG_LEVEL_INFO)
+DEFINE_LOG_LEVEL(warning, LOG_LEVEL_WARNING)
+DEFINE_LOG_LEVEL(error, LOG_LEVEL_ERROR)
+
+#undef DEFINE_LOG_LEVEL
+
 static long current_thread_id(void)
 {
   return syscall(SYS_gettid);
@@ -89,74 +167,4 @@ static void log_write(t_log* logger, t_log_level level, const char* template,
   }
 
   free(message);
-}
-
-t_log* log_create(char* file, char* program_name, bool is_active_console,
-                  t_log_level detail, bool is_thread_safe)
-{
-  FILE* opened = NULL;
-  if (file != NULL)
-  {
-    opened = fopen(file, "a");
-    if (opened == NULL)
-    {
-      return NULL;
-    }
-  }
-
-  t_log* logger = malloc(sizeof(t_log));
-  logger->file = opened;
-  logger->is_active_console = is_active_console;
-  logger->is_thread_safe = is_thread_safe;
-  logger->detail = detail;
-  logger->program_name = string_duplicate(program_name);
-  logger->pid = getpid();
-  pthread_mutex_init(&logger->mutex, NULL);
-  return logger;
-}
-
-void log_destroy(t_log* logger)
-{
-  if (logger->file != NULL)
-  {
-    fclose(logger->file);
-  }
-  pthread_mutex_destroy(&logger->mutex);
-  free(logger->program_name);
-  free(logger);
-}
-
-#define DEFINE_LOG_LEVEL(suffix, level)                      \
-  void log_##suffix(t_log* logger, const char* message, ...) \
-  {                                                          \
-    va_list arguments;                                       \
-    va_start(arguments, message);                            \
-    log_write(logger, level, message, arguments);            \
-    va_end(arguments);                                       \
-  }
-
-DEFINE_LOG_LEVEL(trace, LOG_LEVEL_TRACE)
-DEFINE_LOG_LEVEL(debug, LOG_LEVEL_DEBUG)
-DEFINE_LOG_LEVEL(info, LOG_LEVEL_INFO)
-DEFINE_LOG_LEVEL(warning, LOG_LEVEL_WARNING)
-DEFINE_LOG_LEVEL(error, LOG_LEVEL_ERROR)
-
-#undef DEFINE_LOG_LEVEL
-
-const char* log_level_as_string(t_log_level level)
-{
-  return LEVEL_NAMES[level];
-}
-
-t_log_level log_level_from_string(char* level)
-{
-  int amount = sizeof(LEVEL_NAMES) / sizeof(LEVEL_NAMES[0]);
-  for (int i = 0; i < amount; i++)
-  {
-    if (string_equals_ignore_case(level, LEVEL_NAMES[i]))
-    {
-      return i;
-    }
-  }
-  return -1;
 }

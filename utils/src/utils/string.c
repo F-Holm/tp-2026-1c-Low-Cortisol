@@ -4,6 +4,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+static void string_array_push(char*** array, char* value, int size);
+
 char* string_duplicate(const char* original)
 {
   if (original == NULL)
@@ -76,13 +78,6 @@ void string_array_destroy(char** array)
   free(array);
 }
 
-static void string_array_push(char*** array, char* value, int size)
-{
-  *array = realloc(*array, sizeof(char*) * (size + 2));
-  (*array)[size] = value;
-  (*array)[size + 1] = NULL;
-}
-
 char** string_split(const char* text, const char* separator)
 {
   char** substrings = string_array_new();
@@ -131,4 +126,11 @@ char** string_get_string_as_array(const char* text)
 
   free(inner);
   return values;
+}
+
+static void string_array_push(char*** array, char* value, int size)
+{
+  *array = realloc(*array, sizeof(char*) * (size + 2));
+  (*array)[size] = value;
+  (*array)[size + 1] = NULL;
 }

@@ -2,23 +2,9 @@
 
 #include <stdlib.h>
 
-static t_link_element* list_create_element(void* data)
-{
-  t_link_element* element = malloc(sizeof(t_link_element));
-  element->data = data;
-  element->next = NULL;
-  return element;
-}
-
-static t_link_element** list_get_slot(t_list* self, int index)
-{
-  t_link_element** slot = &self->head;
-  for (int i = 0; i < index && *slot != NULL; i++)
-  {
-    slot = &(*slot)->next;
-  }
-  return slot;
-}
+static t_link_element* list_create_element(void* data);
+static t_link_element** list_get_slot(t_list* self, int index);
+static void list_clean(t_list* self, void (*element_destroyer)(void*));
 
 t_list* list_create(void)
 {
@@ -26,23 +12,6 @@ t_list* list_create(void)
   self->head = NULL;
   self->elements_count = 0;
   return self;
-}
-
-static void list_clean(t_list* self, void (*element_destroyer)(void*))
-{
-  t_link_element* element = self->head;
-  while (element != NULL)
-  {
-    t_link_element* next = element->next;
-    if (element_destroyer != NULL)
-    {
-      element_destroyer(element->data);
-    }
-    free(element);
-    element = next;
-  }
-  self->head = NULL;
-  self->elements_count = 0;
 }
 
 void list_destroy(t_list* self)
@@ -190,4 +159,39 @@ void list_iterator_remove(t_list_iterator* iterator)
 void list_iterator_destroy(t_list_iterator* iterator)
 {
   free(iterator);
+}
+
+static t_link_element* list_create_element(void* data)
+{
+  t_link_element* element = malloc(sizeof(t_link_element));
+  element->data = data;
+  element->next = NULL;
+  return element;
+}
+
+static t_link_element** list_get_slot(t_list* self, int index)
+{
+  t_link_element** slot = &self->head;
+  for (int i = 0; i < index && *slot != NULL; i++)
+  {
+    slot = &(*slot)->next;
+  }
+  return slot;
+}
+
+static void list_clean(t_list* self, void (*element_destroyer)(void*))
+{
+  t_link_element* element = self->head;
+  while (element != NULL)
+  {
+    t_link_element* next = element->next;
+    if (element_destroyer != NULL)
+    {
+      element_destroyer(element->data);
+    }
+    free(element);
+    element = next;
+  }
+  self->head = NULL;
+  self->elements_count = 0;
 }
