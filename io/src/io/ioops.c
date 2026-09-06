@@ -1,111 +1,105 @@
 #include "ioops.h"
 
-bool io_tipo_stdin(t_io* sio)
+bool run_stdin(t_io* io)
 {
-  int size_peticion;
-  t_stdin_request* peticion_stdin =
-      (t_stdin_request*)receive_buffer(&size_peticion, sio->socket_io);
-  log_info(sio->logger, "## PID %d -Inicio de IO", peticion_stdin->pid);
+  int request_size;
+  t_stdin_request* request =
+      (t_stdin_request*)receive_buffer(&request_size, io->socket_io);
+  log_info(io->logger, "## PID %d - IO start", request->pid);
 
-  // Solicito el input por teclado
-  log_info(sio->logger, "## PID %d -Ingrese %d caracteres", peticion_stdin->pid,
-           peticion_stdin->bytes_to_read);
+  // Ask for keyboard input.
+  log_info(io->logger, "## PID %d - Enter %d characters", request->pid,
+           request->bytes_to_read);
 
   char* buffer = NULL;
-  size_t tamanio = 0;
+  size_t buffer_size = 0;
 
   printf("> ");
   fflush(stdout);
 
-  if (getline(&buffer, &tamanio, stdin) == -1)
+  if (getline(&buffer, &buffer_size, stdin) == -1)
   {
-    log_error(sio->logger, " Error al leer el input del usuario");
-    free(peticion_stdin);
+    log_error(io->logger, " Error reading the user input");
+    free(request);
     free(buffer);
     return false;
   }
 
-  if (tamanio >= peticion_stdin->bytes_to_read)
+  if (buffer_size >= request->bytes_to_read)
   {
-    buffer[peticion_stdin->bytes_to_read - 1] = '\0';
+    buffer[request->bytes_to_read - 1] = '\0';
   }
 
   buffer[strcspn(buffer, "\n")] = '\0';
 
-  bool envio_correcto = send_string(OP_STDIN_RESPONSE, buffer, sio->socket_io);
-  if (!envio_correcto)
+  bool sent_ok = send_string(OP_STDIN_RESPONSE, buffer, io->socket_io);
+  if (!sent_ok)
   {
-    log_error(sio->logger,
-              " Error al enviar la respuesta de IO a Kernel Scheduler");
+    log_error(io->logger, " Error sending the IO response to Kernel Scheduler");
     free(buffer);
-    free(peticion_stdin);
+    free(request);
     return false;
   }
-  log_info(sio->logger, "## PID %d -Fin de IO", peticion_stdin->pid);
+  log_info(io->logger, "## PID %d - IO end", request->pid);
 
-  free(peticion_stdin);
+  free(request);
   free(buffer);
   return true;
 }
 
-bool io_tipo_stdout(t_io* sio)
+bool run_stdout(t_io* io)
 {
-  // Recibo la peticion de IO
-  t_list* packet = receive_packet(sio->socket_io);
-  t_stdout_request* peticion = (t_stdout_request*)list_remove(packet, 0);
+  t_list* packet = receive_packet(io->socket_io);
+  t_stdout_request* request = (t_stdout_request*)list_remove(packet, 0);
   char* buffer = (char*)list_remove(packet, 0);
   list_destroy(packet);
   if (buffer == NULL)
   {
-    log_error(sio->logger,
-              " Error - No se recibió nada para escribir en pantalla");
-    free(peticion);
+    log_error(io->logger, " Error - nothing received to print on screen");
+    free(request);
     return false;
   }
-  log_info(sio->logger, "## PID %d -Inicio de IO", peticion->pid);
+  log_info(io->logger, "## PID %d - IO start", request->pid);
 
-  // Imprimo por pantalla el mensaje recibido
-  log_info(sio->logger, "## PID: %d - %s", peticion->pid, buffer);
+  // Print the received message on screen.
+  log_info(io->logger, "## PID: %d - %s", request->pid, buffer);
 
-  // Envio OK a Scheduler para que sepa que ya terminó el IO
-  bool envio_correcto = send_string(OP_STDOUT_RESPONSE, "OK", sio->socket_io);
-  if (!envio_correcto)
+  // Reply OK to the scheduler so it knows the IO is done.
+  bool sent_ok = send_string(OP_STDOUT_RESPONSE, "OK", io->socket_io);
+  if (!sent_ok)
   {
-    log_error(sio->logger,
-              " Error al enviar la respuesta de IO a Kernel Scheduler");
-    free(peticion);
+    log_error(io->logger, " Error sending the IO response to Kernel Scheduler");
+    free(request);
     free(buffer);
     return false;
   }
-  log_info(sio->logger, "## PID %d -Fin de IO", peticion->pid);
-  free(peticion);
+  log_info(io->logger, "## PID %d - IO end", request->pid);
+  free(request);
   free(buffer);
   return true;
 }
 
-bool io_tipo_sleep(t_io* sio)
+bool run_sleep(t_io* io)
 {
-  // Recibo la peticion de IO
-  int size_peticion;
-  t_sleep_request* peticion_sleep =
-      (t_sleep_request*)receive_buffer(&size_peticion, sio->socket_io);
-  log_info(sio->logger, "## PID %d -Inicio de IO", peticion_sleep->pid);
+  int request_size;
+  t_sleep_request* request =
+      (t_sleep_request*)receive_buffer(&request_size, io->socket_io);
+  log_info(io->logger, "## PID %d - IO start", request->pid);
 
-  // Simulo el sleep
-  log_info(sio->logger, "## PID: %d - Haciendo sleep por %d segundos",
-           peticion_sleep->pid, peticion_sleep->blocked_time_ms / 1000);
-  usleep(peticion_sleep->blocked_time_ms * 1000);  // Convertir a microsegundos
+  // Simulate the sleep.
+  log_info(io->logger, "## PID: %d - Sleeping for %d seconds", request->pid,
+           request->blocked_time_ms / 1000);
+  usleep(request->blocked_time_ms * 1000);  // convert to microseconds
 
-  // Envio OK a Scheduler para que sepa que ya terminó el IO
-  bool envio_correcto = send_string(OP_SLEEP_RESPONSE, "OK", sio->socket_io);
-  if (!envio_correcto)
+  // Reply OK to the scheduler so it knows the IO is done.
+  bool sent_ok = send_string(OP_SLEEP_RESPONSE, "OK", io->socket_io);
+  if (!sent_ok)
   {
-    log_error(sio->logger,
-              " Error al enviar la respuesta de IO a Kernel Scheduler");
-    free(peticion_sleep);
+    log_error(io->logger, " Error sending the IO response to Kernel Scheduler");
+    free(request);
     return false;
   }
-  log_info(sio->logger, "## PID %d -Fin de IO", peticion_sleep->pid);
-  free(peticion_sleep);
+  log_info(io->logger, "## PID %d - IO end", request->pid);
+  free(request);
   return true;
 }

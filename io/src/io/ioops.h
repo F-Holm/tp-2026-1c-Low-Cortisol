@@ -15,11 +15,11 @@
 #include "utils/collections/list.h"
 #include "utils/config.h"
 #include "utils/io.h"
-#include "utils/syscalls.h"
 #include "utils/log.h"
 #include "utils/msg.h"
 #include "utils/registers_cpu.h"
+#include "utils/syscalls.h"
 
-bool io_tipo_stdin(t_io* sio);
-bool io_tipo_stdout(t_io* sio);
-bool io_tipo_sleep(t_io* sio);
+bool run_stdin(t_io* io);
+bool run_stdout(t_io* io);
+bool run_sleep(t_io* io);

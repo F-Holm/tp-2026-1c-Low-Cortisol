@@ -13,18 +13,18 @@
 
 int main(int argc, char* argv[])
 {
-  t_modulo_io sio;
+  t_io sio;
 
-  if (!args(argc, argv, &sio))
+  if (!parse_args(argc, argv, &sio))
   {
     return EXIT_FAILURE;
   }
 
-  if (!cargar_configs(&sio))
+  if (!load_config(&sio))
   {
     return EXIT_FAILURE;
   }
-  if (!iniciar_enviar_tipo_io(&sio))
+  if (!connect_to_scheduler(&sio))
   {
     return EXIT_FAILURE;
   }
@@ -38,7 +38,7 @@ int main(int argc, char* argv[])
     switch (op_code)
     {
       case OP_IO_STDIN_REQUEST:
-        operacion = io_tipo_stdin(&sio);
+        operacion = run_stdin(&sio);
         if (!operacion)
         {
           seguir_operando = false;
@@ -46,7 +46,7 @@ int main(int argc, char* argv[])
         break;
 
       case OP_IO_STDOUT_REQUEST:
-        operacion = io_tipo_stdout(&sio);
+        operacion = run_stdout(&sio);
         if (!operacion)
         {
           seguir_operando = false;
@@ -54,7 +54,7 @@ int main(int argc, char* argv[])
         break;
 
       case OP_IO_SLEEP_REQUEST:
-        operacion = io_tipo_sleep(&sio);
+        operacion = run_sleep(&sio);
         if (!operacion)
         {
           seguir_operando = false;
@@ -67,6 +67,6 @@ int main(int argc, char* argv[])
   }
   log_info(sio.logger, " Cierre de IO");
   // Liberar y Cerrar
-  cerrar_todo(&sio);
+  close_io(&sio);
   return EXIT_SUCCESS;
 }
