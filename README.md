@@ -35,17 +35,3 @@ make kill                     # stop every process
 
 See [`tests/README.md`](tests/README.md) for the scenario list and port map, and
 [`CONTRIBUTING.md`](CONTRIBUTING.md) for every `make` target and the code style.
-
-## Checkpoints
-
-For each mandatory checkpoint, create a tag in the repository of the form
-`checkpoint-{number}` (e.g. `checkpoint-1`):
-
-```bash
-git tag -a checkpoint-{number} -m "Checkpoint {number}"
-git push origin checkpoint-{number}
-```
-
-> [!WARNING]
-> Make sure the code compiles and meets the checkpoint requirements before
-> pushing the tag.
