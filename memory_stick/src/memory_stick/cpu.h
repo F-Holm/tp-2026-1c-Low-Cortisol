@@ -17,40 +17,38 @@
 
 typedef struct
 {
-  int socket_espera_cpu;
+  int cpu_listen_socket;
   t_log* logger;
-  t_ms_recursos* ms_recursos;
-} t_datos_hilo_escucha;
+  t_ms_recursos* ms;
+} t_listen_thread;
 
 typedef struct
 {
   int socket_cpu;
-  t_list* lista_sockets;
-  pthread_mutex_t* mutex_lista_sockets;
-  pthread_cond_t* cond_fin_hilo_escucha;
-  t_ms_recursos* ms_recursos;
-} t_datos_hilo_cpu;
+  t_list* socket_list;
+  pthread_mutex_t* socket_list_mutex;
+  pthread_cond_t* listen_done_cond;
+  t_ms_recursos* ms;
+} t_cpu_thread;
 
 int create_server_cpu(t_log* logger);
-uint16_t get_puerto_cpu(int socket_server_cpu);
+uint16_t get_cpu_port(int socket_server_cpu);
 void iterator_shutdown(void* value);
-t_datos_hilo_cpu* inicializar_datos_hilo_cpu(
-    int socket_cpu, t_list* lista_sockets, pthread_mutex_t* mutex_lista_sockets,
-    pthread_cond_t* cond_fin_hilo_escucha, t_ms_recursos* ms_recursos);
-bool crear_hilo_cpu(t_datos_hilo_cpu* datos_hilo_cpu, t_log* logger);
-void cerrar_hilo_escucha(t_list* lista_sockets,
-                         pthread_mutex_t* mutex_lista_sockets,
-                         pthread_cond_t* cond_fin_hilo_escucha,
-                         t_datos_hilo_escucha* pardatos_hilo_escuchaams);
+t_cpu_thread* create_cpu_thread_data(int socket_cpu, t_list* socket_list,
+                                     pthread_mutex_t* socket_list_mutex,
+                                     pthread_cond_t* listen_done_cond,
+                                     t_ms_recursos* ms);
+bool spawn_cpu_thread(t_cpu_thread* cpu_thread, t_log* logger);
+void close_listen_thread(t_list* socket_list, pthread_mutex_t* socket_list_mutex,
+                         pthread_cond_t* listen_done_cond,
+                         t_listen_thread* listen_thread);
 bool handshake_cpu(int socket_cpu, t_log* logger);
-char* obtener_id_cpu(int socket_cpu, t_log* logger);
-bool atender_nueva_cpu(t_datos_hilo_escucha* datos_hilo_escucha, int socket_cpu,
-                       t_list* lista_sockets,
-                       pthread_mutex_t* mutex_lista_sockets,
-                       pthread_cond_t* cond_fin_hilo_escucha,
-                       t_ms_recursos* t_ms_recursos);
-void* hilo_escucha_cpu(void* datos_hilo_escucha_void);
-void* manejar_cliente_cpu(void* datos_hilo_cpu_void);
-void cerrar_hilo_cpu(t_datos_hilo_cpu* datos_hilo_cpu);
-bool crear_servidor_cpu(pthread_t* thread_server_cpu, int socket_servidor_cpu,
-                        t_log* logger, t_ms_recursos* ms_recursos);
+char* receive_cpu_id(int socket_cpu, t_log* logger);
+bool handle_new_cpu(t_listen_thread* listen_thread, int socket_cpu,
+                    t_list* socket_list, pthread_mutex_t* socket_list_mutex,
+                    pthread_cond_t* listen_done_cond, t_ms_recursos* ms);
+void* cpu_listen_thread(void* listen_thread_void);
+void* handle_cpu_client(void* cpu_thread_void);
+void close_cpu_thread(t_cpu_thread* cpu_thread);
+bool start_cpu_server(pthread_t* cpu_server_thread, int cpu_server_socket,
+                      t_log* logger, t_ms_recursos* ms);

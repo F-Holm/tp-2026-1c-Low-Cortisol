@@ -9,7 +9,7 @@
 bool conseguir_y_enviar_puerto(int socket_km, int socket_server_cpu,
                                t_log* logger)
 {
-  if (!send_cpu_server_port_to_km(socket_km, get_puerto_cpu(socket_server_cpu)))
+  if (!send_cpu_server_port_to_km(socket_km, get_cpu_port(socket_server_cpu)))
   {
     log_error(logger, "## Error en el envio del puerto del servidor para CPU");
     return false;
@@ -61,7 +61,7 @@ bool iniciar_modulo(t_ms_recursos* ms_recursos, char* archivo_config,
   pthread_mutex_init(ms_recursos->mutex_memoria, NULL);
 
   // Hilo para escuchar nuevas conexiones de CPUs
-  return crear_servidor_cpu(hilo_server_cpu, ms_recursos->socket_server_cpu,
+  return start_cpu_server(hilo_server_cpu, ms_recursos->socket_server_cpu,
                             ms_recursos->logger, ms_recursos);
 }
 
