@@ -155,6 +155,6 @@ bool accept_cliente(void* ptr)
   logger_info(datos_kernel_memory->logger,
               "Servidor a la espera de un cliente");
   int socket_cliente =
-      esperar_cliente(datos_kernel_memory->socket_kernel_memory);
+      accept(datos_kernel_memory->socket_kernel_memory, NULL, NULL);
   return handshake(datos_kernel_memory, socket_cliente);
 }

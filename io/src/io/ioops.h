@@ -13,7 +13,6 @@
 #include <unistd.h>
 
 #include "utils.h"
-#include "utils/client.h"
 #include "utils/collections/list.h"
 #include "utils/config.h"
 #include "utils/io.h"

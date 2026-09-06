@@ -5,11 +5,9 @@
 
 #include "kernel_scheduler/kernel_memory.h"
 #include "kernel_scheduler/server.h"
-#include "utils/client.h"
 #include "utils/config.h"
 #include "utils/log.h"
 #include "utils/msg.h"
-#include "utils/server.h"
 #include "utils/string.h"
 
 const char* const ALGORITMOS_PLANIFICACION[] = {"FIFO", "RR", "CMN"};

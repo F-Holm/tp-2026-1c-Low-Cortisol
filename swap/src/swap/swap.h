@@ -12,7 +12,6 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-#include "utils/client.h"
 #include "utils/collections/list.h"
 #include "utils/config.h"
 #include "utils/log.h"

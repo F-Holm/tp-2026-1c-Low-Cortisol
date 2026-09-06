@@ -3,7 +3,6 @@
 #include <sys/socket.h>
 
 #include "swap/swap.h"
-#include "utils/client.h"
 #include "utils/config.h"
 #include "utils/log.h"
 #include "utils/msg.h"

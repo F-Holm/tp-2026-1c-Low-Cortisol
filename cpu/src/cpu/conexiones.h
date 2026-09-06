@@ -4,7 +4,6 @@
 #include <stdio.h>
 
 #include "cpu/cpu.h"
-#include "utils/client.h"
 #include "utils/config.h"
 #include "utils/msg.h"
 #include "utils/registros.h"

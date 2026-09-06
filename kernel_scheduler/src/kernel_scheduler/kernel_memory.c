@@ -3,7 +3,6 @@
 #include <pthread.h>
 #include <stdbool.h>
 
-#include "utils/client.h"
 #include "utils/msg.h"
 
 static int conectar_kernel_memory(char* ip, char* puerto, t_logger* logger);

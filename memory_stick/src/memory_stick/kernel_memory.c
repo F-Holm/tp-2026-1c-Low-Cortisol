@@ -2,9 +2,7 @@
 
 #include <stdio.h>
 
-#include "utils/client.h"
 #include "utils/msg.h"
-#include "utils/server.h"
 
 bool handshake_km(int socket_km, t_logger* logger)
 {

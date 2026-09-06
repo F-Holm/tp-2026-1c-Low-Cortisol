@@ -120,6 +120,18 @@ typedef enum
 extern const char* const HANDSHAKE_MSG[6];
 
 /**
+ * @brief Opens a TCP connection to @p ip : @p puerto.
+ * @return The connected socket fd, or -1 on failure.
+ */
+int crear_conexion(char* ip, char* puerto);
+
+/**
+ * @brief Creates a listening TCP socket bound to @p puerto (INADDR_ANY).
+ * @return The listening socket fd.
+ */
+int iniciar_servidor(char* puerto);
+
+/**
  * @brief Recibe el código de operación
  * @param socket_fd
  * @return Código de operación (enum / int)

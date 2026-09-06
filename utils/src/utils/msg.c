@@ -3,6 +3,65 @@
 const char* const HANDSHAKE_MSG[] = {"kernel_scheduler", "kernel_memory", "cpu",
                                      "memory_stick",     "swap",          "io"};
 
+int crear_conexion(char* ip, char* puerto)
+{
+  struct addrinfo hints;
+  struct addrinfo* server_info;
+
+  memset(&hints, 0, sizeof(hints));
+  hints.ai_family = AF_INET;
+  hints.ai_socktype = SOCK_STREAM;
+  hints.ai_flags = AI_PASSIVE;
+
+  if (getaddrinfo(ip, puerto, &hints, &server_info) != 0)
+    return -1;
+
+  int fd_socket = socket(server_info->ai_family, server_info->ai_socktype,
+                         server_info->ai_protocol);
+  if (fd_socket == -1)
+  {
+    freeaddrinfo(server_info);
+    return -1;
+  }
+
+  if (connect(fd_socket, server_info->ai_addr, server_info->ai_addrlen) == -1)
+  {
+    freeaddrinfo(server_info);
+    close(fd_socket);
+    return -1;
+  }
+
+  freeaddrinfo(server_info);
+
+  return fd_socket;
+}
+
+int iniciar_servidor(char* puerto)
+{
+  struct addrinfo hints, *servinfo;
+
+  memset(&hints, 0, sizeof(hints));
+  hints.ai_family = AF_INET;
+  hints.ai_socktype = SOCK_STREAM;
+  hints.ai_flags = AI_PASSIVE;
+
+  getaddrinfo(NULL, puerto, &hints, &servinfo);
+
+  int socket_servidor =
+      socket(hints.ai_family, hints.ai_socktype, hints.ai_protocol);
+
+  // Make the socket reusable; remove if it causes issues.
+  int opt = 1;
+  setsockopt(socket_servidor, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+
+  bind(socket_servidor, servinfo->ai_addr, servinfo->ai_addrlen);
+  listen(socket_servidor, SOMAXCONN);
+
+  freeaddrinfo(servinfo);
+
+  return socket_servidor;
+}
+
 int recibir_operacion(int socket_fd)
 {
   int cod_op;

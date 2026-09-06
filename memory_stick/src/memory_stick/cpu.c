@@ -3,9 +3,7 @@
 #include <bits/pthreadtypes.h>
 #include <pthread.h>
 
-#include "utils/client.h"
 #include "utils/msg.h"
-#include "utils/server.h"
 
 int create_server_cpu(t_logger* logger)
 {
@@ -153,7 +151,7 @@ void* hilo_escucha_cpu(void* datos_hilo_escucha_void)
 
   while (true)
   {
-    int socket_cpu = esperar_cliente(datos_hilo_escucha->socket_espera_cpu);
+    int socket_cpu = accept(datos_hilo_escucha->socket_espera_cpu, NULL, NULL);
     if (socket_cpu <= 0)
       break;
 

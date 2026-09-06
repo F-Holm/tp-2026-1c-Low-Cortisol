@@ -7,7 +7,6 @@
 #include "kernel_scheduler/memory.h"
 #include "kernel_scheduler/misc.h"
 #include "misc.h"
-#include "utils/client.h"
 #include "utils/collections/list.h"
 #include "utils/io.h"
 #include "utils/kernel_scheduler_cpu.h"

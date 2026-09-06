@@ -6,7 +6,6 @@
 
 #include "io/ioops.h"
 #include "io/utils.h"
-#include "utils/client.h"
 #include "utils/config.h"
 #include "utils/io.h"
 #include "utils/log.h"

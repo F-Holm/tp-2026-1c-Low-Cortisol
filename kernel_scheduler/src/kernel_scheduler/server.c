@@ -7,7 +7,6 @@
 #include "kernel_scheduler/misc.h"
 #include "utils/collections/list.h"
 #include "utils/msg.h"
-#include "utils/server.h"
 
 static void cerrar_hilo_escucha(t_io* estructuras_io, t_list* lista_sockets_cpu,
                                 pthread_mutex_t* mutex_lista_sockets_cpu,
@@ -53,7 +52,7 @@ void servidor_escucha(t_datos_servidor_escucha* datos)
   while (true)
   {
     bool manejo_exitoso = true;
-    int socket_fd = esperar_cliente(datos->socket_server);
+    int socket_fd = accept(datos->socket_server, NULL, NULL);
     if (socket_fd <= 0)
     {
       break;

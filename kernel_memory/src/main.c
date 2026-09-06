@@ -10,7 +10,6 @@
 #include "utils/kernel_memory_cpu.h"
 #include "utils/logger.h"
 #include "utils/msg.h"
-#include "utils/server.h"
 
 int main(int argc, char* argv[])
 {
