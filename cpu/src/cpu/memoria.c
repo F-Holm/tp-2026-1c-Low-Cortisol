@@ -4,7 +4,7 @@
 
 #include "cpu/connections.h"
 #include "cpu/cpu.h"
-#include "cpu/liberacion.h"
+#include "cpu/cleanup.h"
 #include "cpu/registers.h"
 
 uint32_t mmu(t_cpu* cpu, t_context* context, uint32_t dir_logica,

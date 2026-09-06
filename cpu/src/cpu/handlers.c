@@ -3,7 +3,7 @@
 #include <stdio.h>
 
 #include "cpu/cpu.h"
-#include "cpu/liberacion.h"
+#include "cpu/cleanup.h"
 #include "cpu/memoria.h"
 #include "cpu/registers.h"
 #include "utils/log.h"

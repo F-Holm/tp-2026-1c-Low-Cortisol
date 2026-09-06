@@ -3,7 +3,7 @@
 #include <stdio.h>
 
 #include "cpu/cpu.h"
-#include "cpu/liberacion.h"
+#include "cpu/cleanup.h"
 #include "utils/log.h"
 
 bool connect_to_kernel_scheduler(t_cpu* cpu)

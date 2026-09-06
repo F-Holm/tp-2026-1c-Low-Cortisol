@@ -5,7 +5,7 @@
 
 #include "cpu/connections.h"
 #include "cpu/handlers.h"
-#include "cpu/liberacion.h"
+#include "cpu/cleanup.h"
 #include "cpu/registers.h"
 #include "utils/log.h"
 #include "utils/string.h"
@@ -208,7 +208,7 @@ bool run_instruction_cycle(t_cpu* cpu, uint32_t pid, t_context* context)
     syscall = execute_stage(cpu, context, instruction, pid);
     if (syscall == EB_ERROR)
     {
-      destruir_instruccion(instruction);
+      destroy_instruction(instruction);
       return false;
     }
 
@@ -220,7 +220,7 @@ bool run_instruction_cycle(t_cpu* cpu, uint32_t pid, t_context* context)
       if (!enviar_string(OP_CICLO_CPU_OK, "OK", cpu->socket_kernel_scheduler))
       {
         log_error(cpu->logger, "## Error confirming the end of the cycle");
-        destruir_instruccion(instruction);
+        destroy_instruction(instruction);
         return false;
       }
     }
@@ -228,7 +228,7 @@ bool run_instruction_cycle(t_cpu* cpu, uint32_t pid, t_context* context)
     interrupt = check_interrupt(cpu, pid);
     if (interrupt == EB_ERROR)
     {
-      destruir_instruccion(instruction);
+      destroy_instruction(instruction);
       return false;
     }
 
@@ -236,7 +236,7 @@ bool run_instruction_cycle(t_cpu* cpu, uint32_t pid, t_context* context)
     {
       if (!update_segment_table(cpu, pid, context))
       {
-        destruir_instruccion(instruction);
+        destroy_instruction(instruction);
         return false;
       }
 
@@ -250,7 +250,7 @@ bool run_instruction_cycle(t_cpu* cpu, uint32_t pid, t_context* context)
       context->segment_changed = false;
       keep_going = false;
     }
-    destruir_instruccion(instruction);
+    destroy_instruction(instruction);
   }
   return send_updated_context(cpu, pid, context->registers);
 }

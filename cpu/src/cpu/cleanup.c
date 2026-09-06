@@ -1,4 +1,4 @@
-#include "cpu/liberacion.h"
+#include "cpu/cleanup.h"
 
 #include <stdio.h>
 
@@ -11,7 +11,7 @@ void iterator_close_socket(void* value)
   free(value);
 }
 
-void destruir_instruccion(t_instruction* instruction)
+void destroy_instruction(t_instruction* instruction)
 {
   free(instruction->name);
   for (int i = 0; i < instruction->parameter_count; i++)
@@ -19,7 +19,7 @@ void destruir_instruccion(t_instruction* instruction)
   free(instruction);
 }
 
-void destruir_memory_stick(void* value)
+void destroy_memory_stick(void* value)
 {
   t_memory_stick_info* stick = (t_memory_stick_info*)value;
   if (stick->socket_ms > 0)
@@ -27,11 +27,10 @@ void destruir_memory_stick(void* value)
   free(stick);
 }
 
-void cerrar_modulo(t_cpu* cpu)
+void close_module(t_cpu* cpu)
 {
   if (cpu->memory_sticks != NULL)
-    list_destroy_and_destroy_elements(cpu->memory_sticks,
-                                      destruir_memory_stick);
+    list_destroy_and_destroy_elements(cpu->memory_sticks, destroy_memory_stick);
 
   if (cpu->socket_kernel_memory > 0)
     close(cpu->socket_kernel_memory);
@@ -47,7 +46,7 @@ void cerrar_modulo(t_cpu* cpu)
 
   if (cpu->logger != NULL)
   {
-    log_info(cpu->logger, "MODULO CERRADO");
+    log_info(cpu->logger, "MODULE CLOSED");
     log_destroy(cpu->logger);
   }
   free(cpu);

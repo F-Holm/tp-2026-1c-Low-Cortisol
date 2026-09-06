@@ -4,7 +4,7 @@
 #include "cpu/connections.h"
 #include "cpu/cpu.h"
 #include "cpu/initializer.h"
-#include "cpu/liberacion.h"
+#include "cpu/cleanup.h"
 #include "utils/config.h"
 #include "utils/log.h"
 #include "utils/msg.h"
@@ -23,13 +23,13 @@ int main(int argc, char* argv[])
 
   if (!init_module(cpu, config_path))
   {
-    cerrar_modulo(cpu);
+    close_module(cpu);
     return EXIT_FAILURE;
   }
 
   if (!connect_to_kernel_scheduler(cpu))
   {
-    cerrar_modulo(cpu);
+    close_module(cpu);
     return EXIT_FAILURE;
   }
 
@@ -40,13 +40,13 @@ int main(int argc, char* argv[])
   else
   {
     log_error(cpu->logger, "## fallo el envio del mensaje al kernel scheduler");
-    cerrar_modulo(cpu);
+    close_module(cpu);
     return EXIT_FAILURE;
   }
 
   if (!connect_to_kernel_memory(cpu))
   {
-    cerrar_modulo(cpu);
+    close_module(cpu);
     return EXIT_FAILURE;
   }
 
@@ -57,13 +57,13 @@ int main(int argc, char* argv[])
   else
   {
     log_error(cpu->logger, "## fallo el envio del mensaje al kernel memory");
-    cerrar_modulo(cpu);
+    close_module(cpu);
     return EXIT_FAILURE;
   }
   log_info(cpu->logger, "Socket KM: %d", cpu->socket_kernel_memory);
   if (!receive_max_segment_size(cpu))
   {
-    cerrar_modulo(cpu);
+    close_module(cpu);
     return EXIT_FAILURE;
   }
 
@@ -73,7 +73,7 @@ int main(int argc, char* argv[])
 
   run_instruction_loop(cpu);
 
-  cerrar_modulo(cpu);
+  close_module(cpu);
 
   return 0;
 }
