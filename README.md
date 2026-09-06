@@ -3,6 +3,22 @@
 A simplified take on a project that began as a *Trabajo Práctico* (course
 assignment) for the Operating Systems course at UTN FRBA.
 
+## Modules
+
+The system is a distributed set of processes. Each module has its own README
+describing what it does, how to run it, its configuration keys and its mandatory
+logs.
+
+| Module | Role |
+|--------|------|
+| [`kernel_scheduler`](kernel_scheduler/README.md) | Schedules Processes across the seven-state model. |
+| [`kernel_memory`](kernel_memory/README.md) | Manages instruction/context memory, user memory and SWAP. |
+| [`cpu`](cpu/README.md) | Runs the simplified instruction cycle. |
+| [`memory_stick`](memory_stick/README.md) | A memory chip: serves reads and writes. |
+| [`io`](io/README.md) | Simulates the `STDIN` / `STDOUT` / `SLEEP` interfaces. |
+| [`swap`](swap/README.md) | Block store for suspended Processes. |
+| [`utils`](utils/) | In-repo implementation of the shared utilities (lists, config, logging, sockets). |
+
 ## Dependencies
 
 The project ships its own implementation of the utilities it needs in the
