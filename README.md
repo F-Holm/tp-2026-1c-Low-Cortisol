@@ -25,16 +25,6 @@ make
 ./bin/kernel
 ```
 
-## Importar desde Visual Studio Code
-
-Para importar el workspace, debemos abrir el archivo `tp.code-workspace` desde
-la interfaz o ejecutando el siguiente comando desde la carpeta raíz del
-repositorio:
-
-```bash
-code tp.code-workspace
-```
-
 ## Checkpoint
 
 Para cada checkpoint de control obligatorio, se debe crear un tag en el

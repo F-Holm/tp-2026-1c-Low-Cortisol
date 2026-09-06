@@ -4,6 +4,10 @@
 # CLion files
 .idea/
 
+# Visual Studio Code files
+.vscode/
+*.code-workspace
+
 # Log files
 *.log
 output/
