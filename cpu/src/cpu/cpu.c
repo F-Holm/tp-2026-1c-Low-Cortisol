@@ -3,7 +3,7 @@
 #include <limits.h>
 #include <stdio.h>
 
-#include "cpu/conexiones.h"
+#include "cpu/connections.h"
 #include "cpu/handlers.h"
 #include "cpu/liberacion.h"
 #include "cpu/registers.h"
@@ -72,7 +72,7 @@ bool listen_kernel_memory(t_cpu* cpu)
         break;
 
       case OP_PAQUETE:
-        if (!conectar_memory_stick(cpu))
+        if (!connect_memory_stick(cpu))
           return false;
         break;
 

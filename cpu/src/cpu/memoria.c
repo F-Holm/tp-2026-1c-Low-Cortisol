@@ -2,7 +2,7 @@
 
 #include <stdio.h>
 
-#include "cpu/conexiones.h"
+#include "cpu/connections.h"
 #include "cpu/cpu.h"
 #include "cpu/liberacion.h"
 #include "cpu/registers.h"
@@ -128,7 +128,7 @@ bool solicitar_lectura_MS(t_cpu* cpu, t_memory_stick_info* stick,
   if (!enviar_paquete(paquete, stick->socket_ms))
   {
     log_error(cpu->logger, "## Error en el envio de la lectura al MS");
-    avisar_bsod(cpu);
+    notify_bsod(cpu);
     return false;
   }
   log_info(cpu->logger, "Lectura solicitada correctamente al MS");
@@ -149,7 +149,7 @@ char* confirmacion_letura_MS(t_cpu* cpu, t_memory_stick_info* stick)
     log_error(cpu->logger,
               "## No se recibi la respuesta de lectura correctamente");
 
-    avisar_bsod(cpu);
+    notify_bsod(cpu);
     return NULL;
   }
 }
@@ -202,7 +202,7 @@ bool solicitar_escritura_MS(t_cpu* cpu, t_memory_stick_info* stick,
   if (!enviar_paquete(paquete, stick->socket_ms))
   {
     log_error(cpu->logger, "## Error en el envio de la escritura al MS");
-    avisar_bsod(cpu);
+    notify_bsod(cpu);
     eliminar_paquete(paquete);
     return false;
   }
@@ -223,7 +223,7 @@ bool confirmacion_escritura_MS(t_cpu* cpu, t_memory_stick_info* stick)
   else if (codigo_op == OP_CODE_ERROR)
   {
     log_error(cpu->logger, "## MS desconectado");
-    avisar_bsod(cpu);
+    notify_bsod(cpu);
     return false;
   }
   log_error(cpu->logger,

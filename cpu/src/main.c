@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "cpu/conexiones.h"
+#include "cpu/connections.h"
 #include "cpu/cpu.h"
 #include "cpu/inicializador.h"
 #include "cpu/liberacion.h"
@@ -27,7 +27,7 @@ int main(int argc, char* argv[])
     return EXIT_FAILURE;
   }
 
-  if (!iniciar_conexion_scheduler(cpu))
+  if (!connect_to_kernel_scheduler(cpu))
   {
     cerrar_modulo(cpu);
     return EXIT_FAILURE;
@@ -44,7 +44,7 @@ int main(int argc, char* argv[])
     return EXIT_FAILURE;
   }
 
-  if (!iniciar_conexion_kmemory(cpu))
+  if (!connect_to_kernel_memory(cpu))
   {
     cerrar_modulo(cpu);
     return EXIT_FAILURE;
