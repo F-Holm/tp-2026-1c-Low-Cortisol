@@ -1,6 +1,6 @@
 # Full-system smoke
 
-Maps to **(not an official test)** in `../final-tests-guide.pdf`.
+Not one of the course's official tests: a full-system smoke run.
 
 ## What it exercises
 

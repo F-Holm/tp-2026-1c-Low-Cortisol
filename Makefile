@@ -11,7 +11,7 @@ MODULES = cpu io kernel_memory kernel_scheduler memory_stick swap utils
 E2E_TESTS := $(filter-out pseudocode,$(patsubst tests/%/,%,$(wildcard tests/*/)))
 
 SLEEP_TIME  ?= 0.1
-ESPERA_CPUS ?= 40
+CPU_STAGGER_WAIT ?= 40
 MODE        ?=
 
 VALGRIND_memcheck := valgrind --tool=memcheck --leak-check=full --show-leak-kinds=all --track-origins=yes --trace-children=yes --errors-for-leak-kinds=all
@@ -77,7 +77,7 @@ $(E2E_TESTS): all logs
 	@sleep $(SLEEP_TIME)
 	@n=1; while [ $$n -le $(CPU_COUNT) ]; do \
 		$(VALGRIND) ./cpu/bin/cpu tests/$@/cpu.conf CPU-$$n > output/cpu_$$n.log 2>&1 & \
-		if [ "$(strip $(CPU_STAGGER))" = "$$n" ]; then sleep $(ESPERA_CPUS); else sleep $(SLEEP_TIME); fi; \
+		if [ "$(strip $(CPU_STAGGER))" = "$$n" ]; then sleep $(CPU_STAGGER_WAIT); else sleep $(SLEEP_TIME); fi; \
 		n=$$((n + 1)); \
 	done
 	@echo "Launched. Logs in ./output/. Stop with 'make kill'."

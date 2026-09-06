@@ -41,9 +41,9 @@ its six `<module>.conf` files and a `test.mk` with its parameters.
 | `make <scenario> MODE=helgrind` | Same, with every process under Valgrind helgrind. |
 | `make kill` | Stop every process of the system. |
 
-Available scenarios: `base`, `base2`, `pcp`, `mem-best`, `mem-worst`, `pmp`,
-`pmp-det`, `pmp-v2`, `pmp-det-v2`, `php`, `php-v2`, `es3-1`, `es3-2`, `es3-3`,
-`es3-4`, `full`.
+Available scenarios: `base`, `base2`, `short-term`, `mem-best`, `mem-worst`, `medium-term`,
+`medium-term-det`, `medium-term-v2`, `medium-term-det-v2`, `priority-inheritance`, `priority-inheritance-v2`, `stability-1`, `stability-2`, `stability-3`,
+`stability-4`, `full`.
 
 Each process's log is written to `./output/`.
 

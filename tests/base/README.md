@@ -1,6 +1,6 @@
 # Base test (run 1)
 
-Maps to **Prueba Base** in `../final-tests-guide.pdf`.
+Covers the **Base** case from the course test guide (not committed to the repo).
 
 ## What it exercises
 

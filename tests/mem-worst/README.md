@@ -1,6 +1,6 @@
 # Memory test (Worst Fit)
 
-Maps to **Prueba Memoria** in `../final-tests-guide.pdf`.
+Covers the **Memory** case from the course test guide (not committed to the repo).
 
 ## What it exercises
 

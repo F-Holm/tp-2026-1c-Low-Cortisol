@@ -1,4 +1,0 @@
-INITIAL_PROCESS := PHP.prc
-STICK_SIZES     := 16 16
-CPU_COUNT       := 1
-CPU_STAGGER     :=

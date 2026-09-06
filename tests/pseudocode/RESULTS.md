@@ -2,7 +2,7 @@
 
 ## Final tests
 
-See `../final-tests-guide.pdf` and the per-scenario `README.md` under
+See the course test guide (not committed) and the per-scenario `README.md` under
 `tests/<scenario>/`.
 
 ## Preliminary scripts

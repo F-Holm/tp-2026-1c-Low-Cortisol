@@ -16,7 +16,7 @@ make kill                       # stop everything
 
 Per-process logs are written to `./output/`. Each scenario has its own
 `README.md` describing what it exercises and the expected result; those are
-based on `final-tests-guide.pdf` (kept locally, not committed) and the
+based on the course test guide (not committed to the repo) and the
 pseudocode each scenario runs.
 
 ## Ports
@@ -29,17 +29,17 @@ time without colliding. The pair is `kernel_memory = 27167 + N`,
 |---|---|---|---|
 | 0 | base | 27167 | 37016 |
 | 1 | base2 | 27168 | 37017 |
-| 2 | pcp | 27169 | 37018 |
+| 2 | short-term | 27169 | 37018 |
 | 3 | mem-best | 27170 | 37019 |
 | 4 | mem-worst | 27171 | 37020 |
-| 5 | pmp | 27172 | 37021 |
-| 6 | pmp-det | 27173 | 37022 |
-| 7 | pmp-v2 | 27174 | 37023 |
-| 8 | pmp-det-v2 | 27175 | 37024 |
-| 9 | php | 27176 | 37025 |
-| 10 | php-v2 | 27177 | 37026 |
-| 11 | es3-1 | 27178 | 37027 |
-| 12 | es3-2 | 27179 | 37028 |
-| 13 | es3-3 | 27180 | 37029 |
-| 14 | es3-4 | 27181 | 37030 |
+| 5 | medium-term | 27172 | 37021 |
+| 6 | medium-term-det | 27173 | 37022 |
+| 7 | medium-term-v2 | 27174 | 37023 |
+| 8 | medium-term-det-v2 | 27175 | 37024 |
+| 9 | priority-inheritance | 27176 | 37025 |
+| 10 | priority-inheritance-v2 | 27177 | 37026 |
+| 11 | stability-1 | 27178 | 37027 |
+| 12 | stability-2 | 27179 | 37028 |
+| 13 | stability-3 | 27180 | 37029 |
+| 14 | stability-4 | 27181 | 37030 |
 | 15 | full | 27182 | 37031 |
