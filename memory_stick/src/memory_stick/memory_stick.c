@@ -32,8 +32,8 @@ bool init_module(t_ms* ms, char* config_path, char* size,
   if (ms->logger == NULL)
     return false;
 
-  ms->socket_km = connect_to_kernel_memory(config_vars.km_ip, config_vars.km_port,
-                                           size, ms->logger);
+  ms->socket_km = connect_to_kernel_memory(
+      config_vars.km_ip, config_vars.km_port, size, ms->logger);
   if (ms->socket_km <= 0)
     return false;
 

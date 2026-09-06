@@ -39,7 +39,8 @@ t_cpu_thread* create_cpu_thread_data(int socket_cpu, t_list* socket_list,
                                      pthread_cond_t* listen_done_cond,
                                      t_ms* ms);
 bool spawn_cpu_thread(t_cpu_thread* cpu_thread, t_log* logger);
-void close_listen_thread(t_list* socket_list, pthread_mutex_t* socket_list_mutex,
+void close_listen_thread(t_list* socket_list,
+                         pthread_mutex_t* socket_list_mutex,
                          pthread_cond_t* listen_done_cond,
                          t_listen_thread* listen_thread);
 bool handshake_cpu(int socket_cpu, t_log* logger);

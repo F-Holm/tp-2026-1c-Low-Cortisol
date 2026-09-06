@@ -32,8 +32,7 @@ void iterator_shutdown(void* value)
 
 t_cpu_thread* create_cpu_thread_data(int socket_cpu, t_list* socket_list,
                                      pthread_mutex_t* socket_list_mutex,
-                                     pthread_cond_t* listen_done_cond,
-                                     t_ms* ms)
+                                     pthread_cond_t* listen_done_cond, t_ms* ms)
 {
   t_cpu_thread* data = malloc(sizeof(t_cpu_thread));
   data->socket_cpu = socket_cpu;
@@ -56,7 +55,8 @@ bool spawn_cpu_thread(t_cpu_thread* cpu_thread, t_log* logger)
   return true;
 }
 
-void close_listen_thread(t_list* socket_list, pthread_mutex_t* socket_list_mutex,
+void close_listen_thread(t_list* socket_list,
+                         pthread_mutex_t* socket_list_mutex,
                          pthread_cond_t* listen_done_cond,
                          t_listen_thread* listen_thread)
 {

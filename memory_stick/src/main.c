@@ -15,82 +15,72 @@
 
 int main(int argc, char* argv[])
 {
-  t_ms ms_recursos = {0};
-  pthread_t thread_server_cpu;
+  t_ms ms = {0};
+  pthread_t cpu_server_thread;
 
-  // args
-  char* archivo_config = NULL;
-  char* tamanio_str = NULL;
-  int tamanio;
-  if (!get_args(argc, argv, &archivo_config, &tamanio_str, &tamanio))
+  char* config_path = NULL;
+  char* size_str = NULL;
+  int size;
+  if (!get_args(argc, argv, &config_path, &size_str, &size))
     return EXIT_FAILURE;
 
-  // Iniciar módulo
-  if (!init_module(&ms_recursos, archivo_config, tamanio_str,
-                      &thread_server_cpu))
+  if (!init_module(&ms, config_path, size_str, &cpu_server_thread))
   {
-    close_module_on_error(&ms_recursos);
+    close_module_on_error(&ms);
     return EXIT_FAILURE;
   }
 
-  // Esperando Instrucciones del Kernel Memory
-  bool seguir_operando = true;
-  while (seguir_operando)
+  // Waiting for instructions from Kernel Memory.
+  bool keep_running = true;
+  while (keep_running)
   {
-    int op_code = receive_op_code(ms_recursos.socket_km);
+    int op_code = receive_op_code(ms.socket_km);
     switch (op_code)
     {
       case OP_MEMORY_STICK_READ:
       {
-        log_info(ms_recursos.logger, "Recibiendo instrucción de lectura");
-        t_list* packet = receive_packet(ms_recursos.socket_km);
+        log_info(ms.logger, "Receiving a read instruction");
+        t_list* packet = receive_packet(ms.socket_km);
         if (list_size(packet) != 2)
         {
-          log_error(ms_recursos.logger,
-                    "Cantidad de parametros para leer memoria invalida.");
+          log_error(ms.logger, "Invalid number of parameters to read memory.");
           list_destroy_and_destroy_elements(packet, free);
           break;
         }
-        int posicion_inicial = *(int*)list_get(packet, 0);
-        int cantidad_bytes = *(int*)list_get(packet, 1);
-        read_memory(&ms_recursos, posicion_inicial, cantidad_bytes,
-                     ms_recursos.socket_km);
-        log_info(ms_recursos.logger, "## Lectura de %d bytes", cantidad_bytes);
+        int start_position = *(int*)list_get(packet, 0);
+        int byte_count = *(int*)list_get(packet, 1);
+        read_memory(&ms, start_position, byte_count, ms.socket_km);
+        log_info(ms.logger, "## Read of %d bytes", byte_count);
         list_destroy_and_destroy_elements(packet, free);
         break;
       }
       case OP_MEMORY_STICK_WRITE:
       {
-        log_info(ms_recursos.logger, "Recibiendo instrucción de escritura");
-        t_list* packet = receive_packet(ms_recursos.socket_km);
+        log_info(ms.logger, "Receiving a write instruction");
+        t_list* packet = receive_packet(ms.socket_km);
         if (list_size(packet) != 3)
         {
-          log_error(ms_recursos.logger,
-                    "Cantidad de parametros para escribir memoria invalida.");
+          log_error(ms.logger, "Invalid number of parameters to write memory.");
           list_destroy_and_destroy_elements(packet, free);
           break;
         }
-        int posicion_inicial = *(int*)list_get(packet, 0);
-        char* bytes_a_escribir = (char*)list_get(packet, 1);
-        int cantidad_bytes = *(int*)list_get(packet, 2);
-        log_info(ms_recursos.logger,
-                 "Escritura por parte del Kernel memory de %d bytes, desde "
-                 "%d",
-                 cantidad_bytes, posicion_inicial);
-        write_memory(&ms_recursos, posicion_inicial, bytes_a_escribir,
-                         cantidad_bytes, ms_recursos.socket_km);
-        log_info(ms_recursos.logger, "## Escritura de %d bytes",
-                 cantidad_bytes);
+        int start_position = *(int*)list_get(packet, 0);
+        char* bytes_to_write = (char*)list_get(packet, 1);
+        int byte_count = *(int*)list_get(packet, 2);
+        log_info(ms.logger, "Write from Kernel Memory of %d bytes, from %d",
+                 byte_count, start_position);
+        write_memory(&ms, start_position, bytes_to_write, byte_count,
+                     ms.socket_km);
+        log_info(ms.logger, "## Write of %d bytes", byte_count);
         list_destroy_and_destroy_elements(packet, free);
         break;
       }
       default:
-        seguir_operando = false;
+        keep_running = false;
         break;
     }
   }
 
-  // Liberar y Cerrar
-  close_module(&ms_recursos, &thread_server_cpu);
+  close_module(&ms, &cpu_server_thread);
   return EXIT_SUCCESS;
 }
