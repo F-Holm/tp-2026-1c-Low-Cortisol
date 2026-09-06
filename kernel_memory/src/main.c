@@ -1,10 +1,10 @@
 #include <pthread.h>
 #include <stdlib.h>
 
-#include "kernel_memory/configurador.h"
-#include "kernel_memory/inicializador.h"
-#include "kernel_memory/liberador.h"
-#include "kernel_memory/servidor.h"
+#include "kernel_memory/cleanup.h"
+#include "kernel_memory/configurator.h"
+#include "kernel_memory/initializer.h"
+#include "kernel_memory/server.h"
 #include "utils/collections/list.h"
 #include "utils/config.h"
 #include "utils/log.h"
@@ -14,30 +14,30 @@ int main(int argc, char* argv[])
 {
   if (argc != 2)
     return EXIT_FAILURE;
-  char* archivo_config = argv[1];
+  char* config_path = argv[1];
 
-  t_config* config = iniciar_config(archivo_config);
-  t_log* logger = iniciar_logger(config);
+  t_config* config = init_config(config_path);
+  t_log* logger = init_logger(config);
   int socket_kernel_memory =
       start_server(config_get_string_value(config, "KERNEL_MEMORY_PORT"));
-  char* scripts_basepath = iniciar_basepath(config);
-  int instruction_delay = iniciar_instruction_delay(config);
-  int compaction_delay = iniciar_compaction_delay(config);
-  int segment_max_size = iniciar_segment_max_size(config);
-  int allocation_strategy = iniciar_allocation_strategy(config);
+  char* scripts_basepath = get_scripts_basepath(config);
+  int instruction_delay = get_instruction_delay(config);
+  int compaction_delay = get_compaction_delay(config);
+  int segment_max_size = get_segment_max_size(config);
+  int allocation_strategy = get_allocation_strategy(config);
 
-  t_datos_kernel_mem* datos_kernel = inicializar_datos_kernel_memory(
+  t_kernel_memory_data* kernel_data = init_kernel_memory_data(
       socket_kernel_memory, scripts_basepath, instruction_delay,
       compaction_delay, segment_max_size, allocation_strategy, logger);
 
-  log_info(logger, "Kernel Memory Iniciado ");
-  bool conexion_estable = true;
-  while (conexion_estable)
+  log_info(logger, "Kernel Memory started ");
+  bool connection_alive = true;
+  while (connection_alive)
   {
-    conexion_estable = accept_cliente(datos_kernel);
+    connection_alive = accept_client(kernel_data);
   }
 
-  liberar_datos_kernel_mem(datos_kernel);
+  free_kernel_memory_data(kernel_data);
   config_destroy(config);
   log_destroy(logger);
   return 0;
