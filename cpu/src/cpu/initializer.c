@@ -38,7 +38,7 @@ bool init_module(t_cpu* cpu, char* config_path)
   }
 
   log_info(cpu->logger, "Starting CPU %s", cpu->id);
-  log_info(cpu->logger, "config loaded successfully");
+  log_debug(cpu->logger, "Config loaded successfully");
 
   cpu->memory_sticks = list_create();
   return true;

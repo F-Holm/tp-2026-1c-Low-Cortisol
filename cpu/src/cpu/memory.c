@@ -18,7 +18,7 @@ uint32_t mmu(t_cpu* cpu, t_context* context, uint32_t logical_address,
 
   if (segment == NULL)
   {
-    log_error(cpu->logger, "## Segment %u not found", segment_number);
+    log_debug(cpu->logger, "Segment %u not found", segment_number);
     return INVALID_ADDRESS - 1;
   }
 
@@ -52,10 +52,10 @@ bool notify_seg_fault(t_cpu* cpu, uint32_t pid)
   if (!send_string(OP_SEG_FAULT, "SEGMENTATION FAULT",
                    cpu->socket_kernel_scheduler))
   {
-    log_error(cpu->logger, "## Failed to send the segmentation fault");
+    log_warning(cpu->logger, "## Could not send the segmentation fault");
     return false;
   }
-  log_info(cpu->logger, "Segmentation fault sent successfully");
+  log_debug(cpu->logger, "Segmentation fault sent successfully");
   return true;
 }
 
@@ -125,11 +125,12 @@ bool request_read(t_cpu* cpu, t_memory_stick_info* stick,
 
   if (!send_packet(packet, stick->socket_ms))
   {
-    log_error(cpu->logger, "## Error sending the read request to the MS");
+    log_warning(cpu->logger,
+                "## Could not send the read request to the Memory Stick");
     notify_bsod(cpu);
     return false;
   }
-  log_info(cpu->logger, "Read requested from the MS");
+  log_trace(cpu->logger, "Read requested from the Memory Stick");
   destroy_packet(packet);
   return true;
 }
@@ -139,12 +140,13 @@ char* receive_read_response(t_cpu* cpu, t_memory_stick_info* stick)
   int op_code = receive_op_code(stick->socket_ms);
   if (op_code == OP_MEMORY_STICK_READ_DONE)
   {
-    log_info(cpu->logger, "Read done");
+    log_trace(cpu->logger, "Read done");
     return receive_string(stick->socket_ms);
   }
   else
   {
-    log_error(cpu->logger, "## Did not receive the read response correctly");
+    log_warning(cpu->logger,
+                "## Read response from the Memory Stick was not correct");
 
     notify_bsod(cpu);
     return NULL;
@@ -198,12 +200,13 @@ bool request_write(t_cpu* cpu, t_memory_stick_info* stick,
   packet_append(packet, &bytes_to_write, sizeof(uint32_t));
   if (!send_packet(packet, stick->socket_ms))
   {
-    log_error(cpu->logger, "## Error sending the write request to the MS");
+    log_warning(cpu->logger,
+                "## Could not send the write request to the Memory Stick");
     notify_bsod(cpu);
     destroy_packet(packet);
     return false;
   }
-  log_info(cpu->logger, "Write requested from the MS");
+  log_trace(cpu->logger, "Write requested from the Memory Stick");
   destroy_packet(packet);
   return true;
 }
@@ -214,15 +217,16 @@ bool receive_write_response(t_cpu* cpu, t_memory_stick_info* stick)
   free(receive_string(stick->socket_ms));
   if (op_code == OP_MEMORY_STICK_WRITE_DONE)
   {
-    log_info(cpu->logger, "Write done");
+    log_trace(cpu->logger, "Write done");
     return true;
   }
   else if (op_code == OP_CODE_ERROR)
   {
-    log_error(cpu->logger, "## MS disconnected");
+    log_warning(cpu->logger, "## Memory Stick disconnected");
     notify_bsod(cpu);
     return false;
   }
-  log_error(cpu->logger, "## Did not receive the write response correctly");
+  log_warning(cpu->logger,
+              "## Write response from the Memory Stick was not correct");
   return false;
 }

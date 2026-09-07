@@ -46,7 +46,7 @@ void close_module(t_cpu* cpu)
 
   if (cpu->logger != NULL)
   {
-    log_info(cpu->logger, "MODULE CLOSED");
+    log_debug(cpu->logger, "CPU module closed");
     log_destroy(cpu->logger);
   }
   free(cpu);

@@ -35,7 +35,7 @@ int main(int argc, char* argv[])
 
   if (send_string(OP_ID_CPU, cpu->id, cpu->socket_kernel_scheduler))
   {
-    log_info(cpu->logger, "ID sent to the kernel scheduler");
+    log_debug(cpu->logger, "ID sent to the Kernel Scheduler");
   }
   else
   {
@@ -53,7 +53,7 @@ int main(int argc, char* argv[])
 
   if (send_string(OP_ID_CPU, cpu->id, cpu->socket_kernel_memory))
   {
-    log_info(cpu->logger, "ID sent to the kernel memory");
+    log_debug(cpu->logger, "ID sent to Kernel Memory");
   }
   else
   {
@@ -62,7 +62,8 @@ int main(int argc, char* argv[])
     close_module(cpu);
     return EXIT_FAILURE;
   }
-  log_info(cpu->logger, "KM socket: %d", cpu->socket_kernel_memory);
+  log_trace(cpu->logger, "Kernel Memory socket fd: %d",
+            cpu->socket_kernel_memory);
   if (!receive_max_segment_size(cpu))
   {
     close_module(cpu);

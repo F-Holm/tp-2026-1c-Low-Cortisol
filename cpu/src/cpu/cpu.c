@@ -19,8 +19,8 @@ bool receive_max_segment_size(t_cpu* cpu)
     void* buffer = receive_buffer(&size, cpu->socket_kernel_memory);
     cpu->max_segment_size = *(int*)buffer;
     free(buffer);
-    log_info(cpu->logger, "Maximum segment size received: %u",
-             cpu->max_segment_size);
+    log_debug(cpu->logger, "Maximum segment size received: %u",
+              cpu->max_segment_size);
   }
   else
   {
@@ -47,7 +47,8 @@ bool parse_stick_packet(t_cpu* cpu, t_list* packet, char stick_ip[16],
   strcpy(stick_port, list_get(packet, 1));
   *size = *(int*)list_get(packet, 2);
   list_destroy_and_destroy_elements(packet, free);
-  log_info(cpu->logger, "IP: %s | Port: %s", stick_ip, stick_port);
+  log_debug(cpu->logger, "Memory Stick IP: %s | Port: %s", stick_ip,
+            stick_port);
   return true;
 }
 
@@ -77,11 +78,11 @@ bool listen_kernel_memory(t_cpu* cpu)
         break;
 
       case OP_CODE_ERROR:
-        log_error(cpu->logger, "## Kernel Memory disconnected");
+        log_warning(cpu->logger, "## Kernel Memory disconnected");
         return false;
 
       default:
-        log_error(cpu->logger, "## Unrecognized operation code: %d", op_code);
+        log_warning(cpu->logger, "## Unrecognized operation code: %d", op_code);
         return false;
     }
   }
@@ -103,10 +104,10 @@ void run_instruction_loop(t_cpu* cpu)
 
     if (!request_context(cpu, pid))
     {
-      log_error(cpu->logger, "## Failed to request the context");
+      log_warning(cpu->logger, "## Could not request the context");
       break;
     }
-    log_info(cpu->logger, "Context requested successfully");
+    log_debug(cpu->logger, "Context requested successfully");
 
     if (listen_kernel_memory(cpu))
       context->registers = receive_context(cpu);
@@ -147,12 +148,12 @@ uint32_t receive_pid(t_cpu* cpu)
   }
   else if (op_code == 0)
   {
-    log_info(cpu->logger, "Scheduler disconnected, shutting down");
+    log_warning(cpu->logger, "Kernel Scheduler disconnected, shutting down");
   }
   else
   {
-    log_error(cpu->logger, "## Error receiving the PID - code received: %d",
-              op_code);
+    log_warning(cpu->logger, "## Could not receive the PID - code received: %d",
+                op_code);
   }
   return pid;
 }
@@ -170,17 +171,17 @@ t_registers* receive_context(t_cpu* cpu)
   t_registers* registers = malloc(sizeof(t_registers));
   memcpy(registers, buffer, size);
   free(buffer);
-  log_info(cpu->logger, "Context registers received");
+  log_debug(cpu->logger, "Context registers received");
   return registers;
 }
 
 t_list* receive_segment_table(t_cpu* cpu, t_context* context)
 {
   list_destroy_and_destroy_elements(context->segment_table, free);
-  log_info(cpu->logger, "Waiting for the segment table");
+  log_trace(cpu->logger, "Waiting for the segment table");
   t_list* segment_table = receive_packet(cpu->socket_kernel_memory);
-  log_info(cpu->logger, "Segment table received - segment count: %d",
-           list_size(segment_table));
+  log_debug(cpu->logger, "Segment table received - segment count: %d",
+            list_size(segment_table));
   return segment_table;
 }
 
@@ -219,12 +220,12 @@ bool run_instruction_cycle(t_cpu* cpu, uint32_t pid, t_context* context)
     {
       if (!send_string(OP_CPU_CYCLE_OK, "OK", cpu->socket_kernel_scheduler))
       {
-        log_error(cpu->logger, "## Error confirming the end of the cycle");
+        log_warning(cpu->logger, "## Could not confirm the end of the cycle");
         destroy_instruction(instruction);
         return false;
       }
     }
-    log_info(cpu->logger, "Scheduler notified of the end of the cycle");
+    log_trace(cpu->logger, "Kernel Scheduler notified of the end of the cycle");
     interrupt = check_interrupt(cpu, pid);
     if (interrupt == EB_ERROR)
     {
@@ -270,10 +271,10 @@ bool request_instruction(t_cpu* cpu, uint32_t pid, uint32_t pc)
   packet_append(packet, &pc, sizeof(uint32_t));
   if (!send_packet(packet, cpu->socket_kernel_memory))
   {
-    log_error(cpu->logger, "## Error requesting the instruction");
+    log_warning(cpu->logger, "## Could not request the instruction");
     return false;
   }
-  log_info(cpu->logger, "Instruction requested successfully");
+  log_trace(cpu->logger, "Instruction requested successfully");
   destroy_packet(packet);
   return true;
 }
@@ -327,7 +328,7 @@ t_extended_bool check_interrupt(t_cpu* cpu, uint32_t pid)
   {
     log_info(cpu->logger, "## Interrupt received");
     char* interrupt_reason = receive_string(cpu->socket_kernel_scheduler);
-    log_info(cpu->logger, "Interrupt reason: %s ", interrupt_reason);
+    log_debug(cpu->logger, "Interrupt reason: %s", interrupt_reason);
 
     if ((strcmp(interrupt_reason,
                 "there is not enough memory for this instruction")) == 0)
@@ -340,16 +341,16 @@ t_extended_bool check_interrupt(t_cpu* cpu, uint32_t pid)
   }
   else if (code == OP_NO_INTERRUPT)
   {
-    log_info(cpu->logger, "No interrupt");
+    log_trace(cpu->logger, "No interrupt");
     free(receive_string(cpu->socket_kernel_scheduler));
     return EB_TRUE;
   }
   else if (code == OP_CODE_ERROR)
   {
-    log_info(cpu->logger, "Kernel Scheduler disconnected");
+    log_warning(cpu->logger, "Kernel Scheduler disconnected");
     return EB_ERROR;
   }
-  log_error(cpu->logger, "## Unrecognized operation: %d", code);
+  log_warning(cpu->logger, "## Unrecognized operation: %d", code);
   return EB_ERROR;
 }
 
@@ -361,27 +362,27 @@ bool send_updated_context(t_cpu* cpu, uint32_t pid,
   packet_append(packet, updated_context, sizeof(t_registers));
   if (!send_packet(packet, cpu->socket_kernel_memory))
   {
-    log_error(cpu->logger, "## Error sending the updated context");
+    log_warning(cpu->logger, "## Could not send the updated context");
     return false;
   }
-  log_info(cpu->logger, "Updated context sent successfully");
+  log_debug(cpu->logger, "Updated context sent successfully");
   destroy_packet(packet);
   return true;
 }
 
 bool update_segment_table(t_cpu* cpu, uint32_t pid, t_context* context)
 {
-  log_info(cpu->logger, "Requesting the updated segment table");
+  log_trace(cpu->logger, "Requesting the updated segment table");
   if (!send_buffer(OP_UPDATED_SEGMENT_TABLE, &pid, sizeof(uint32_t),
                    cpu->socket_kernel_memory))
   {
-    log_error(cpu->logger, "## Failed to request the segment table update");
+    log_warning(cpu->logger, "## Could not request the segment table update");
     return false;
   }
 
   if (!listen_kernel_memory(cpu))
     return false;
   context->segment_table = receive_segment_table(cpu, context);
-  log_info(cpu->logger, "Segment table updated successfully");
+  log_debug(cpu->logger, "Segment table updated successfully");
   return true;
 }

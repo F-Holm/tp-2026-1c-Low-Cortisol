@@ -95,3 +95,26 @@ them in English.
 | `registers.c` | Register get/set by name and width. |
 | `memory.c` | MMU translation and Memory Stick read/write. |
 | `cleanup.c` | Teardown. |
+
+## Log inventory
+
+Ordered by level, then by how often each line fires. `LOG_LEVEL` is the lowest
+level that reaches the file (`INFO` shows `INFO`/`WARNING`/`ERROR`).
+
+| Level | Frequency | Message | Where |
+|-------|-----------|---------|-------|
+| `INFO` | per instruction (mandatory) | `## PID: <PID> - FETCH - Program Counter: <PC>` | `cpu.c` |
+| `INFO` | per instruction (mandatory) | `## PID: <PID> - Running: <instr>` | `cpu.c` |
+| `INFO` | per `MOV_IN` / `MOV_OUT` / `COPY_MEM` (mandatory) | `PID: <PID> - Action: <READ/WRITE> - Physical Address: <addr> - Value: <value>` | `handlers.c` |
+| `INFO` | per interrupt (mandatory) | `## Interrupt received` | `cpu.c` |
+| `INFO` | per dispatched process | `PID <PID> received - starting instruction cycle` | `cpu.c` |
+| `INFO` | once, on startup | `Starting CPU <id>` | `initializer.c` |
+| `WARNING` | on peer loss (KM / scheduler / stick) | `## Kernel Memory disconnected`, `Kernel Scheduler disconnected...`, `## Memory Stick disconnected`, `## Could not send/request ...` | `cpu.c`, `memory.c`, `handlers.c`, `connections.c` |
+| `WARNING` | on unexpected op code | `## Unrecognized operation code: <op>` | `cpu.c` |
+| `ERROR` | rare (startup failure) | `## Could not load the config` / `## Could not load the logger` | `initializer.c` |
+| `ERROR` | rare (bad handshake) | `## failed / Error ... the handshake ...` | `connections.c` |
+| `ERROR` | rare (bad data) | `## Wrong operation code: <op>`, `## Bad memory stick packet ...`, `## Unknown instruction: <name>`, `## Memory Stick not found`, `## Null read from the MS` | `cpu.c`, `memory.c` |
+| `DEBUG` | once per connection / dispatch | handshakes, `Config loaded successfully`, `Context requested/received`, `Segment table received/updated`, `Maximum segment size received`, `Interrupt reason: <r>` | `connections.c`, `cpu.c` |
+| `DEBUG` | per syscall instruction | `Syscall sent to the Kernel Scheduler` | `handlers.c` |
+| `TRACE` | per cycle | `No interrupt`, `Kernel Scheduler notified of the end of the cycle`, `Instruction requested successfully`, `Waiting for the segment table` | `cpu.c` |
+| `TRACE` | per memory access | `Read/Write requested from the Memory Stick`, `Read/Write done` | `memory.c` |

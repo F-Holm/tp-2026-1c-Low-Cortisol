@@ -19,7 +19,7 @@ bool connect_to_kernel_scheduler(t_cpu* cpu)
 
   if (send_handshake(MID_CPU, cpu->socket_kernel_scheduler))
   {
-    log_info(cpu->logger, "handshake sent to the kernel scheduler");
+    log_debug(cpu->logger, "Handshake sent to the Kernel Scheduler");
   }
   else
   {
@@ -35,7 +35,7 @@ bool connect_to_kernel_scheduler(t_cpu* cpu)
     close(cpu->socket_kernel_scheduler);
     return false;
   }
-  log_info(cpu->logger, "Handshake received from the kernel scheduler");
+  log_debug(cpu->logger, "Handshake received from the Kernel Scheduler");
 
   return true;
 }
@@ -53,7 +53,7 @@ bool connect_to_kernel_memory(t_cpu* cpu)
 
   if (send_handshake(MID_CPU, cpu->socket_kernel_memory))
   {
-    log_info(cpu->logger, "handshake sent to the kernel memory");
+    log_debug(cpu->logger, "Handshake sent to Kernel Memory");
   }
   else
   {
@@ -69,7 +69,7 @@ bool connect_to_kernel_memory(t_cpu* cpu)
     close(cpu->socket_kernel_memory);
     return false;
   }
-  log_info(cpu->logger, "Handshake received from the kernel memory");
+  log_debug(cpu->logger, "Handshake received from Kernel Memory");
 
   return true;
 }
@@ -91,22 +91,22 @@ bool connect_memory_stick(t_cpu* cpu)
 
   if (new_socket <= 0)
   {
-    log_error(cpu->logger, "## Error connecting to the memory stick");
+    log_warning(cpu->logger, "## Could not connect to the Memory Stick");
     return false;
   }
 
-  log_info(cpu->logger, "Connecting to memory stick at ip %s and port %s",
-           stick_ip, stick_port);
+  log_debug(cpu->logger, "Connecting to Memory Stick at %s:%s", stick_ip,
+            stick_port);
 
   if (!handshake_memory_stick(cpu, new_socket))
   {
-    log_error(cpu->logger, "## Error in the handshake with the memory stick");
+    log_warning(cpu->logger, "## Handshake with the Memory Stick failed");
     return false;
   }
 
   if (!send_string(OP_ID_CPU, cpu->id, new_socket))
   {
-    log_error(cpu->logger, "## Error sending the ID to the memory stick");
+    log_warning(cpu->logger, "## Could not send the ID to the Memory Stick");
     close(new_socket);
     return false;
   }
@@ -146,7 +146,7 @@ bool handshake_memory_stick(t_cpu* cpu, int new_socket)
     close(new_socket);
     return false;
   }
-  log_info(cpu->logger, "Handshake successful with the memory stick");
+  log_debug(cpu->logger, "Handshake successful with the Memory Stick");
 
   return true;
 }
@@ -155,7 +155,7 @@ void notify_bsod(t_cpu* cpu)
 {
   if (!send_string(OP_STICK_DISCONNECTED, "MS disconnected",
                    cpu->socket_kernel_memory))
-    log_info(cpu->logger, "Kernel Memory disconnected");
+    log_warning(cpu->logger, "Kernel Memory disconnected");
   else
     log_info(cpu->logger, "Kernel Memory notified of BSOD");
 }
