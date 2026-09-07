@@ -18,7 +18,7 @@ bool receive_cpu_id(t_cpu_data* cpu_data)
   if (receive_op_code(cpu_data->socket_cpu) == OP_ID_CPU)
   {
     char* id_cpu = receive_string(cpu_data->socket_cpu);
-    log_info(cpu_data->logger, "## CPU %s connected", id_cpu);
+    log_info(cpu_data->logger, "CPU %s connected", id_cpu);
     cpu_data->id = atoi(id_cpu);
     free(id_cpu);
     return true;
@@ -39,7 +39,7 @@ bool receive_stick_size(t_stick_data* stick_data)
   if (receive_op_code(stick_data->socket_stick) == OP_MEMORY_SIZE)
   {
     char* size = receive_string(stick_data->socket_stick);
-    log_info(stick_data->logger, "## Memory Stick of %s bytes connected", size);
+    log_info(stick_data->logger, "Memory Stick of %s bytes connected", size);
     stick_data->stick_size = atoi(size);
     free(size);
     return true;
@@ -165,7 +165,7 @@ int compute_free_space(t_list* holes, pthread_mutex_t* holes_mutex,
     total += current_hole->size;
   }
   list_iterator_destroy(iterator);
-  log_trace(logger, "free space: %d", total);
+  log_trace(logger, "Free space: %d bytes", total);
   return total;
 }
 
@@ -291,8 +291,7 @@ void create_segment(uint32_t id, uint32_t pid, int size,
     update_segment_list(main_memory, chosen_hole, size, pid, id);
     pthread_mutex_unlock(main_memory->main_memory_mutex);
     send_string(OP_MEMORY_ALLOCATED, "Memory allocated", socket_scheduler);
-    log_info(logger, "## PID: %u - Segment created %u - Size: %d", pid, id,
-             size);
+    log_info(logger, "PID: %u - Segment created %u - Size: %d", pid, id, size);
   }
 }
 
@@ -361,7 +360,7 @@ t_segment* find_and_remove_segment(uint32_t id, uint32_t pid,
 {
   pthread_mutex_lock(main_memory->main_memory_mutex);
 
-  log_trace(logger, "iterating segment list of size %d:",
+  log_trace(logger, "Searching %d segments for the one to remove",
             list_size(main_memory->segments));
 
   t_list_iterator* iterator = list_iterator_create(main_memory->segments);
@@ -803,7 +802,7 @@ bool write_to_sticks(int pid, int physical_address, int bytes_to_read,
     }
     destroy_packet(packet);
 
-    log_trace(logger, "##PID: %d - Write - Phys. Addr: %d - Size: %d", pid,
+    log_trace(logger, "PID: %d - Write - Phys. Addr: %d - Size: %d", pid,
               physical_address, to_write);
 
     if (receive_op_code(current_stick->socket_stick) ==

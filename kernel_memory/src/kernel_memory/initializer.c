@@ -133,8 +133,7 @@ t_process* init_process(u_int32_t pid, char* relative_path,
   FILE* f = fopen(full_path, "r");
   if (f == NULL)
   {
-    log_error(logger, "## PID: %u - Could not open the file: %s", pid,
-              full_path);
+    log_error(logger, "PID: %u - Could not open the file: %s", pid, full_path);
     free(full_path);
     free(process);
     return NULL;
@@ -168,7 +167,7 @@ bool resolve_stick_ip(t_stick_data* stick_data, int client_socket)
     strcpy(stick_data->ip_memory_stick, resolved_ip);
     return true;
   }
-  log_error(stick_data->logger, "## Could not resolve the memory stick IP");
+  log_error(stick_data->logger, "Could not resolve the memory stick IP");
   return false;
 }
 

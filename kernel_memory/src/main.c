@@ -30,7 +30,7 @@ int main(int argc, char* argv[])
       socket_kernel_memory, scripts_basepath, instruction_delay,
       compaction_delay, segment_max_size, allocation_strategy, logger);
 
-  log_info(logger, "## Kernel Memory started");
+  log_info(logger, "Kernel Memory started");
   bool connection_alive = true;
   while (connection_alive)
   {

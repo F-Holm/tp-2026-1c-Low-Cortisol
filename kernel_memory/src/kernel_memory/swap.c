@@ -329,14 +329,14 @@ static bool regenerate_segment(uint32_t id, uint32_t pid, int size,
     // Compaction check
     if (chosen_hole.size == -1)
     {
-      log_warning(logger, "## Could not allocate any hole.");
+      log_warning(logger, "Could not allocate any hole.");
       send_string(OP_RESUME_SUSPENSION_FAILED, "Could not allocate holes.",
                   socket_scheduler);
       return false;
     }
     update_segment_list(main_memory, chosen_hole, size, pid, id);
     pthread_mutex_unlock(main_memory->main_memory_mutex);
-    log_info(logger, "## PID: %u - Segment regenerated %u - Size: %d", pid, id,
+    log_info(logger, "PID: %u - Segment regenerated %u - Size: %d", pid, id,
              size);
     return true;
   }

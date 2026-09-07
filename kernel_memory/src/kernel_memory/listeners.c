@@ -21,7 +21,7 @@ void* listen_scheduler(void* ptr)
         list_add_mtx(scheduler_data->processes, scheduler_data->processes_mutex,
                      process);
 
-        log_info(scheduler_data->logger, "## PID: %d  - Process created", *pid);
+        log_info(scheduler_data->logger, "PID: %d  - Process created", *pid);
         list_destroy_and_destroy_elements(packet, free);
         send_string(OP_PROCESS_STARTED, "Process created",
                     scheduler_data->socket_scheduler);
@@ -63,7 +63,7 @@ void* listen_scheduler(void* ptr)
             &a, scheduler_data->socket_scheduler);
         remove_segment(syscall->segment_id, syscall->pid,
                        scheduler_data->main_memory, scheduler_data->logger);
-        log_trace(scheduler_data->logger, "removed successfully");
+        log_trace(scheduler_data->logger, "Segment removed");
         free(syscall);
         send_string(OP_MEMORY_FREED, "Memory freed",
                     scheduler_data->socket_scheduler);
@@ -71,8 +71,7 @@ void* listen_scheduler(void* ptr)
       }
       case OP_IO_STDIN_REQUEST:
       {
-        log_debug(scheduler_data->logger,
-                  "Received a syscall: PETICION_IO_STDIN");
+        log_debug(scheduler_data->logger, "Received a STDIN request");
         t_list* stdin_packet = receive_packet(scheduler_data->socket_scheduler);
         t_stdin_request* peticion_stdin =
             (t_stdin_request*)list_get(stdin_packet, 0);
@@ -89,7 +88,7 @@ void* listen_scheduler(void* ptr)
           break;
         }
         log_info(scheduler_data->logger,
-                 "## PID: %u - Write - "
+                 "PID: %u - Write - "
                  "Phys. Addr: %u - Size: %d",
                  peticion_stdin->pid, physical_address,
                  peticion_stdin->bytes_to_read);
@@ -121,8 +120,7 @@ void* listen_scheduler(void* ptr)
       }
       case OP_IO_STDOUT_REQUEST:
       {
-        log_debug(scheduler_data->logger,
-                  "Received a syscall: PETICION_IO_STDOUT");
+        log_debug(scheduler_data->logger, "Received a STDOUT request");
         int size;
         t_stdout_request* peticion_stdout = (t_stdout_request*)receive_buffer(
             &size, scheduler_data->socket_scheduler);
@@ -131,7 +129,7 @@ void* listen_scheduler(void* ptr)
             peticion_stdout->bytes_to_write, scheduler_data->main_memory,
             scheduler_data->logger);
         log_info(scheduler_data->logger,
-                 "## PID: %u - Read - "
+                 "PID: %u - Read - "
                  "Phys. Addr: %u - Size: %d",
                  peticion_stdout->pid, physical_address,
                  peticion_stdout->bytes_to_write);
@@ -298,7 +296,7 @@ void* listen_cpu(void* ptr)
             find_process(cpu_data->processes, cpu_data->processes_mutex, pid);
         char* instruction = process->instructions[pc];
         log_info(cpu_data->logger,
-                 "## PID: %u - Get instruction: %u - Instruction: %s", pid, pc,
+                 "PID: %u - Get instruction: %u - Instruction: %s", pid, pc,
                  instruction);
         usleep(cpu_data->instruction_delay * 1000);
         send_string(OP_SEND_INSTRUCTION, instruction, cpu_data->socket_cpu);
@@ -385,8 +383,7 @@ void* listen_cpu(void* ptr)
       }
       case OP_STICK_DISCONNECTED:
         log_warning(cpu_data->logger,
-                    "Notifying the Kernel Scheduler that memory is corrupted "
-                    "corrupta");
+                    "Notifying the Kernel Scheduler that memory is corrupted");
         if (!send_string(OP_MEMORY_CORRUPTED, "Corrupted memory",
                          cpu_data->socket_scheduler))
         {
