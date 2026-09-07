@@ -21,7 +21,7 @@ int create_socket_server(char* port, t_log* logger)
     log_error(logger, "Error creating the server");
     return -1;
   }
-  log_info(logger, "Server created successfully");
+  log_debug(logger, "Server created successfully");
   return ret;
 }
 
@@ -72,7 +72,7 @@ void server_listen(t_listen_server_data* data)
                                    data->socket_server);
         break;
       default:
-        log_info(data->logger, "Invalid handshake received");
+        log_warning(data->logger, "Invalid handshake received");
         handled_ok = false;
         break;
     }
@@ -91,9 +91,9 @@ static void close_thread_listen(t_io* io, t_list* list_sockets_cpu,
                                 pthread_cond_t* cpu_done_cond,
                                 t_listen_server_data* data)
 {
-  log_info(data->logger, "Closing server");
+  log_debug(data->logger, "Closing server");
   close_cpu(list_sockets_cpu, mutex_list_sockets_cpu, cpu_done_cond,
             data->queues);
   close_io(io);
-  log_info(data->logger, "Server closed");
+  log_debug(data->logger, "Server closed");
 }

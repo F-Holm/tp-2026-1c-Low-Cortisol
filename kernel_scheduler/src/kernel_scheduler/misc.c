@@ -289,8 +289,8 @@ static void notify_shutdown_kernel_memory(int reason_shutdown, int km_socket,
 {
   if (reason_shutdown == SR_NO_PROCESSES)
   {
-    log_info(logger,
-             "Notifying Kernel Memory of the Kernel Scheduler shutdown");
+    log_debug(logger,
+              "Notifying Kernel Memory of the Kernel Scheduler shutdown");
     send_string(OP_KERNEL_SCHEDULER_SHUTDOWN, "No more processes to run",
                 km_socket);
   }

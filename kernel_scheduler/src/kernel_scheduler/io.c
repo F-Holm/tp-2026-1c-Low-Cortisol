@@ -61,8 +61,8 @@ bool handle_new_io(t_io io[3], int socket_fd, t_queues* queues,
 
   if (io[io_type].socket_io != -1)
   {
-    log_error(queues->logger, "Duplicate IO type: %d. Closing connection",
-              io_type);
+    log_warning(queues->logger, "Duplicate IO type: %d. Closing connection",
+                io_type);
     close(socket_fd);
     return false;
   }
@@ -87,8 +87,8 @@ bool handle_new_io(t_io io[3], int socket_fd, t_queues* queues,
               IO_TYPE_NAMES[io_type]);
     return false;
   }
-  log_info(queues->logger, "IO thread of type %s created",
-           IO_TYPE_NAMES[io_type]);
+  log_debug(queues->logger, "IO thread of type %s created",
+            IO_TYPE_NAMES[io_type]);
   return true;
 }
 
@@ -159,7 +159,7 @@ static bool send_stdout(t_io* io_out, t_stdout* request, char* buffer)
   free(buffer);
   if (!send)
   {
-    log_error(io_out->logger, "Error sending Kernel Memory's response to IO");
+    log_warning(io_out->logger, "Error sending Kernel Memory's response to IO");
     return false;
   }
   return true;
@@ -172,7 +172,7 @@ static bool request_stdout_km(t_stdout* request, t_io* io_out)
                           io_out->km_socket->km_socket);
   if (!send)
   {
-    log_error(io_out->logger, "Error communicating with Kernel Memory");
+    log_warning(io_out->logger, "Error communicating with Kernel Memory");
     return false;
   }
   return true;
@@ -188,7 +188,7 @@ static bool send_stdin(t_stdin* request, t_io* io_in, char* buffer)
   destroy_packet(packet);
   if (!send)
   {
-    log_error(io_in->logger, "Error sending to Kernel Memory");
+    log_warning(io_in->logger, "Error sending to Kernel Memory");
     return false;
   }
   free(buffer);
@@ -202,7 +202,7 @@ static bool communication_io_stdin(t_stdin* request, t_io* io_in, char** buffer)
                           io_in->socket_io);
   if (!send)
   {
-    log_error(io_in->logger, "Error sending to IO");
+    log_warning(io_in->logger, "Error sending to IO");
 
     return false;
   }
@@ -217,7 +217,7 @@ static bool communication_io_stdin(t_stdin* request, t_io* io_in, char** buffer)
 
   if (*buffer == NULL)
   {
-    log_error(io_in->logger, "Error receiving the IO response");
+    log_warning(io_in->logger, "Error receiving the IO response");
     free(*buffer);
     return false;
   }
@@ -231,22 +231,22 @@ static bool communication_io_sleep(t_sleep* request, t_io* io_sleep)
                           io_sleep->socket_io);
   if (!send)
   {
-    log_error(io_sleep->logger, "Error sending to IO");
+    log_warning(io_sleep->logger, "Error sending to IO");
     return false;
   }
 
   int cod_op = receive_op_code(io_sleep->socket_io);
   if (cod_op == OP_CODE_ERROR)
   {
-    log_error(io_sleep->logger,
-              "Error in IO's response to the Kernel Scheduler");
+    log_warning(io_sleep->logger,
+                "Error in IO's response to the Kernel Scheduler");
     return false;
   }
   char* response = receive_string(io_sleep->socket_io);
   if (strcmp(response, "OK") != 0)
   {
-    log_error(io_sleep->logger,
-              "Error in IO's response to the Kernel Scheduler. Expected: OK");
+    log_warning(io_sleep->logger,
+                "Error in IO's response to the Kernel Scheduler. Expected: OK");
     free(response);
     return false;
   }
@@ -265,7 +265,7 @@ static void finalize_io(void* request, t_io* io, t_pcb* pcb)
     return;
   }
   pthread_mutex_unlock(&(io->io_list->io_list_mutex));
-  log_info(io->logger, "PID %d - Removed from the IO list", pcb->pid);
+  log_debug(io->logger, "PID %d - Removed from the IO list", pcb->pid);
 
   // Move to ready or susp ready depending on the blocked time
   free_request(request, io);
@@ -440,7 +440,7 @@ static bool io_stdout_f(t_stdout* request, t_io* io_out)
   pthread_mutex_unlock(&(io_out->km_socket->socket_mutex));
   if (buffer == NULL)
   {
-    log_error(io_out->logger, "Error receiving the Kernel Memory response");
+    log_warning(io_out->logger, "Error receiving the Kernel Memory response");
     free(buffer);
     close_kernel_scheduler(io_out->socket_server, io_out->logger,
                            SR_KERNEL_MEMORY_CONNECTION_FAILURE, -1);
@@ -457,7 +457,8 @@ static bool io_stdout_f(t_stdout* request, t_io* io_out)
   cod_op = receive_op_code(io_out->socket_io);
   if (cod_op != OP_STDOUT_RESPONSE)
   {
-    log_error(io_out->logger, "Error in IO's response to the Kernel Scheduler");
+    log_warning(io_out->logger,
+                "Error in IO's response to the Kernel Scheduler");
     return false;
   }
   free(receive_string(io_out->socket_io));
@@ -471,7 +472,7 @@ static bool handle_stdin(t_io* io)
   pthread_mutex_unlock(&(io->io_list->io_list_mutex));
   if (request == NULL)
   {
-    log_error(io->logger, "#Error getting the request from the stdin list");
+    log_warning(io->logger, "#Error getting the request from the stdin list");
     return false;
   }
   return io_stdin_f(request, io);
@@ -483,7 +484,7 @@ static bool handle_stdout(t_io* io)
   pthread_mutex_unlock(&(io->io_list->io_list_mutex));
   if (request == NULL)
   {
-    log_error(io->logger, "Error getting the request from the stdout list");
+    log_warning(io->logger, "Error getting the request from the stdout list");
     return false;
   }
   return io_stdout_f(request, io);
@@ -495,7 +496,7 @@ static bool handle_sleep(t_io* io)
   pthread_mutex_unlock(&(io->io_list->io_list_mutex));
   if (request == NULL)
   {
-    log_error(io->logger, "Error getting the request from the sleep list");
+    log_warning(io->logger, "Error getting the request from the sleep list");
     return false;
   }
   return io_sleep_f(request, io);
@@ -547,8 +548,8 @@ static void* io_thread(void* io_thread)
     if (!(handle_io(io)))
     {
       seguir_atendiendo = false;
-      log_error(io->logger, "IO operation of type %s failed",
-                IO_TYPE_NAMES[io->io_type]);
+      log_warning(io->logger, "IO operation of type %s failed",
+                  IO_TYPE_NAMES[io->io_type]);
     }
   }
   close_thread_io(io);

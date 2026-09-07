@@ -365,8 +365,8 @@ void transition_ready_exec(t_pcb* pcb, t_queues* queues)
 void transition_new_ready(t_queues* queues, char* instructions_file,
                           int priority)
 {
-  log_info(queues->logger, "Creating process with priority %d located at %s",
-           priority, instructions_file);
+  log_debug(queues->logger, "Creating process with priority %d located at %s",
+            priority, instructions_file);
   t_pcb* pcb = transition_take_new(instructions_file, priority, queues);
   if (pcb != NULL)
   {
@@ -491,14 +491,14 @@ void lock_threads_suspended(t_queues* queues)
                         &(queues->block));
   lock_thread_suspended(queues->suspension_data->resumer_thread_data->data,
                         &(queues->susp_ready));
-  log_info(queues->logger, "Suspended threads locked");
+  log_trace(queues->logger, "Suspended threads locked");
 }
 
 void unlock_threads_suspended(t_queues* queues)
 {
   unlock_thread_suspended(queues->suspension_data->suspender_thread_data->data);
   unlock_thread_suspended(queues->suspension_data->resumer_thread_data->data);
-  log_info(queues->logger, "Suspended threads unlocked");
+  log_trace(queues->logger, "Suspended threads unlocked");
 }
 
 int space_available_no_mutex(t_queues* queues, uint32_t pid)
@@ -560,7 +560,7 @@ void create_resumption_routine_thread(t_queues* queues)
   else
   {
     pthread_detach(thread);
-    log_info(queues->logger, "Resumption routine thread started successfully");
+    log_debug(queues->logger, "Resumption routine thread started successfully");
   }
 }
 
@@ -647,7 +647,7 @@ static void decrement_thread_counter(t_queues* queues)
 
 static void wait_counter_threads(t_queues* queues)
 {
-  log_info(queues->logger, "Waiting for all threads to finish");
+  log_debug(queues->logger, "Waiting for all threads to finish");
   pthread_mutex_lock(&(queues->thread_counter->counter_mutex));
   while (queues->thread_counter->count > 0)
   {
@@ -655,7 +655,7 @@ static void wait_counter_threads(t_queues* queues)
                       &(queues->thread_counter->counter_mutex));
   }
   pthread_mutex_unlock(&(queues->thread_counter->counter_mutex));
-  log_info(queues->logger, "Threads finished");
+  log_debug(queues->logger, "Threads finished");
 }
 
 static void destroy_counter(t_counter* counter)
@@ -766,7 +766,7 @@ static void start_thread_suspender(t_queues* queues)
   }
   else
   {
-    log_info(queues->logger, "Thread suspender started successfully");
+    log_debug(queues->logger, "Thread suspender started successfully");
   }
 }
 
@@ -780,7 +780,7 @@ static void start_thread_resumer(t_queues* queues)
   }
   else
   {
-    log_info(queues->logger, "Thread resume started successfully");
+    log_debug(queues->logger, "Thread resume started successfully");
   }
 }
 
@@ -1219,7 +1219,7 @@ static void transition_block_susp_block_no_mutex(t_pcb* pcb, t_queues* queues)
 
   if (!notify_process_suspended(pcb, queues))
   {
-    log_info(queues->logger, "Could not suspend process %u", pcb->pid);
+    log_debug(queues->logger, "Could not suspend process %u", pcb->pid);
     return;
   }
 
@@ -1286,15 +1286,15 @@ static bool transition_susp_ready_no_mutex(t_pcb* pcb, t_queues* queues)
 
   if (!can_resume_suspended(pcb, queues))
   {
-    log_info(queues->logger,
-             "There are not enough space for resume to the process %u",
-             pcb->pid);
+    log_debug(queues->logger,
+              "There are not enough space for resume to the process %u",
+              pcb->pid);
     return false;
   }
 
   if (!notify_process_resume_suspended(pcb, queues))
   {
-    log_info(queues->logger, "Cannot resume process %u", pcb->pid);
+    log_debug(queues->logger, "Cannot resume process %u", pcb->pid);
     return false;
   }
 
@@ -1656,7 +1656,7 @@ static int receive_space(t_queues* queues)
       int* aux = receive_buffer(&space, queues->km_socket->km_socket);
       space = *aux;
       free(aux);
-      log_info(queues->logger, "Space available: %d", space);
+      log_trace(queues->logger, "Space available: %d", space);
       return space;
     case OP_NEW_MEMORY_STICK:
       free(receive_string(queues->km_socket->km_socket));
@@ -1686,7 +1686,7 @@ static int receive_size(t_queues* queues)
       int* aux = receive_buffer(&space, queues->km_socket->km_socket);
       space = *aux;
       free(aux);
-      log_info(queues->logger, "Process size: %d", space);
+      log_trace(queues->logger, "Process size: %d", space);
       return space;
       break;
     case OP_NEW_MEMORY_STICK:
@@ -1769,7 +1769,7 @@ static void* resumption_routine_thread(void* data_resume_suspension)
     resumption_routine(queues);
     set_is_resuming(queues, false);
     unlock_threads_suspended(queues);
-    log_info(queues->logger, "Resume-suspension routine ended");
+    log_debug(queues->logger, "Resume-suspension routine ended");
   }
   pthread_mutex_unlock(&(queues->routine_mutex));
   decrement_thread_counter(queues);
@@ -1824,8 +1824,8 @@ static void create_thread_unlock_queue_ready(t_queues* queues)
   else
   {
     pthread_detach(thread);
-    log_info(queues->logger,
-             "Thread: ready-queue unblock started successfully");
+    log_debug(queues->logger,
+              "Thread: ready-queue unblock started successfully");
   }
 }
 

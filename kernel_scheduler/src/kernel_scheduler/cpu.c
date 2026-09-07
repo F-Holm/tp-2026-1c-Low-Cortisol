@@ -159,8 +159,8 @@ static void manage_queue_blocked(t_syscall_data* data)
   if (data->preemption_reason == PR_NO_PREEMPTION &&
       is_queue_ready_blocked(&(data->data->queues->ready)))
   {
-    log_info(data->data->logger, "CPU %s: Running blocked processes",
-             data->data->id);
+    log_debug(data->data->logger, "CPU %s: Running blocked processes",
+              data->data->id);
     transition_exec_ready(data->pcb, data->data->queues);
     data->preemption_reason = PR_COMPACTION;
   }
@@ -203,15 +203,15 @@ static void manage_preemption_priority(t_syscall_data* data)
     return;
   }
 
-  log_info(data->data->logger,
-           "CPU %s: Preempting process due to queue priority", data->data->id);
+  log_debug(data->data->logger,
+            "CPU %s: Preempting process due to queue priority", data->data->id);
   t_pcb* new_pcb =
       transition_take_ready_next_no_mutex(&(data->data->queues->ready));
   pthread_mutex_unlock(&(data->data->queues->ready.queue_mutex));
 
   if (new_pcb == NULL)
   {
-    log_error(data->data->logger, "Priority preemption failed");
+    log_warning(data->data->logger, "Priority preemption failed");
     return;
   }
 
@@ -241,8 +241,8 @@ static void manage_end_quantum(t_syscall_data* data)
       !is_queue_ready_empty(&(data->data->queues->ready)) && is_rr(data) &&
       data->data->queues->exec.quantum <= time_diff(data->counter, millis()))
   {
-    log_info(data->data->logger, "CPU %s: Preempting due to quantum end",
-             data->data->id);
+    log_debug(data->data->logger, "CPU %s: Preempting due to quantum end",
+              data->data->id);
     log_preemption_end_quantum(data->data->logger, data->pcb->pid);
     transition_exec_ready(data->pcb, data->data->queues);
     data->preemption_reason = PR_QUANTUM_END;
@@ -251,8 +251,8 @@ static void manage_end_quantum(t_syscall_data* data)
 
 static bool send_preemption(t_syscall_data* data)
 {
-  log_info(data->data->logger, "CPU %s: Sending message: preemption: %s",
-           data->data->id, PREEMPTION_REASONS[data->preemption_reason]);
+  log_trace(data->data->logger, "CPU %s: Sending message: preemption: %s",
+            data->data->id, PREEMPTION_REASONS[data->preemption_reason]);
   return send_string(
       (data->preemption_reason != PR_NO_PREEMPTION ? OP_INTERRUPT
                                                    : OP_NO_INTERRUPT),
@@ -264,14 +264,14 @@ static void manage_request_process(t_syscall_data* data)
 {
   if (data->preemption_reason != PR_NO_PREEMPTION)
   {
-    log_info(data->data->logger, "CPU %s: Requesting new process",
-             data->data->id);
+    log_trace(data->data->logger, "CPU %s: Requesting new process",
+              data->data->id);
     data->counter = millis();
     data->pcb = transition_take_ready_blocking(&(data->data->queues->ready));
     if (data->pcb != NULL)
     {
-      log_info(data->data->logger, "CPU %s: got process: %u", data->data->id,
-               data->pcb->pid);
+      log_debug(data->data->logger, "CPU %s: got process: %u", data->data->id,
+                data->pcb->pid);
       transition_ready_exec(data->pcb, data->data->queues);
       transition_to_exec(data->pcb, &(data->data->queues->exec));
     }
@@ -287,7 +287,7 @@ static bool send_code(t_syscall_data* data)
 static void handle_cycle_cpu_ok(t_syscall_data* data)
 {
   free(receive_string(data->data->socket_fd));
-  log_info(data->data->logger, "CPU %s: CPU cycle OK", data->data->id);
+  log_trace(data->data->logger, "CPU %s: CPU cycle OK", data->data->id);
 }
 
 static void handle_segmentation_fault(t_syscall_data* data)
@@ -451,14 +451,14 @@ static bool send_pid(t_syscall_data* data)
 
   if (!send_code(data))
   {
-    log_info(data->data->logger, "CPU %s: Failed to send the code",
-             data->data->id);
+    log_warning(data->data->logger, "CPU %s: Failed to send the code",
+                data->data->id);
     data->keep_running = false;
     return false;
   }
 
-  log_info(data->data->logger, "CPU %s: Code sent successfully",
-           data->data->id);
+  log_trace(data->data->logger, "CPU %s: Code sent successfully",
+            data->data->id);
   data->preemption_reason = PR_NO_PREEMPTION;
 
   return true;
@@ -484,8 +484,8 @@ static void* handle_cpu_client(void* data_thread_cpu_void)
 
     if (data_syscall.pcb == NULL)
     {
-      log_info(data_syscall.data->logger, "CPU %s: Shutdown of CPU",
-               data_syscall.data->id);
+      log_debug(data_syscall.data->logger, "CPU %s: Shutdown of CPU",
+                data_syscall.data->id);
       data_syscall.keep_running = false;
       break;
     }
@@ -496,8 +496,8 @@ static void* handle_cpu_client(void* data_thread_cpu_void)
     }
 
     int op_code = receive_op_code(data_syscall.data->socket_fd);
-    log_info(data_syscall.data->logger, "CPU %s: Operation received: %d",
-             data_syscall.data->id, op_code);
+    log_trace(data_syscall.data->logger, "CPU %s: Operation received: %d",
+              data_syscall.data->id, op_code);
     if (op_code < OP_CPU_CYCLE_OK || op_code > OP_SYSCALL_EXIT)
     {
       op_code = OP_SYSCALL_EXIT + 1;
@@ -520,17 +520,18 @@ static void* handle_cpu_client(void* data_thread_cpu_void)
 
     if (!send_preemption(&data_syscall))
     {
-      log_info(data_syscall.data->logger,
-               "CPU %s: Error sending the preemption", data_syscall.data->id);
+      log_warning(data_syscall.data->logger,
+                  "CPU %s: Error sending the preemption",
+                  data_syscall.data->id);
       data_syscall.keep_running = false;
       break;
     }
 
     if (data_syscall.preemption_reason == PR_HIGHER_PRIORITY_PROCESS)
     {
-      log_info(data_syscall.data->logger,
-               "CPU %s: Updating preemption reason (process priority)",
-               data_syscall.data->id);
+      log_trace(data_syscall.data->logger,
+                "CPU %s: Updating preemption reason (process priority)",
+                data_syscall.data->id);
       if (!send_pid(&data_syscall))
       {
         break;
@@ -538,13 +539,13 @@ static void* handle_cpu_client(void* data_thread_cpu_void)
     }
   }
 
-  log_info(data_syscall.data->logger, "CPU %s: Closing thread",
-           data_syscall.data->id);
+  log_debug(data_syscall.data->logger, "CPU %s: Closing thread",
+            data_syscall.data->id);
   if (data_syscall.preemption_reason == PR_HIGHER_PRIORITY_PROCESS &&
       data_syscall.pcb != NULL)
   {
-    log_info(data_syscall.data->logger, "CPU %s: Saving running process",
-             data_syscall.data->id);
+    log_trace(data_syscall.data->logger, "CPU %s: Saving running process",
+              data_syscall.data->id);
     transition_exec_ready(data_syscall.pcb, data_syscall.data->queues);
   }
   // Release connection and remove socket from the list
@@ -594,7 +595,7 @@ static char* get_id_cpu(int socket_cpu, t_log* logger)
 {
   if (receive_op_code(socket_cpu) != OP_ID_CPU)
   {
-    log_error(logger, "Error receiving the CPU ID");
+    log_warning(logger, "Error receiving the CPU ID");
     return NULL;
   }
   char* id_cpu = receive_string(socket_cpu);

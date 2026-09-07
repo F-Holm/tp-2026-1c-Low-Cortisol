@@ -11,7 +11,7 @@ bool allocate_memory(t_syscall_memory* mem_alloc, t_queues* queues)
   pthread_mutex_lock(&(queues->km_socket->socket_mutex));
   if (!has_space(mem_alloc, queues))
   {
-    log_info(queues->logger, "Not enough space");
+    log_debug(queues->logger, "Not enough space");
     pthread_mutex_unlock(&(queues->km_socket->socket_mutex));
     return false;
   }
@@ -22,7 +22,7 @@ bool allocate_memory(t_syscall_memory* mem_alloc, t_queues* queues)
 
   if (!comms)
   {
-    log_error(queues->logger, "Error communicating with Kernel Memory");
+    log_warning(queues->logger, "Error communicating with Kernel Memory");
     close_kernel_scheduler(queues->server_socket, queues->logger,
                            SR_KERNEL_MEMORY_SEND_ERROR,
                            queues->km_socket->km_socket);
@@ -44,7 +44,7 @@ bool free_memory(t_syscall_memory* mem_free, t_queues* queues)
 
   if (!comms)
   {
-    log_error(queues->logger, "Error communicating with Kernel Memory");
+    log_warning(queues->logger, "Error communicating with Kernel Memory");
     close_kernel_scheduler(queues->server_socket, queues->logger,
                            SR_KERNEL_MEMORY_SEND_ERROR,
                            queues->km_socket->km_socket);

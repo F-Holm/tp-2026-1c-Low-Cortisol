@@ -116,3 +116,28 @@ them in English.
 | `mutex.c` | Mutex ownership, wait queues, priority inheritance. |
 | `memory.c` | `MEM_ALLOC` / `MEM_FREE` requests and compaction coordination with Kernel Memory. |
 | `misc.c` | Process/thread counters, shutdown reasons, shared helpers. |
+
+## Log inventory
+
+Ordered by level, then by how often each line fires. `LOG_LEVEL` is the lowest
+level that reaches the file (`INFO` shows `INFO`/`WARNING`/`ERROR`).
+
+| Level | Frequency | Message | Where |
+|-------|-----------|---------|-------|
+| `INFO` | per state change (mandatory) | `## <PID> moves from state <from> to state <to>` | `queue.c` |
+| `INFO` | per syscall (mandatory) | `## <PID> - Requested syscall: <name>` | `cpu.c` |
+| `INFO` | per process create / end (mandatory) | `## <PID> Creating the process - State: NEW` / `## <PID> finished execution with reason: <reason>` | `queue.c` |
+| `INFO` | per mutex op (mandatory) | `## <PID> Takes/Releases the Mutex <name>` | `mutex.c` |
+| `INFO` | per priority change (mandatory) | `## <PID> Change of priority: <old> - <new>` | `mutex.c` |
+| `INFO` | per preemption (mandatory) | `## <PID> - Preempted due to quantum end`, `## <PID> Priority: <p> - Preempted by a higher-priority queue ...` | `cpu.c` |
+| `INFO` | per IO end (mandatory) | `##  <<PID>> - Finished IO and moves to READY / SUSP. READY` | `io.c` |
+| `INFO` | per compaction (mandatory) | `## Start of compaction` / `## End of compaction` | `queue.c` |
+| `INFO` | once, on connect (mandatory) | `## Connected to Kernel Memory` | `kernel_memory.c` |
+| `INFO` | per CPU / IO connection | `## CPU <id> connected`, `IO of type <t> connected` | `cpu.c`, `io.c` |
+| `INFO` | once, on shutdown | `## <reason>` (from `SHUTDOWN_REASONS`) | `misc.c` |
+| `WARNING` | on peer loss (CPU / IO / KM) | `Error communicating with Kernel Memory`, `Error sending to IO`, `CPU %s: Failed to send the code`, `Error getting the request from the ... list`, `IO operation of type <t> failed`, `Priority preemption failed` | `io.c`, `cpu.c`, `memory.c` |
+| `WARNING` | on bad handshake / duplicate | `Invalid handshake received`, `Duplicate IO type ...` | `server.c`, `io.c` |
+| `ERROR` | rare (thread / server creation) | `Error creating the CPU/suspender/resumer/... thread`, `Error creating the server` | `cpu.c`, `queue.c`, `server.c` |
+| `ERROR` | rare (state-machine violation / bad data) | `## <PID> Cannot move from state ...`, `Wrong operation type. Expected: OP_IO_TYPE`, `Invalid IO type: <s>`, `## Error sending the handshake to <s>`, `## <reason>` (error `SHUTDOWN_REASONS`) | `queue.c`, `io.c`, `misc.c` |
+| `DEBUG` | per dispatch / soft outcome | `CPU %s: got process`, `Not enough space`, `Could not suspend/resume process <PID>`, `... thread started successfully`, connect/close confirmations | `cpu.c`, `queue.c`, `memory.c`, `server.c` |
+| `TRACE` | per cycle / per routine tick | `CPU %s: CPU cycle OK`, `CPU %s: Operation received`, `CPU %s: Code sent successfully`, `Space available`, `Process size`, `Suspended threads locked/unlocked` | `cpu.c`, `queue.c` |

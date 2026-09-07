@@ -91,7 +91,7 @@ static bool handshake_kernel_memory(int km_socket, t_log* logger)
     log_error(logger, "Error receiving the handshake from Kernel Memory");
     return false;
   }
-  log_info(logger, "Handshake successful with Kernel Memory");
+  log_debug(logger, "Handshake successful with Kernel Memory");
   return true;
 }
 
