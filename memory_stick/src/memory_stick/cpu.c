@@ -10,7 +10,7 @@ int create_server_cpu(t_log* logger)
   int ret = start_server("0");
   if (ret <= 0)
   {
-    log_error(logger, "## Error creating the CPU server");
+    log_error(logger, "Error creating the CPU server");
     return -1;
   }
   log_debug(logger, "CPU server created successfully");
@@ -48,7 +48,7 @@ bool spawn_cpu_thread(t_cpu_thread* cpu_thread, t_log* logger)
   pthread_t thread;
   if (pthread_create(&thread, NULL, handle_cpu_client, cpu_thread) != 0)
   {
-    log_error(logger, "## Could not create the CPU thread");
+    log_error(logger, "Could not create the CPU thread");
     return false;
   }
   pthread_detach(thread);
@@ -75,12 +75,12 @@ bool handshake_cpu(int socket_cpu, t_log* logger)
 {
   if (receive_handshake(socket_cpu) != MID_CPU)
   {
-    log_warning(logger, "## Could not receive the handshake from the CPU");
+    log_warning(logger, "Could not receive the handshake from the CPU");
     return false;
   }
   if (!send_handshake(MID_MEMORY_STICK, socket_cpu))
   {
-    log_warning(logger, "## Could not send the handshake to the CPU");
+    log_warning(logger, "Could not send the handshake to the CPU");
     return false;
   }
   log_debug(logger, "Handshake successful with the CPU");
@@ -91,11 +91,11 @@ char* receive_cpu_id(int socket_cpu, t_log* logger)
 {
   if (receive_op_code(socket_cpu) != OP_ID_CPU)
   {
-    log_warning(logger, "## Could not receive the CPU ID");
+    log_warning(logger, "Could not receive the CPU ID");
     return NULL;
   }
   char* cpu_id = receive_string(socket_cpu);
-  log_info(logger, "## CPU %s connected", cpu_id);
+  log_info(logger, "CPU %s connected", cpu_id);
   return cpu_id;
 }
 
@@ -188,7 +188,7 @@ void* handle_cpu_client(void* cpu_thread_void)
         if (list_size(packet) != 2)
         {
           log_error(cpu_thread->ms->logger,
-                    "## Invalid read request from the CPU");
+                    "Invalid read request from the CPU");
           break;
         }
         int start_position = *(int*)list_get(packet, 0);
@@ -199,7 +199,7 @@ void* handle_cpu_client(void* cpu_thread_void)
         list_destroy_and_destroy_elements(packet, free);
         read_memory(cpu_thread->ms, start_position, byte_count,
                     cpu_thread->socket_cpu);
-        log_info(cpu_thread->ms->logger, "## Read of %d bytes", byte_count);
+        log_info(cpu_thread->ms->logger, "Read of %d bytes", byte_count);
         break;
       }
       case OP_MEMORY_STICK_WRITE:
@@ -210,7 +210,7 @@ void* handle_cpu_client(void* cpu_thread_void)
         if (list_size(packet) != 3)
         {
           log_error(cpu_thread->ms->logger,
-                    "## Invalid write request from the CPU");
+                    "Invalid write request from the CPU");
           list_destroy_and_destroy_elements(packet, free);
           break;
         }
@@ -219,7 +219,7 @@ void* handle_cpu_client(void* cpu_thread_void)
         int byte_count = *(int*)list_get(packet, 2);
         write_memory(cpu_thread->ms, start_position, bytes_to_write, byte_count,
                      cpu_thread->socket_cpu);
-        log_info(cpu_thread->ms->logger, "## Write of %d bytes", byte_count);
+        log_info(cpu_thread->ms->logger, "Write of %d bytes", byte_count);
         list_destroy_and_destroy_elements(packet, free);
         break;
       }
@@ -243,7 +243,7 @@ bool start_cpu_server(pthread_t* cpu_server_thread, int cpu_server_socket,
   if (pthread_create(cpu_server_thread, NULL, cpu_listen_thread,
                      listen_thread) != 0)
   {
-    log_error(logger, "## Could not create the CPU server thread");
+    log_error(logger, "Could not create the CPU server thread");
     return false;
   }
   return true;

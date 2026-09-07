@@ -43,14 +43,14 @@ int main(int argc, char* argv[])
         t_list* packet = receive_packet(ms.socket_km);
         if (list_size(packet) != 2)
         {
-          log_error(ms.logger, "## Invalid read request from Kernel Memory");
+          log_error(ms.logger, "Invalid read request from Kernel Memory");
           list_destroy_and_destroy_elements(packet, free);
           break;
         }
         int start_position = *(int*)list_get(packet, 0);
         int byte_count = *(int*)list_get(packet, 1);
         read_memory(&ms, start_position, byte_count, ms.socket_km);
-        log_info(ms.logger, "## Read of %d bytes", byte_count);
+        log_info(ms.logger, "Read of %d bytes", byte_count);
         list_destroy_and_destroy_elements(packet, free);
         break;
       }
@@ -61,7 +61,7 @@ int main(int argc, char* argv[])
         t_list* packet = receive_packet(ms.socket_km);
         if (list_size(packet) != 3)
         {
-          log_error(ms.logger, "## Invalid write request from Kernel Memory");
+          log_error(ms.logger, "Invalid write request from Kernel Memory");
           list_destroy_and_destroy_elements(packet, free);
           break;
         }
@@ -72,7 +72,7 @@ int main(int argc, char* argv[])
                   byte_count, start_position);
         write_memory(&ms, start_position, bytes_to_write, byte_count,
                      ms.socket_km);
-        log_info(ms.logger, "## Write of %d bytes", byte_count);
+        log_info(ms.logger, "Write of %d bytes", byte_count);
         list_destroy_and_destroy_elements(packet, free);
         break;
       }
@@ -85,7 +85,7 @@ int main(int argc, char* argv[])
     }
   }
 
-  log_info(ms.logger, "## Memory Stick shutting down");
+  log_info(ms.logger, "Memory Stick shutting down");
   close_module(&ms, &cpu_server_thread);
   return EXIT_SUCCESS;
 }

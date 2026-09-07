@@ -8,12 +8,12 @@ bool handshake_km(int socket_km, t_log* logger)
 {
   if (!send_handshake(MID_MEMORY_STICK, socket_km))
   {
-    log_error(logger, "## Could not send the handshake to Kernel Memory");
+    log_error(logger, "Could not send the handshake to Kernel Memory");
     return false;
   }
   if (receive_handshake(socket_km) != MID_KERNEL_MEMORY)
   {
-    log_error(logger, "## Could not receive the handshake from Kernel Memory");
+    log_error(logger, "Could not receive the handshake from Kernel Memory");
     return false;
   }
   log_debug(logger, "Handshake successful with Kernel Memory");
@@ -24,7 +24,7 @@ bool send_size(int socket_km, char* size, t_log* logger)
 {
   if (!send_string(OP_MEMORY_SIZE, size, socket_km))
   {
-    log_error(logger, "## Could not send the size to Kernel Memory");
+    log_error(logger, "Could not send the size to Kernel Memory");
     return false;
   }
   log_debug(logger, "Size reported to Kernel Memory");
@@ -51,10 +51,10 @@ int connect_km(char* ip, char* port, t_log* logger)
   int socket_km = create_connection(ip, port);
   if (socket_km <= 0)
   {
-    log_error(logger, "## Connection error with Kernel Memory");
+    log_error(logger, "Connection error with Kernel Memory");
     return -1;
   }
-  log_info(logger, "## Connected to Kernel Memory");
+  log_info(logger, "Connected to Kernel Memory");
   return socket_km;
 }
 

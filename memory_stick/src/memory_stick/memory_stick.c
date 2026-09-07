@@ -10,7 +10,7 @@ bool send_cpu_server_port(int socket_km, int socket_server_cpu, t_log* logger)
 {
   if (!send_cpu_server_port_to_km(socket_km, get_cpu_port(socket_server_cpu)))
   {
-    log_error(logger, "## Error sending the CPU server port");
+    log_error(logger, "Error sending the CPU server port");
     return false;
   }
   log_debug(logger, "CPU server port sent successfully");
