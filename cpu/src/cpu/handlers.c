@@ -161,7 +161,7 @@ t_extended_bool handler_mutex_create(t_cpu* cpu, t_context* context,
   else
   {
     log_warning(cpu->logger,
-                "## Could not send the syscall to the Kernel Scheduler");
+                "Could not send the syscall to the Kernel Scheduler");
     return EB_ERROR;
   }
   return EB_FALSE;
@@ -178,7 +178,7 @@ t_extended_bool handler_mutex_lock(t_cpu* cpu, t_context* context,
   else
   {
     log_warning(cpu->logger,
-                "## Could not send the syscall to the Kernel Scheduler");
+                "Could not send the syscall to the Kernel Scheduler");
     return EB_ERROR;
   }
   return EB_FALSE;
@@ -195,7 +195,7 @@ t_extended_bool handler_mutex_unlock(t_cpu* cpu, t_context* context,
   else
   {
     log_warning(cpu->logger,
-                "## Could not send the syscall to the Kernel Scheduler");
+                "Could not send the syscall to the Kernel Scheduler");
     return EB_ERROR;
   }
   return EB_FALSE;
@@ -220,7 +220,7 @@ t_extended_bool handler_mem_alloc(t_cpu* cpu, t_context* context,
   else
   {
     log_warning(cpu->logger,
-                "## Could not send the syscall to the Kernel Scheduler");
+                "Could not send the syscall to the Kernel Scheduler");
     free(syscall_data);
     return EB_ERROR;
   }
@@ -247,7 +247,7 @@ t_extended_bool handler_mem_free(t_cpu* cpu, t_context* context,
   else
   {
     log_warning(cpu->logger,
-                "## Could not send the syscall to the Kernel Scheduler");
+                "Could not send the syscall to the Kernel Scheduler");
     free(syscall_data);
     return EB_ERROR;
   }
@@ -273,7 +273,7 @@ t_extended_bool handler_sleep(t_cpu* cpu, t_context* context,
   else
   {
     log_warning(cpu->logger,
-                "## Could not send the syscall to the Kernel Scheduler");
+                "Could not send the syscall to the Kernel Scheduler");
     free(syscall_data);
     return EB_ERROR;
   }
@@ -301,7 +301,7 @@ t_extended_bool handler_stdout(t_cpu* cpu, t_context* context,
   else
   {
     log_warning(cpu->logger,
-                "## Could not send the syscall to the Kernel Scheduler");
+                "Could not send the syscall to the Kernel Scheduler");
     free(syscall_data);
     return EB_ERROR;
   }
@@ -329,7 +329,7 @@ t_extended_bool handler_stdin(t_cpu* cpu, t_context* context,
   else
   {
     log_warning(cpu->logger,
-                "## Could not send the syscall to the Kernel Scheduler");
+                "Could not send the syscall to the Kernel Scheduler");
     free(syscall_data);
     return EB_ERROR;
   }
@@ -353,7 +353,7 @@ t_extended_bool handler_init_proc(t_cpu* cpu, t_context* context,
   else
   {
     log_warning(cpu->logger,
-                "## Could not send the syscall to the Kernel Scheduler");
+                "Could not send the syscall to the Kernel Scheduler");
     destroy_packet(syscall_packet);
     return EB_ERROR;
   }
@@ -371,7 +371,7 @@ t_extended_bool handler_exit(t_cpu* cpu, t_context* context,
   else
   {
     log_warning(cpu->logger,
-                "## Could not send the syscall to the Kernel Scheduler");
+                "Could not send the syscall to the Kernel Scheduler");
     return EB_ERROR;
   }
   return EB_FALSE;

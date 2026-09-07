@@ -78,9 +78,9 @@ finished with **`SEG_FAULT`**.
 Emitted at `INFO`. The consigna lists these in Spanish; this repository emits
 them in English.
 
-- Instruction fetch — `## PID: <PID> - FETCH - Program Counter: <PC>`
-- Interrupt received — `## Interrupt received`
-- Instruction executed — `## PID: <PID> - Running: <INSTR> - <ARGS>`
+- Instruction fetch — `PID: <PID> - FETCH - Program Counter: <PC>`
+- Interrupt received — `Interrupt received`
+- Instruction executed — `PID: <PID> - Running: <INSTR> - <ARGS>`
 - Memory read/write — `PID: <PID> - Action: <READ/WRITE> - Physical Address: <ADDR> - Value: <VALUE>`
 
 ## Source layout
@@ -103,17 +103,17 @@ level that reaches the file (`INFO` shows `INFO`/`WARNING`/`ERROR`).
 
 | Level | Frequency | Message | Where |
 |-------|-----------|---------|-------|
-| `INFO` | per instruction (mandatory) | `## PID: <PID> - FETCH - Program Counter: <PC>` | `cpu.c` |
-| `INFO` | per instruction (mandatory) | `## PID: <PID> - Running: <instr>` | `cpu.c` |
+| `INFO` | per instruction (mandatory) | `PID: <PID> - FETCH - Program Counter: <PC>` | `cpu.c` |
+| `INFO` | per instruction (mandatory) | `PID: <PID> - Running: <instr>` | `cpu.c` |
 | `INFO` | per `MOV_IN` / `MOV_OUT` / `COPY_MEM` (mandatory) | `PID: <PID> - Action: <READ/WRITE> - Physical Address: <addr> - Value: <value>` | `handlers.c` |
-| `INFO` | per interrupt (mandatory) | `## Interrupt received` | `cpu.c` |
+| `INFO` | per interrupt (mandatory) | `Interrupt received` | `cpu.c` |
 | `INFO` | per dispatched process | `PID <PID> received - starting instruction cycle` | `cpu.c` |
 | `INFO` | once, on startup | `Starting CPU <id>` | `initializer.c` |
-| `WARNING` | on peer loss (KM / scheduler / stick) | `## Kernel Memory disconnected`, `Kernel Scheduler disconnected...`, `## Memory Stick disconnected`, `## Could not send/request ...` | `cpu.c`, `memory.c`, `handlers.c`, `connections.c` |
-| `WARNING` | on unexpected op code | `## Unrecognized operation code: <op>` | `cpu.c` |
-| `ERROR` | rare (startup failure) | `## Could not load the config` / `## Could not load the logger` | `initializer.c` |
-| `ERROR` | rare (bad handshake) | `## failed / Error ... the handshake ...` | `connections.c` |
-| `ERROR` | rare (bad data) | `## Wrong operation code: <op>`, `## Bad memory stick packet ...`, `## Unknown instruction: <name>`, `## Memory Stick not found`, `## Null read from the MS` | `cpu.c`, `memory.c` |
+| `WARNING` | on peer loss (KM / scheduler / stick) | `Kernel Memory disconnected`, `Kernel Scheduler disconnected...`, `Memory Stick disconnected`, `Could not send/request ...` | `cpu.c`, `memory.c`, `handlers.c`, `connections.c` |
+| `WARNING` | on unexpected op code | `Unrecognized operation code: <op>` | `cpu.c` |
+| `ERROR` | rare (startup failure) | `Could not load the config` / `Could not load the logger` | `initializer.c` |
+| `ERROR` | rare (bad handshake) | `Could not send / receive the handshake ...` | `connections.c` |
+| `ERROR` | rare (bad data) | `Wrong operation code: <op>`, `Bad memory stick packet ...`, `Unknown instruction: <name>`, `Memory Stick not found`, `Memory Stick returned no data for the read` | `cpu.c`, `memory.c` |
 | `DEBUG` | once per connection / dispatch | handshakes, `Config loaded successfully`, `Context requested/received`, `Segment table received/updated`, `Maximum segment size received`, `Interrupt reason: <r>` | `connections.c`, `cpu.c` |
 | `DEBUG` | per syscall instruction | `Syscall sent to the Kernel Scheduler` | `handlers.c` |
 | `TRACE` | per cycle | `No interrupt`, `Kernel Scheduler notified of the end of the cycle`, `Instruction requested successfully`, `Waiting for the segment table` | `cpu.c` |

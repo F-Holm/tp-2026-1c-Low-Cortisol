@@ -27,13 +27,13 @@ bool init_module(t_cpu* cpu, char* config_path)
 
   if (cpu->config == NULL)
   {
-    log_error(cpu->logger, "## Could not load the config");
+    log_error(cpu->logger, "Could not load the config");
     return false;
   }
 
   if (cpu->logger == NULL)
   {
-    log_error(cpu->logger, "## Could not load the logger");
+    log_error(cpu->logger, "Could not load the logger");
     return false;
   }
 

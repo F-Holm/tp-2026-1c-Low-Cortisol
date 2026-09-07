@@ -39,8 +39,7 @@ int main(int argc, char* argv[])
   }
   else
   {
-    log_error(cpu->logger,
-              "## failed to send the message to the kernel scheduler");
+    log_error(cpu->logger, "Could not send the CPU id to the Kernel Scheduler");
     close_module(cpu);
     return EXIT_FAILURE;
   }
@@ -57,8 +56,7 @@ int main(int argc, char* argv[])
   }
   else
   {
-    log_error(cpu->logger,
-              "## failed to send the message to the kernel memory");
+    log_error(cpu->logger, "Could not send the CPU id to Kernel Memory");
     close_module(cpu);
     return EXIT_FAILURE;
   }

@@ -52,7 +52,7 @@ bool notify_seg_fault(t_cpu* cpu, uint32_t pid)
   if (!send_string(OP_SEG_FAULT, "SEGMENTATION FAULT",
                    cpu->socket_kernel_scheduler))
   {
-    log_warning(cpu->logger, "## Could not send the segmentation fault");
+    log_warning(cpu->logger, "Could not send the segmentation fault");
     return false;
   }
   log_debug(cpu->logger, "Segmentation fault sent successfully");
@@ -81,7 +81,7 @@ void* read_memory(t_cpu* cpu, uint32_t physical_address, uint32_t size)
     t_memory_stick_info* stick = find_stick(cpu, physical_address + read_bytes);
     if (stick == NULL)
     {
-      log_error(cpu->logger, "## Memory Stick not found");
+      log_error(cpu->logger, "Memory Stick not found");
       free(result);
       return NULL;
     }
@@ -103,7 +103,7 @@ void* read_memory(t_cpu* cpu, uint32_t physical_address, uint32_t size)
 
     if (!partial_read)
     {
-      log_error(cpu->logger, "## Null read from the MS");
+      log_error(cpu->logger, "Memory Stick returned no data for the read");
       free(partial_read);
       free(result);
       return NULL;
@@ -126,7 +126,7 @@ bool request_read(t_cpu* cpu, t_memory_stick_info* stick,
   if (!send_packet(packet, stick->socket_ms))
   {
     log_warning(cpu->logger,
-                "## Could not send the read request to the Memory Stick");
+                "Could not send the read request to the Memory Stick");
     notify_bsod(cpu);
     return false;
   }
@@ -146,7 +146,7 @@ char* receive_read_response(t_cpu* cpu, t_memory_stick_info* stick)
   else
   {
     log_warning(cpu->logger,
-                "## Read response from the Memory Stick was not correct");
+                "Read response from the Memory Stick was not correct");
 
     notify_bsod(cpu);
     return NULL;
@@ -164,7 +164,7 @@ bool write_memory(t_cpu* cpu, uint32_t physical_address, void* data_to_write,
         find_stick(cpu, physical_address + written_bytes);
     if (stick == NULL)
     {
-      log_error(cpu->logger, "## Memory Stick not found");
+      log_error(cpu->logger, "Memory Stick not found");
       return false;
     }
 
@@ -201,7 +201,7 @@ bool request_write(t_cpu* cpu, t_memory_stick_info* stick,
   if (!send_packet(packet, stick->socket_ms))
   {
     log_warning(cpu->logger,
-                "## Could not send the write request to the Memory Stick");
+                "Could not send the write request to the Memory Stick");
     notify_bsod(cpu);
     destroy_packet(packet);
     return false;
@@ -222,11 +222,11 @@ bool receive_write_response(t_cpu* cpu, t_memory_stick_info* stick)
   }
   else if (op_code == OP_CODE_ERROR)
   {
-    log_warning(cpu->logger, "## Memory Stick disconnected");
+    log_warning(cpu->logger, "Memory Stick disconnected");
     notify_bsod(cpu);
     return false;
   }
   log_warning(cpu->logger,
-              "## Write response from the Memory Stick was not correct");
+              "Write response from the Memory Stick was not correct");
   return false;
 }

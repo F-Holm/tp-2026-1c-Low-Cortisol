@@ -24,14 +24,14 @@ bool connect_to_kernel_scheduler(t_cpu* cpu)
   else
   {
     log_error(cpu->logger,
-              "## failed to send the handshake to the kernel scheduler");
+              "Could not send the handshake to the Kernel Scheduler");
   }
 
   int module_id = receive_handshake(cpu->socket_kernel_scheduler);
   if (module_id != MID_KERNEL_SCHEDULER)
   {
     log_error(cpu->logger,
-              "## Error receiving the handshake from the kernel scheduler");
+              "Could not receive the handshake from the Kernel Scheduler");
     close(cpu->socket_kernel_scheduler);
     return false;
   }
@@ -57,15 +57,14 @@ bool connect_to_kernel_memory(t_cpu* cpu)
   }
   else
   {
-    log_error(cpu->logger,
-              "## failed to send the handshake to the kernel memory");
+    log_error(cpu->logger, "Could not send the handshake to Kernel Memory");
   }
 
   int module_id = receive_handshake(cpu->socket_kernel_memory);
   if (module_id != MID_KERNEL_MEMORY)
   {
     log_error(cpu->logger,
-              "## Error receiving the handshake from the kernel memory");
+              "Could not receive the handshake from Kernel Memory");
     close(cpu->socket_kernel_memory);
     return false;
   }
@@ -91,7 +90,7 @@ bool connect_memory_stick(t_cpu* cpu)
 
   if (new_socket <= 0)
   {
-    log_warning(cpu->logger, "## Could not connect to the Memory Stick");
+    log_warning(cpu->logger, "Could not connect to the Memory Stick");
     return false;
   }
 
@@ -100,13 +99,13 @@ bool connect_memory_stick(t_cpu* cpu)
 
   if (!handshake_memory_stick(cpu, new_socket))
   {
-    log_warning(cpu->logger, "## Handshake with the Memory Stick failed");
+    log_warning(cpu->logger, "Handshake with the Memory Stick failed");
     return false;
   }
 
   if (!send_string(OP_ID_CPU, cpu->id, new_socket))
   {
-    log_warning(cpu->logger, "## Could not send the ID to the Memory Stick");
+    log_warning(cpu->logger, "Could not send the ID to the Memory Stick");
     close(new_socket);
     return false;
   }

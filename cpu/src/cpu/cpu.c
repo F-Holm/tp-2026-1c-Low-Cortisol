@@ -24,7 +24,7 @@ bool receive_max_segment_size(t_cpu* cpu)
   }
   else
   {
-    log_error(cpu->logger, "## Wrong operation code: %d", op_code);
+    log_error(cpu->logger, "Wrong operation code: %d", op_code);
     int size;
     free(receive_buffer(&size, cpu->socket_kernel_memory));
     return false;
@@ -38,8 +38,9 @@ bool parse_stick_packet(t_cpu* cpu, t_list* packet, char stick_ip[16],
   if (list_size(packet) != 3)
   {
     log_error(cpu->logger,
-              "## Bad memory stick packet: expected IP, port and size");
-    log_error(cpu->logger, "## size: %d | expected size 3", list_size(packet));
+              "Bad memory stick packet: got %d fields, expected 3 (ip, port, "
+              "size)",
+              list_size(packet));
     list_destroy_and_destroy_elements(packet, free);
     return false;
   }
@@ -78,11 +79,11 @@ bool listen_kernel_memory(t_cpu* cpu)
         break;
 
       case OP_CODE_ERROR:
-        log_warning(cpu->logger, "## Kernel Memory disconnected");
+        log_warning(cpu->logger, "Kernel Memory disconnected");
         return false;
 
       default:
-        log_warning(cpu->logger, "## Unrecognized operation code: %d", op_code);
+        log_warning(cpu->logger, "Unrecognized operation code: %d", op_code);
         return false;
     }
   }
@@ -104,7 +105,7 @@ void run_instruction_loop(t_cpu* cpu)
 
     if (!request_context(cpu, pid))
     {
-      log_warning(cpu->logger, "## Could not request the context");
+      log_warning(cpu->logger, "Could not request the context");
       break;
     }
     log_debug(cpu->logger, "Context requested successfully");
@@ -152,7 +153,7 @@ uint32_t receive_pid(t_cpu* cpu)
   }
   else
   {
-    log_warning(cpu->logger, "## Could not receive the PID - code received: %d",
+    log_warning(cpu->logger, "Could not receive the PID - code received: %d",
                 op_code);
   }
   return pid;
@@ -197,13 +198,13 @@ bool run_instruction_cycle(t_cpu* cpu, uint32_t pid, t_context* context)
     if (!raw_instruction)
       return false;
 
-    log_info(cpu->logger, "## PID: %u - FETCH - Program Counter: %u", pid,
+    log_info(cpu->logger, "PID: %u - FETCH - Program Counter: %u", pid,
              context->registers->PC);
 
     t_instruction* instruction = decode_stage(raw_instruction);
 
     uint32_t initial_pc = context->registers->PC;
-    log_info(cpu->logger, "## PID: %u - Running: %s ", pid, raw_instruction);
+    log_info(cpu->logger, "PID: %u - Running: %s", pid, raw_instruction);
     free(raw_instruction);
 
     syscall = execute_stage(cpu, context, instruction, pid);
@@ -220,7 +221,7 @@ bool run_instruction_cycle(t_cpu* cpu, uint32_t pid, t_context* context)
     {
       if (!send_string(OP_CPU_CYCLE_OK, "OK", cpu->socket_kernel_scheduler))
       {
-        log_warning(cpu->logger, "## Could not confirm the end of the cycle");
+        log_warning(cpu->logger, "Could not confirm the end of the cycle");
         destroy_instruction(instruction);
         return false;
       }
@@ -271,7 +272,7 @@ bool request_instruction(t_cpu* cpu, uint32_t pid, uint32_t pc)
   packet_append(packet, &pc, sizeof(uint32_t));
   if (!send_packet(packet, cpu->socket_kernel_memory))
   {
-    log_warning(cpu->logger, "## Could not request the instruction");
+    log_warning(cpu->logger, "Could not request the instruction");
     return false;
   }
   log_trace(cpu->logger, "Instruction requested successfully");
@@ -313,7 +314,7 @@ t_extended_bool execute_stage(t_cpu* cpu, t_context* context,
 
   if (handler == NULL)
   {
-    log_error(cpu->logger, "## Unknown instruction: %s", instruction->name);
+    log_error(cpu->logger, "Unknown instruction: %s", instruction->name);
     return EB_ERROR;
   }
 
@@ -326,7 +327,7 @@ t_extended_bool check_interrupt(t_cpu* cpu, uint32_t pid)
 
   if (code == OP_INTERRUPT)
   {
-    log_info(cpu->logger, "## Interrupt received");
+    log_info(cpu->logger, "Interrupt received");
     char* interrupt_reason = receive_string(cpu->socket_kernel_scheduler);
     log_debug(cpu->logger, "Interrupt reason: %s", interrupt_reason);
 
@@ -350,7 +351,7 @@ t_extended_bool check_interrupt(t_cpu* cpu, uint32_t pid)
     log_warning(cpu->logger, "Kernel Scheduler disconnected");
     return EB_ERROR;
   }
-  log_warning(cpu->logger, "## Unrecognized operation: %d", code);
+  log_warning(cpu->logger, "Unrecognized operation: %d", code);
   return EB_ERROR;
 }
 
@@ -362,7 +363,7 @@ bool send_updated_context(t_cpu* cpu, uint32_t pid,
   packet_append(packet, updated_context, sizeof(t_registers));
   if (!send_packet(packet, cpu->socket_kernel_memory))
   {
-    log_warning(cpu->logger, "## Could not send the updated context");
+    log_warning(cpu->logger, "Could not send the updated context");
     return false;
   }
   log_debug(cpu->logger, "Updated context sent successfully");
@@ -376,7 +377,7 @@ bool update_segment_table(t_cpu* cpu, uint32_t pid, t_context* context)
   if (!send_buffer(OP_UPDATED_SEGMENT_TABLE, &pid, sizeof(uint32_t),
                    cpu->socket_kernel_memory))
   {
-    log_warning(cpu->logger, "## Could not request the segment table update");
+    log_warning(cpu->logger, "Could not request the segment table update");
     return false;
   }
 
