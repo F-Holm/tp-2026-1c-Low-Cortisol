@@ -1,8 +1,8 @@
+#include "utils/collections/list.h"
+
 #include <criterion/criterion.h>
 #include <stdbool.h>
 #include <stdlib.h>
-
-#include "utils/collections/list.h"
 
 static int values[] = {10, 20, 30, 40, 50};
 

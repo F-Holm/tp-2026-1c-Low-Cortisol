@@ -1,9 +1,9 @@
+#include "utils/collections/dictionary.h"
+
 #include <criterion/criterion.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include "utils/collections/dictionary.h"
 
 Test(dictionary, put_then_get)
 {

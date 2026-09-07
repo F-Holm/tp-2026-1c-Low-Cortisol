@@ -105,7 +105,7 @@ logs:
 	@echo "Logs removed."
 
 format:
-	find . -iname "*.c" -o -iname "*.h" | grep -v "tests/" | xargs clang-format -i --style=file
+	find . -iname "*.c" -o -iname "*.h" | xargs clang-format -i --style=file
 
 # ─── End-to-end test scenarios ──────────────────────────────────────────────
 #

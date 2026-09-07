@@ -1,9 +1,10 @@
+#include "utils/config.h"
+
 #include <criterion/criterion.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 
-#include "utils/config.h"
 #include "utils/string.h"
 
 static char config_path[] = "/tmp/utils_config_test_XXXXXX";

@@ -1,10 +1,10 @@
+#include "utils/log.h"
+
 #include <criterion/criterion.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-
-#include "utils/log.h"
 
 static char log_dir[] = "/tmp/utils_log_test_XXXXXX";
 static char log_file[64];

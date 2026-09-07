@@ -32,4 +32,4 @@ Criterion has to be installed (`pacman -S criterion` on Arch,
 
 Add a `Test(suite, name)` to the matching file, or a new `*_test.c` for a new
 header. Criterion runs each test in its own process, so a global is reset to its
-initial value before every test. These files are exempt from `make format`.
+initial value before every test.

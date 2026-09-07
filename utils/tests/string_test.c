@@ -1,8 +1,8 @@
+#include "utils/string.h"
+
 #include <criterion/criterion.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include "utils/string.h"
 
 Test(string, duplicate_copies_content)
 {

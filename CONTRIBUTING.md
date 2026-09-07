@@ -44,7 +44,8 @@ module's own objects (minus `main.o`) and run as a standalone binary.
 
 Criterion must be installed (`pacman -S criterion` on Arch,
 `apt install libcriterion-dev` on Debian). `make clean` also removes the test
-binaries. Test files are exempt from `make format`.
+binaries. Test files follow the same `.clang-format` style as the rest of the
+codebase.
 
 ### End-to-end tests
 

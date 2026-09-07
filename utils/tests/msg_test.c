@@ -1,3 +1,5 @@
+#include "utils/msg.h"
+
 #include <arpa/inet.h>
 #include <criterion/criterion.h>
 #include <netinet/in.h>
@@ -9,7 +11,6 @@
 #include <unistd.h>
 
 #include "utils/collections/list.h"
-#include "utils/msg.h"
 
 /* Every test that touches a socket gets a hard ceiling so a protocol bug shows
  * up as a failure instead of a hang. */

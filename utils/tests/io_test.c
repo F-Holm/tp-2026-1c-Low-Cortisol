@@ -1,6 +1,6 @@
-#include <criterion/criterion.h>
-
 #include "utils/io.h"
+
+#include <criterion/criterion.h>
 
 Test(io, type_names_match_the_enum_order)
 {
