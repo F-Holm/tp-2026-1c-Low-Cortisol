@@ -19,6 +19,9 @@ bool load_config(t_io* io)
     config_destroy(io->config);
     return false;
   }
+  log_debug(io->logger,
+            "Config loaded: %s interface, Kernel Scheduler at %s:%s",
+            IO_TYPE_NAMES[io->io_type], io->ip, io->port);
   return true;
 }
 
@@ -28,7 +31,7 @@ bool connect_to_scheduler(t_io* io)
 
   if (io->socket_io == -1)
   {
-    log_error(io->logger, "CONNECTION ERROR");
+    log_error(io->logger, "## Connection error with Kernel Scheduler");
     close_io(io);
     return false;
   }
@@ -37,7 +40,7 @@ bool connect_to_scheduler(t_io* io)
   bool sent_ok = send_handshake(MID_IO, io->socket_io);
   if (!sent_ok)
   {
-    log_error(io->logger, " Handshake error with Kernel Scheduler");
+    log_error(io->logger, "## Handshake error with Kernel Scheduler");
     close_io(io);
     return false;
   }
@@ -45,21 +48,21 @@ bool connect_to_scheduler(t_io* io)
   int received_id = receive_handshake(io->socket_io);
   if (received_id != MID_KERNEL_SCHEDULER)
   {
-    log_error(io->logger, " Handshake error with Kernel Scheduler");
+    log_error(io->logger, "## Handshake error with Kernel Scheduler");
     close_io(io);
     return false;
   }
-  log_info(io->logger, " Handshake successful with Kernel Scheduler");
+  log_debug(io->logger, "Handshake successful with Kernel Scheduler");
 
   sent_ok =
       send_string(OP_IO_TYPE, (char*)IO_TYPE_NAMES[io->io_type], io->socket_io);
   if (!sent_ok)
   {
-    log_error(io->logger, " Error sending the IO type");
+    log_error(io->logger, "## Error sending the IO type");
     close_io(io);
     return false;
   }
-  log_info(io->logger, " IO type sent successfully");
+  log_debug(io->logger, "IO type sent successfully");
   return true;
 }
 

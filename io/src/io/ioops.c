@@ -19,7 +19,7 @@ bool run_stdin(t_io* io)
 
   if (getline(&buffer, &buffer_size, stdin) == -1)
   {
-    log_error(io->logger, " Error reading the user input");
+    log_warning(io->logger, "## Could not read user input (end of input?)");
     free(request);
     free(buffer);
     return false;
@@ -35,7 +35,9 @@ bool run_stdin(t_io* io)
   bool sent_ok = send_string(OP_STDIN_RESPONSE, buffer, io->socket_io);
   if (!sent_ok)
   {
-    log_error(io->logger, " Error sending the IO response to Kernel Scheduler");
+    log_warning(
+        io->logger,
+        "## Could not send the IO response to Kernel Scheduler (peer gone?)");
     free(buffer);
     free(request);
     return false;
@@ -55,7 +57,7 @@ bool run_stdout(t_io* io)
   list_destroy(packet);
   if (buffer == NULL)
   {
-    log_error(io->logger, " Error - nothing received to print on screen");
+    log_error(io->logger, "## Malformed STDOUT request: no content");
     free(request);
     return false;
   }
@@ -68,7 +70,9 @@ bool run_stdout(t_io* io)
   bool sent_ok = send_string(OP_STDOUT_RESPONSE, "OK", io->socket_io);
   if (!sent_ok)
   {
-    log_error(io->logger, " Error sending the IO response to Kernel Scheduler");
+    log_warning(
+        io->logger,
+        "## Could not send the IO response to Kernel Scheduler (peer gone?)");
     free(request);
     free(buffer);
     return false;
@@ -95,7 +99,9 @@ bool run_sleep(t_io* io)
   bool sent_ok = send_string(OP_SLEEP_RESPONSE, "OK", io->socket_io);
   if (!sent_ok)
   {
-    log_error(io->logger, " Error sending the IO response to Kernel Scheduler");
+    log_warning(
+        io->logger,
+        "## Could not send the IO response to Kernel Scheduler (peer gone?)");
     free(request);
     return false;
   }

@@ -35,6 +35,8 @@ int main(int argc, char* argv[])
   {
     int op_code;
     op_code = receive_op_code(io.socket_io);
+    log_trace(io.logger, "Received operation %d from Kernel Scheduler",
+              op_code);
     switch (op_code)
     {
       case OP_IO_STDIN_REQUEST:
@@ -62,10 +64,14 @@ int main(int argc, char* argv[])
         break;
 
       default:
+        log_warning(
+            io.logger,
+            "Unexpected operation %d from Kernel Scheduler; shutting down",
+            op_code);
         keep_running = false;
     }
   }
-  log_info(io.logger, " IO shutdown");
+  log_info(io.logger, "## IO shutting down");
   close_io(&io);
   return EXIT_SUCCESS;
 }
