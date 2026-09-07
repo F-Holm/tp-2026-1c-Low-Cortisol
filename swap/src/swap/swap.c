@@ -5,9 +5,15 @@ static void seek_block(FILE* swap_file, int block_number, int block_size);
 
 void close_swap(t_swap* swap, t_config* config)
 {
-  close(swap->socket_swap);
-  fclose(swap->swap_file);
-  log_destroy(swap->logger);
+  // close_swap runs on every early-exit path, including ones reached before the
+  // socket or the SWAP file were set, so each resource is released only if it
+  // was actually acquired.
+  if (swap->socket_swap > 0)
+    close(swap->socket_swap);
+  if (swap->swap_file != NULL)
+    fclose(swap->swap_file);
+  if (swap->logger != NULL)
+    log_destroy(swap->logger);
   config_destroy(config);
 }
 

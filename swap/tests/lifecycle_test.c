@@ -1,4 +1,5 @@
 #include <criterion/criterion.h>
+#include <criterion/redirect.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <pthread.h>
@@ -91,6 +92,31 @@ Test(swap_init_config, fails_and_frees_the_config_when_the_log_file_cannot_open)
   unlink(swap_file);
   unlink(config_path);
   free(swap_file);
+  free(config_path);
+}
+
+Test(swap_init_config, fails_cleanly_when_the_swap_file_cannot_be_created,
+     .init = cr_redirect_stdout)
+{
+  char* config_path = swap_write_temp_config("/no/such/directory/swap.bin");
+
+  char scratch[] = "/tmp/swap_test_cwd_XXXXXX";
+  cr_assert_not_null(mkdtemp(scratch));
+  cr_assert_eq(chdir(scratch), 0);
+
+  t_config* config = config_create(config_path);
+  cr_assert_not_null(config);
+
+  t_swap swap = {0};
+  swap.socket_swap = -1;
+  /* close_swap runs here with no socket and no swap file open; it must not
+   * crash and init_config must report the failure. */
+  cr_assert_not(init_config(&swap, config));
+
+  unlink("swap.log");
+  cr_assert_eq(chdir("/"), 0);
+  rmdir(scratch);
+  unlink(config_path);
   free(config_path);
 }
 

@@ -9,7 +9,7 @@
 
 int main(int argc, char* argv[])
 {
-  t_swap swap;
+  t_swap swap = {0};
 
   if (argc != 2)
     return EXIT_FAILURE;

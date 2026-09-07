@@ -24,9 +24,9 @@ make test-swap      # from the repo root
 - `connect_to_kernel_memory` is driven by a `km_stub` thread that performs the
   handshake and reads back the `OP_INFO_SWAP` sizes, over a loopback connection
   on a kernel-assigned ephemeral port (`support.c`).
-- `init_config` writes `swap.log` in the working directory, so that test `chdir`s
-  into a throwaway directory first.
-- The `init_config` failure path that runs when the SWAP file cannot be created
-  is **not** covered: `close_swap` then calls `fclose` on a `swap_file` that was
-  never assigned (in `main.c` the `t_swap` is uninitialised), which is a crash,
-  not a testable failure. Only the `log_create` failure path is exercised.
+- `init_config` writes `swap.log` in the working directory, so those tests
+  `chdir` into a throwaway directory first.
+- Both `init_config` failure paths are covered (the log file cannot be opened,
+  and the SWAP file cannot be created). The second one exercises `close_swap`
+  before the socket or the SWAP file exist, so it also guards the fix that made
+  `close_swap` release each resource only when it was acquired.
