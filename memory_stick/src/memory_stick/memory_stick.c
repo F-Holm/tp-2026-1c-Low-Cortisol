@@ -13,7 +13,7 @@ bool send_cpu_server_port(int socket_km, int socket_server_cpu, t_log* logger)
     log_error(logger, "## Error sending the CPU server port");
     return false;
   }
-  log_info(logger, "CPU server port sent successfully");
+  log_debug(logger, "CPU server port sent successfully");
   return true;
 }
 
@@ -120,14 +120,14 @@ bool get_args(int argc, char** argv, char** config_path, char** size_str,
 
 void read_memory(t_ms* ms, int start_position, int byte_count, int dest_socket)
 {
-  log_info(ms->logger, "Memory stick must read %d bytes, from %d", byte_count,
-           start_position);
+  log_trace(ms->logger, "Reading %d bytes from offset %d", byte_count,
+            start_position);
   char* bytes_to_return = calloc(byte_count + 1, 1);
   pthread_mutex_lock(ms->memory_mutex);
   memcpy(bytes_to_return, ms->memory + start_position, byte_count);
   pthread_mutex_unlock(ms->memory_mutex);
   usleep(ms->memory_delay * 1000);
-  log_info(ms->logger, "Memory stick read the bytes, %s", bytes_to_return);
+  log_trace(ms->logger, "Read %d bytes", byte_count);
   send_buffer(OP_MEMORY_STICK_READ_DONE, bytes_to_return, byte_count,
               dest_socket);
   free(bytes_to_return);
@@ -139,7 +139,7 @@ void write_memory(t_ms* ms, int start_position, char* bytes_to_write,
   pthread_mutex_lock(ms->memory_mutex);
   memcpy(ms->memory + start_position, bytes_to_write, byte_count);
   pthread_mutex_unlock(ms->memory_mutex);
-  log_info(ms->logger, "%d bytes written", byte_count);
+  log_trace(ms->logger, "Wrote %d bytes", byte_count);
   usleep(ms->memory_delay * 1000);
   send_string(OP_MEMORY_STICK_WRITE_DONE, "Write successful", dest_socket);
 }

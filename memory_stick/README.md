@@ -52,3 +52,23 @@ them in English.
 | `memory_stick.c` | Config load, memory allocation, read/write against the buffer. |
 | `kernel_memory.c` | Handshake with Kernel Memory and size reporting. |
 | `cpu.c` | CPU server: accepts CPU connections and dispatches their requests. |
+
+## Log inventory
+
+Ordered by level, then by how often each line fires. `LOG_LEVEL` is the lowest
+level that reaches the file (`INFO` shows `INFO`/`WARNING`/`ERROR`).
+
+| Level | Frequency | Message | Where |
+|-------|-----------|---------|-------|
+| `INFO` | per read (mandatory) | `## Read of <count> bytes` | `main.c`, `cpu.c` |
+| `INFO` | per write (mandatory) | `## Write of <count> bytes` | `main.c`, `cpu.c` |
+| `INFO` | per CPU connection (mandatory) | `## CPU <id> connected` | `cpu.c` |
+| `INFO` | once, on connect (mandatory) | `## Connected to Kernel Memory` | `kernel_memory.c` |
+| `INFO` | once, on shutdown | `## Memory Stick shutting down` | `main.c` |
+| `WARNING` | on CPU handshake / request failure | `## Could not receive/send the handshake ...`, `## Could not receive the CPU ID` | `cpu.c` |
+| `WARNING` | rare (protocol desync) | `Unexpected operation <op> from Kernel Memory; shutting down` | `main.c` |
+| `ERROR` | rare (startup failure) | `## Connection error with Kernel Memory`, `## Could not send/receive the handshake to Kernel Memory`, `## Could not send the size to Kernel Memory`, `## Error sending the CPU server port`, `## Error creating the CPU server`, `## Could not create the CPU server thread` | `kernel_memory.c`, `memory_stick.c`, `cpu.c` |
+| `ERROR` | rare (bad request) | `## Invalid read/write request from Kernel Memory` / `... from the CPU` | `main.c`, `cpu.c` |
+| `DEBUG` | once per connection | `Handshake successful with Kernel Memory`, `Size reported to Kernel Memory`, `CPU server created successfully`, `CPU server port sent successfully`, `Handshake successful with the CPU`, `Connection established with a CPU` | `kernel_memory.c`, `memory_stick.c`, `cpu.c` |
+| `TRACE` | per request | `Receiving a read/write instruction ...`, `Read/Write from Kernel Memory of <n> bytes ...` | `main.c`, `cpu.c` |
+| `TRACE` | per memory access | `Reading <n> bytes from offset <p>`, `Read <n> bytes`, `Wrote <n> bytes` | `memory_stick.c` |

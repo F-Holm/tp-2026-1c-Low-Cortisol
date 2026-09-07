@@ -39,11 +39,11 @@ int main(int argc, char* argv[])
     {
       case OP_MEMORY_STICK_READ:
       {
-        log_info(ms.logger, "Receiving a read instruction");
+        log_trace(ms.logger, "Receiving a read instruction from Kernel Memory");
         t_list* packet = receive_packet(ms.socket_km);
         if (list_size(packet) != 2)
         {
-          log_error(ms.logger, "Invalid number of parameters to read memory.");
+          log_error(ms.logger, "## Invalid read request from Kernel Memory");
           list_destroy_and_destroy_elements(packet, free);
           break;
         }
@@ -56,19 +56,20 @@ int main(int argc, char* argv[])
       }
       case OP_MEMORY_STICK_WRITE:
       {
-        log_info(ms.logger, "Receiving a write instruction");
+        log_trace(ms.logger,
+                  "Receiving a write instruction from Kernel Memory");
         t_list* packet = receive_packet(ms.socket_km);
         if (list_size(packet) != 3)
         {
-          log_error(ms.logger, "Invalid number of parameters to write memory.");
+          log_error(ms.logger, "## Invalid write request from Kernel Memory");
           list_destroy_and_destroy_elements(packet, free);
           break;
         }
         int start_position = *(int*)list_get(packet, 0);
         char* bytes_to_write = (char*)list_get(packet, 1);
         int byte_count = *(int*)list_get(packet, 2);
-        log_info(ms.logger, "Write from Kernel Memory of %d bytes, from %d",
-                 byte_count, start_position);
+        log_trace(ms.logger, "Write from Kernel Memory of %d bytes, from %d",
+                  byte_count, start_position);
         write_memory(&ms, start_position, bytes_to_write, byte_count,
                      ms.socket_km);
         log_info(ms.logger, "## Write of %d bytes", byte_count);
@@ -76,11 +77,15 @@ int main(int argc, char* argv[])
         break;
       }
       default:
+        log_warning(ms.logger,
+                    "Unexpected operation %d from Kernel Memory; shutting down",
+                    op_code);
         keep_running = false;
         break;
     }
   }
 
+  log_info(ms.logger, "## Memory Stick shutting down");
   close_module(&ms, &cpu_server_thread);
   return EXIT_SUCCESS;
 }
