@@ -31,6 +31,21 @@ Formatting is enforced by `.clang-format`; run `make format` before committing.
 Objects and the `utils` archive live under `build/<mode>/`; each module's
 binary is written to `<module>/bin/<module>`.
 
+### Unit tests
+
+Unit tests use [Criterion](https://criterion.readthedocs.io) and live under
+`<module>/tests/`. Each `.c` file there is a suite that is linked against its
+module's own objects (minus `main.o`) and run as a standalone binary.
+
+| Command | Description |
+| :--- | :--- |
+| `make test` | Build and run every module's suite. |
+| `make test-<module>` | Build and run one module's suite, e.g. `make test-utils`. |
+
+Criterion must be installed (`pacman -S criterion` on Arch,
+`apt install libcriterion-dev` on Debian). `make clean` also removes the test
+binaries. Test files are exempt from `make format`.
+
 ### End-to-end tests
 
 Every directory under `tests/` (except `pseudocode/`) is a scenario: it holds

@@ -38,6 +38,14 @@ make clean      # remove object files and binaries
 
 Each module's executable is written to `<module>/bin/<module>`.
 
+Unit tests use [Criterion](https://criterion.readthedocs.io) and live under
+`<module>/tests/`:
+
+```sh
+make test            # build + run every module's unit-test suite
+make test-utils      # ... just one module's suite
+```
+
 To run the whole distributed system, use one of the end-to-end scenarios under
 `tests/`:
 

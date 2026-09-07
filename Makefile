@@ -48,6 +48,46 @@ $(1)/bin/$(1): $(call objs,$(1)) $(LIBUTILS)
 endef
 $(foreach m,$(BIN_MODULES),$(eval $(call module_rule,$(m))))
 
+# ─── Unit tests (Criterion) ─────────────────────────────────────────────────
+#
+#   make test          build + run every module's unit-test suite
+#   make test-<module> build + run one module's suite   e.g. make test-utils
+#
+# A suite is every .c under <module>/tests/, linked against that module's own
+# objects (minus main.o) and Criterion. Needs Criterion installed
+# (Arch: `pacman -S criterion`; Debian: `apt install libcriterion-dev`).
+
+UNIT_MODULES := $(patsubst %/tests,%,$(wildcard $(addsuffix /tests,utils $(BIN_MODULES))))
+
+CRITERION_CFLAGS := $(shell pkg-config --cflags criterion 2>/dev/null)
+CRITERION_LIBS   := $(shell pkg-config --libs criterion 2>/dev/null || echo -lcriterion)
+
+# a suite's own objects: build/<mode>/<module>/tests/.../x.o
+test_objs = $(patsubst %.c,$(OBJDIR)/%.o,$(shell find $(1)/tests -name '*.c'))
+# the module code under test: its objects except the entry point. utils has no
+# entry point and is pulled from libutils.a instead, so it contributes nothing.
+code_objs = $(if $(filter utils,$(1)),,$(filter-out $(OBJDIR)/$(1)/src/main.o,$(call objs,$(1))))
+
+# suite objects also need the Criterion headers
+$(foreach m,$(UNIT_MODULES),$(eval $(OBJDIR)/$(m)/tests/%.o: CFLAGS += $(CRITERION_CFLAGS)))
+
+define unit_test_rule
+test-$(1): $(1)/bin/$(1)_test | criterion-check
+	@echo "Running '$(1)' unit tests..."
+	./$$<
+$(1)/bin/$(1)_test: $$(call test_objs,$(1)) $$(call code_objs,$(1)) $$(LIBUTILS)
+	@mkdir -p $$(@D)
+	$(CC) $(CFLAGS) -o $$@ $$^ $(LDLIBS) $$(CRITERION_LIBS)
+endef
+$(foreach m,$(UNIT_MODULES),$(eval $(call unit_test_rule,$(m))))
+
+test: $(addprefix test-,$(UNIT_MODULES))
+
+criterion-check:
+	@pkg-config --exists criterion 2>/dev/null || { \
+	  echo "Criterion not found. Install it (Arch: pacman -S criterion; Debian: apt install libcriterion-dev)."; \
+	  exit 1; }
+
 # compile any source; the module is the first path component of the stem
 $(OBJDIR)/%.o: %.c
 	@mkdir -p $(@D)
@@ -56,7 +96,7 @@ $(OBJDIR)/%.o: %.c
 -include $(shell [ -d $(OBJDIR) ] && find $(OBJDIR) -name '*.d')
 
 clean:
-	rm -rf build $(addsuffix /bin,$(BIN_MODULES)) \
+	rm -rf build $(addsuffix /bin,$(BIN_MODULES) $(UNIT_MODULES)) \
 	       $(addsuffix /obj,$(BIN_MODULES) utils) utils/lib
 
 logs:
@@ -85,7 +125,8 @@ VALGRIND_memcheck := valgrind --tool=memcheck --leak-check=full --show-leak-kind
 VALGRIND_helgrind := valgrind --tool=helgrind --history-level=full --trace-children=yes
 VALGRIND          := $(VALGRIND_$(MODE))
 
-.PHONY: all debug release clean logs format kill utils $(BIN_MODULES) $(E2E_TESTS)
+.PHONY: all debug release clean logs format kill utils test criterion-check \
+        $(BIN_MODULES) $(E2E_TESTS) $(addprefix test-,$(UNIT_MODULES))
 
 # Load the parameters of the scenario being launched.
 ACTIVE_TEST := $(firstword $(filter $(MAKECMDGOALS),$(E2E_TESTS)))
