@@ -25,9 +25,9 @@ bool receive_cpu_id(t_cpu_data* cpu_data)
   }
   else
   {
-    log_info(cpu_data->logger,
-             "Could not connect to the CPU because it could not "
-             "sent the ID operation");
+    log_debug(cpu_data->logger,
+              "Could not connect to the CPU because it could not "
+              "sent the ID operation");
     close_communication(cpu_data->socket_cpu);
     return false;
   }
@@ -46,9 +46,9 @@ bool receive_stick_size(t_stick_data* stick_data)
   }
   else
   {
-    log_info(stick_data->logger,
-             "Could not connect to the stick because it could not "
-             "sent the size operation");
+    log_debug(stick_data->logger,
+              "Could not connect to the stick because it could not "
+              "sent the size operation");
     close_communication(stick_data->socket_stick);
     return false;
   }
@@ -60,16 +60,16 @@ bool receive_stick_listen_port(t_stick_data* stick_data)
   if (receive_op_code(stick_data->socket_stick) == OP_PORT)
   {
     char* port = receive_string(stick_data->socket_stick);
-    log_info(stick_data->logger, "Memory Stick port received %s", port);
+    log_debug(stick_data->logger, "Memory Stick port received %s", port);
     stick_data->stick_port = atoi(port);
     free(port);
     return true;
   }
   else
   {
-    log_info(stick_data->logger,
-             "Could not connect to the stick because it could not "
-             "sent the port operation");
+    log_debug(stick_data->logger,
+              "Could not connect to the stick because it could not "
+              "sent the port operation");
     close_communication(stick_data->socket_stick);
     return false;
   }
@@ -157,7 +157,7 @@ int compute_free_space(t_list* holes, pthread_mutex_t* holes_mutex,
                        t_log* logger)
 {
   int total = 0;
-  log_info(logger, "Calculating holes...");
+  log_trace(logger, "Calculating holes...");
   t_list_iterator* iterator = list_iterator_create(holes);
   while (list_iterator_has_next(iterator))
   {
@@ -165,7 +165,7 @@ int compute_free_space(t_list* holes, pthread_mutex_t* holes_mutex,
     total += current_hole->size;
   }
   list_iterator_destroy(iterator);
-  log_info(logger, "free space: %d", total);
+  log_trace(logger, "free space: %d", total);
   return total;
 }
 
@@ -269,21 +269,21 @@ void create_segment(uint32_t id, uint32_t pid, int size,
   if (compute_free_space(main_memory->holes, main_memory->main_memory_mutex,
                          logger) < size)
   {
-    log_info(logger, "Not enough space to create the segment");
+    log_debug(logger, "Not enough space to create the segment");
     send_string(OP_NOT_ENOUGH_MEMORY, "There are not memory enough",
                 socket_scheduler);
     pthread_mutex_unlock(main_memory->main_memory_mutex);
   }
   else
   {
-    log_info(logger, "Creating segment with id %u, pid %u and size %d", id, pid,
-             size);
+    log_debug(logger, "Creating segment with id %u, pid %u and size %d", id,
+              pid, size);
     t_hole chosen_hole = select_hole(size, logger, main_memory);
 
     // Compaction check
     if (chosen_hole.size == -1)
     {
-      log_info(logger, "Memory needs to be compacted");
+      log_debug(logger, "Memory needs to be compacted");
       notify_compaction(socket_scheduler);
       compact_memory(socket_scheduler, main_memory);
       chosen_hole = select_hole(size, logger, main_memory);
@@ -361,8 +361,8 @@ t_segment* find_and_remove_segment(uint32_t id, uint32_t pid,
 {
   pthread_mutex_lock(main_memory->main_memory_mutex);
 
-  log_info(logger, "iterating segment list of size %d:",
-           list_size(main_memory->segments));
+  log_trace(logger, "iterating segment list of size %d:",
+            list_size(main_memory->segments));
 
   t_list_iterator* iterator = list_iterator_create(main_memory->segments);
   t_segment* found_segment = NULL;
@@ -374,8 +374,8 @@ t_segment* find_and_remove_segment(uint32_t id, uint32_t pid,
     {
       list_iterator_remove(iterator);
       found_segment = current_segment;
-      log_info(logger, "removed the segment with ID: %d, PID: %d",
-               found_segment->id, found_segment->pid);
+      log_trace(logger, "removed the segment with ID: %d, PID: %d",
+                found_segment->id, found_segment->pid);
       break;
     }
   }
@@ -397,7 +397,7 @@ void remove_segment(uint32_t id, uint32_t pid, t_main_memory* main_memory,
   t_hole* new_hole = malloc(sizeof(t_hole));
   new_hole->base = 0;
   new_hole->size = 0;
-  log_info(logger, "removing requested segment ID : %d, PID : %d", id, pid);
+  log_debug(logger, "removing requested segment ID : %d, PID : %d", id, pid);
   t_segment* segment_aux =
       find_and_remove_segment(id, pid, main_memory, logger);
   pthread_mutex_lock(main_memory->main_memory_mutex);
@@ -460,7 +460,7 @@ void remove_segment(uint32_t id, uint32_t pid, t_main_memory* main_memory,
       list_remove_and_destroy_element(main_memory->holes, index2, free);
     }
     list_add(main_memory->holes, new_hole);
-    log_info(logger, "Segment between holes");
+    log_trace(logger, "Segment between holes");
   }
   else if (has_hole_before)
   {
@@ -483,7 +483,7 @@ void remove_segment(uint32_t id, uint32_t pid, t_main_memory* main_memory,
 
     list_remove_and_destroy_element(main_memory->holes, index1, free);
     list_add(main_memory->holes, new_hole);
-    log_info(logger, "Segment after hole");
+    log_trace(logger, "Segment after hole");
   }
   else if (has_hole_after)
   {
@@ -506,14 +506,14 @@ void remove_segment(uint32_t id, uint32_t pid, t_main_memory* main_memory,
 
     list_remove_and_destroy_element(main_memory->holes, index2, free);
     list_add(main_memory->holes, new_hole);
-    log_info(logger, "Segment before hole");
+    log_trace(logger, "Segment before hole");
   }
   else
   {
     new_hole->base = segment_aux->base;
     new_hole->size = segment_aux->size;
     list_add(main_memory->holes, new_hole);
-    log_info(logger, "Segment between two segments");
+    log_trace(logger, "Segment between two segments");
   }
   pthread_mutex_unlock(main_memory->main_memory_mutex);
   free(segment_aux);
@@ -667,8 +667,8 @@ char* read_from_sticks(int physical_address, int size, t_list* connected_sticks,
   char* result = malloc(size);
   int bytes_read = 0;
   int current_address = physical_address;
-  log_info(logger, "Reading %d bytes from physical_address %d", size,
-           physical_address);
+  log_trace(logger, "Reading %d bytes from physical_address %d", size,
+            physical_address);
   while (bytes_read < size)
   {
     int stick_offset = 0;
@@ -695,7 +695,7 @@ char* read_from_sticks(int physical_address, int size, t_list* connected_sticks,
     packet_append(packet, &bytes_to_read_count, sizeof(int));
     if (!send_packet(packet, stick->socket_stick))
     {
-      log_error(logger, "Error sending read packet to stick %d", index);
+      log_warning(logger, "Error sending read packet to stick %d", index);
       send_string(OP_MEMORY_CORRUPTED, "Stick not available", socket_scheduler);
       free(result);
       pthread_mutex_unlock(sticks_mutex);
@@ -714,7 +714,7 @@ char* read_from_sticks(int physical_address, int size, t_list* connected_sticks,
     }
     if (op != OP_MEMORY_STICK_READ_DONE)
     {
-      log_error(logger, "Wrong response opcode from stick %d", index);
+      log_warning(logger, "Wrong response opcode from stick %d", index);
       free(result);
       return NULL;
     }
@@ -729,8 +729,8 @@ char* read_from_sticks(int physical_address, int size, t_list* connected_sticks,
     current_address += bytes_to_read_count;
   }
 
-  log_info(logger, "Read %d bytes from physical_address %d", size,
-           physical_address);
+  log_trace(logger, "Read %d bytes from physical_address %d", size,
+            physical_address);
   return result;
 }
 
@@ -773,10 +773,10 @@ bool write_to_sticks(int pid, int physical_address, int bytes_to_read,
     t_stick_data* current_stick = list_get(connected_sticks, i);
     if (current_stick == NULL)
     {
-      log_error(logger,
-                "No more sticks available to finish the write "
-                "(PID: %d, Phys. Addr: %d)",
-                pid, physical_address);
+      log_warning(logger,
+                  "No more sticks available to finish the write "
+                  "(PID: %d, Phys. Addr: %d)",
+                  pid, physical_address);
       send_string(OP_MEMORY_CORRUPTED, "Stick not available", socket_scheduler);
       ok = false;
       break;
@@ -785,8 +785,8 @@ bool write_to_sticks(int pid, int physical_address, int bytes_to_read,
     int available_space = current_stick->stick_size - current_offset;
     int to_write = remaining < available_space ? remaining : available_space;
 
-    log_info(logger, "Starting to write to stick %d, offset %d", i,
-             current_offset);
+    log_trace(logger, "Starting to write to stick %d, offset %d", i,
+              current_offset);
 
     t_packet* packet = create_packet(OP_MEMORY_STICK_WRITE);
     packet_append(packet, &current_offset, sizeof(int));
@@ -795,7 +795,7 @@ bool write_to_sticks(int pid, int physical_address, int bytes_to_read,
 
     if (!send_packet(packet, current_stick->socket_stick))
     {
-      log_error(logger, "Error sending write packet to stick %d", i);
+      log_warning(logger, "Error sending write packet to stick %d", i);
       send_string(OP_MEMORY_CORRUPTED, "Stick not available", socket_scheduler);
       destroy_packet(packet);
       ok = false;
@@ -803,8 +803,8 @@ bool write_to_sticks(int pid, int physical_address, int bytes_to_read,
     }
     destroy_packet(packet);
 
-    log_info(logger, "##PID: %d - Write - Phys. Addr: %d - Size: %d", pid,
-             physical_address, to_write);
+    log_trace(logger, "##PID: %d - Write - Phys. Addr: %d - Size: %d", pid,
+              physical_address, to_write);
 
     if (receive_op_code(current_stick->socket_stick) ==
         OP_MEMORY_STICK_WRITE_DONE)
@@ -854,7 +854,7 @@ static t_hole hole_selection_algorithm(
   list_iterator_destroy(iterator);
   if (chosen_hole.size == -1)
   {
-    log_info(logger, "No available holes");
+    log_debug(logger, "No available holes");
   }
   return chosen_hole;
 }

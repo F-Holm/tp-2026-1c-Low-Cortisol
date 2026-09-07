@@ -62,10 +62,10 @@ void suspend_process(t_process* process_to_suspend,
         }
         else
         {
-          log_info(scheduler_data->logger,
-                   "Could not suspend process PID %d: not free blocks "
-                   "in swap.",
-                   process_to_suspend->pid);
+          log_debug(scheduler_data->logger,
+                    "Could not suspend process PID %d: not free blocks "
+                    "in swap.",
+                    process_to_suspend->pid);
           send_string(OP_SUSPENSION_FAILED,
                       "Could not suspend the process because swap is full.",
                       scheduler_data->socket_scheduler);
@@ -99,8 +99,8 @@ void suspend_process(t_process* process_to_suspend,
   }
   else
   {
-    log_info(scheduler_data->logger, "Process PID %d was not found.",
-             process_to_suspend->pid);
+    log_debug(scheduler_data->logger, "Process PID %d was not found.",
+              process_to_suspend->pid);
     send_string(OP_SUSPENSION_FAILED,
                 "Could not suspend the process because its pid was not found.",
                 scheduler_data->socket_scheduler);
@@ -113,8 +113,8 @@ void resume_process(uint32_t pid, t_scheduler_data* scheduler_data)
   bool process_found = false;
   if (!can_resume(pid, scheduler_data))
   {
-    log_info(scheduler_data->logger,
-             "Could not suspend because the process does not fit in memory");
+    log_debug(scheduler_data->logger,
+              "Could not resume: the process does not fit in memory");
     send_string(OP_RESUME_SUSPENSION_FAILED,
                 "The process does not fit in memory",
                 scheduler_data->socket_scheduler);
@@ -146,9 +146,9 @@ void resume_process(uint32_t pid, t_scheduler_data* scheduler_data)
           read_block_from_swap(block->block_number, scheduler_data->swap_data);
       if (content == NULL)
       {
-        log_error(scheduler_data->logger,
-                  "Could not read block %d from swap for PID %d",
-                  block->block_number, pid);
+        log_warning(scheduler_data->logger,
+                    "Could not read block %d from swap for PID %d",
+                    block->block_number, pid);
         send_string(OP_RESUME_SUSPENSION_FAILED, "Error reading swap block",
                     scheduler_data->socket_scheduler);
         list_iterator_destroy(iterator);
@@ -171,10 +171,10 @@ void resume_process(uint32_t pid, t_scheduler_data* scheduler_data)
           remove_block_from_swap(block->block_number, scheduler_data->swap_data,
                                  scheduler_data->logger))
       {
-        log_info(scheduler_data->logger,
-                 "Since block #%d was not found in swap, "
-                 "PID %d cannot be resumed.",
-                 block->block_number, pid);
+        log_debug(scheduler_data->logger,
+                  "Since block #%d was not found in swap, "
+                  "PID %d cannot be resumed.",
+                  block->block_number, pid);
         send_string(OP_RESUME_SUSPENSION_FAILED,
                     "Could not remove the swap block.",
                     scheduler_data->socket_scheduler);
@@ -186,9 +186,9 @@ void resume_process(uint32_t pid, t_scheduler_data* scheduler_data)
   list_iterator_destroy(iterator);
   if (!process_found)
   {
-    log_info(scheduler_data->logger,
-             "The process is not suspended or its blocks were not "
-             "found on disk.");
+    log_debug(scheduler_data->logger,
+              "The process is not suspended or its blocks were not "
+              "found on disk.");
     send_string(OP_RESUME_SUSPENSION_FAILED,
                 "The process was not resumed because its "
                 "blocks found on disk.",
@@ -211,7 +211,7 @@ static int find_free_block(t_swap_data* swap_data)
     if (block->pid == -1)
       return i;
   }
-  log_info(swap_data->logger, "No free blocks in swap");
+  log_debug(swap_data->logger, "No free blocks in swap");
   return -1;
 }
 
@@ -228,14 +228,14 @@ static int add_block_to_swap(t_segment* segment, int counter,
     free_block->segment_block_number = counter;
     free_block->pid = segment->pid;
     free_block->segment_size = segment->size;
-    log_info(logger,
-             "Adding block to swap: PID %d, Segment %d, segment block %d.",
-             free_block->pid, free_block->segment_number,
-             free_block->segment_block_number);
+    log_trace(logger,
+              "Adding block to swap: PID %d, Segment %d, segment block %d.",
+              free_block->pid, free_block->segment_number,
+              free_block->segment_block_number);
   }
   else
   {
-    log_info(logger, "Cannot add the segment to swap: no free blocks.");
+    log_debug(logger, "Cannot add the segment to swap: no free blocks.");
   }
   return free_block_number;
 }
@@ -260,9 +260,10 @@ static void write_block_to_swap(int block_number, char* content, int byte_count,
   }
   else
   {
-    log_error(swap->logger,
-              "Unexpected response from the swap module while writing block %d",
-              block_number);
+    log_warning(
+        swap->logger,
+        "Unexpected response from the swap module while writing block %d",
+        block_number);
   }
 }
 
@@ -298,9 +299,9 @@ static bool can_resume(uint32_t pid, t_scheduler_data* scheduler_data)
       scheduler_data->main_memory->holes,
       scheduler_data->main_memory->main_memory_mutex, scheduler_data->logger);
   pthread_mutex_unlock(scheduler_data->main_memory->main_memory_mutex);
-  log_info(scheduler_data->logger,
-           "PID %u: size required to resume %d, free space %d", pid,
-           process_size, free_space);
+  log_trace(scheduler_data->logger,
+            "PID %u: size required to resume %d, free space %d", pid,
+            process_size, free_space);
   return process_size <= free_space;
 }
 
@@ -313,7 +314,7 @@ static bool regenerate_segment(uint32_t id, uint32_t pid, int size,
   if (compute_free_space(main_memory->holes, main_memory->main_memory_mutex,
                          logger) < size)
   {
-    log_info(logger, "Not enough space to regenerate the segment");
+    log_debug(logger, "Not enough space to regenerate the segment");
     send_string(OP_RESUME_SUSPENSION_FAILED, "There are not memory enough",
                 socket_scheduler);
     pthread_mutex_unlock(main_memory->main_memory_mutex);
@@ -321,14 +322,14 @@ static bool regenerate_segment(uint32_t id, uint32_t pid, int size,
   }
   else
   {
-    log_info(logger, "Regenerating segment with id %u, pid %u and size %d", id,
-             pid, size);
+    log_debug(logger, "Regenerating segment with id %u, pid %u and size %d", id,
+              pid, size);
     t_hole chosen_hole = select_hole(size, logger, main_memory);
 
     // Compaction check
     if (chosen_hole.size == -1)
     {
-      log_error(logger, "## Could not allocate any hole.");
+      log_warning(logger, "## Could not allocate any hole.");
       send_string(OP_RESUME_SUSPENSION_FAILED, "Could not allocate holes.",
                   socket_scheduler);
       return false;
@@ -348,9 +349,10 @@ static char* read_block_from_swap(int block_number, t_swap_data* swap)
   int op_code = receive_op_code(swap->socket_swap);
   if (op_code != OP_DISK_READ_DONE)
   {
-    log_error(swap->logger,
-              "Unexpected response from the swap module while reading block %d",
-              block_number);
+    log_warning(
+        swap->logger,
+        "Unexpected response from the swap module while reading block %d",
+        block_number);
     return NULL;
   }
 
@@ -366,17 +368,17 @@ static int remove_block_from_swap(int block_number, t_swap_data* swap_data,
   t_block_data* block_to_remove = list_get(swap_data->block_list, block_number);
   if (block_to_remove == NULL)
   {
-    log_info(logger,
-             "Could not remove swap block number %d because "
-             "there is not such block.",
-             block_number);
+    log_debug(logger,
+              "Could not remove swap block number %d because "
+              "there is not such block.",
+              block_number);
     return -1;
   }
   block_to_remove->segment_number = -1;
   block_to_remove->segment_block_number = -1;
   block_to_remove->pid = -1;
   block_to_remove->segment_size = -1;
-  log_info(logger, "Removing swap block number: %d.", block_number);
+  log_trace(logger, "Removing swap block number: %d.", block_number);
   return block_number;
 }
 

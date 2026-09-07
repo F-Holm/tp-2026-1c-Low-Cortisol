@@ -48,8 +48,8 @@ void free_scheduler_data(t_scheduler_data* scheduler_data)
 
 void free_kernel_memory_data(t_kernel_memory_data* kernel_data)
 {
-  log_info(kernel_data->logger,
-           "Freeing kernel memory data and ending the program.");
+  log_debug(kernel_data->logger,
+            "Freeing kernel memory data and ending the program.");
   if (kernel_data == NULL)
     return;
   if (kernel_data->connected_cpus != NULL)
