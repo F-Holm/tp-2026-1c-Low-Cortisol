@@ -32,6 +32,7 @@ int main(int argc, char* argv[])
   while (keep_running)
   {
     int op_code = receive_op_code(swap.socket_swap);
+    log_trace(swap.logger, "Received operation %d from Kernel Memory", op_code);
     switch (op_code)
     {
       case OP_DISK_WRITE:
@@ -69,6 +70,9 @@ int main(int argc, char* argv[])
         break;
 
       default:
+        log_warning(swap.logger,
+                    "Unexpected operation %d from Kernel Memory; shutting down",
+                    op_code);
         keep_running = false;
         break;
     }

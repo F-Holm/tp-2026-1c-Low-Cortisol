@@ -51,3 +51,26 @@ them in English.
 |------|----------------|
 | `src/main.c` | Argument check, bootstrap, request loop. |
 | `swap.c` | Config load, SWAP-file setup, per-block read/write. |
+
+## Log inventory
+
+Ordered by level, then by how often each line fires. `LOG_LEVEL` is the lowest
+level that reaches the file (`INFO` shows `INFO`/`WARNING`/`ERROR`).
+
+| Level | Frequency | Message | Where |
+|-------|-----------|---------|-------|
+| `INFO` | per block write (mandatory) | `## Block write: <N>` | `main.c` |
+| `INFO` | per block read (mandatory) | `## Block read: <N>` | `main.c` |
+| `INFO` | once, on connect (mandatory) | `## Connected to Kernel Memory` | `swap.c` |
+| `INFO` | once, on shutdown | `Closing Swap` | `main.c` |
+| `WARNING` | rare (protocol desync / shutdown) | `Unexpected operation <op> from Kernel Memory; shutting down` | `main.c` |
+| `ERROR` | rare (startup failure) | `## Error initializing the SWAP file` | `swap.c` |
+| `ERROR` | rare (startup failure) | `## Connection error with Kernel Memory` | `swap.c` |
+| `ERROR` | rare (startup failure) | `## Handshake error with Kernel Memory` | `swap.c` |
+| `ERROR` | rare (startup failure) | `## Error sending the SWAP packet` | `swap.c` |
+| `ERROR` | rare (bad request) | `Invalid number of parameters to write to disk.` | `main.c` |
+| `ERROR` | rare (peer dropped) | `Error receiving the block number to read.` | `main.c` |
+| `DEBUG` | once, on startup | `Config loaded: SWAP file '<path>' (<n> bytes, <b>-byte blocks), Kernel Memory at <ip>:<port>` | `swap.c` |
+| `DEBUG` | once, on connect | `Handshake successful with Kernel Memory` | `swap.c` |
+| `DEBUG` | once, on connect | `Reported SWAP geometry to Kernel Memory` | `swap.c` |
+| `TRACE` | per request | `Received operation <op> from Kernel Memory` | `main.c` |

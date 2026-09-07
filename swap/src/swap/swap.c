@@ -40,6 +40,11 @@ bool init_config(t_swap* swap, t_config* config)
     return false;
   }
 
+  log_debug(swap->logger,
+            "Config loaded: SWAP file '%s' (%d bytes, %d-byte blocks), Kernel "
+            "Memory at %s:%s",
+            swap->swap_file_path, swap->swap_size, swap->block_size, swap->ip,
+            swap->port);
   return true;
 }
 
@@ -49,7 +54,7 @@ bool connect_to_kernel_memory(t_swap* swap, t_config* config)
 
   if (swap->socket_swap == -1)
   {
-    log_error(swap->logger, "#CONNECTION ERROR");
+    log_error(swap->logger, "## Connection error with Kernel Memory");
     close_swap(swap, config);
     return false;
   }
@@ -70,7 +75,7 @@ bool connect_to_kernel_memory(t_swap* swap, t_config* config)
     close_swap(swap, config);
     return false;
   }
-  log_info(swap->logger, "Handshake successful with Kernel Memory");
+  log_debug(swap->logger, "Handshake successful with Kernel Memory");
 
   // Send the swap size and block size to kernel memory.
   t_swap_config* km_config = malloc(sizeof(t_swap_config));
@@ -88,6 +93,7 @@ bool connect_to_kernel_memory(t_swap* swap, t_config* config)
   }
   free(km_config);
 
+  log_debug(swap->logger, "Reported SWAP geometry to Kernel Memory");
   return true;
 }
 
