@@ -75,7 +75,7 @@ static int connect_kernel_memory(char* ip, char* port, t_log* logger)
     log_error(logger, "Connection error with Kernel Memory");
     return -1;
   }
-  log_info(logger, "## Connected to Kernel Memory");
+  log_info(logger, "Connected to Kernel Memory");
   return km_socket;
 }
 

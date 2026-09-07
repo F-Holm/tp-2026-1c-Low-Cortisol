@@ -886,7 +886,7 @@ static void terminate_routines(t_queues* queues)
 static void log_transition_state(t_log* logger, uint32_t pid,
                                  int previous_state, int state_new)
 {
-  log_info(logger, "## %d moves from state %s to state %s", pid,
+  log_info(logger, "%d moves from state %s to state %s", pid,
            STATE_NAMES[previous_state], STATE_NAMES[state_new]);
 }
 
@@ -894,7 +894,7 @@ static void log_invalid_state(t_log* logger, uint32_t pid, int state,
                               int expected_state, int next_state)
 {
   log_error(logger,
-            "## %u Cannot move from state %s to state %s because it "
+            "%u Cannot move from state %s to state %s because it "
             "is in state %s",
             pid, STATE_NAMES[expected_state], STATE_NAMES[next_state],
             STATE_NAMES[state]);
@@ -980,7 +980,7 @@ static void transition_to_susp_ready(t_pcb* pcb, t_blocking_list* susp_ready)
 
 static void log_transition_to_exit(t_log* logger, uint32_t pid, int reason)
 {
-  log_info(logger, "## %u finished execution with reason: %s", pid,
+  log_info(logger, "%u finished execution with reason: %s", pid,
            PROCESS_END_REASONS[reason]);
 }
 
@@ -1007,7 +1007,7 @@ static t_pcb* transition_take_new(char* instructions_file, int priority,
                                   t_queues* queues)
 {
   t_pcb* pcb = create_pcb(EST_NEW, priority);
-  log_info(queues->logger, "## %u Creating the process - State: NEW", pcb->pid);
+  log_info(queues->logger, "%u Creating the process - State: NEW", pcb->pid);
 
   aumentar_counter_processes(queues->process_counter);
   if (!notify_new_process(queues, instructions_file, pcb->pid))
@@ -1286,8 +1286,7 @@ static bool transition_susp_ready_no_mutex(t_pcb* pcb, t_queues* queues)
 
   if (!can_resume_suspended(pcb, queues))
   {
-    log_debug(queues->logger,
-              "There are not enough space for resume to the process %u",
+    log_debug(queues->logger, "Not enough space to resume process %u",
               pcb->pid);
     return false;
   }
@@ -1865,10 +1864,10 @@ static void compaction(t_queues* queues)
                            queues->km_socket->km_socket);
     return;
   }
-  log_info(queues->logger, "## Start of compaction");
+  log_info(queues->logger, "Start of compaction");
   if (compaction_finished(queues))
   {
-    log_info(queues->logger, "## End of compaction");
+    log_info(queues->logger, "End of compaction");
   }
 }
 

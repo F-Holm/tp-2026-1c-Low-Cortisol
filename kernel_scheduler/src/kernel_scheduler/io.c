@@ -269,8 +269,8 @@ static void finalize_io(void* request, t_io* io, t_pcb* pcb)
 
   // Move to ready or susp ready depending on the blocked time
   free_request(request, io);
-  log_info(io->logger,
-           "##  <%d> - Finished IO and moves to READY / SUSP. READY", pcb->pid);
+  log_info(io->logger, "<%d> - Finished IO and moves to READY / SUSP. READY",
+           pcb->pid);
 }
 
 static bool io_sleep_f(t_sleep* request, t_io* io_sleep)
@@ -472,7 +472,7 @@ static bool handle_stdin(t_io* io)
   pthread_mutex_unlock(&(io->io_list->io_list_mutex));
   if (request == NULL)
   {
-    log_warning(io->logger, "#Error getting the request from the stdin list");
+    log_warning(io->logger, "The STDIN request queue was empty");
     return false;
   }
   return io_stdin_f(request, io);
@@ -484,7 +484,7 @@ static bool handle_stdout(t_io* io)
   pthread_mutex_unlock(&(io->io_list->io_list_mutex));
   if (request == NULL)
   {
-    log_warning(io->logger, "Error getting the request from the stdout list");
+    log_warning(io->logger, "The STDOUT request queue was empty");
     return false;
   }
   return io_stdout_f(request, io);
@@ -496,7 +496,7 @@ static bool handle_sleep(t_io* io)
   pthread_mutex_unlock(&(io->io_list->io_list_mutex));
   if (request == NULL)
   {
-    log_warning(io->logger, "Error getting the request from the sleep list");
+    log_warning(io->logger, "The SLEEP request queue was empty");
     return false;
   }
   return io_sleep_f(request, io);

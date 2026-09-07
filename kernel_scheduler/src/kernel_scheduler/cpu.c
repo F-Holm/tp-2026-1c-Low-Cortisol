@@ -127,8 +127,8 @@ static void log_syscall(t_syscall_data* data, int op_code)
 {
   if (op_code >= OP_SYSCALL_MUTEX_CREATE && op_code <= OP_SYSCALL_EXIT)
   {
-    log_info(data->data->logger, "## %u - Requested syscall: %s",
-             data->pcb->pid, SYSCALL_NAMES[op_code - OP_SYSCALL_MUTEX_CREATE]);
+    log_info(data->data->logger, "%u - Requested syscall: %s", data->pcb->pid,
+             SYSCALL_NAMES[op_code - OP_SYSCALL_MUTEX_CREATE]);
   }
 }
 
@@ -149,7 +149,7 @@ static void log_preemption_queue_priority(t_log* logger, uint32_t preempted_pid,
                                           uint32_t pid_new, int priority_new)
 {
   log_info(logger,
-           "## %u Priority: %d - Preempted by a higher-priority queue "
+           "%u Priority: %d - Preempted by a higher-priority queue "
            "by process %u with priority %d",
            preempted_pid, preempted_priority, pid_new, priority_new);
 }
@@ -168,7 +168,7 @@ static void manage_queue_blocked(t_syscall_data* data)
 
 static void log_preemption_end_quantum(t_log* logger, uint32_t pid)
 {
-  log_info(logger, "## %u - Preempted due to quantum end", pid);
+  log_info(logger, "%u - Preempted due to quantum end", pid);
 }
 
 static bool is_process_lowest_priority(t_syscall_data* data, int priority)
@@ -451,13 +451,14 @@ static bool send_pid(t_syscall_data* data)
 
   if (!send_code(data))
   {
-    log_warning(data->data->logger, "CPU %s: Failed to send the code",
+    log_warning(data->data->logger,
+                "CPU %s: could not send the interrupt decision",
                 data->data->id);
     data->keep_running = false;
     return false;
   }
 
-  log_trace(data->data->logger, "CPU %s: Code sent successfully",
+  log_trace(data->data->logger, "CPU %s: interrupt decision sent",
             data->data->id);
   data->preemption_reason = PR_NO_PREEMPTION;
 

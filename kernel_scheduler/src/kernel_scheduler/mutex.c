@@ -72,18 +72,18 @@ int list_mutex_unlock(t_mutex_list* mutex_list, char* id, t_pcb* pcb)
 
 static void log_mutex_tomado(t_log* logger, uint32_t pid, char* id_mutex)
 {
-  log_info(logger, "## %u Takes the Mutex %s", pid, id_mutex);
+  log_info(logger, "%u Takes the Mutex %s", pid, id_mutex);
 }
 
 static void log_mutex_released(t_log* logger, uint32_t pid, char* id_mutex)
 {
-  log_info(logger, "## %u Releases the Mutex %s", pid, id_mutex);
+  log_info(logger, "%u Releases the Mutex %s", pid, id_mutex);
 }
 
 static void log_transition_of_priority(t_log* logger, uint32_t pid,
                                        int previous_priority, int priority_new)
 {
-  log_info(logger, "## %u Change of priority: %d - %d", pid, previous_priority,
+  log_info(logger, "%u Change of priority: %d - %d", pid, previous_priority,
            priority_new);
 }
 

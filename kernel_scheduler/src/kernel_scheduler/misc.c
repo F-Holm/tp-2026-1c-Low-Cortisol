@@ -164,7 +164,7 @@ bool respond_handshake(int socket_fd, int id_module, t_log* logger)
 {
   if (!send_handshake(id_module, socket_fd))
   {
-    log_error(logger, "## Error sending the handshake to %s",
+    log_error(logger, "Error sending the handshake to %s",
               HANDSHAKE_MSG[id_module]);
     return false;
   }
@@ -249,11 +249,11 @@ static void log_shutdown(t_log* logger, int reason_shutdown)
 {
   if (reason_shutdown == SR_NO_PROCESSES)
   {
-    log_info(logger, "## %s", SHUTDOWN_REASONS[reason_shutdown]);
+    log_info(logger, "Shutting down: %s", SHUTDOWN_REASONS[reason_shutdown]);
   }
   else
   {
-    log_error(logger, "## %s", SHUTDOWN_REASONS[reason_shutdown]);
+    log_error(logger, "Shutting down: %s", SHUTDOWN_REASONS[reason_shutdown]);
   }
 }
 
