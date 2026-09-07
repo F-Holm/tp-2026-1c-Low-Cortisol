@@ -35,7 +35,7 @@ bool init_config(t_swap* swap, t_config* config)
   swap->swap_file_path = config_get_string_value(config, "SWAP_FILE_PATH");
   if (!init_swap_file(swap))
   {
-    log_error(swap->logger, "## Error initializing the SWAP file");
+    log_error(swap->logger, "Error initializing the SWAP file");
     close_swap(swap, config);
     return false;
   }
@@ -54,16 +54,16 @@ bool connect_to_kernel_memory(t_swap* swap, t_config* config)
 
   if (swap->socket_swap == -1)
   {
-    log_error(swap->logger, "## Connection error with Kernel Memory");
+    log_error(swap->logger, "Connection error with Kernel Memory");
     close_swap(swap, config);
     return false;
   }
-  log_info(swap->logger, "## Connected to Kernel Memory");
+  log_info(swap->logger, "Connected to Kernel Memory");
 
   bool sent_ok = send_handshake(MID_SWAP, swap->socket_swap);
   if (!sent_ok)
   {
-    log_error(swap->logger, "## Handshake error with Kernel Memory");
+    log_error(swap->logger, "Handshake error with Kernel Memory");
     close_swap(swap, config);
     return false;
   }
@@ -71,7 +71,7 @@ bool connect_to_kernel_memory(t_swap* swap, t_config* config)
   int received_id = receive_handshake(swap->socket_swap);
   if (received_id != MID_KERNEL_MEMORY)
   {
-    log_error(swap->logger, "## Handshake error with Kernel Memory");
+    log_error(swap->logger, "Handshake error with Kernel Memory");
     close_swap(swap, config);
     return false;
   }
@@ -87,7 +87,7 @@ bool connect_to_kernel_memory(t_swap* swap, t_config* config)
 
   if (!sent_ok)
   {
-    log_error(swap->logger, "## Error sending the SWAP packet");
+    log_error(swap->logger, "Error sending the SWAP packet");
     close_swap(swap, config);
     return false;
   }

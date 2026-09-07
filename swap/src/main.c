@@ -48,7 +48,7 @@ int main(int argc, char* argv[])
         write_block(swap.swap_file, block_number, swap.block_size, content);
         send_string(OP_DISK_WRITE_DONE, "", swap.socket_swap);
         list_destroy_and_destroy_elements(packet, free);
-        log_info(swap.logger, "## Block write: <%d>", block_number);
+        log_info(swap.logger, "Block write: %d", block_number);
         break;
 
       case OP_DISK_READ:
@@ -64,7 +64,7 @@ int main(int argc, char* argv[])
                    content_read);
         send_buffer(OP_DISK_READ_DONE, content_read, swap.block_size,
                     swap.socket_swap);
-        log_info(swap.logger, "## Block read: <%d>", *block_number_ptr);
+        log_info(swap.logger, "Block read: %d", *block_number_ptr);
         free(block_number_ptr);
         free(content_read);
         break;
