@@ -71,7 +71,7 @@ int main(int argc, char* argv[])
         keep_running = false;
     }
   }
-  log_info(io.logger, "## IO shutting down");
+  log_info(io.logger, "IO shutting down");
   close_io(&io);
   return EXIT_SUCCESS;
 }

@@ -35,12 +35,12 @@ handles one request at a time and answers when done.
 Emitted at `INFO`. The consigna lists these in Spanish; this repository emits
 them in English.
 
-- Connection to Kernel Scheduler — `## Connected to Kernel Scheduler`
-- IO start — `## PID <PID> - IO start`
-- IO end — `## PID <PID> - IO end`
-- `STDOUT` only — `## PID: <PID> - <CONTENT>`
-- `STDIN` only — `## PID <PID> - Enter <COUNT> characters`
-- `SLEEP` only — `## PID: <PID> - Sleeping for <TIME> seconds`
+- Connection to Kernel Scheduler — `Connected to Kernel Scheduler`
+- IO start — `PID <PID> - IO start`
+- IO end — `PID <PID> - IO end`
+- `STDOUT` only — `PID: <PID> - <CONTENT>`
+- `STDIN` only — `PID <PID> - Enter <COUNT> characters`
+- `SLEEP` only — `PID: <PID> - Sleeping for <TIME> seconds`
 
 ## Source layout
 
@@ -57,16 +57,16 @@ level that reaches the file (`INFO` shows `INFO`/`WARNING`/`ERROR`).
 
 | Level | Frequency | Message | Where |
 |-------|-----------|---------|-------|
-| `INFO` | per request (mandatory) | `## PID <PID> - IO start` / `## PID <PID> - IO end` | `ioops.c` |
-| `INFO` | per `STDOUT` request (mandatory) | `## PID: <PID> - <content>` | `ioops.c` |
-| `INFO` | per `STDIN` request (mandatory) | `## PID <PID> - Enter <count> characters` | `ioops.c` |
-| `INFO` | per `SLEEP` request (mandatory) | `## PID: <PID> - Sleeping for <time> seconds` | `ioops.c` |
-| `INFO` | once, on connect (mandatory) | `## Connected to Kernel Scheduler` | `utils.c` |
-| `INFO` | once, on shutdown | `## IO shutting down` | `main.c` |
-| `WARNING` | on peer loss / end of input | `## Could not send the IO response to Kernel Scheduler (peer gone?)` / `## Could not read user input (end of input?)` | `ioops.c` |
+| `INFO` | per request (mandatory) | `PID <PID> - IO start` / `PID <PID> - IO end` | `ioops.c` |
+| `INFO` | per `STDOUT` request (mandatory) | `PID: <PID> - <content>` | `ioops.c` |
+| `INFO` | per `STDIN` request (mandatory) | `PID <PID> - Enter <count> characters` | `ioops.c` |
+| `INFO` | per `SLEEP` request (mandatory) | `PID: <PID> - Sleeping for <time> seconds` | `ioops.c` |
+| `INFO` | once, on connect (mandatory) | `Connected to Kernel Scheduler` | `utils.c` |
+| `INFO` | once, on shutdown | `IO shutting down` | `main.c` |
+| `WARNING` | on peer loss / end of input | `Could not send the IO response to Kernel Scheduler (peer gone?)` / `Could not read user input (end of input?)` | `ioops.c` |
 | `WARNING` | rare (protocol desync) | `Unexpected operation <op> from Kernel Scheduler; shutting down` | `main.c` |
-| `ERROR` | rare (startup failure) | `## Connection error with Kernel Scheduler` / `## Handshake error with Kernel Scheduler` / `## Error sending the IO type` | `utils.c` |
-| `ERROR` | rare (bad request) | `## Malformed STDOUT request: no content` | `ioops.c` |
+| `ERROR` | rare (startup failure) | `Connection error with Kernel Scheduler` / `Handshake error with Kernel Scheduler` / `Error sending the IO type` | `utils.c` |
+| `ERROR` | rare (bad request) | `Malformed STDOUT request: no content` | `ioops.c` |
 | `DEBUG` | once, on startup | `Config loaded: <type> interface, Kernel Scheduler at <ip>:<port>` | `utils.c` |
 | `DEBUG` | once, on connect | `Handshake successful with Kernel Scheduler` / `IO type sent successfully` | `utils.c` |
 | `TRACE` | per request | `Received operation <op> from Kernel Scheduler` | `main.c` |
