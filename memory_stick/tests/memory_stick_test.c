@@ -33,6 +33,19 @@ Test(ms_get_args, extracts_the_config_path_and_the_size)
   cr_assert_eq(size, 2048);
 }
 
+Test(ms_get_args, rejects_a_non_positive_size)
+{
+  char* config_path = NULL;
+  char* size_str = NULL;
+  int size = 0;
+  char* zero[] = {"memory_stick", "stick.config", "0"};
+  char* negative[] = {"memory_stick", "stick.config", "-1"};
+  char* garbage[] = {"memory_stick", "stick.config", "abc"};
+  cr_assert_not(get_args(3, zero, &config_path, &size_str, &size));
+  cr_assert_not(get_args(3, negative, &config_path, &size_str, &size));
+  cr_assert_not(get_args(3, garbage, &config_path, &size_str, &size));
+}
+
 /* ── read_config / init_config ─────────────────────────────────────────── */
 
 Test(ms_config, read_config_pulls_every_key)

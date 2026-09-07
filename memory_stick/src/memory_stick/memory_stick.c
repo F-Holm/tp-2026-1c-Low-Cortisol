@@ -115,7 +115,7 @@ bool get_args(int argc, char** argv, char** config_path, char** size_str,
   *config_path = argv[1];
   *size_str = argv[2];
   *size = atoi(*size_str);
-  return size > 0;
+  return *size > 0;
 }
 
 void read_memory(t_ms* ms, int start_position, int byte_count, int dest_socket)

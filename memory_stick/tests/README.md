@@ -28,9 +28,5 @@ make test-memory_stick      # from the repo root
   plus `init_module` / `close_module` are threaded server orchestration and
   belong to the end-to-end scenarios under `tests/`.
 
-## Known issue (not fixed here)
-
-`get_args` ends with `return size > 0;` where `size` is the `int*` out-param, so
-the comparison is always true and a non-positive size is not rejected. The tests
-cover the argument-count check and the extraction; they do not assert the broken
-size validation.
+`get_args` is checked for the argument count, the extraction and the
+non-positive-size rejection.
