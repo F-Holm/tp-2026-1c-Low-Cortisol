@@ -92,6 +92,40 @@ Test(ks_state_machine, exec_to_exit_on_shutdown_drops_the_process)
   cr_assert_eq(atomic_load(&(q->process_counter->active_process_count)), 1);
 }
 
+Test(ks_state_machine, susp_block_back_to_block)
+{
+  t_pcb* pcb = create_pcb(EST_SUSP_BLOCK, 0);
+  transition_to_susp_block(pcb, &(q->susp_block));
+
+  transition_susp_block(pcb, q);
+
+  cr_assert_eq(pcb->state, EST_BLOCK);
+  cr_assert(blocking_list_is_empty(&(q->susp_block)));
+  cr_assert_eq(transition_take_block_next(&(q->block)), pcb);
+  destroy_pcb(pcb);
+}
+
+Test(ks_state_machine, unlock_from_susp_block_goes_to_susp_ready)
+{
+  t_pcb* pcb = create_pcb(EST_SUSP_BLOCK, 0);
+  transition_to_susp_block(pcb, &(q->susp_block));
+
+  transition_unlock(pcb, q); /* not EST_BLOCK -> susp_block -> susp_ready */
+
+  cr_assert_eq(pcb->state, EST_SUSP_READY);
+  cr_assert_eq(transition_take_susp_ready_next(&(q->susp_ready)), pcb);
+  destroy_pcb(pcb);
+}
+
+Test(ks_state_machine, syscall_counter_goes_up_and_down)
+{
+  increment_syscall_counter(q);
+  increment_syscall_counter(q);
+  cr_assert_eq(q->syscall_counter->count, 2);
+  decrement_syscall_counter(q);
+  cr_assert_eq(q->syscall_counter->count, 1);
+}
+
 Test(ks_state_machine, clear_queues_drains_every_queue)
 {
   increment_process_count(q->process_counter);

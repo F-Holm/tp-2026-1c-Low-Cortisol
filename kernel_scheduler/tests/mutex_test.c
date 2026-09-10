@@ -107,3 +107,76 @@ Test(ks_mutex, priority_inheritance_propagates_transitively_through_a_chain)
   ks_destroy_stub_queues_blocking(queues);
   log_destroy(logger);
 }
+
+Test(ks_mutex, the_same_process_can_relock_a_mutex_it_released)
+{
+  t_log* logger = ks_quiet_logger();
+  t_queues* queues = ks_stub_queues(logger);
+  t_mutex_list* list = init_list_mutex();
+  t_pcb* pcb = create_pcb(EST_EXEC, 0);
+
+  create_and_add_mutex(list, "m", false, queues);
+  cr_assert_eq(list_mutex_lock(list, "m", pcb), RM_MUTEX_LOCKED);
+  cr_assert_eq(list_mutex_unlock(list, "m", pcb), RM_MUTEX_UNLOCKED);
+  cr_assert_eq(list_mutex_lock(list, "m", pcb), RM_MUTEX_LOCKED);
+
+  destroy_pcb(pcb);
+  destroy_list_mutex(list);
+  free(queues);
+  log_destroy(logger);
+}
+
+Test(ks_mutex, a_non_priority_mutex_hands_off_to_waiters_in_fifo_order)
+{
+  t_log* logger = ks_quiet_logger();
+  t_queues* queues = ks_stub_queues_full(logger);
+  t_mutex_list* list = init_list_mutex();
+  t_pcb* owner = create_pcb(EST_EXEC, 0);
+  t_pcb* first = create_pcb(EST_EXEC, 0);
+  t_pcb* second = create_pcb(EST_EXEC, 0);
+
+  create_and_add_mutex(list, "m", false, queues);
+  list_mutex_lock(list, "m", owner);
+  cr_assert_eq(list_mutex_lock(list, "m", first), RM_WAITING_MUTEX);
+  cr_assert_eq(list_mutex_lock(list, "m", second), RM_WAITING_MUTEX);
+
+  list_mutex_unlock(list, "m", owner); /* first now holds it, back in READY */
+  cr_assert_eq(first->state, EST_READY);
+  cr_assert_eq(list_mutex_unlock(list, "m", first), RM_MUTEX_UNLOCKED);
+  cr_assert_eq(second->state, EST_READY);
+
+  /* the queue is done with them now */
+  transition_take_ready_next(&(queues->ready));
+  transition_take_ready_next(&(queues->ready));
+  destroy_pcb(owner);
+  destroy_pcb(first);
+  destroy_pcb(second);
+  destroy_list_mutex(list);
+  ks_destroy_stub_queues_full(queues);
+  log_destroy(logger);
+}
+
+Test(ks_mutex, an_inherited_priority_reverts_when_the_holder_unlocks)
+{
+  t_log* logger = ks_quiet_logger();
+  t_queues* queues = ks_stub_queues_full(logger);
+  t_mutex_list* list = init_list_mutex();
+  t_pcb* low = create_pcb(EST_EXEC, 5);
+  t_pcb* high = create_pcb(EST_EXEC, 1);
+
+  create_and_add_mutex(list, "m", true, queues);
+  list_mutex_lock(list, "m", low);
+  cr_assert_eq(list_mutex_lock(list, "m", high), RM_WAITING_MUTEX);
+  cr_assert_eq(get_priority_pcb(low), 1, "low inherits high's priority");
+
+  list_mutex_unlock(list, "m", low);
+  cr_assert_eq(get_priority_pcb(low), 5, "low reverts to its own priority");
+  cr_assert_eq(high->state, EST_READY);
+
+  transition_take_ready_next(&(queues->ready));
+  destroy_pcb(low);
+  destroy_pcb(high);
+  destroy_list_mutex(list);
+  ks_destroy_stub_queues_full(queues);
+  log_destroy(logger);
+}
