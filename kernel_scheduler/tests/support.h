@@ -24,3 +24,14 @@ t_queues* ks_stub_queues(t_log* logger);
  */
 t_queues* ks_stub_queues_blocking(t_log* logger);
 void ks_destroy_stub_queues_blocking(t_queues* queues);
+
+/**
+ * @brief A `t_queues` with every in-process queue really initialised (a single
+ *        FIFO ready queue, real exec/block/susp lists, real counters and a
+ *        process counter wired to a dead socket fd). Enough for the
+ *        socket-free state transitions (EXEC<->READY, EXEC->BLOCK,
+ *        BLOCK->READY, ...). The suspender/resumer threads are NOT started.
+ *        Destroy it with `ks_destroy_stub_queues_full()`.
+ */
+t_queues* ks_stub_queues_full(t_log* logger);
+void ks_destroy_stub_queues_full(t_queues* queues);
