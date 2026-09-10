@@ -1,4 +1,4 @@
-INITIAL_PROCESS := initial_process.asm
+INITIAL_PROCESS := initial_process.prc
 STICK_SIZES     := 1000 2000 3000 4000 5000 6000
 CPU_COUNT       := 3
 CPU_STAGGER     :=

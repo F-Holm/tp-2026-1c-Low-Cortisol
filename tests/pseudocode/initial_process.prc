@@ -1,9 +1,9 @@
 NOOP
-INIT_PROC child_process.asm 3
-INIT_PROC child_process.asm 3
-INIT_PROC child_process.asm 3
-INIT_PROC child_process.asm 3
-INIT_PROC child_process.asm 3
+INIT_PROC child_process.prc 3
+INIT_PROC child_process.prc 3
+INIT_PROC child_process.prc 3
+INIT_PROC child_process.prc 3
+INIT_PROC child_process.prc 3
 SET AX 6
 SET BX 2
 SUM AX BX
@@ -24,5 +24,5 @@ STDOUT DX AX
 SET CX 10
 SET DX 5
 MEM_FREE 0
-INIT_PROC child_process.asm 3
+INIT_PROC child_process.prc 3
 EXIT

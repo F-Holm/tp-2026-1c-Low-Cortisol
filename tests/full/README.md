@@ -8,7 +8,7 @@ A broad end-to-end run touching most instruction types at once. Useful as a quic
 
 ## Workload
 
-`initial_process.asm` spawns several copies of `child_process.asm` and exercises SET, SUM/SUB, JNZ, MEM_ALLOC/FREE, MOV_IN/OUT, MUTEX_*, SLEEP and STDIN/STDOUT.
+`initial_process.prc` spawns several copies of `child_process.prc` and exercises SET, SUM/SUB, JNZ, MEM_ALLOC/FREE, MOV_IN/OUT, MUTEX_*, SLEEP and STDIN/STDOUT.
 
 ## Key configuration
 
