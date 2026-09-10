@@ -115,7 +115,9 @@ them in English.
 | `queue.c` | The seven-state machine; long/medium/short-term transitions; suspension and compaction routines. |
 | `mutex.c` | Mutex ownership, wait queues, priority inheritance. |
 | `memory.c` | `MEM_ALLOC` / `MEM_FREE` requests and compaction coordination with Kernel Memory. |
-| `misc.c` | Process/thread counters, shutdown reasons, shared helpers. |
+| `domain/pcb.c` | The `t_pcb` process control block: creation, teardown, state/priority accessors, active-instance counting. |
+| `domain/kernel_memory_socket.c` | The `t_kernel_memory_socket` wrapper that serialises the connection to Kernel Memory. |
+| `misc.c` | Process counter, shutdown reasons and routine, small shared helpers (`millis`, handshake reply). |
 
 ## Log inventory
 
