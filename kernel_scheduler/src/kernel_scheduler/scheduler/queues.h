@@ -5,6 +5,7 @@
 #include "kernel_scheduler/scheduler/blocking_list.h"
 #include "kernel_scheduler/scheduler/counter.h"
 #include "kernel_scheduler/scheduler/exec_list.h"
+#include "kernel_scheduler/scheduler/memory_query.h"
 #include "kernel_scheduler/scheduler/queue_types.h"
 #include "kernel_scheduler/scheduler/ready_queue.h"
 

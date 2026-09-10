@@ -118,6 +118,7 @@ them in English.
 | `scheduler/exec_list.c` | `EXEC` as a data structure and the "exec drained" waits. |
 | `scheduler/blocking_list.c` | `BLOCK` / `SUSP. BLOCK` / `SUSP. READY` as data structures. |
 | `scheduler/counter.c` | The `t_counter` primitive (thread and syscall counters). |
+| `scheduler/memory_query.c` | Free-space / process-size request-response exchanges with Kernel Memory. |
 | `mutex.c` | Mutex ownership, wait queues, priority inheritance. |
 | `memory.c` | `MEM_ALLOC` / `MEM_FREE` requests and compaction coordination with Kernel Memory. |
 | `domain/pcb.c` | The `t_pcb` process control block: creation, teardown, state/priority accessors, active-instance counting. |
