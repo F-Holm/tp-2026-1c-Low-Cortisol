@@ -76,6 +76,9 @@ int main(int argc, char* argv[])
         list_destroy_and_destroy_elements(packet, free);
         break;
       }
+      case OP_KERNEL_MEMORY_RUNNING:
+        free(receive_string(ms.socket_km));
+        break;
       default:
         log_warning(ms.logger,
                     "Unexpected operation %d from Kernel Memory; shutting down",
