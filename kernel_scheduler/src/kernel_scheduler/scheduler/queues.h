@@ -9,6 +9,7 @@
 #include "kernel_scheduler/scheduler/memory_query.h"
 #include "kernel_scheduler/scheduler/queue_types.h"
 #include "kernel_scheduler/scheduler/ready_queue.h"
+#include "kernel_scheduler/scheduler/suspension.h"
 
 // pass NULL as t_list if the algorithm is not CMN
 // pass quantum = 0 if the algorithm is not RR
@@ -18,7 +19,6 @@ t_queues* init_queues(int algorithm, t_list* cmn_algorithms, int quantum,
                       int suspension_timeout);
 void destroy_queues(t_queues* queues);
 
-bool can_suspend(t_pcb* pcb, int suspension_timeout);
 void update_priority(t_pcb* pcb, t_queues* queues);
 
 void transition_ready_exec(t_pcb* pcb, t_queues* queues);
@@ -38,10 +38,6 @@ void transition_unlock(t_pcb* pcb, t_queues* queues);
 
 // for errors or shutdown routines
 void clear_queues(t_queues* queues);
-
-// to lock and unlock the suspender and resumer threads
-void lock_threads_suspended(t_queues* queues);
-void unlock_threads_suspended(t_queues* queues);
 
 // Counters
 void increment_syscall_counter(t_queues* queues);

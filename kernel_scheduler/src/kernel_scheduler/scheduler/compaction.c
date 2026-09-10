@@ -9,6 +9,7 @@
 #include "kernel_scheduler/scheduler/queues.h"
 #include "kernel_scheduler/scheduler/ready_queue.h"
 #include "kernel_scheduler/scheduler/scheduler_internal.h"
+#include "kernel_scheduler/scheduler/suspension.h"
 #include "kernel_scheduler/shutdown.h"
 #include "utils/msg.h"
 
