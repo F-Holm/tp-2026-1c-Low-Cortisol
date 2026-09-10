@@ -679,14 +679,19 @@ static bool transition_any_exit(t_queues* queues, int state, int reason)
   switch (state)
   {
     case EST_READY:
+      pcb = transition_take_ready_next(&(queues->ready));
       break;
     case EST_EXEC:
+      pcb = transition_take_exec_next(&(queues->exec));
       break;
     case EST_BLOCK:
+      pcb = transition_take_block_next(&(queues->block));
       break;
     case EST_SUSP_BLOCK:
+      pcb = transition_take_susp_block_next(&(queues->susp_block));
       break;
     case EST_SUSP_READY:
+      pcb = transition_take_susp_ready_next(&(queues->susp_ready));
       break;
   }
 
