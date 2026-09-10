@@ -111,11 +111,23 @@ format:
 #
 # Every directory under tests/ (except pseudocode/) is a scenario. It holds
 # the six <module>.conf files it runs with and a test.mk declaring its
-# parameters. Launch one with `make <scenario>` (e.g. `make base`); add
-# `MODE=memcheck` or `MODE=helgrind` to run every process under Valgrind.
-# `make full` launches the full-system scenario. Stop everything with `make kill`.
+# parameters, including TERMINATION and TIMEOUT (see tests/README.md).
+#
+#   make <scenario>                 build + launch, logs/pids in output/<scenario>/
+#   make <scenario> MODE=memcheck   every process under Valgrind memcheck
+#   make <scenario> MODE=helgrind   every process under Valgrind helgrind
+#   make kill                       stop every module process on the machine
+#   make e2e                        build, then run every scenario via tests/run_e2e.py
+#
+# `make <scenario>-run` launches the same scenario without the `all` build
+# dependency and without touching any other scenario's output/ — that's what
+# tests/run_e2e.py uses to run scenarios concurrently. `make kill` is
+# machine-wide (fine for interactive use); the runner tears down each
+# scenario by the PIDs it wrote to output/<scenario>/*.pid instead, so
+# parallel scenarios never kill each other.
 
-E2E_TESTS := $(filter-out pseudocode,$(patsubst tests/%/,%,$(wildcard tests/*/)))
+E2E_TESTS     := $(filter-out pseudocode,$(patsubst tests/%/,%,$(wildcard tests/*/)))
+E2E_RUN_TESTS := $(addsuffix -run,$(E2E_TESTS))
 
 SLEEP_TIME       ?= 0.1
 CPU_STAGGER_WAIT ?= 40
@@ -125,40 +137,56 @@ VALGRIND_memcheck := valgrind --tool=memcheck --leak-check=full --show-leak-kind
 VALGRIND_helgrind := valgrind --tool=helgrind --history-level=full --trace-children=yes
 VALGRIND          := $(VALGRIND_$(MODE))
 
-.PHONY: all debug release clean logs format kill utils test criterion-check \
-        $(BIN_MODULES) $(E2E_TESTS) $(addprefix test-,$(UNIT_MODULES))
+.PHONY: all debug release clean logs format kill utils test criterion-check e2e \
+        $(BIN_MODULES) $(E2E_TESTS) $(E2E_RUN_TESTS) $(addprefix test-,$(UNIT_MODULES))
 
-# Load the parameters of the scenario being launched.
-ACTIVE_TEST := $(firstword $(filter $(MAKECMDGOALS),$(E2E_TESTS)))
+# Load the parameters of the scenario being launched, for both
+# `make <scenario>` and `make <scenario>-run`.
+ACTIVE_TEST := $(firstword $(filter $(E2E_TESTS),$(patsubst %-run,%,$(MAKECMDGOALS))))
 ifneq ($(ACTIVE_TEST),)
 include tests/$(ACTIVE_TEST)/test.mk
 endif
 
-$(E2E_TESTS): all logs
-	@mkdir -p output
-	@echo "Launching end-to-end test '$@'$(if $(MODE), [$(MODE)])..."
-	$(VALGRIND) ./kernel_memory/bin/kernel_memory tests/$@/kernel_memory.conf > output/kernel_memory.log 2>&1 &
+# Launches the 7-process system for scenario $(1); logs and PID files land in
+# output/$(1)/, which the caller is expected to have created already.
+define launch_scenario
+	@echo "Launching end-to-end test '$(1)'$(if $(MODE), [$(MODE)])..."
+	@{ $(VALGRIND) ./kernel_memory/bin/kernel_memory tests/$(1)/kernel_memory.conf > output/$(1)/kernel_memory.log 2>&1 & echo $$! > output/$(1)/kernel_memory.pid; }
 	@sleep $(SLEEP_TIME)
-	$(VALGRIND) ./swap/bin/swap tests/$@/swap.conf > output/swap.log 2>&1 &
+	@{ $(VALGRIND) ./swap/bin/swap tests/$(1)/swap.conf > output/$(1)/swap.log 2>&1 & echo $$! > output/$(1)/swap.pid; }
 	@sleep $(SLEEP_TIME)
-	$(VALGRIND) ./kernel_scheduler/bin/kernel_scheduler tests/$@/kernel_scheduler.conf $(INITIAL_PROCESS) > output/kernel_scheduler.log 2>&1 &
+	@{ $(VALGRIND) ./kernel_scheduler/bin/kernel_scheduler tests/$(1)/kernel_scheduler.conf $(INITIAL_PROCESS) > output/$(1)/kernel_scheduler.log 2>&1 & echo $$! > output/$(1)/kernel_scheduler.pid; }
 	@sleep $(SLEEP_TIME)
 	@i=1; for size in $(STICK_SIZES); do \
-		$(VALGRIND) ./memory_stick/bin/memory_stick tests/$@/memory_stick.conf $$size > output/memory_stick_$$i.log 2>&1 & \
+		{ $(VALGRIND) ./memory_stick/bin/memory_stick tests/$(1)/memory_stick.conf $$size > output/$(1)/memory_stick_$$i.log 2>&1 & echo $$! > output/$(1)/memory_stick_$$i.pid; }; \
 		sleep $(SLEEP_TIME); i=$$((i + 1)); \
 	done
-	$(VALGRIND) ./io/bin/io tests/$@/io.conf SLEEP > output/io_sleep.log 2>&1 &
+	@{ $(VALGRIND) ./io/bin/io tests/$(1)/io.conf SLEEP > output/$(1)/io_sleep.log 2>&1 & echo $$! > output/$(1)/io_sleep.pid; }
 	@sleep $(SLEEP_TIME)
-	$(VALGRIND) ./io/bin/io tests/$@/io.conf STDIN < tests/pseudocode/stdin_input.txt > output/io_stdin.log 2>&1 &
+	@{ $(VALGRIND) ./io/bin/io tests/$(1)/io.conf STDIN < tests/pseudocode/stdin_input.txt > output/$(1)/io_stdin.log 2>&1 & echo $$! > output/$(1)/io_stdin.pid; }
 	@sleep $(SLEEP_TIME)
-	$(VALGRIND) ./io/bin/io tests/$@/io.conf STDOUT > output/io_stdout.log 2>&1 &
+	@{ $(VALGRIND) ./io/bin/io tests/$(1)/io.conf STDOUT > output/$(1)/io_stdout.log 2>&1 & echo $$! > output/$(1)/io_stdout.pid; }
 	@sleep $(SLEEP_TIME)
 	@n=1; while [ $$n -le $(CPU_COUNT) ]; do \
-		$(VALGRIND) ./cpu/bin/cpu tests/$@/cpu.conf CPU-$$n > output/cpu_$$n.log 2>&1 & \
+		{ $(VALGRIND) ./cpu/bin/cpu tests/$(1)/cpu.conf CPU-$$n > output/$(1)/cpu_$$n.log 2>&1 & echo $$! > output/$(1)/cpu_$$n.pid; }; \
 		if [ "$(strip $(CPU_STAGGER))" = "$$n" ]; then sleep $(CPU_STAGGER_WAIT); else sleep $(SLEEP_TIME); fi; \
 		n=$$((n + 1)); \
 	done
-	@echo "Launched. Logs in ./output/. Stop with 'make kill'."
+	@echo "Launched. Logs in output/$(1)/. Stop with 'make kill'."
+endef
+
+# `make <scenario>`: build everything, wipe ALL scenarios' output, launch this
+# one. Meant for interactive, one-at-a-time use.
+$(E2E_TESTS): all logs
+	@mkdir -p output/$@
+	$(call launch_scenario,$@)
+
+# `make <scenario>-run`: launch only (binaries must already be built), touches
+# only this scenario's own output dir. Safe to run several of these at once.
+$(E2E_RUN_TESTS): %-run:
+	@rm -rf output/$*
+	@mkdir -p output/$*
+	$(call launch_scenario,$*)
 
 kill:
 	@echo "Stopping the system..."
@@ -169,3 +197,6 @@ kill:
 	-pkill -f "./swap/bin/"
 	-pkill -f "./io/bin/"
 	-pkill -f "./cpu/bin/"
+
+e2e: all
+	python3 tests/run_e2e.py
