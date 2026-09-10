@@ -40,7 +40,7 @@ void init_data_server_listen(t_listen_server_data* data, int socket_server,
 
 void server_listen(t_listen_server_data* data)
 {
-  t_io* io = create_estructuras_io();
+  t_io* io = create_io_structures();
   t_list* list_sockets_cpu = list_create();
   pthread_mutex_t mutex_list_sockets_cpu;
   pthread_cond_t cpu_done_cond;

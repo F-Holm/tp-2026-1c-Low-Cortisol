@@ -42,7 +42,7 @@ bool start_module(t_kernel_scheduler* recursos, char* config_path)
   return recursos->socket_server > 0;
 }
 
-void init_queues_mutex(t_kernel_scheduler* recursos)
+void init_scheduler_resources(t_kernel_scheduler* recursos)
 {
   recursos->km_socket_mutex =
       init_socket_kernel_memory(recursos->socket_kernel_memory);

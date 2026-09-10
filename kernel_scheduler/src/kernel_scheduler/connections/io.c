@@ -37,7 +37,7 @@ static void* transform_request(void* request, int io_type, t_pcb* pcb);
 static void add_ordered(void* entry, t_io* io);
 static void destroy_io(t_io* io);
 
-t_io* create_estructuras_io(void)
+t_io* create_io_structures(void)
 {
   t_io* io = malloc(sizeof(t_io) * 3);
   for (int i = 0; i < 3; i++)
@@ -91,7 +91,7 @@ bool handle_new_io(t_io io[3], int socket_fd, t_queues* queues,
   return true;
 }
 
-bool procesar_new_io(void* request, t_io* io, t_pcb* pcb)
+bool enqueue_io_request(void* request, t_io* io, t_pcb* pcb)
 {
   if (atomic_load(&(io->close_thread)))
   {

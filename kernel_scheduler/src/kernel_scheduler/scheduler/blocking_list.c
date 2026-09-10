@@ -46,7 +46,7 @@ void transition_to_block(t_pcb* pcb, t_blocking_list* block)
 void transition_to_susp_block(t_pcb* pcb, t_blocking_list* susp_block)
 {
   pthread_mutex_lock(&(susp_block->list_mutex));
-  insert_pcb_in_orden(susp_block->list, pcb);
+  insert_pcb_sorted(susp_block->list, pcb);
   pthread_mutex_unlock(&(susp_block->list_mutex));
 }
 
@@ -57,7 +57,7 @@ void transition_to_susp_ready(t_pcb* pcb, t_blocking_list* susp_ready)
   {
     pthread_cond_signal(&(susp_ready->new_process_cond));
   }
-  insert_pcb_in_orden(susp_ready->list, pcb);
+  insert_pcb_sorted(susp_ready->list, pcb);
   pthread_mutex_unlock(&(susp_ready->list_mutex));
 }
 

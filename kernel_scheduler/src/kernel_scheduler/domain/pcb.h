@@ -41,11 +41,11 @@ int get_state_pcb(t_pcb* pcb);
 int get_priority_pcb(t_pcb* pcb);
 
 // returns the index of the inserted element
-int insert_pcb_in_orden(t_list* list, t_pcb* pcb);
+int insert_pcb_sorted(t_list* list, t_pcb* pcb);
 
-void incrementar_instances_active_pcb(t_pcb* pcb);
-void disminuir_instances_active_pcb(t_pcb* pcb);
-void wait_0_instances_active_pcb(t_pcb* pcb);
+void increment_active_instances(t_pcb* pcb);
+void decrement_active_instances(t_pcb* pcb);
+void wait_zero_active_instances(t_pcb* pcb);
 
 void set_mutex_blocking(t_pcb* pcb, void* mutex);
 void* get_mutex_blocking(t_pcb* pcb);

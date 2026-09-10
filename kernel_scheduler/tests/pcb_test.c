@@ -25,10 +25,10 @@ Test(ks_pcb, pids_are_handed_out_in_order)
 Test(ks_pcb, active_instance_counter_goes_up_and_down)
 {
   t_pcb* pcb = create_pcb(EST_READY, 0);
-  incrementar_instances_active_pcb(pcb);
-  incrementar_instances_active_pcb(pcb);
+  increment_active_instances(pcb);
+  increment_active_instances(pcb);
   cr_assert_eq(pcb->active_instances, 2);
-  disminuir_instances_active_pcb(pcb);
+  decrement_active_instances(pcb);
   cr_assert_eq(pcb->active_instances, 1);
   destroy_pcb(pcb);
 }
@@ -43,16 +43,16 @@ Test(ks_pcb, blocking_mutex_is_stored_and_read_back)
   destroy_pcb(pcb);
 }
 
-Test(ks_pcb, insert_pcb_in_orden_keeps_the_list_sorted_by_priority)
+Test(ks_pcb, insert_pcb_sorted_keeps_the_list_ordered_by_priority)
 {
   t_list* list = list_create();
   t_pcb* low = create_pcb(EST_READY, 5);
   t_pcb* high = create_pcb(EST_READY, 1);
   t_pcb* mid = create_pcb(EST_READY, 3);
 
-  insert_pcb_in_orden(list, low);
-  insert_pcb_in_orden(list, high);
-  cr_assert_eq(insert_pcb_in_orden(list, mid),
+  insert_pcb_sorted(list, low);
+  insert_pcb_sorted(list, high);
+  cr_assert_eq(insert_pcb_sorted(list, mid),
                1); /* lands between high and low */
 
   cr_assert_eq(list_get(list, 0), high);

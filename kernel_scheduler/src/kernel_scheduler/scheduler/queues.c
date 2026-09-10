@@ -492,7 +492,7 @@ static void log_transition_to_exit(t_log* logger, uint32_t pid, int reason)
 
 static void transition_to_exit(t_pcb* pcb, t_queues* queues, int reason)
 {
-  wait_0_instances_active_pcb(pcb);
+  wait_zero_active_instances(pcb);
 
   if (reason != PER_SYSTEM_SHUTDOWN && reason != PER_INVALID_PRIORITY)
   {
@@ -506,7 +506,7 @@ static void transition_to_exit(t_pcb* pcb, t_queues* queues, int reason)
   }
   log_transition_to_exit(queues->logger, pcb->pid, reason);
   destroy_pcb(pcb);
-  disminuir_counter_processes(queues->process_counter);
+  decrement_process_count(queues->process_counter);
 }
 
 static t_pcb* transition_take_new(char* instructions_file, int priority,
@@ -515,7 +515,7 @@ static t_pcb* transition_take_new(char* instructions_file, int priority,
   t_pcb* pcb = create_pcb(EST_NEW, priority);
   log_info(queues->logger, "%u Creating the process - State: NEW", pcb->pid);
 
-  aumentar_counter_processes(queues->process_counter);
+  increment_process_count(queues->process_counter);
   if (!notify_new_process(queues, instructions_file, pcb->pid))
   {
     log_transition_state(queues->logger, pcb->pid, EST_NEW, EST_EXIT);
@@ -750,7 +750,7 @@ static t_pcb* get_process_blocked(t_queues* queues, t_suspender_thread* data)
     size_in_memory = process_size_no_logger(queues, process->pid);
     if (size_in_memory > 0)
     {
-      incrementar_instances_active_pcb(process);
+      increment_active_instances(process);
       break;
     }
     else
@@ -781,7 +781,7 @@ static void run_suspend_process(t_queues* queues, t_suspender_thread* data,
   }
 
   pthread_mutex_unlock(&(process->state_mutex));
-  disminuir_instances_active_pcb(process);
+  decrement_active_instances(process);
 
   if (!must_suspend)
   {
@@ -815,7 +815,7 @@ static t_pcb* get_process_susp_ready(t_queues* queues, t_resumer_thread* data)
   if (!list_is_empty(queues->susp_ready.list))
   {
     process = list_get(queues->susp_ready.list, 0);
-    incrementar_instances_active_pcb(process);
+    increment_active_instances(process);
   }
   pthread_mutex_unlock(&(queues->susp_ready.list_mutex));
   if (process == NULL)
@@ -838,7 +838,7 @@ static void resume_suspended_process(t_queues* queues, t_resumer_thread* data,
   }
 
   pthread_mutex_unlock(&(process->state_mutex));
-  disminuir_instances_active_pcb(process);
+  decrement_active_instances(process);
 
   if (!succeeded)
   {

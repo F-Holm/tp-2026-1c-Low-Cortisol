@@ -16,12 +16,12 @@ t_process_counter* init_counter_processes(int server_socket, t_log* logger,
   return counter;
 }
 
-void aumentar_counter_processes(t_process_counter* counter)
+void increment_process_count(t_process_counter* counter)
 {
   atomic_fetch_add(&(counter->active_process_count), 1);
 }
 
-void disminuir_counter_processes(t_process_counter* counter)
+void decrement_process_count(t_process_counter* counter)
 {
   bool is_last = atomic_fetch_sub(&(counter->active_process_count), 1) == 1;
 

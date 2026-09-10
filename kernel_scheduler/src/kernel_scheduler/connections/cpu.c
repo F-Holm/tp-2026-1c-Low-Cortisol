@@ -382,7 +382,7 @@ static void handle_syscall_io_sleep(t_syscall_data* data)
   int size;
   t_sleep_request* request = receive_buffer(&size, data->data->socket_fd);
   data->preemption_reason = PR_IO;
-  if (!procesar_new_io(request, &(data->data->io[E_SLEEP]), data->pcb))
+  if (!enqueue_io_request(request, &(data->data->io[E_SLEEP]), data->pcb))
   {
     transition_exec_exit(data->pcb, data->data->queues, PER_IO_FAILURE);
   }
@@ -397,7 +397,7 @@ static void handle_syscall_io_stdout(t_syscall_data* data)
   int size;
   t_stdout_request* request = receive_buffer(&size, data->data->socket_fd);
   data->preemption_reason = PR_IO;
-  if (!procesar_new_io(request, &(data->data->io[E_STDOUT]), data->pcb))
+  if (!enqueue_io_request(request, &(data->data->io[E_STDOUT]), data->pcb))
   {
     transition_exec_exit(data->pcb, data->data->queues, PER_IO_FAILURE);
   }
@@ -412,7 +412,7 @@ static void handle_syscall_io_stdin(t_syscall_data* data)
   int size;
   t_stdin_request* request = receive_buffer(&size, data->data->socket_fd);
   data->preemption_reason = PR_IO;
-  if (!procesar_new_io(request, &(data->data->io[E_STDIN]), data->pcb))
+  if (!enqueue_io_request(request, &(data->data->io[E_STDIN]), data->pcb))
   {
     transition_exec_exit(data->pcb, data->data->queues, PER_IO_FAILURE);
   }

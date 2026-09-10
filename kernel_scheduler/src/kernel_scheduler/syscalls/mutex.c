@@ -209,7 +209,7 @@ static void propagate_priority_transitive(t_pcb* pcb, int priority_new,
   }
 
   bool now_is_highest_priority =
-      insert_pcb_in_orden(expected_mutex->list, pcb) == 0;
+      insert_pcb_sorted(expected_mutex->list, pcb) == 0;
 
   if (now_is_highest_priority && priority_new != expected_mutex->next_priority)
   {
@@ -254,7 +254,7 @@ static int mutex_lock(t_mutex* mutex, t_pcb* pcb)
   }
   else if (mutex->priority_active)
   {
-    if (insert_pcb_in_orden(mutex->list, pcb) == 0)
+    if (insert_pcb_sorted(mutex->list, pcb) == 0)
     {
       replace_priority(mutex->current_process, mutex->next_priority,
                        priority_pcb, mutex->queues);

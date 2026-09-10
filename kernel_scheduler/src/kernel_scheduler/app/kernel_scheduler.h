@@ -44,6 +44,6 @@ typedef struct
 } t_kernel_scheduler;
 
 bool start_module(t_kernel_scheduler* recursos, char* config_path);
-void init_queues_mutex(t_kernel_scheduler* recursos);
+void init_scheduler_resources(t_kernel_scheduler* recursos);
 void close_module_error(t_kernel_scheduler* recursos);
 void close_module(t_kernel_scheduler* recursos);

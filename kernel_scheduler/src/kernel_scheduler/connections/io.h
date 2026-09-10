@@ -50,8 +50,8 @@ typedef struct
   t_sleep_request* request;
 } t_sleep;
 
-t_io* create_estructuras_io(void);
+t_io* create_io_structures(void);
 bool handle_new_io(t_io io[3], int socket_fd, t_queues* queues,
                    bool priority_active, int socket_server);
-bool procesar_new_io(void* request, t_io* io, t_pcb* pcb);
+bool enqueue_io_request(void* request, t_io* io, t_pcb* pcb);
 void close_io(t_io* io);

@@ -34,7 +34,7 @@ int main(int argc, char* argv[])
   }
 
   // Initialize data for the server
-  init_queues_mutex(&recursos);
+  init_scheduler_resources(&recursos);
   t_listen_server_data data;
   init_data_server_listen(&data, recursos.socket_server, recursos.logger,
                           recursos.mutex_list, recursos.queues,

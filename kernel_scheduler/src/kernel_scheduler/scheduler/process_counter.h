@@ -17,6 +17,6 @@ typedef struct
 
 t_process_counter* init_counter_processes(int server_socket, t_log* logger,
                                           t_kernel_memory_socket* km_socket);
-void aumentar_counter_processes(t_process_counter* counter);
-void disminuir_counter_processes(t_process_counter* counter);
+void increment_process_count(t_process_counter* counter);
+void decrement_process_count(t_process_counter* counter);
 void destroy_counter_processes(t_process_counter* counter);

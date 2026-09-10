@@ -61,19 +61,19 @@ int get_priority_pcb(t_pcb* pcb)
   return priority_pcb;
 }
 
-int insert_pcb_in_orden(t_list* list, t_pcb* pcb)
+int insert_pcb_sorted(t_list* list, t_pcb* pcb)
 {
   return list_add_sorted(list, pcb, is_highest_priority);
 }
 
-void incrementar_instances_active_pcb(t_pcb* pcb)
+void increment_active_instances(t_pcb* pcb)
 {
   pthread_mutex_lock(&(pcb->active_instances_mutex));
   pcb->active_instances++;
   pthread_mutex_unlock(&(pcb->active_instances_mutex));
 }
 
-void disminuir_instances_active_pcb(t_pcb* pcb)
+void decrement_active_instances(t_pcb* pcb)
 {
   pthread_mutex_lock(&(pcb->active_instances_mutex));
   pcb->active_instances--;
@@ -84,7 +84,7 @@ void disminuir_instances_active_pcb(t_pcb* pcb)
   pthread_mutex_unlock(&(pcb->active_instances_mutex));
 }
 
-void wait_0_instances_active_pcb(t_pcb* pcb)
+void wait_zero_active_instances(t_pcb* pcb)
 {
   pthread_mutex_lock(&(pcb->active_instances_mutex));
   while (pcb->active_instances != 0)
