@@ -13,7 +13,7 @@ static int process_size_no_mutex_no_logger(t_queues* queues, uint32_t pid);
 
 int space_available_no_mutex(t_queues* queues, uint32_t pid)
 {
-  if (!(send_string(OP_REQUEST_FREE_MEMORY, "Solicito the space available",
+  if (!(send_string(OP_REQUEST_FREE_MEMORY, "Requesting the available space",
                     queues->km_socket->km_socket)))
   {
     close_kernel_scheduler(queues->server_socket, queues->logger,

@@ -28,11 +28,11 @@ void update_lowest_exec_priority(t_execute_list* exec)
   {
     t_pcb* pcb = list_iterator_next(iterator_list);
 
-    int prioriad_iterador = get_priority_pcb(pcb);
+    int iterator_priority = get_priority_pcb(pcb);
 
-    if (exec->lowest_priority < prioriad_iterador)
+    if (exec->lowest_priority < iterator_priority)
     {
-      exec->lowest_priority = prioriad_iterador;
+      exec->lowest_priority = iterator_priority;
     }
   }
   list_iterator_destroy(iterator_list);

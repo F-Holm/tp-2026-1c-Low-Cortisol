@@ -368,10 +368,10 @@ static t_pcb* get_process_blocked(t_queues* queues, t_suspender_thread* data)
   pthread_mutex_lock(&(queues->block.list_mutex));
   t_pcb* process = NULL;
   int size_in_memory = -1;
-  t_list_iterator* iterador = list_iterator_create(queues->block.list);
-  while (list_iterator_has_next(iterador))
+  t_list_iterator* iterator = list_iterator_create(queues->block.list);
+  while (list_iterator_has_next(iterator))
   {
-    process = list_iterator_next(iterador);
+    process = list_iterator_next(iterator);
     size_in_memory = process_size_no_logger(queues, process->pid);
     if (size_in_memory > 0)
     {
@@ -389,7 +389,7 @@ static t_pcb* get_process_blocked(t_queues* queues, t_suspender_thread* data)
     data->data->state = HS_WAITING_PROCESS;
   }
   pthread_mutex_unlock(&(queues->block.list_mutex));
-  list_iterator_destroy(iterador);
+  list_iterator_destroy(iterator);
   return process;
 }
 

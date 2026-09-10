@@ -43,7 +43,7 @@ typedef struct
   t_connection_check_thread* connection_check_thread_data;
 } t_kernel_scheduler;
 
-bool start_module(t_kernel_scheduler* recursos, char* config_path);
-void init_scheduler_resources(t_kernel_scheduler* recursos);
-void close_module_error(t_kernel_scheduler* recursos);
-void close_module(t_kernel_scheduler* recursos);
+bool start_module(t_kernel_scheduler* resources, char* config_path);
+void init_scheduler_resources(t_kernel_scheduler* resources);
+void close_module_error(t_kernel_scheduler* resources);
+void close_module(t_kernel_scheduler* resources);

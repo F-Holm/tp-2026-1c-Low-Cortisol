@@ -16,80 +16,80 @@ static t_config* start_config(char* config_path, t_config_vars* config_vars);
 static void close_config(t_config_vars* config_vars, t_config* config);
 static t_log* start_logger(t_log_level log_level);
 
-bool start_module(t_kernel_scheduler* recursos, char* config_path)
+bool start_module(t_kernel_scheduler* resources, char* config_path)
 {
   // Config
-  recursos->config = start_config(config_path, &(recursos->config_vars));
-  if (recursos->config == NULL)
+  resources->config = start_config(config_path, &(resources->config_vars));
+  if (resources->config == NULL)
     return false;
 
   // Logger
-  recursos->logger = start_logger(recursos->config_vars.log_level);
-  if (recursos->logger == NULL)
+  resources->logger = start_logger(resources->config_vars.log_level);
+  if (resources->logger == NULL)
     return false;
 
   // Socket Kernel Memory
-  recursos->socket_kernel_memory = start_connection_kernel_memory(
-      recursos->config_vars.kernel_memory_ip,
-      recursos->config_vars.kernel_memory_port, recursos->logger);
-  if (recursos->socket_kernel_memory <= 0)
+  resources->socket_kernel_memory = start_connection_kernel_memory(
+      resources->config_vars.kernel_memory_ip,
+      resources->config_vars.kernel_memory_port, resources->logger);
+  if (resources->socket_kernel_memory <= 0)
     return false;
 
   // Create server socket
-  recursos->socket_server =
-      create_socket_server(recursos->config_vars.server_port, recursos->logger);
+  resources->socket_server =
+      create_socket_server(resources->config_vars.server_port, resources->logger);
 
-  return recursos->socket_server > 0;
+  return resources->socket_server > 0;
 }
 
-void init_scheduler_resources(t_kernel_scheduler* recursos)
+void init_scheduler_resources(t_kernel_scheduler* resources)
 {
-  recursos->km_socket_mutex =
-      init_socket_kernel_memory(recursos->socket_kernel_memory);
-  recursos->connection_check_thread_data =
+  resources->km_socket_mutex =
+      init_socket_kernel_memory(resources->socket_kernel_memory);
+  resources->connection_check_thread_data =
       start_thread_check_connection_kernel_memory(
-          recursos->socket_server, recursos->logger, recursos->km_socket_mutex);
-  recursos->mutex_list = init_list_mutex();
-  recursos->queues = init_queues(
-      recursos->config_vars.scheduling_algorithm,
-      recursos->config_vars.cmn_algorithms, recursos->config_vars.rr_quantum,
-      recursos->config_vars.preemption, recursos->socket_server,
-      recursos->logger, recursos->km_socket_mutex,
-      recursos->config_vars.suspension_timeout);
+          resources->socket_server, resources->logger, resources->km_socket_mutex);
+  resources->mutex_list = init_list_mutex();
+  resources->queues = init_queues(
+      resources->config_vars.scheduling_algorithm,
+      resources->config_vars.cmn_algorithms, resources->config_vars.rr_quantum,
+      resources->config_vars.preemption, resources->socket_server,
+      resources->logger, resources->km_socket_mutex,
+      resources->config_vars.suspension_timeout);
 }
 
-void close_module_error(t_kernel_scheduler* recursos)
+void close_module_error(t_kernel_scheduler* resources)
 {
-  if (recursos->socket_server > 0)
+  if (resources->socket_server > 0)
   {
-    close(recursos->socket_server);
+    close(resources->socket_server);
   }
-  if (recursos->socket_kernel_memory > 0)
+  if (resources->socket_kernel_memory > 0)
   {
-    close(recursos->socket_kernel_memory);
+    close(resources->socket_kernel_memory);
   }
-  if (recursos->logger != NULL)
+  if (resources->logger != NULL)
   {
-    log_destroy(recursos->logger);
+    log_destroy(resources->logger);
   }
-  if (recursos->config != NULL)
+  if (resources->config != NULL)
   {
-    close_config(&(recursos->config_vars), recursos->config);
+    close_config(&(resources->config_vars), resources->config);
   }
 }
 
-void close_module(t_kernel_scheduler* recursos)
+void close_module(t_kernel_scheduler* resources)
 {
-  destroy_list_mutex(recursos->mutex_list);
-  clear_queues(recursos->queues);
-  destroy_queues(recursos->queues);
+  destroy_list_mutex(resources->mutex_list);
+  clear_queues(resources->queues);
+  destroy_queues(resources->queues);
   destroy_thread_check_connection_kernel_memory(
-      recursos->connection_check_thread_data);
-  destroy_kernel_memory(recursos->km_socket_mutex);
-  close(recursos->socket_kernel_memory);
-  close(recursos->socket_server);
-  log_destroy(recursos->logger);
-  close_config(&(recursos->config_vars), recursos->config);
+      resources->connection_check_thread_data);
+  destroy_kernel_memory(resources->km_socket_mutex);
+  close(resources->socket_kernel_memory);
+  close(resources->socket_server);
+  log_destroy(resources->logger);
+  close_config(&(resources->config_vars), resources->config);
 }
 
 static t_config* start_config(char* config_path, t_config_vars* config_vars)
@@ -101,11 +101,11 @@ static t_config* start_config(char* config_path, t_config_vars* config_vars)
     config_vars->log_level =
         log_level_from_string(config_get_string_value(config, "LOG_LEVEL"));
 
-    char* algorithm_scheduling_str =
+    char* scheduling_algorithm_str =
         config_get_string_value(config, "SCHEDULING_ALGORITHM");
     for (i = 0; i < 3; i++)
     {
-      if (strcmp(algorithm_scheduling_str, SCHEDULING_ALGORITHMS[i]) == 0)
+      if (strcmp(scheduling_algorithm_str, SCHEDULING_ALGORITHMS[i]) == 0)
       {
         config_vars->scheduling_algorithm = i;
         break;
