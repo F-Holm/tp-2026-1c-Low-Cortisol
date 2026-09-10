@@ -113,6 +113,8 @@ static int process_size_no_logger(t_queues* queues, uint32_t pid);
 static void* resumption_routine_thread(void* data_resume_suspension);
 static bool set_is_resuming(t_queues* queues, bool new_state);
 static bool set_is_compacting(t_queues* queues, bool new_state);
+static void routine_enter(t_queues* queues);
+static void routine_leave(t_queues* queues);
 static void* thread_unlock_queue_ready(void* args);
 static void create_thread_unlock_queue_ready(t_queues* queues);
 static bool compaction_finished(t_queues* queues);
@@ -135,6 +137,8 @@ t_queues* init_queues(int algorithm, t_list* cmn_algorithms, int quantum,
   queues->thread_counter = create_counter();
   queues->syscall_counter = create_counter();
   pthread_mutex_init(&(queues->routine_mutex), NULL);
+  pthread_cond_init(&(queues->routine_cond), NULL);
+  queues->routine_active = false;
   queues->terminate_routines = false;
   queues->logger = logger;
   queues->km_socket = km_socket;
@@ -162,6 +166,7 @@ void destroy_queues(t_queues* queues)
   destroy_list(&(queues->susp_ready));
   destroy_counter_processes(queues->process_counter);
   pthread_mutex_destroy(&(queues->routine_mutex));
+  pthread_cond_destroy(&(queues->routine_cond));
   pthread_mutex_destroy(&(queues->compaction_active_mutex));
   pthread_mutex_destroy(&(queues->resume_active_mutex));
   free(queues);
@@ -571,7 +576,7 @@ void routine_compaction(t_queues* queues)
     return;
   }
 
-  pthread_mutex_lock(&(queues->routine_mutex));
+  routine_enter(queues);
   if (!queues->terminate_routines)
   {
     lock_total(queues);
@@ -580,7 +585,7 @@ void routine_compaction(t_queues* queues)
     create_thread_unlock_queue_ready(queues);
     create_resumption_routine_thread(queues);
   }
-  pthread_mutex_unlock(&(queues->routine_mutex));
+  routine_leave(queues);
 }
 
 bool is_compacting(t_queues* queues)
@@ -1761,7 +1766,7 @@ static void* resumption_routine_thread(void* data_resume_suspension)
 {
   t_queues* queues = (t_queues*)data_resume_suspension;
   increment_thread_counter(queues);
-  pthread_mutex_lock(&(queues->routine_mutex));
+  routine_enter(queues);
   if (!queues->terminate_routines)
   {
     lock_threads_suspended(queues);
@@ -1770,7 +1775,7 @@ static void* resumption_routine_thread(void* data_resume_suspension)
     unlock_threads_suspended(queues);
     log_debug(queues->logger, "Resume-suspension routine ended");
   }
-  pthread_mutex_unlock(&(queues->routine_mutex));
+  routine_leave(queues);
   decrement_thread_counter(queues);
   return NULL;
 }
@@ -1793,6 +1798,25 @@ static bool set_is_compacting(t_queues* queues, bool new_state)
   pthread_mutex_unlock(&(queues->compaction_active_mutex));
 
   return ret;
+}
+
+static void routine_enter(t_queues* queues)
+{
+  pthread_mutex_lock(&(queues->routine_mutex));
+  while (queues->routine_active)
+  {
+    pthread_cond_wait(&(queues->routine_cond), &(queues->routine_mutex));
+  }
+  queues->routine_active = true;
+  pthread_mutex_unlock(&(queues->routine_mutex));
+}
+
+static void routine_leave(t_queues* queues)
+{
+  pthread_mutex_lock(&(queues->routine_mutex));
+  queues->routine_active = false;
+  pthread_cond_signal(&(queues->routine_cond));
+  pthread_mutex_unlock(&(queues->routine_mutex));
 }
 
 // COMPACTION ROUTINE

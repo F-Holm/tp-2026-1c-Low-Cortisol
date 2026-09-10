@@ -125,6 +125,8 @@ typedef struct
   int server_socket;
   t_suspension_data* suspension_data;
   pthread_mutex_t routine_mutex;
+  pthread_cond_t routine_cond;
+  bool routine_active;
   bool terminate_routines;
   pthread_mutex_t compaction_active_mutex;
   bool compaction_active;
