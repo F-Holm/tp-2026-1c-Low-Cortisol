@@ -1,5 +1,5 @@
 #include "kernel_scheduler/common/time.h"
-#include "kernel_scheduler/kernel_memory.h"
+#include "kernel_scheduler/connections/kernel_memory.h"
 #include "kernel_scheduler/scheduler/queues.h"
 #include "kernel_scheduler/shutdown.h"
 

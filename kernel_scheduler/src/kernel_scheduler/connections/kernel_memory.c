@@ -1,4 +1,4 @@
-#include "kernel_scheduler/kernel_memory.h"
+#include "kernel_scheduler/connections/kernel_memory.h"
 #include "kernel_scheduler/shutdown.h"
 
 #include <pthread.h>

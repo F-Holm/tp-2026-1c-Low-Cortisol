@@ -1,4 +1,4 @@
-#include "kernel_scheduler/memory.h"
+#include "kernel_scheduler/syscalls/memory.h"
 #include "kernel_scheduler/shutdown.h"
 
 #include "utils/msg.h"

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "kernel_scheduler/mutex.h"
+#include "kernel_scheduler/syscalls/mutex.h"
 #include "kernel_scheduler/scheduler/queues.h"
 #include "utils/log.h"
 

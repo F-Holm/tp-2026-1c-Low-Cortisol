@@ -4,7 +4,7 @@
 #include <stdatomic.h>
 #include <stdbool.h>
 
-#include "kernel_scheduler/kernel_scheduler.h"
+#include "kernel_scheduler/app/kernel_scheduler.h"
 #include "utils/collections/list.h"
 #include "utils/log.h"
 #include "utils/string.h"

@@ -5,12 +5,12 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#include "kernel_scheduler/io.h"
-#include "kernel_scheduler/kernel_memory.h"
-#include "kernel_scheduler/kernel_scheduler.h"
-#include "kernel_scheduler/mutex.h"
+#include "kernel_scheduler/connections/io.h"
+#include "kernel_scheduler/connections/kernel_memory.h"
+#include "kernel_scheduler/app/kernel_scheduler.h"
+#include "kernel_scheduler/syscalls/mutex.h"
 #include "kernel_scheduler/scheduler/queues.h"
-#include "kernel_scheduler/server.h"
+#include "kernel_scheduler/connections/server.h"
 #include "utils/collections/list.h"
 #include "utils/config.h"
 #include "utils/log.h"

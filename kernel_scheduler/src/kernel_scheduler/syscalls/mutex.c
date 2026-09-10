@@ -1,4 +1,4 @@
-#include "kernel_scheduler/mutex.h"
+#include "kernel_scheduler/syscalls/mutex.h"
 
 #include <limits.h>
 #include <stdint.h>

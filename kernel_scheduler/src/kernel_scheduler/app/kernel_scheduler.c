@@ -3,8 +3,8 @@
 #include <pthread.h>
 #include <string.h>
 
-#include "kernel_scheduler/kernel_memory.h"
-#include "kernel_scheduler/server.h"
+#include "kernel_scheduler/connections/kernel_memory.h"
+#include "kernel_scheduler/connections/server.h"
 #include "utils/config.h"
 #include "utils/log.h"
 #include "utils/msg.h"

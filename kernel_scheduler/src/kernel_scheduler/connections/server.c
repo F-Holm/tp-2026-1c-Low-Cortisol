@@ -1,9 +1,9 @@
-#include "kernel_scheduler/server.h"
+#include "kernel_scheduler/connections/server.h"
 
 #include <pthread.h>
 
-#include "kernel_scheduler/cpu.h"
-#include "kernel_scheduler/io.h"
+#include "kernel_scheduler/connections/cpu.h"
+#include "kernel_scheduler/connections/io.h"
 #include "utils/collections/list.h"
 #include "utils/msg.h"
 

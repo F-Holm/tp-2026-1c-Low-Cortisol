@@ -22,8 +22,9 @@ make test-kernel_scheduler      # from the repo root
 ## Not unit-tested
 
 Everything in `scheduler/queues.h` (the seven-state transitions, the suspension/resumption
-routines, compaction), `cpu.h`, `io.h`, `server.h`, `kernel_memory.h` and
-`memory.h`, plus `start_module` / `close_module`, is threaded orchestration that
+routines, compaction), the `connections/` package (`cpu`, `io`, `server`,
+`kernel_memory`) and `syscalls/memory`, plus `start_module` / `close_module`, is
+threaded orchestration that
 coordinates the CPUs, the IO interfaces and Kernel Memory over sockets. Those are
 covered by the end-to-end scenarios under `tests/` (`short-term`, `medium-term`,
 `priority-inheritance`, `stability-*`, …). The priority-inheritance paths of

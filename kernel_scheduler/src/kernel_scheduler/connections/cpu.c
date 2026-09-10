@@ -1,10 +1,10 @@
-#include "kernel_scheduler/cpu.h"
+#include "kernel_scheduler/connections/cpu.h"
 
 #include <stdlib.h>
 #include <sys/socket.h>
 #include <unistd.h>
 
-#include "kernel_scheduler/memory.h"
+#include "kernel_scheduler/syscalls/memory.h"
 #include "kernel_scheduler/common/handshake.h"
 #include "kernel_scheduler/common/time.h"
 #include "utils/collections/list.h"
