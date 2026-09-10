@@ -2,6 +2,7 @@
 
 #include <limits.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <string.h>
 
 static void log_mutex_tomado(t_log* logger, uint32_t pid, char* id_mutex);

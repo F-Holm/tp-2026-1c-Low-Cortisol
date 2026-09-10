@@ -112,7 +112,12 @@ them in English.
 | `server.c` | Multithreaded listener for CPUs and IO interfaces. |
 | `cpu.c` | Per-CPU thread: syscall dispatch, preemption, interrupts. |
 | `io.c` | Per-IO-interface request queues and `BLOCK` handling. |
-| `scheduler/queues.c` | The seven-state machine; long/medium/short-term transitions; suspension and compaction routines. |
+| `scheduler/queue_types.h` | Every scheduler struct, including the `t_queues` aggregate. |
+| `scheduler/queues.c` | The seven-state machine, the suspension/resumption worker threads and the compaction routine. |
+| `scheduler/ready_queue.c` | `READY` as a data structure (single or multilevel), the preempt/terminate gates. |
+| `scheduler/exec_list.c` | `EXEC` as a data structure and the "exec drained" waits. |
+| `scheduler/blocking_list.c` | `BLOCK` / `SUSP. BLOCK` / `SUSP. READY` as data structures. |
+| `scheduler/counter.c` | The `t_counter` primitive (thread and syscall counters). |
 | `mutex.c` | Mutex ownership, wait queues, priority inheritance. |
 | `memory.c` | `MEM_ALLOC` / `MEM_FREE` requests and compaction coordination with Kernel Memory. |
 | `domain/pcb.c` | The `t_pcb` process control block: creation, teardown, state/priority accessors, active-instance counting. |

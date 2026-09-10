@@ -19,18 +19,11 @@ const char* const PROCESS_END_REASONS[9] = {
     "no mutex with that name exists",
     "this process cannot unlock this mutex"};
 
-static t_counter* create_counter(void);
-static void increment_counter(t_counter* counter);
 static void increment_thread_counter(t_queues* queues);
 static void decrement_thread_counter(t_queues* queues);
 static void wait_counter_threads(t_queues* queues);
-static void destroy_counter(t_counter* counter);
 static void destroy_counter_threads(t_queues* queues);
 static void destroy_counter_syscalls(t_queues* queues);
-static void init_queue_ready(t_ready_queue* queue, int algorithm,
-                             t_list* cmn_algorithms);
-static void init_list_exec(t_execute_list* list, int quantum, bool preemption);
-static void init_list(t_blocking_list* list);
 static t_suspended_thread* init_data_thread_suspended(t_queues* queues);
 static void init_data_thread_suspender(t_queues* queues,
                                        int suspension_timeout);
@@ -38,9 +31,6 @@ static void init_data_thread_resumer(t_queues* queues);
 static void start_thread_suspender(t_queues* queues);
 static void start_thread_resumer(t_queues* queues);
 static void start_threads_suspended(t_queues* queues, int suspension_timeout);
-static void destroy_queue_ready(t_ready_queue* queue);
-static void destroy_list_exec(t_execute_list* list);
-static void destroy_list(t_blocking_list* list);
 static void terminate_thread_suspended(t_suspended_thread* data,
                                        t_blocking_list* list);
 static void wait_thread_suspended(t_suspended_thread* data);
@@ -56,29 +46,10 @@ static void log_invalid_state(t_log* logger, uint32_t pid, int state,
                               int expected_state, int next_state);
 static bool manage_state_pcb(t_log* logger, t_pcb* pcb, int expected_state,
                              int next_state);
-static void set_blocked_time(t_pcb* pcb, unsigned long time);
-static bool check_priority_valid(t_pcb* pcb, t_ready_queue* ready,
-                                 t_log* logger);
-static void transition_to_ready(t_pcb* pcb, t_ready_queue* ready);
-static void transition_to_block(t_pcb* pcb, t_blocking_list* block);
-static void transition_to_susp_block(t_pcb* pcb, t_blocking_list* susp_block);
-static void transition_to_susp_ready(t_pcb* pcb, t_blocking_list* susp_ready);
 static void log_transition_to_exit(t_log* logger, uint32_t pid, int reason);
 static void transition_to_exit(t_pcb* pcb, t_queues* queues, int reason);
 static t_pcb* transition_take_new(char* instructions_file, int priority,
                                   t_queues* queues);
-static void update_highest_priority_ready_no_mutex(t_ready_queue* ready);
-static void transition_take_ready(t_pcb* pcb, t_ready_queue* ready);
-static t_pcb* transition_take_ready_next(t_ready_queue* ready);
-static void transition_take_exec(t_pcb* pcb, t_execute_list* exec,
-                                 t_counter* syscall_counter);
-static t_pcb* transition_take_exec_next(t_execute_list* exec);
-static void transition_take_block(t_pcb* pcb, t_blocking_list* block);
-static t_pcb* transition_take_block_next(t_blocking_list* block);
-static void transition_take_susp_block(t_pcb* pcb, t_blocking_list* susp_block);
-static t_pcb* transition_take_susp_block_next(t_blocking_list* susp_block);
-static void transition_take_susp_ready(t_pcb* pcb, t_blocking_list* susp_ready);
-static t_pcb* transition_take_susp_ready_next(t_blocking_list* susp_ready);
 static void transition_block_ready_no_mutex(t_pcb* pcb, t_queues* queues);
 static bool receive_suspend_process_response(t_queues* queues);
 static bool notify_process_suspended(t_pcb* pcb, t_queues* queues);
@@ -105,7 +76,6 @@ static void* thread_suspender(void* data_void);
 static void* thread_resumer(void* data_void);
 static void lock_total(t_queues* queues);
 static bool fits_process(t_queues* queues, t_pcb* process);
-static bool is_empty(t_blocking_list* list);
 static bool remove_of_the_list(t_queues* queues);
 static void resumption_routine(t_queues* queues);
 static int receive_space(t_queues* queues);
@@ -130,15 +100,13 @@ t_queues* init_queues(int algorithm, t_list* cmn_algorithms, int quantum,
                       t_kernel_memory_socket* km_socket, int suspension_timeout)
 {
   t_queues* queues = malloc(sizeof(t_queues));
-  init_queue_ready(&(queues->ready), algorithm, cmn_algorithms);
-  init_list_exec(&(queues->exec), quantum, preemption);
-  init_list(&(queues->block));
-  init_list(&(queues->susp_block));
-  init_list(&(queues->susp_ready));
+  init_ready_queue(&(queues->ready), algorithm, cmn_algorithms);
+  init_exec_list(&(queues->exec), quantum, preemption);
+  init_blocking_list(&(queues->block));
+  init_blocking_list(&(queues->susp_block));
+  init_blocking_list(&(queues->susp_ready));
   queues->process_counter =
       init_counter_processes(server_socket, logger, km_socket);
-  queues->thread_counter = create_counter();
-  queues->syscall_counter = create_counter();
   pthread_mutex_init(&(queues->routine_mutex), NULL);
   pthread_cond_init(&(queues->routine_cond), NULL);
   queues->routine_active = false;
@@ -160,98 +128,15 @@ void destroy_queues(t_queues* queues)
   destroy_counter_syscalls(queues);
   terminate_threads_suspended(queues);
   destroy_threads_suspended(queues);
-  destroy_queue_ready(&(queues->ready));
-  destroy_list_exec(&(queues->exec));
-  destroy_list(&(queues->block));
-  destroy_list(&(queues->susp_block));
-  destroy_list(&(queues->susp_ready));
+  destroy_ready_queue(&(queues->ready));
+  destroy_exec_list(&(queues->exec));
+  destroy_blocking_list(&(queues->block));
+  destroy_blocking_list(&(queues->susp_block));
+  destroy_blocking_list(&(queues->susp_ready));
   destroy_counter_processes(queues->process_counter);
   pthread_mutex_destroy(&(queues->routine_mutex));
   pthread_cond_destroy(&(queues->routine_cond));
   free(queues);
-}
-
-bool is_queue_ready_empty(t_ready_queue* ready)
-{
-  pthread_mutex_lock(&(ready->queue_mutex));
-  bool ret = ready->ready_process_count == 0;
-  pthread_mutex_unlock(&(ready->queue_mutex));
-  return ret;
-}
-
-bool is_queue_ready_blocked(t_ready_queue* ready)
-{
-  return atomic_load(&(ready->preempt_all));
-}
-
-void lock_queue_ready(t_ready_queue* ready)
-{
-  atomic_store(&(ready->preempt_all), true);
-}
-
-void unlock_queue_ready(t_ready_queue* ready)
-{
-  atomic_store(&(ready->preempt_all), false);
-  pthread_mutex_lock(&(ready->queue_mutex));
-  pthread_cond_broadcast(&(ready->exit_unblocked));
-  pthread_mutex_unlock(&(ready->queue_mutex));
-}
-
-bool queue_ready_terminated(t_ready_queue* ready)
-{
-  return atomic_load(&(ready->terminate_queue));
-}
-
-void terminate_queue_ready(t_ready_queue* ready)
-{
-  atomic_store(&(ready->terminate_queue), true);
-  pthread_mutex_lock(&(ready->queue_mutex));
-  pthread_cond_broadcast(&(ready->new_process));
-  pthread_cond_broadcast(&(ready->exit_unblocked));
-  pthread_mutex_unlock(&(ready->queue_mutex));
-}
-
-void update_lowest_exec_priority(t_execute_list* exec)
-{
-  pthread_mutex_lock(&(exec->list_mutex));
-  exec->lowest_priority = 0;
-  t_list_iterator* iterator_list = list_iterator_create(exec->list);
-  while (list_iterator_has_next(iterator_list))
-  {
-    t_pcb* pcb = list_iterator_next(iterator_list);
-
-    int prioriad_iterador = get_priority_pcb(pcb);
-
-    if (exec->lowest_priority < prioriad_iterador)
-    {
-      exec->lowest_priority = prioriad_iterador;
-    }
-  }
-  list_iterator_destroy(iterator_list);
-  pthread_mutex_unlock(&(exec->list_mutex));
-}
-
-void wait_queue_exec_empty(t_queues* queues)
-{
-  pthread_mutex_lock(&(queues->exec.list_mutex));
-  while (list_size(queues->exec.list) > 0)
-  {
-    pthread_cond_wait(&(queues->exec.queue_empty), &(queues->exec.list_mutex));
-  }
-  pthread_mutex_unlock(&(queues->exec.list_mutex));
-}
-
-void wait_queue_exec_empty_with_syscalls(t_queues* queues)
-{
-  pthread_mutex_lock(&(queues->exec.list_mutex));
-  pthread_mutex_lock(&(queues->syscall_counter->counter_mutex));
-  while (list_size(queues->exec.list) - queues->syscall_counter->count > 0)
-  {
-    pthread_cond_wait(&(queues->syscall_counter->condition),
-                      &(queues->exec.list_mutex));
-  }
-  pthread_mutex_unlock(&(queues->syscall_counter->counter_mutex));
-  pthread_mutex_unlock(&(queues->exec.list_mutex));
 }
 
 bool can_suspend(t_pcb* pcb, int suspension_timeout)
@@ -275,73 +160,6 @@ void update_priority(t_pcb* pcb, t_queues* queues)
   pthread_mutex_unlock(&(pcb->state_mutex));
 }
 
-void transition_to_exec(t_pcb* pcb, t_execute_list* exec)
-{
-  pthread_mutex_lock(&(exec->list_mutex));
-  if (exec->preemption)
-  {
-    int priority_pcb = get_priority_pcb(pcb);
-    if (exec->lowest_priority < priority_pcb)
-    {
-      exec->lowest_priority = priority_pcb;
-    }
-  }
-  list_add(exec->list, pcb);
-  pthread_mutex_unlock(&(exec->list_mutex));
-}
-
-t_pcb* transition_take_ready_blocking(t_ready_queue* ready)
-{
-  pthread_mutex_lock(&(ready->queue_mutex));
-  while (!queue_ready_terminated(ready) &&
-         (ready->ready_process_count == 0 ||
-          atomic_load(&(ready->preempt_all))))
-  {
-    if (!queue_ready_terminated(ready) && ready->ready_process_count == 0)
-    {
-      pthread_cond_wait(&(ready->new_process), &(ready->queue_mutex));
-    }
-    if (!queue_ready_terminated(ready) && atomic_load(&(ready->preempt_all)))
-    {
-      pthread_cond_wait(&(ready->exit_unblocked), &(ready->queue_mutex));
-    }
-  }
-
-  t_pcb* pcb;
-  if (queue_ready_terminated(ready))
-  {
-    pcb = NULL;
-  }
-  else
-  {
-    pcb = transition_take_ready_next_no_mutex(ready);
-  }
-  pthread_mutex_unlock(&(ready->queue_mutex));
-  return pcb;
-}
-
-t_pcb* transition_take_ready_next_no_mutex(t_ready_queue* ready)
-{
-  for (int i = 0; i < ready->queue_count; i++)
-  {
-    if (!list_is_empty(ready->queues[i].queue))
-    {
-      ready->ready_process_count--;
-      t_pcb* pcb = list_remove(ready->queues[i].queue, 0);
-      if (list_is_empty(ready->queues[i].queue))
-      {
-        update_highest_priority_ready_no_mutex(ready);
-      }
-      if (ready->ready_process_count == 0)
-      {
-        pthread_cond_signal(&(ready->queue_empty));
-      }
-      return pcb;
-    }
-  }
-  return NULL;
-}
-
 void transition_ready_exec(t_pcb* pcb, t_queues* queues)
 {
   pthread_mutex_lock(&(pcb->state_mutex));
@@ -357,7 +175,7 @@ void transition_new_ready(t_queues* queues, char* instructions_file,
   t_pcb* pcb = transition_take_new(instructions_file, priority, queues);
   if (pcb != NULL)
   {
-    if (!check_priority_valid(pcb, &(queues->ready), queues->logger))
+    if (!check_priority_valid(pcb, &(queues->ready)))
     {
       log_transition_state(queues->logger, pcb->pid, EST_NEW, EST_EXIT);
       transition_to_exit(pcb, queues, PER_INVALID_PRIORITY);
@@ -582,7 +400,7 @@ bool is_resuming(t_queues* queues)
 
 void increment_syscall_counter(t_queues* queues)
 {
-  increment_counter(queues->syscall_counter);
+  counter_increment(queues->syscall_counter);
 }
 
 void decrement_syscall_counter(t_queues* queues)
@@ -592,25 +410,9 @@ void decrement_syscall_counter(t_queues* queues)
   pthread_mutex_unlock(&(queues->syscall_counter->counter_mutex));
 }
 
-static t_counter* create_counter(void)
-{
-  t_counter* counter = malloc(sizeof(t_counter));
-  counter->count = 0;
-  pthread_mutex_init(&(counter->counter_mutex), NULL);
-  pthread_cond_init(&(counter->condition), NULL);
-  return counter;
-}
-
-static void increment_counter(t_counter* counter)
-{
-  pthread_mutex_lock(&(counter->counter_mutex));
-  counter->count++;
-  pthread_mutex_unlock(&(counter->counter_mutex));
-}
-
 static void increment_thread_counter(t_queues* queues)
 {
-  increment_counter(queues->thread_counter);
+  counter_increment(queues->thread_counter);
 }
 
 static void decrement_thread_counter(t_queues* queues)
@@ -637,13 +439,6 @@ static void wait_counter_threads(t_queues* queues)
   log_debug(queues->logger, "Threads finished");
 }
 
-static void destroy_counter(t_counter* counter)
-{
-  pthread_mutex_destroy(&(counter->counter_mutex));
-  pthread_cond_destroy(&(counter->condition));
-  free(counter);
-}
-
 static void destroy_counter_threads(t_queues* queues)
 {
   destroy_counter(queues->thread_counter);
@@ -652,59 +447,6 @@ static void destroy_counter_threads(t_queues* queues)
 static void destroy_counter_syscalls(t_queues* queues)
 {
   destroy_counter(queues->syscall_counter);
-}
-
-static void init_queue_ready(t_ready_queue* queue, int algorithm,
-                             t_list* cmn_algorithms)
-{
-  if (algorithm == AP_CMN)
-  {
-    queue->multilevel_queue = true;
-    queue->queue_count = list_size(cmn_algorithms);
-    queue->queues = malloc(queue->queue_count * sizeof(t_ready_subqueue));
-    t_list_iterator* iterator_algorithms = list_iterator_create(cmn_algorithms);
-    for (int i = 0; i < queue->queue_count; i++)
-    {
-      queue->queues[i].algorithm =
-          *(int*)list_iterator_next(iterator_algorithms);
-      queue->queues[i].queue = list_create();
-    }
-    list_iterator_destroy(iterator_algorithms);
-  }
-  else
-  {
-    queue->multilevel_queue = false;
-    queue->queue_count = 1;
-    queue->queues = malloc(sizeof(t_ready_subqueue));
-    queue->queues->queue = list_create();
-    queue->queues->algorithm = algorithm;
-  }
-  pthread_mutex_init(&(queue->queue_mutex), NULL);
-  pthread_cond_init(&(queue->new_process), NULL);
-  pthread_cond_init(&(queue->exit_unblocked), NULL);
-  pthread_cond_init(&(queue->queue_empty), NULL);
-  atomic_init(&(queue->preempt_all), false);
-  queue->ready_process_count = 0;
-  queue->highest_priority = INT_MAX;
-  atomic_init(&(queue->terminate_queue), false);
-}
-
-static void init_list_exec(t_execute_list* list, int quantum, bool preemption)
-{
-  list->list = list_create();
-  pthread_mutex_init(&(list->list_mutex), NULL);
-  pthread_cond_init(&(list->queue_empty), NULL);
-  list->lowest_priority = 0;
-  list->quantum = quantum;
-  list->preemption = preemption;
-}
-
-static void init_list(t_blocking_list* list)
-{
-  list->list = list_create();
-  pthread_mutex_init(&(list->list_mutex), NULL);
-  pthread_cond_init(&(list->new_process_cond), NULL);
-  list->new_process = false;
 }
 
 static t_suspended_thread* init_data_thread_suspended(t_queues* queues)
@@ -768,33 +510,6 @@ static void start_threads_suspended(t_queues* queues, int suspension_timeout)
   init_data_thread_resumer(queues);
   start_thread_suspender(queues);
   start_thread_resumer(queues);
-}
-
-static void destroy_queue_ready(t_ready_queue* queue)
-{
-  for (int i = 0; i < queue->queue_count; i++)
-  {
-    list_destroy(queue->queues[i].queue);
-  }
-  pthread_cond_destroy(&(queue->new_process));
-  pthread_cond_destroy(&(queue->exit_unblocked));
-  pthread_mutex_destroy(&(queue->queue_mutex));
-  pthread_cond_destroy(&(queue->queue_empty));
-  free(queue->queues);
-}
-
-static void destroy_list_exec(t_execute_list* list)
-{
-  list_destroy(list->list);
-  pthread_mutex_destroy(&(list->list_mutex));
-  pthread_cond_destroy(&(list->queue_empty));
-}
-
-static void destroy_list(t_blocking_list* list)
-{
-  list_destroy(list->list);
-  pthread_mutex_destroy(&(list->list_mutex));
-  pthread_cond_destroy(&(list->new_process_cond));
 }
 
 static void terminate_thread_suspended(t_suspended_thread* data,
@@ -888,71 +603,6 @@ static bool manage_state_pcb(t_log* logger, t_pcb* pcb, int expected_state,
   return false;
 }
 
-static void set_blocked_time(t_pcb* pcb, unsigned long time)
-{
-  pcb->blocked_time = time;
-}
-
-static bool check_priority_valid(t_pcb* pcb, t_ready_queue* ready,
-                                 t_log* logger)
-{
-  return !ready->multilevel_queue || get_priority_pcb(pcb) < ready->queue_count;
-}
-
-static void transition_to_ready(t_pcb* pcb, t_ready_queue* ready)
-{
-  pthread_mutex_lock(&(ready->queue_mutex));
-  int priority = get_priority_pcb(pcb);
-  if (ready->ready_process_count == 0 || ready->highest_priority > priority)
-  {
-    ready->highest_priority = priority;
-  }
-
-  if (ready->ready_process_count == 0)
-  {
-    pthread_cond_signal(&(ready->new_process));
-  }
-  ready->ready_process_count++;
-
-  if (ready->multilevel_queue)
-  {
-    list_add(ready->queues[priority].queue, pcb);
-  }
-  else
-  {
-    list_add(ready->queues->queue, pcb);
-  }
-  pthread_mutex_unlock(&(ready->queue_mutex));
-}
-
-static void transition_to_block(t_pcb* pcb, t_blocking_list* block)
-{
-  set_blocked_time(pcb, millis());
-  pthread_mutex_lock(&(block->list_mutex));
-  block->new_process = true;
-  pthread_cond_signal(&(block->new_process_cond));
-  list_add(block->list, pcb);
-  pthread_mutex_unlock(&(block->list_mutex));
-}
-
-static void transition_to_susp_block(t_pcb* pcb, t_blocking_list* susp_block)
-{
-  pthread_mutex_lock(&(susp_block->list_mutex));
-  insert_pcb_in_orden(susp_block->list, pcb);
-  pthread_mutex_unlock(&(susp_block->list_mutex));
-}
-
-static void transition_to_susp_ready(t_pcb* pcb, t_blocking_list* susp_ready)
-{
-  pthread_mutex_lock(&(susp_ready->list_mutex));
-  if (list_size(susp_ready->list) == 0)
-  {
-    pthread_cond_signal(&(susp_ready->new_process_cond));
-  }
-  insert_pcb_in_orden(susp_ready->list, pcb);
-  pthread_mutex_unlock(&(susp_ready->list_mutex));
-}
-
 static void log_transition_to_exit(t_log* logger, uint32_t pid, int reason)
 {
   log_info(logger, "%u finished execution with reason: %s", pid,
@@ -992,140 +642,6 @@ static t_pcb* transition_take_new(char* instructions_file, int priority,
 
     return NULL;
   }
-  return pcb;
-}
-
-static void update_highest_priority_ready_no_mutex(t_ready_queue* ready)
-{
-  if (ready->ready_process_count > 0 && ready->multilevel_queue)
-  {
-    for (int i = 0; i < ready->queue_count; i++)
-    {
-      if (!list_is_empty(ready->queues[i].queue))
-      {
-        ready->highest_priority = i;
-        return;
-      }
-    }
-  }
-  ready->highest_priority = ready->queue_count;
-}
-
-static void transition_take_ready(t_pcb* pcb, t_ready_queue* ready)
-{
-  pthread_mutex_lock(&(ready->queue_mutex));
-  int pos = ready->multilevel_queue ? get_priority_pcb(pcb) : 0;
-  list_remove_element(ready->queues[pos].queue, pcb);
-  update_highest_priority_ready_no_mutex(ready);
-  ready->ready_process_count--;
-  if (ready->ready_process_count == 0)
-  {
-    pthread_cond_signal(&(ready->queue_empty));
-  }
-  pthread_mutex_unlock(&(ready->queue_mutex));
-}
-
-static t_pcb* transition_take_ready_next(t_ready_queue* ready)
-{
-  pthread_mutex_lock(&(ready->queue_mutex));
-  t_pcb* pcb = transition_take_ready_next_no_mutex(ready);
-  pthread_mutex_unlock(&(ready->queue_mutex));
-  return pcb;
-}
-
-static void transition_take_exec(t_pcb* pcb, t_execute_list* exec,
-                                 t_counter* syscall_counter)
-{
-  pthread_mutex_lock(&(exec->list_mutex));
-  list_remove_element(exec->list, pcb);
-  if (list_size(exec->list) == 0)
-  {
-    pthread_cond_signal(&(exec->queue_empty));
-  }
-  pthread_mutex_lock(&(syscall_counter->counter_mutex));
-  if (list_size(exec->list) - syscall_counter->count == 0)
-  {
-    pthread_cond_signal(&(syscall_counter->condition));
-  }
-  pthread_mutex_unlock(&(syscall_counter->counter_mutex));
-  pthread_mutex_unlock(&(exec->list_mutex));
-  if (exec->preemption)
-  {
-    update_lowest_exec_priority(exec);
-  }
-}
-
-static t_pcb* transition_take_exec_next(t_execute_list* exec)
-{
-  t_pcb* pcb = NULL;
-  pthread_mutex_lock(&(exec->list_mutex));
-  if (!list_is_empty(exec->list))
-  {
-    pcb = list_remove(exec->list, 0);
-  }
-  pthread_mutex_unlock(&(exec->list_mutex));
-  return pcb;
-}
-
-static void transition_take_block(t_pcb* pcb, t_blocking_list* block)
-{
-  pthread_mutex_lock(&(block->list_mutex));
-  list_remove_element(block->list, pcb);
-  pthread_mutex_unlock(&(block->list_mutex));
-  set_blocked_time(pcb, 0);
-}
-
-static t_pcb* transition_take_block_next(t_blocking_list* block)
-{
-  t_pcb* pcb = NULL;
-  pthread_mutex_lock(&(block->list_mutex));
-  if (!list_is_empty(block->list))
-  {
-    pcb = list_remove(block->list, 0);
-  }
-  pthread_mutex_unlock(&(block->list_mutex));
-  if (pcb != NULL)
-  {
-    set_blocked_time(pcb, 0);
-  }
-  return pcb;
-}
-
-static void transition_take_susp_block(t_pcb* pcb, t_blocking_list* susp_block)
-{
-  pthread_mutex_lock(&(susp_block->list_mutex));
-  list_remove_element(susp_block->list, pcb);
-  pthread_mutex_unlock(&(susp_block->list_mutex));
-}
-
-static t_pcb* transition_take_susp_block_next(t_blocking_list* susp_block)
-{
-  t_pcb* pcb = NULL;
-  pthread_mutex_lock(&(susp_block->list_mutex));
-  if (!list_is_empty(susp_block->list))
-  {
-    pcb = list_remove(susp_block->list, 0);
-  }
-  pthread_mutex_unlock(&(susp_block->list_mutex));
-  return pcb;
-}
-
-static void transition_take_susp_ready(t_pcb* pcb, t_blocking_list* susp_ready)
-{
-  pthread_mutex_lock(&(susp_ready->list_mutex));
-  list_remove_element(susp_ready->list, pcb);
-  pthread_mutex_unlock(&(susp_ready->list_mutex));
-}
-
-static t_pcb* transition_take_susp_ready_next(t_blocking_list* susp_ready)
-{
-  t_pcb* pcb = NULL;
-  pthread_mutex_lock(&(susp_ready->list_mutex));
-  if (!list_is_empty(susp_ready->list))
-  {
-    pcb = list_remove(susp_ready->list, 0);
-  }
-  pthread_mutex_unlock(&(susp_ready->list_mutex));
   return pcb;
 }
 
@@ -1282,19 +798,14 @@ static bool transition_any_exit(t_queues* queues, int state, int reason)
   switch (state)
   {
     case EST_READY:
-      pcb = transition_take_ready_next(&(queues->ready));
       break;
     case EST_EXEC:
-      pcb = transition_take_exec_next(&(queues->exec));
       break;
     case EST_BLOCK:
-      pcb = transition_take_block_next(&(queues->block));
       break;
     case EST_SUSP_BLOCK:
-      pcb = transition_take_susp_block_next(&(queues->susp_block));
       break;
     case EST_SUSP_READY:
-      pcb = transition_take_susp_ready_next(&(queues->susp_ready));
       break;
   }
 
@@ -1545,7 +1056,7 @@ static void lock_total(t_queues* queues)
 {
   lock_queue_ready(&(queues->ready));
   lock_threads_suspended(queues);
-  wait_queue_exec_empty_with_syscalls(queues);
+  wait_queue_exec_empty_with_syscalls(&(queues->exec), queues->syscall_counter);
 }
 
 static bool fits_process(t_queues* queues, t_pcb* process)
@@ -1577,12 +1088,6 @@ static bool fits_process(t_queues* queues, t_pcb* process)
   }
 }
 
-static bool is_empty(t_blocking_list* list)
-{
-  pthread_mutex_lock(&(list->list_mutex));
-  return list_is_empty(list->list);
-}
-
 static bool remove_of_the_list(t_queues* queues)
 {
   t_pcb* process = list_get(queues->susp_ready.list, 0);
@@ -1603,7 +1108,7 @@ static void resumption_routine(t_queues* queues)
 {
   bool keep_running = true;
 
-  while (!is_empty(&(queues->susp_ready)) && keep_running)
+  while (!blocking_list_is_empty(&(queues->susp_ready)) && keep_running)
   {
     if (is_compacting(queues))
     {
@@ -1782,7 +1287,7 @@ static void* thread_unlock_queue_ready(void* args)
   t_queues* queues = (t_queues*)args;
   increment_thread_counter(queues);
 
-  wait_queue_exec_empty(queues);
+  wait_queue_exec_empty(&(queues->exec));
 
   if (!atomic_load(&(queues->compaction_active)))
   {
