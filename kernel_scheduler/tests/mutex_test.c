@@ -3,7 +3,6 @@
 #include <criterion/criterion.h>
 #include <stdlib.h>
 
-#include "kernel_scheduler/misc.h"
 #include "support.h"
 
 Test(ks_mutex, create_and_add_mutex_reports_duplicates)

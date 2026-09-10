@@ -3,7 +3,6 @@
 #include <pthread.h>
 #include <stdbool.h>
 
-#include "kernel_scheduler/misc.h"
 #include "kernel_scheduler/queue.h"
 #include "utils/collections/dictionary.h"
 #include "utils/collections/list.h"

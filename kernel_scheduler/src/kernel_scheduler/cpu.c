@@ -5,8 +5,8 @@
 #include <unistd.h>
 
 #include "kernel_scheduler/memory.h"
-#include "kernel_scheduler/misc.h"
-#include "misc.h"
+#include "kernel_scheduler/common/handshake.h"
+#include "kernel_scheduler/common/time.h"
 #include "utils/collections/list.h"
 #include "utils/io.h"
 #include "utils/msg.h"

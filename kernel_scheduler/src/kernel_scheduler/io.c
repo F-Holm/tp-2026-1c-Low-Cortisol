@@ -2,7 +2,8 @@
 
 #include <string.h>
 
-#include "kernel_scheduler/misc.h"
+#include "kernel_scheduler/common/handshake.h"
+#include "kernel_scheduler/shutdown.h"
 #include "kernel_scheduler/queue.h"
 #include "utils/io.h"
 #include "utils/msg.h"

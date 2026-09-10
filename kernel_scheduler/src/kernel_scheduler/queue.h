@@ -7,10 +7,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "kernel_scheduler/kernel_memory.h"
-#include "kernel_scheduler/misc.h"
+#include "kernel_scheduler/domain/kernel_memory_socket.h"
+#include "kernel_scheduler/domain/pcb.h"
+#include "kernel_scheduler/scheduler/process_counter.h"
 #include "utils/collections/list.h"
 #include "utils/log.h"
+
+typedef enum
+{
+  AP_FIFO,
+  AP_RR,
+  AP_CMN
+} t_scheduling_algorithm;
 
 typedef enum
 {

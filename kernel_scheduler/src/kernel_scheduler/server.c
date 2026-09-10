@@ -4,7 +4,6 @@
 
 #include "kernel_scheduler/cpu.h"
 #include "kernel_scheduler/io.h"
-#include "kernel_scheduler/misc.h"
 #include "utils/collections/list.h"
 #include "utils/msg.h"
 

@@ -1,6 +1,5 @@
 #pragma once
 
-#include "kernel_scheduler/misc.h"
 #include "kernel_scheduler/queue.h"
 
 /**

@@ -2,7 +2,6 @@
 
 #include "kernel_scheduler/cpu.h"
 #include "kernel_scheduler/kernel_scheduler.h"
-#include "kernel_scheduler/misc.h"
 
 Test(ks_names, state_names_follow_the_enum)
 {

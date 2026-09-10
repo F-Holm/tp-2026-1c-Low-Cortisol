@@ -1,4 +1,5 @@
 #include "kernel_scheduler/kernel_memory.h"
+#include "kernel_scheduler/shutdown.h"
 
 #include <pthread.h>
 #include <stdbool.h>

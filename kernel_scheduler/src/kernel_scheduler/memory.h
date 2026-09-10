@@ -5,7 +5,6 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#include "kernel_scheduler/misc.h"
 #include "kernel_scheduler/queue.h"
 #include "utils/log.h"
 #include "utils/msg.h"

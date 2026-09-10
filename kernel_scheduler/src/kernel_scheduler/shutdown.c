@@ -1,8 +1,9 @@
-#include "kernel_scheduler/misc.h"
+#include "kernel_scheduler/shutdown.h"
 
-#include <pthread.h>
+#include <stdatomic.h>
+#include <stdbool.h>
+#include <stdlib.h>
 #include <sys/socket.h>
-#include <sys/time.h>
 
 #include "utils/msg.h"
 
@@ -14,63 +15,6 @@ static void log_shutdown(t_log* logger, int reason_shutdown);
 static void check_reason_shutdown(int* reason_shutdown, int km_socket);
 static void notify_shutdown_kernel_memory(int reason_shutdown, int km_socket,
                                           t_log* logger);
-
-bool respond_handshake(int socket_fd, int id_module, t_log* logger)
-{
-  if (!send_handshake(id_module, socket_fd))
-  {
-    log_error(logger, "Error sending the handshake to %s",
-              HANDSHAKE_MSG[id_module]);
-    return false;
-  }
-  return true;
-}
-
-unsigned long millis(void)
-{
-  struct timeval tv;
-  gettimeofday(&tv, NULL);
-  return (tv.tv_sec * 1000) + (tv.tv_usec / 1000);
-}
-
-unsigned long time_diff(unsigned long time_1, unsigned long time_2)
-{
-  return time_1 > time_2 ? time_1 - time_2 : time_2 - time_1;
-}
-
-t_process_counter* init_counter_processes(int server_socket, t_log* logger,
-                                          t_kernel_memory_socket* km_socket)
-{
-  t_process_counter* counter = malloc(sizeof(t_process_counter));
-  atomic_init(&(counter->active_process_count), 0);
-  counter->server_socket = server_socket;
-  counter->logger = logger;
-  counter->km_socket = km_socket;
-  return counter;
-}
-
-void aumentar_counter_processes(t_process_counter* counter)
-{
-  atomic_fetch_add(&(counter->active_process_count), 1);
-}
-
-void disminuir_counter_processes(t_process_counter* counter)
-{
-  bool is_last = atomic_fetch_sub(&(counter->active_process_count), 1) == 1;
-
-  if (is_last)
-  {
-    pthread_mutex_lock(&(counter->km_socket->socket_mutex));
-    close_kernel_scheduler(counter->server_socket, counter->logger,
-                           SR_NO_PROCESSES, counter->km_socket->km_socket);
-    pthread_mutex_unlock(&(counter->km_socket->socket_mutex));
-  }
-}
-
-void destroy_counter_processes(t_process_counter* counter)
-{
-  free(counter);
-}
 
 void close_kernel_scheduler(int server_socket, t_log* logger,
                             int reason_shutdown, int km_socket)

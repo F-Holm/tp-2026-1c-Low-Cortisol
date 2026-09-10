@@ -1,8 +1,11 @@
 #pragma once
 
+#include <pthread.h>
 #include <stdatomic.h>
+#include <stdbool.h>
+#include <stdint.h>
 
-#include "kernel_scheduler/misc.h"
+#include "kernel_scheduler/domain/kernel_memory_socket.h"
 #include "utils/log.h"
 
 typedef struct

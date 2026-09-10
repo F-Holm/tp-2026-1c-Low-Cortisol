@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "kernel_scheduler/misc.h"
+#include "kernel_scheduler/kernel_memory.h"
 #include "kernel_scheduler/mutex.h"
 #include "kernel_scheduler/queue.h"
 #include "utils/collections/list.h"
