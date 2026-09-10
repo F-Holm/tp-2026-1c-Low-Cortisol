@@ -1,4 +1,4 @@
-#include "kernel_scheduler.h"
+#include "kernel_scheduler/app/kernel_scheduler.h"
 
 #include <pthread.h>
 #include <string.h>

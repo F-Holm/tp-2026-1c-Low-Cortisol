@@ -3,6 +3,7 @@
 #include <stdint.h>
 
 #include "kernel_scheduler/scheduler/blocking_list.h"
+#include "kernel_scheduler/scheduler/compaction.h"
 #include "kernel_scheduler/scheduler/counter.h"
 #include "kernel_scheduler/scheduler/exec_list.h"
 #include "kernel_scheduler/scheduler/memory_query.h"
@@ -41,18 +42,6 @@ void clear_queues(t_queues* queues);
 // to lock and unlock the suspender and resumer threads
 void lock_threads_suspended(t_queues* queues);
 void unlock_threads_suspended(t_queues* queues);
-
-// kernel_memory query functions
-int space_available_no_mutex(t_queues* queues, uint32_t pid);
-int space_available(t_queues* queues, uint32_t pid);
-int process_size_no_mutex(t_queues* queues, uint32_t pid);
-int process_size(t_queues* queues, uint32_t pid);
-
-// routine functions
-void create_resumption_routine_thread(t_queues* queues);
-void routine_compaction(t_queues* queues);
-bool is_compacting(t_queues* queues);
-bool is_resuming(t_queues* queues);
 
 // Counters
 void increment_syscall_counter(t_queues* queues);

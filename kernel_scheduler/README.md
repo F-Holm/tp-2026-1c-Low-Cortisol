@@ -117,8 +117,9 @@ Sources live under `src/kernel_scheduler/` in packages:
 | File | Responsibility |
 |------|----------------|
 | `queue_types.h` | Every scheduler struct, including the `t_queues` aggregate. |
-| `queues.c` | The seven-state machine, the suspension/resumption worker threads and the compaction routine. |
+| `queues.c` | The seven-state machine and the suspension/resumption worker threads. |
 | `queues.h` | Umbrella header re-exporting the package. |
+| `compaction.c` | The memory-compaction and resumption-sweep routines (detached threads). |
 | `ready_queue.c` | `READY` as a data structure (single or multilevel), the preempt/terminate gates. |
 | `exec_list.c` | `EXEC` as a data structure and the "exec drained" waits. |
 | `blocking_list.c` | `BLOCK` / `SUSP. BLOCK` / `SUSP. READY` as data structures. |

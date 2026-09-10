@@ -1,6 +1,8 @@
 #include "kernel_scheduler/common/time.h"
 #include "kernel_scheduler/connections/kernel_memory.h"
 #include "kernel_scheduler/scheduler/queues.h"
+#include "kernel_scheduler/scheduler/compaction.h"
+#include "kernel_scheduler/scheduler/scheduler_internal.h"
 #include "kernel_scheduler/shutdown.h"
 
 #include <limits.h>
@@ -19,8 +21,6 @@ const char* const PROCESS_END_REASONS[9] = {
     "no mutex with that name exists",
     "this process cannot unlock this mutex"};
 
-static void increment_thread_counter(t_queues* queues);
-static void decrement_thread_counter(t_queues* queues);
 static void wait_counter_threads(t_queues* queues);
 static void destroy_counter_threads(t_queues* queues);
 static void destroy_counter_syscalls(t_queues* queues);
@@ -39,7 +39,6 @@ static void destroy_thread_suspender(t_suspender_thread* data);
 static void destroy_thread_resumer(t_resumer_thread* data);
 static void terminate_threads_suspended(t_queues* queues);
 static void destroy_threads_suspended(t_queues* queues);
-static void terminate_routines(t_queues* queues);
 static void log_transition_state(t_log* logger, uint32_t pid,
                                  int previous_state, int state_new);
 static void log_invalid_state(t_log* logger, uint32_t pid, int state,
@@ -58,7 +57,6 @@ static void transition_susp_block_susp_ready_no_mutex(t_pcb* pcb,
                                                       t_queues* queues);
 static bool notify_process_resume_suspended(t_pcb* pcb, t_queues* queues);
 static bool can_resume_suspended(t_pcb* pcb, t_queues* queues);
-static bool transition_susp_ready_no_mutex(t_pcb* pcb, t_queues* queues);
 static bool transition_any_exit(t_queues* queues, int state, int reason);
 static void lock_thread_suspended(t_suspended_thread* data,
                                   t_blocking_list* list);
@@ -74,19 +72,6 @@ static void resume_suspended_process(t_queues* queues, t_resumer_thread* data,
 static void wait_process_susp_ready(t_queues* queues, t_resumer_thread* data);
 static void* thread_suspender(void* data_void);
 static void* thread_resumer(void* data_void);
-static void lock_total(t_queues* queues);
-static bool fits_process(t_queues* queues, t_pcb* process);
-static bool remove_of_the_list(t_queues* queues);
-static void resumption_routine(t_queues* queues);
-static void* resumption_routine_thread(void* data_resume_suspension);
-static bool set_is_resuming(t_queues* queues, bool new_state);
-static bool set_is_compacting(t_queues* queues, bool new_state);
-static void routine_enter(t_queues* queues);
-static void routine_leave(t_queues* queues);
-static void* thread_unlock_queue_ready(void* args);
-static void create_thread_unlock_queue_ready(t_queues* queues);
-static bool compaction_finished(t_queues* queues);
-static void compaction(t_queues* queues);
 static bool notify_new_process(t_queues* queues, char* instructions_file,
                                uint32_t pid);
 
@@ -301,55 +286,6 @@ void unlock_threads_suspended(t_queues* queues)
   log_trace(queues->logger, "Suspended threads unlocked");
 }
 
-// used for freed memory, a new stick or the end of compaction
-void create_resumption_routine_thread(t_queues* queues)
-{
-  if (is_compacting(queues) || set_is_resuming(queues, true))
-  {
-    return;
-  }
-
-  pthread_t thread;
-  if (pthread_create(&thread, NULL, resumption_routine_thread, queues) != 0)
-  {
-    log_error(queues->logger, "Error creating the resumption routine thread");
-  }
-  else
-  {
-    pthread_detach(thread);
-    log_debug(queues->logger, "Resumption routine thread started successfully");
-  }
-}
-
-void routine_compaction(t_queues* queues)
-{
-  if (set_is_compacting(queues, true))
-  {
-    return;
-  }
-
-  routine_enter(queues);
-  if (!queues->terminate_routines)
-  {
-    lock_total(queues);
-    compaction(queues);
-    set_is_compacting(queues, false);
-    create_thread_unlock_queue_ready(queues);
-    create_resumption_routine_thread(queues);
-  }
-  routine_leave(queues);
-}
-
-bool is_compacting(t_queues* queues)
-{
-  return atomic_load(&(queues->compaction_active));
-}
-
-bool is_resuming(t_queues* queues)
-{
-  return atomic_load(&(queues->resume_active));
-}
-
 void increment_syscall_counter(t_queues* queues)
 {
   counter_increment(queues->syscall_counter);
@@ -362,12 +298,12 @@ void decrement_syscall_counter(t_queues* queues)
   pthread_mutex_unlock(&(queues->syscall_counter->counter_mutex));
 }
 
-static void increment_thread_counter(t_queues* queues)
+void increment_thread_counter(t_queues* queues)
 {
   counter_increment(queues->thread_counter);
 }
 
-static void decrement_thread_counter(t_queues* queues)
+void decrement_thread_counter(t_queues* queues)
 {
   pthread_mutex_lock(&(queues->thread_counter->counter_mutex));
   queues->thread_counter->count--;
@@ -516,13 +452,6 @@ static void destroy_threads_suspended(t_queues* queues)
   destroy_thread_suspender(queues->suspension_data->suspender_thread_data);
   destroy_thread_resumer(queues->suspension_data->resumer_thread_data);
   free(queues->suspension_data);
-}
-
-static void terminate_routines(t_queues* queues)
-{
-  pthread_mutex_lock(&(queues->routine_mutex));
-  queues->terminate_routines = true;
-  pthread_mutex_unlock(&(queues->routine_mutex));
 }
 
 static void log_transition_state(t_log* logger, uint32_t pid,
@@ -715,7 +644,7 @@ static bool can_resume_suspended(t_pcb* pcb, t_queues* queues)
   return space_available(queues, pcb->pid) >= process_size(queues, pcb->pid);
 }
 
-static bool transition_susp_ready_no_mutex(t_pcb* pcb, t_queues* queues)
+bool transition_susp_ready_no_mutex(t_pcb* pcb, t_queues* queues)
 {
   if (pcb->state != EST_SUSP_READY)
   {
@@ -1001,197 +930,6 @@ static void* thread_resumer(void* data_void)
     pthread_mutex_unlock(&(data->data->state_mutex));
   }
   return NULL;
-}
-
-// total lock/unlock functions
-static void lock_total(t_queues* queues)
-{
-  lock_queue_ready(&(queues->ready));
-  lock_threads_suspended(queues);
-  wait_queue_exec_empty_with_syscalls(&(queues->exec), queues->syscall_counter);
-}
-
-static bool fits_process(t_queues* queues, t_pcb* process)
-{
-  int op_code = receive_op_code(queues->km_socket->km_socket);
-
-  switch (op_code)
-  {
-    case OP_RESUME_SUSPENSION_FAILED:
-      free(receive_string(queues->km_socket->km_socket));
-      return false;
-    case OP_NEW_MEMORY_STICK:
-      free(receive_string(queues->km_socket->km_socket));
-      create_resumption_routine_thread(queues);
-      return fits_process(queues, process);
-    case OP_MEMORY_CORRUPTED:
-      free(receive_string(queues->km_socket->km_socket));
-      close_kernel_scheduler(queues->server_socket, queues->logger,
-                             SR_CORRUPTED_MEMORY, -1);
-      return false;
-    case OP_RESUME_SUSPENSION_OK:
-      free(receive_string(queues->km_socket->km_socket));
-      return true;
-    default:
-      free(receive_string(queues->km_socket->km_socket));
-      close_kernel_scheduler(queues->server_socket, queues->logger,
-                             SR_KERNEL_MEMORY_CONNECTION_FAILURE, -1);
-      return false;
-  }
-}
-
-static bool remove_of_the_list(t_queues* queues)
-{
-  t_pcb* process = list_get(queues->susp_ready.list, 0);
-  pthread_mutex_unlock(&(queues->susp_ready.list_mutex));
-  pthread_mutex_lock(&(process->state_mutex));
-  if (process->state == EST_SUSP_READY)
-  {
-    bool result = transition_susp_ready_no_mutex(process, queues);
-    pthread_mutex_unlock(&(process->state_mutex));
-    return result;
-  }
-
-  pthread_mutex_unlock(&(process->state_mutex));
-  return true;
-}
-
-static void resumption_routine(t_queues* queues)
-{
-  bool keep_running = true;
-
-  while (!blocking_list_is_empty(&(queues->susp_ready)) && keep_running)
-  {
-    if (is_compacting(queues))
-    {
-      pthread_mutex_unlock(&(queues->susp_ready.list_mutex));
-      break;
-    }
-
-    keep_running = remove_of_the_list(queues);
-  }
-  pthread_mutex_unlock(&(queues->susp_ready.list_mutex));
-}
-
-static void* resumption_routine_thread(void* data_resume_suspension)
-{
-  t_queues* queues = (t_queues*)data_resume_suspension;
-  increment_thread_counter(queues);
-  routine_enter(queues);
-  if (!queues->terminate_routines)
-  {
-    lock_threads_suspended(queues);
-    resumption_routine(queues);
-    set_is_resuming(queues, false);
-    unlock_threads_suspended(queues);
-    log_debug(queues->logger, "Resume-suspension routine ended");
-  }
-  routine_leave(queues);
-  decrement_thread_counter(queues);
-  return NULL;
-}
-
-static bool set_is_resuming(t_queues* queues, bool new_state)
-{
-  return atomic_exchange(&(queues->resume_active), new_state);
-}
-
-static bool set_is_compacting(t_queues* queues, bool new_state)
-{
-  return atomic_exchange(&(queues->compaction_active), new_state);
-}
-
-static void routine_enter(t_queues* queues)
-{
-  pthread_mutex_lock(&(queues->routine_mutex));
-  while (queues->routine_active)
-  {
-    pthread_cond_wait(&(queues->routine_cond), &(queues->routine_mutex));
-  }
-  queues->routine_active = true;
-  pthread_mutex_unlock(&(queues->routine_mutex));
-}
-
-static void routine_leave(t_queues* queues)
-{
-  pthread_mutex_lock(&(queues->routine_mutex));
-  queues->routine_active = false;
-  pthread_cond_signal(&(queues->routine_cond));
-  pthread_mutex_unlock(&(queues->routine_mutex));
-}
-
-// COMPACTION ROUTINE
-static void* thread_unlock_queue_ready(void* args)
-{
-  t_queues* queues = (t_queues*)args;
-  increment_thread_counter(queues);
-
-  wait_queue_exec_empty(&(queues->exec));
-
-  if (!atomic_load(&(queues->compaction_active)))
-  {
-    unlock_queue_ready(&(queues->ready));
-  }
-  decrement_thread_counter(queues);
-  return NULL;
-}
-
-static void create_thread_unlock_queue_ready(t_queues* queues)
-{
-  pthread_t thread;
-  if (pthread_create(&thread, NULL, thread_unlock_queue_ready, queues) != 0)
-  {
-    log_error(queues->logger, "Error creating the ready-queue unblock thread");
-  }
-  else
-  {
-    pthread_detach(thread);
-    log_debug(queues->logger,
-              "Thread: ready-queue unblock started successfully");
-  }
-}
-
-static bool compaction_finished(t_queues* queues)
-{
-  int op_code = -1;
-  op_code = receive_op_code(queues->km_socket->km_socket);
-  switch (op_code)
-  {
-    case OP_NEW_MEMORY_STICK:
-      free(receive_string(queues->km_socket->km_socket));
-      create_resumption_routine_thread(queues);
-      return compaction_finished(queues);
-    case OP_COMPACTION_DONE:
-      free(receive_string(queues->km_socket->km_socket));
-      return true;
-    case OP_MEMORY_CORRUPTED:
-      free(receive_string(queues->km_socket->km_socket));
-      close_kernel_scheduler(queues->server_socket, queues->logger,
-                             SR_CORRUPTED_MEMORY, -1);
-      return false;
-    default:
-      free(receive_string(queues->km_socket->km_socket));
-      close_kernel_scheduler(queues->server_socket, queues->logger,
-                             SR_KERNEL_MEMORY_CONNECTION_FAILURE, -1);
-      return false;
-  }
-}
-
-static void compaction(t_queues* queues)
-{
-  if (!(send_string(OP_CAN_COMPACT, "Start compaction",
-                    queues->km_socket->km_socket)))
-  {
-    close_kernel_scheduler(queues->server_socket, queues->logger,
-                           SR_KERNEL_MEMORY_SEND_ERROR,
-                           queues->km_socket->km_socket);
-    return;
-  }
-  log_info(queues->logger, "Start of compaction");
-  if (compaction_finished(queues))
-  {
-    log_info(queues->logger, "End of compaction");
-  }
 }
 
 static bool notify_new_process(t_queues* queues, char* instructions_file,
