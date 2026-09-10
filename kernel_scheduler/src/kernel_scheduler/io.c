@@ -4,7 +4,7 @@
 
 #include "kernel_scheduler/common/handshake.h"
 #include "kernel_scheduler/shutdown.h"
-#include "kernel_scheduler/queue.h"
+#include "kernel_scheduler/scheduler/queues.h"
 #include "utils/io.h"
 #include "utils/msg.h"
 #include "utils/registers_cpu.h"

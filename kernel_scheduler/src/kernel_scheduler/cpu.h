@@ -5,7 +5,7 @@
 
 #include "kernel_scheduler/io.h"
 #include "kernel_scheduler/mutex.h"
-#include "kernel_scheduler/queue.h"
+#include "kernel_scheduler/scheduler/queues.h"
 #include "utils/collections/list.h"
 #include "utils/log.h"
 

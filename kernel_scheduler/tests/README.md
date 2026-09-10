@@ -21,7 +21,7 @@ make test-kernel_scheduler      # from the repo root
 
 ## Not unit-tested
 
-Everything in `queue.h` (the seven-state transitions, the suspension/resumption
+Everything in `scheduler/queues.h` (the seven-state transitions, the suspension/resumption
 routines, compaction), `cpu.h`, `io.h`, `server.h`, `kernel_memory.h` and
 `memory.h`, plus `start_module` / `close_module`, is threaded orchestration that
 coordinates the CPUs, the IO interfaces and Kernel Memory over sockets. Those are

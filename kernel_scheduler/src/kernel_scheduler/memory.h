@@ -5,7 +5,7 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#include "kernel_scheduler/queue.h"
+#include "kernel_scheduler/scheduler/queues.h"
 #include "utils/log.h"
 #include "utils/msg.h"
 #include "utils/syscalls.h"

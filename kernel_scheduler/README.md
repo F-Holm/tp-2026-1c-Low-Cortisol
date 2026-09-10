@@ -112,7 +112,7 @@ them in English.
 | `server.c` | Multithreaded listener for CPUs and IO interfaces. |
 | `cpu.c` | Per-CPU thread: syscall dispatch, preemption, interrupts. |
 | `io.c` | Per-IO-interface request queues and `BLOCK` handling. |
-| `queue.c` | The seven-state machine; long/medium/short-term transitions; suspension and compaction routines. |
+| `scheduler/queues.c` | The seven-state machine; long/medium/short-term transitions; suspension and compaction routines. |
 | `mutex.c` | Mutex ownership, wait queues, priority inheritance. |
 | `memory.c` | `MEM_ALLOC` / `MEM_FREE` requests and compaction coordination with Kernel Memory. |
 | `domain/pcb.c` | The `t_pcb` process control block: creation, teardown, state/priority accessors, active-instance counting. |
@@ -129,20 +129,20 @@ level that reaches the file (`INFO` shows `INFO`/`WARNING`/`ERROR`).
 
 | Level | Frequency | Message | Where |
 |-------|-----------|---------|-------|
-| `INFO` | per state change (mandatory) | `<PID> moves from state <from> to state <to>` | `queue.c` |
+| `INFO` | per state change (mandatory) | `<PID> moves from state <from> to state <to>` | `scheduler/queues.c` |
 | `INFO` | per syscall (mandatory) | `<PID> - Requested syscall: <name>` | `cpu.c` |
-| `INFO` | per process create / end (mandatory) | `<PID> Creating the process - State: NEW` / `<PID> finished execution with reason: <reason>` | `queue.c` |
+| `INFO` | per process create / end (mandatory) | `<PID> Creating the process - State: NEW` / `<PID> finished execution with reason: <reason>` | `scheduler/queues.c` |
 | `INFO` | per mutex op (mandatory) | `<PID> Takes/Releases the Mutex <name>` | `mutex.c` |
 | `INFO` | per priority change (mandatory) | `<PID> Change of priority: <old> - <new>` | `mutex.c` |
 | `INFO` | per preemption (mandatory) | `<PID> - Preempted due to quantum end`, `<PID> Priority: <p> - Preempted by a higher-priority queue ...` | `cpu.c` |
 | `INFO` | per IO end (mandatory) | `<PID> - Finished IO and moves to READY / SUSP. READY` | `io.c` |
-| `INFO` | per compaction (mandatory) | `Start of compaction` / `End of compaction` | `queue.c` |
+| `INFO` | per compaction (mandatory) | `Start of compaction` / `End of compaction` | `scheduler/queues.c` |
 | `INFO` | once, on connect (mandatory) | `Connected to Kernel Memory` | `kernel_memory.c` |
 | `INFO` | per CPU / IO connection | `CPU <id> connected`, `IO of type <t> connected` | `cpu.c`, `io.c` |
 | `INFO` | once, on shutdown | `<reason>` (from `SHUTDOWN_REASONS`) | `shutdown.c` |
 | `WARNING` | on peer loss (CPU / IO / KM) | `Error communicating with Kernel Memory`, `Error sending to IO`, `CPU <id>: could not send the interrupt decision`, `The ... request queue was empty`, `IO operation of type <t> failed`, `Priority preemption failed` | `io.c`, `cpu.c`, `memory.c` |
 | `WARNING` | on bad handshake / duplicate | `Invalid handshake received`, `Duplicate IO type ...` | `server.c`, `io.c` |
-| `ERROR` | rare (thread / server creation) | `Error creating the CPU/suspender/resumer/... thread`, `Error creating the server` | `cpu.c`, `queue.c`, `server.c` |
-| `ERROR` | rare (state-machine violation / bad data) | `<PID> Cannot move from state ...`, `Wrong operation type. Expected: OP_IO_TYPE`, `Invalid IO type: <s>`, `Error sending the handshake to <s>`, `<reason>` (error `SHUTDOWN_REASONS`) | `queue.c`, `io.c`, `shutdown.c`, `common/handshake.c` |
-| `DEBUG` | per dispatch / soft outcome | `CPU %s: got process`, `Not enough space`, `Could not suspend/resume process <PID>`, `... thread started successfully`, connect/close confirmations | `cpu.c`, `queue.c`, `memory.c`, `server.c` |
-| `TRACE` | per cycle / per routine tick | `CPU %s: CPU cycle OK`, `CPU %s: Operation received`, `CPU %s: Code sent successfully`, `Space available`, `Process size`, `Suspended threads locked/unlocked` | `cpu.c`, `queue.c` |
+| `ERROR` | rare (thread / server creation) | `Error creating the CPU/suspender/resumer/... thread`, `Error creating the server` | `cpu.c`, `scheduler/queues.c`, `server.c` |
+| `ERROR` | rare (state-machine violation / bad data) | `<PID> Cannot move from state ...`, `Wrong operation type. Expected: OP_IO_TYPE`, `Invalid IO type: <s>`, `Error sending the handshake to <s>`, `<reason>` (error `SHUTDOWN_REASONS`) | `scheduler/queues.c`, `io.c`, `shutdown.c`, `common/handshake.c` |
+| `DEBUG` | per dispatch / soft outcome | `CPU %s: got process`, `Not enough space`, `Could not suspend/resume process <PID>`, `... thread started successfully`, connect/close confirmations | `cpu.c`, `scheduler/queues.c`, `memory.c`, `server.c` |
+| `TRACE` | per cycle / per routine tick | `CPU %s: CPU cycle OK`, `CPU %s: Operation received`, `CPU %s: Code sent successfully`, `Space available`, `Process size`, `Suspended threads locked/unlocked` | `cpu.c`, `scheduler/queues.c` |

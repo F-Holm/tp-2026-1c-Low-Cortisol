@@ -1,6 +1,6 @@
 #pragma once
 
-#include "kernel_scheduler/queue.h"
+#include "kernel_scheduler/scheduler/queues.h"
 
 /**
  * @file

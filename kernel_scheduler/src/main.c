@@ -9,7 +9,7 @@
 #include "kernel_scheduler/kernel_memory.h"
 #include "kernel_scheduler/kernel_scheduler.h"
 #include "kernel_scheduler/mutex.h"
-#include "kernel_scheduler/queue.h"
+#include "kernel_scheduler/scheduler/queues.h"
 #include "kernel_scheduler/server.h"
 #include "utils/collections/list.h"
 #include "utils/config.h"
