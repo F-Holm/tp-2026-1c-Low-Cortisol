@@ -143,10 +143,8 @@ t_queues* init_queues(int algorithm, t_list* cmn_algorithms, int quantum,
   queues->logger = logger;
   queues->km_socket = km_socket;
   queues->server_socket = server_socket;
-  pthread_mutex_init(&(queues->compaction_active_mutex), NULL);
-  queues->compaction_active = false;
-  pthread_mutex_init(&(queues->resume_active_mutex), NULL);
-  queues->resume_active = false;
+  atomic_init(&(queues->compaction_active), false);
+  atomic_init(&(queues->resume_active), false);
   start_threads_suspended(queues, suspension_timeout);
   return queues;
 }
@@ -167,8 +165,6 @@ void destroy_queues(t_queues* queues)
   destroy_counter_processes(queues->process_counter);
   pthread_mutex_destroy(&(queues->routine_mutex));
   pthread_cond_destroy(&(queues->routine_cond));
-  pthread_mutex_destroy(&(queues->compaction_active_mutex));
-  pthread_mutex_destroy(&(queues->resume_active_mutex));
   free(queues);
 }
 
@@ -182,24 +178,17 @@ bool is_queue_ready_empty(t_ready_queue* ready)
 
 bool is_queue_ready_blocked(t_ready_queue* ready)
 {
-  pthread_mutex_lock(&(ready->block_exit));
-  bool ret = ready->preempt_all;
-  pthread_mutex_unlock(&(ready->block_exit));
-  return ret;
+  return atomic_load(&(ready->preempt_all));
 }
 
 void lock_queue_ready(t_ready_queue* ready)
 {
-  pthread_mutex_lock(&(ready->block_exit));
-  ready->preempt_all = true;
-  pthread_mutex_unlock(&(ready->block_exit));
+  atomic_store(&(ready->preempt_all), true);
 }
 
 void unlock_queue_ready(t_ready_queue* ready)
 {
-  pthread_mutex_lock(&(ready->block_exit));
-  ready->preempt_all = false;
-  pthread_mutex_unlock(&(ready->block_exit));
+  atomic_store(&(ready->preempt_all), false);
   pthread_mutex_lock(&(ready->queue_mutex));
   pthread_cond_broadcast(&(ready->exit_unblocked));
   pthread_mutex_unlock(&(ready->queue_mutex));
@@ -207,17 +196,12 @@ void unlock_queue_ready(t_ready_queue* ready)
 
 bool queue_ready_terminated(t_ready_queue* ready)
 {
-  pthread_mutex_lock(&(ready->terminate_queue_mutex));
-  bool ret = ready->terminate_queue;
-  pthread_mutex_unlock(&(ready->terminate_queue_mutex));
-  return ret;
+  return atomic_load(&(ready->terminate_queue));
 }
 
 void terminate_queue_ready(t_ready_queue* ready)
 {
-  pthread_mutex_lock(&(ready->terminate_queue_mutex));
-  ready->terminate_queue = true;
-  pthread_mutex_unlock(&(ready->terminate_queue_mutex));
+  atomic_store(&(ready->terminate_queue), true);
   pthread_mutex_lock(&(ready->queue_mutex));
   pthread_cond_broadcast(&(ready->new_process));
   pthread_cond_broadcast(&(ready->exit_unblocked));
@@ -306,24 +290,19 @@ void transition_to_exec(t_pcb* pcb, t_execute_list* exec)
 t_pcb* transition_take_ready_blocking(t_ready_queue* ready)
 {
   pthread_mutex_lock(&(ready->queue_mutex));
-  pthread_mutex_lock(&(ready->block_exit));
   while (!queue_ready_terminated(ready) &&
-         (ready->ready_process_count == 0 || ready->preempt_all))
+         (ready->ready_process_count == 0 ||
+          atomic_load(&(ready->preempt_all))))
   {
     if (!queue_ready_terminated(ready) && ready->ready_process_count == 0)
     {
-      pthread_mutex_unlock(&(ready->block_exit));
       pthread_cond_wait(&(ready->new_process), &(ready->queue_mutex));
-      pthread_mutex_lock(&(ready->block_exit));
     }
-    if (!queue_ready_terminated(ready) && ready->preempt_all)
+    if (!queue_ready_terminated(ready) && atomic_load(&(ready->preempt_all)))
     {
-      pthread_mutex_unlock(&(ready->block_exit));
       pthread_cond_wait(&(ready->exit_unblocked), &(ready->queue_mutex));
-      pthread_mutex_lock(&(ready->block_exit));
     }
   }
-  pthread_mutex_unlock(&(ready->block_exit));
 
   t_pcb* pcb;
   if (queue_ready_terminated(ready))
@@ -590,20 +569,12 @@ void routine_compaction(t_queues* queues)
 
 bool is_compacting(t_queues* queues)
 {
-  pthread_mutex_lock(&(queues->compaction_active_mutex));
-  bool ret = queues->compaction_active;
-  pthread_mutex_unlock(&(queues->compaction_active_mutex));
-
-  return ret;
+  return atomic_load(&(queues->compaction_active));
 }
 
 bool is_resuming(t_queues* queues)
 {
-  pthread_mutex_lock(&(queues->resume_active_mutex));
-  bool ret = queues->resume_active;
-  pthread_mutex_unlock(&(queues->resume_active_mutex));
-
-  return ret;
+  return atomic_load(&(queues->resume_active));
 }
 
 void increment_syscall_counter(t_queues* queues)
@@ -707,14 +678,12 @@ static void init_queue_ready(t_ready_queue* queue, int algorithm,
   }
   pthread_mutex_init(&(queue->queue_mutex), NULL);
   pthread_cond_init(&(queue->new_process), NULL);
-  pthread_mutex_init(&(queue->block_exit), NULL);
-  pthread_mutex_init(&(queue->terminate_queue_mutex), NULL);
   pthread_cond_init(&(queue->exit_unblocked), NULL);
   pthread_cond_init(&(queue->queue_empty), NULL);
-  queue->preempt_all = false;
+  atomic_init(&(queue->preempt_all), false);
   queue->ready_process_count = 0;
   queue->highest_priority = INT_MAX;
-  queue->terminate_queue = false;
+  atomic_init(&(queue->terminate_queue), false);
 }
 
 static void init_list_exec(t_execute_list* list, int quantum, bool preemption)
@@ -807,9 +776,7 @@ static void destroy_queue_ready(t_ready_queue* queue)
   pthread_cond_destroy(&(queue->new_process));
   pthread_cond_destroy(&(queue->exit_unblocked));
   pthread_mutex_destroy(&(queue->queue_mutex));
-  pthread_mutex_destroy(&(queue->block_exit));
   pthread_cond_destroy(&(queue->queue_empty));
-  pthread_mutex_destroy(&(queue->terminate_queue_mutex));
   free(queue->queues);
 }
 
@@ -1234,14 +1201,11 @@ static void transition_block_susp_block_no_mutex(t_pcb* pcb, t_queues* queues)
   transition_take_block(pcb, &(queues->block));
   transition_to_susp_block(pcb, &(queues->susp_block));
 
-  pthread_mutex_lock(&(queues->compaction_active_mutex));
-  pthread_mutex_lock(&(queues->resume_active_mutex));
-  if (!queues->compaction_active && !queues->resume_active)
+  if (!atomic_load(&(queues->compaction_active)) &&
+      !atomic_load(&(queues->resume_active)))
   {
     unlock_thread_suspended(queues->suspension_data->resumer_thread_data->data);
   }
-  pthread_mutex_unlock(&(queues->resume_active_mutex));
-  pthread_mutex_unlock(&(queues->compaction_active_mutex));
 }
 
 static void transition_susp_block_susp_ready_no_mutex(t_pcb* pcb,
@@ -1782,22 +1746,12 @@ static void* resumption_routine_thread(void* data_resume_suspension)
 
 static bool set_is_resuming(t_queues* queues, bool new_state)
 {
-  pthread_mutex_lock(&(queues->resume_active_mutex));
-  bool ret = queues->resume_active;
-  queues->resume_active = new_state;
-  pthread_mutex_unlock(&(queues->resume_active_mutex));
-
-  return ret;
+  return atomic_exchange(&(queues->resume_active), new_state);
 }
 
 static bool set_is_compacting(t_queues* queues, bool new_state)
 {
-  pthread_mutex_lock(&(queues->compaction_active_mutex));
-  bool ret = queues->compaction_active;
-  queues->compaction_active = new_state;
-  pthread_mutex_unlock(&(queues->compaction_active_mutex));
-
-  return ret;
+  return atomic_exchange(&(queues->compaction_active), new_state);
 }
 
 static void routine_enter(t_queues* queues)
@@ -1827,12 +1781,10 @@ static void* thread_unlock_queue_ready(void* args)
 
   wait_queue_exec_empty(queues);
 
-  pthread_mutex_lock(&(queues->compaction_active_mutex));
-  if (!queues->compaction_active)
+  if (!atomic_load(&(queues->compaction_active)))
   {
     unlock_queue_ready(&(queues->ready));
   }
-  pthread_mutex_unlock(&(queues->compaction_active_mutex));
   decrement_thread_counter(queues);
   return NULL;
 }

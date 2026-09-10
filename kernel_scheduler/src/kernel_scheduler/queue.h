@@ -1,6 +1,7 @@
 #pragma once
 
 #include <pthread.h>
+#include <stdatomic.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -56,10 +57,8 @@ typedef struct
   int ready_process_count;
   pthread_cond_t new_process;
   pthread_cond_t exit_unblocked;
-  pthread_mutex_t block_exit;
-  bool terminate_queue;
-  pthread_mutex_t terminate_queue_mutex;
-  bool preempt_all;
+  atomic_bool terminate_queue;
+  atomic_bool preempt_all;
   int highest_priority;
   pthread_cond_t queue_empty;
 } t_ready_queue;
@@ -128,10 +127,8 @@ typedef struct
   pthread_cond_t routine_cond;
   bool routine_active;
   bool terminate_routines;
-  pthread_mutex_t compaction_active_mutex;
-  bool compaction_active;
-  pthread_mutex_t resume_active_mutex;
-  bool resume_active;
+  atomic_bool compaction_active;
+  atomic_bool resume_active;
 } t_queues;
 
 // pass NULL as t_list if the algorithm is not CMN

@@ -43,8 +43,7 @@ t_connection_check_thread* start_thread_check_connection_kernel_memory(
   data->server_socket = server_socket;
   data->logger = logger;
   data->km_socket = km_socket;
-  data->close = false;
-  pthread_mutex_init(&(data->close_mutex), NULL);
+  atomic_init(&(data->close), false);
 
   if (pthread_create(&(data->thread), NULL,
                      thread_check_connection_kernel_memory, data) != 0)
@@ -59,11 +58,8 @@ t_connection_check_thread* start_thread_check_connection_kernel_memory(
 void destroy_thread_check_connection_kernel_memory(
     t_connection_check_thread* data)
 {
-  pthread_mutex_lock(&(data->close_mutex));
-  data->close = true;
-  pthread_mutex_unlock(&(data->close_mutex));
+  atomic_store(&(data->close), true);
   pthread_join(data->thread, NULL);
-  pthread_mutex_destroy(&(data->close_mutex));
   free(data);
 }
 
@@ -114,9 +110,7 @@ static void* thread_check_connection_kernel_memory(void* args)
     }
     else
     {
-      pthread_mutex_lock(&(data->close_mutex));
-      keep_running = !data->close;
-      pthread_mutex_unlock(&(data->close_mutex));
+      keep_running = !atomic_load(&(data->close));
     }
     pthread_mutex_unlock(&(data->km_socket->socket_mutex));
   }

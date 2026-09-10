@@ -10,7 +10,6 @@
 
 Test(ks_pcb, create_pcb_sets_the_initial_state_and_priority)
 {
-  ks_init_globals();
   t_pcb* pcb = create_pcb(EST_NEW, 3);
   cr_assert_eq(get_state_pcb(pcb), EST_NEW);
   cr_assert_eq(get_priority_pcb(pcb), 3);
@@ -20,7 +19,6 @@ Test(ks_pcb, create_pcb_sets_the_initial_state_and_priority)
 
 Test(ks_pcb, pids_are_handed_out_in_order)
 {
-  ks_init_globals();
   t_pcb* first = create_pcb(EST_NEW, 0);
   t_pcb* second = create_pcb(EST_NEW, 0);
   cr_assert_eq(second->pid, first->pid + 1);
@@ -30,7 +28,6 @@ Test(ks_pcb, pids_are_handed_out_in_order)
 
 Test(ks_pcb, active_instance_counter_goes_up_and_down)
 {
-  ks_init_globals();
   t_pcb* pcb = create_pcb(EST_READY, 0);
   incrementar_instances_active_pcb(pcb);
   incrementar_instances_active_pcb(pcb);
@@ -42,7 +39,6 @@ Test(ks_pcb, active_instance_counter_goes_up_and_down)
 
 Test(ks_pcb, blocking_mutex_is_stored_and_read_back)
 {
-  ks_init_globals();
   t_pcb* pcb = create_pcb(EST_READY, 0);
   int marker;
   cr_assert_null(get_mutex_blocking(pcb));
@@ -55,7 +51,6 @@ Test(ks_pcb, blocking_mutex_is_stored_and_read_back)
 
 Test(ks_pcb, insert_pcb_in_orden_keeps_the_list_sorted_by_priority)
 {
-  ks_init_globals();
   t_list* list = list_create();
   t_pcb* low = create_pcb(EST_READY, 5);
   t_pcb* high = create_pcb(EST_READY, 1);

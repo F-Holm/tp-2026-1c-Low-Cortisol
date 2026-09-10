@@ -15,9 +15,8 @@ t_stick_watchdog* start_stick_watchdog(t_kernel_memory_data* kernel_data)
 {
   t_stick_watchdog* watchdog = malloc(sizeof(t_stick_watchdog));
   watchdog->kernel_data = kernel_data;
-  watchdog->close = false;
+  atomic_init(&(watchdog->close), false);
   watchdog->already_notified = false;
-  pthread_mutex_init(&(watchdog->close_mutex), NULL);
 
   if (pthread_create(&(watchdog->thread), NULL, watch_sticks, watchdog) != 0)
   {
@@ -29,11 +28,8 @@ t_stick_watchdog* start_stick_watchdog(t_kernel_memory_data* kernel_data)
 
 void destroy_stick_watchdog(t_stick_watchdog* watchdog)
 {
-  pthread_mutex_lock(&(watchdog->close_mutex));
-  watchdog->close = true;
-  pthread_mutex_unlock(&(watchdog->close_mutex));
+  atomic_store(&(watchdog->close), true);
   pthread_join(watchdog->thread, NULL);
-  pthread_mutex_destroy(&(watchdog->close_mutex));
   free(watchdog);
 }
 
@@ -51,9 +47,7 @@ static void* watch_sticks(void* args)
       notify_scheduler_memory_corrupted(watchdog->kernel_data, watchdog);
     }
 
-    pthread_mutex_lock(&(watchdog->close_mutex));
-    keep_running = !watchdog->close;
-    pthread_mutex_unlock(&(watchdog->close_mutex));
+    keep_running = !atomic_load(&(watchdog->close));
   }
   return NULL;
 }
@@ -83,9 +77,6 @@ static bool any_stick_unreachable(t_kernel_memory_data* kernel_data)
 static void notify_scheduler_memory_corrupted(t_kernel_memory_data* kernel_data,
                                               t_stick_watchdog* watchdog)
 {
-  // Only once: after this the Kernel Scheduler shuts everything down, so
-  // there is no point (and no need) to keep re-detecting the same failure
-  // every 500ms while that shutdown is in flight.
   if (watchdog->already_notified || kernel_data->socket_scheduler == -1)
     return;
   watchdog->already_notified = true;

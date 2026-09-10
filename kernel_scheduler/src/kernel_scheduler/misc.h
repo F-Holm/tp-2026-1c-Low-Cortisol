@@ -1,5 +1,6 @@
 #pragma once
 
+#include <stdatomic.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -51,8 +52,7 @@ typedef struct
 
 typedef struct
 {
-  int active_process_count;
-  pthread_mutex_t counter_mutex;
+  atomic_int active_process_count;
   int server_socket;
   t_log* logger;
   t_kernel_memory_socket* km_socket;
@@ -76,11 +76,6 @@ typedef enum
   SO_KM_CONNECTION_ERROR,
   SO_OK
 } syscall_outcome;
-
-void init_mutex_pid_pcb(void);
-void init_mutex_shutdown(void);
-void destroy_mutex_pid_pcb(void);
-void destroy_mutex_shutdown(void);
 
 void close_kernel_scheduler(int server_socket, t_log* logger,
                             int reason_shutdown, int km_socket);

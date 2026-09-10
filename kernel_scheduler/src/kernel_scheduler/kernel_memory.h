@@ -1,5 +1,7 @@
 #pragma once
 
+#include <stdatomic.h>
+
 #include "kernel_scheduler/misc.h"
 #include "utils/log.h"
 
@@ -8,8 +10,7 @@ typedef struct
   int server_socket;
   t_log* logger;
   t_kernel_memory_socket* km_socket;
-  bool close;
-  pthread_mutex_t close_mutex;
+  atomic_bool close;
   pthread_t thread;
 } t_connection_check_thread;
 

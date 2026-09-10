@@ -20,7 +20,6 @@ Test(ks_mutex, create_and_add_mutex_reports_duplicates)
 
 Test(ks_mutex, locking_or_unlocking_an_unknown_mutex_is_reported)
 {
-  ks_init_globals();
   t_mutex_list* list = init_list_mutex();
   t_pcb* pcb = create_pcb(EST_EXEC, 0);
 
@@ -33,7 +32,6 @@ Test(ks_mutex, locking_or_unlocking_an_unknown_mutex_is_reported)
 
 Test(ks_mutex, a_free_mutex_is_granted_to_the_first_caller)
 {
-  ks_init_globals();
   t_log* logger = ks_quiet_logger();
   t_queues* queues = ks_stub_queues(logger);
   t_mutex_list* list = init_list_mutex();
@@ -51,7 +49,6 @@ Test(ks_mutex, a_free_mutex_is_granted_to_the_first_caller)
 
 Test(ks_mutex, unlocking_a_mutex_you_do_not_hold_is_rejected)
 {
-  ks_init_globals();
   t_log* logger = ks_quiet_logger();
   t_queues* queues = ks_stub_queues(logger);
   t_mutex_list* list = init_list_mutex();
@@ -78,7 +75,6 @@ Test(ks_mutex, unlocking_a_mutex_you_do_not_hold_is_rejected)
 // propagate transitively to `low` too, since `low` is itself blocking `mid`.
 Test(ks_mutex, priority_inheritance_propagates_transitively_through_a_chain)
 {
-  ks_init_globals();
   t_log* logger = ks_quiet_logger();
   t_queues* queues = ks_stub_queues_blocking(logger);
   t_mutex_list* list = init_list_mutex();

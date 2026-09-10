@@ -1,6 +1,7 @@
 #pragma once
 
 #include <pthread.h>
+#include <stdatomic.h>
 #include <stdbool.h>
 
 #include "kernel_scheduler/kernel_scheduler.h"
@@ -18,7 +19,6 @@ typedef struct
 typedef struct
 {
   int socket_io;
-  pthread_mutex_t done_mutex;
   t_pcb* current_process;
   bool priority_active;
   pthread_cond_t new_process;
@@ -26,7 +26,7 @@ typedef struct
   t_log* logger;
   t_kernel_memory_socket* km_socket;
   int socket_server;
-  bool close_thread;
+  atomic_bool close_thread;
   pthread_t io_thread;
   t_io_list* io_list;
   int io_type;

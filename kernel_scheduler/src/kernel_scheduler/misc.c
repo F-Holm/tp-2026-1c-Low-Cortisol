@@ -13,35 +13,11 @@ const char* const SHUTDOWN_REASONS[4] = {
     "Processes finished successfully", "BSOD: Corruption of memory detected",
     "Connection error with Kernel Memory", "Unknown error"};
 
-static pthread_mutex_t mutex_pid_pcb;
-
-static pthread_mutex_t mutex_shutdown;
-
 static bool is_highest_priority(void* pcb1, void* pcb2);
 static void log_shutdown(t_log* logger, int reason_shutdown);
 static void check_reason_shutdown(int* reason_shutdown, int km_socket);
 static void notify_shutdown_kernel_memory(int reason_shutdown, int km_socket,
                                           t_log* logger);
-
-void init_mutex_pid_pcb(void)
-{
-  pthread_mutex_init(&mutex_pid_pcb, NULL);
-}
-
-void init_mutex_shutdown(void)
-{
-  pthread_mutex_init(&mutex_shutdown, NULL);
-}
-
-void destroy_mutex_pid_pcb(void)
-{
-  pthread_mutex_destroy(&mutex_pid_pcb);
-}
-
-void destroy_mutex_shutdown(void)
-{
-  pthread_mutex_destroy(&mutex_shutdown);
-}
 
 t_kernel_memory_socket* init_socket_kernel_memory(int km_socket)
 {
@@ -81,7 +57,7 @@ int get_priority_pcb(t_pcb* pcb)
 
 t_pcb* create_pcb(int state, int priority)
 {
-  static uint32_t pid = 0;
+  static atomic_uint pid = 0;
   t_pcb* pcb = malloc(sizeof(t_pcb));
 
   pthread_mutex_init(&(pcb->priority_mutex), NULL);
@@ -99,10 +75,7 @@ t_pcb* create_pcb(int state, int priority)
   *aux = priority;
   list_add(pcb->priority_list, aux);
 
-  pthread_mutex_lock(&mutex_pid_pcb);
-  pcb->pid = pid;
-  pid++;
-  pthread_mutex_unlock(&mutex_pid_pcb);
+  pcb->pid = atomic_fetch_add(&pid, 1);
   return pcb;
 }
 
@@ -187,8 +160,7 @@ t_process_counter* init_counter_processes(int server_socket, t_log* logger,
                                           t_kernel_memory_socket* km_socket)
 {
   t_process_counter* counter = malloc(sizeof(t_process_counter));
-  counter->active_process_count = 0;
-  pthread_mutex_init(&(counter->counter_mutex), NULL);
+  atomic_init(&(counter->active_process_count), 0);
   counter->server_socket = server_socket;
   counter->logger = logger;
   counter->km_socket = km_socket;
@@ -197,17 +169,12 @@ t_process_counter* init_counter_processes(int server_socket, t_log* logger,
 
 void aumentar_counter_processes(t_process_counter* counter)
 {
-  pthread_mutex_lock(&(counter->counter_mutex));
-  counter->active_process_count++;
-  pthread_mutex_unlock(&(counter->counter_mutex));
+  atomic_fetch_add(&(counter->active_process_count), 1);
 }
 
 void disminuir_counter_processes(t_process_counter* counter)
 {
-  pthread_mutex_lock(&(counter->counter_mutex));
-  counter->active_process_count--;
-  bool is_last = counter->active_process_count == 0;
-  pthread_mutex_unlock(&(counter->counter_mutex));
+  bool is_last = atomic_fetch_sub(&(counter->active_process_count), 1) == 1;
 
   if (is_last)
   {
@@ -220,24 +187,20 @@ void disminuir_counter_processes(t_process_counter* counter)
 
 void destroy_counter_processes(t_process_counter* counter)
 {
-  pthread_mutex_destroy(&(counter->counter_mutex));
   free(counter);
 }
 
 void close_kernel_scheduler(int server_socket, t_log* logger,
                             int reason_shutdown, int km_socket)
 {
-  static bool shutdown_activado = false;
-  pthread_mutex_lock(&mutex_shutdown);
-  if (!shutdown_activado)
+  static atomic_bool shutdown_activado = false;
+  if (!atomic_exchange(&shutdown_activado, true))
   {
     notify_shutdown_kernel_memory(reason_shutdown, km_socket, logger);
     check_reason_shutdown(&reason_shutdown, km_socket);
     log_shutdown(logger, reason_shutdown);
     shutdown(server_socket, SHUT_RDWR);
-    shutdown_activado = true;
   }
-  pthread_mutex_unlock(&mutex_shutdown);
 }
 
 static bool is_highest_priority(void* pcb1, void* pcb2)

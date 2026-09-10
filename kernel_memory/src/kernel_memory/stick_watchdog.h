@@ -1,6 +1,7 @@
 #pragma once
 
 #include <pthread.h>
+#include <stdatomic.h>
 #include <stdbool.h>
 
 #include "kernel_memory/structs.h"
@@ -14,8 +15,7 @@ typedef struct
 {
   t_kernel_memory_data* kernel_data;
   pthread_t thread;
-  bool close;
-  pthread_mutex_t close_mutex;
+  atomic_bool close;
   bool already_notified;
 } t_stick_watchdog;
 

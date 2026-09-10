@@ -44,8 +44,6 @@ bool start_module(t_kernel_scheduler* recursos, char* config_path)
 
 void init_queues_mutex(t_kernel_scheduler* recursos)
 {
-  init_mutex_pid_pcb();
-  init_mutex_shutdown();
   recursos->km_socket_mutex =
       init_socket_kernel_memory(recursos->socket_kernel_memory);
   recursos->connection_check_thread_data =
@@ -92,8 +90,6 @@ void close_module(t_kernel_scheduler* recursos)
   close(recursos->socket_server);
   log_destroy(recursos->logger);
   close_config(&(recursos->config_vars), recursos->config);
-  destroy_mutex_pid_pcb();
-  destroy_mutex_shutdown();
 }
 
 static t_config* start_config(char* config_path, t_config_vars* config_vars)

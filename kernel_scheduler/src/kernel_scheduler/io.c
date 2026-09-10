@@ -27,7 +27,6 @@ static bool handle_stdin(t_io* io);
 static bool handle_stdout(t_io* io);
 static bool handle_sleep(t_io* io);
 static bool handle_io(t_io* io);
-static bool check_close_thread(t_io* io);
 static void* io_thread(void* io_thread);
 static int get_io_type(int socket_fd, t_log* logger);
 static bool compare_priority_stdin(void* syscall1, void* syscall2);
@@ -43,7 +42,6 @@ t_io* create_estructuras_io(void)
   for (int i = 0; i < 3; i++)
   {
     io[i].socket_io = -1;
-    pthread_mutex_init(&(io[i].done_mutex), NULL);
     pthread_cond_init(&(io[i].new_process), NULL);
   }
   return io;
@@ -78,7 +76,7 @@ bool handle_new_io(t_io io[3], int socket_fd, t_queues* queues,
   io[io_type].io_list = malloc(sizeof(t_io_list));
   io[io_type].io_list->io_list = list_create();
   pthread_mutex_init(&(io[io_type].io_list->io_list_mutex), NULL);
-  io[io_type].close_thread = false;
+  atomic_init(&(io[io_type].close_thread), false);
 
   if (pthread_create(&(io[io_type].io_thread), NULL, io_thread,
                      (void*)(&(io[io_type]))))
@@ -94,10 +92,7 @@ bool handle_new_io(t_io io[3], int socket_fd, t_queues* queues,
 
 bool procesar_new_io(void* request, t_io* io, t_pcb* pcb)
 {
-  pthread_mutex_lock(&(io->done_mutex));
-  bool close_thread = io->close_thread;
-  pthread_mutex_unlock(&(io->done_mutex));
-  if (close_thread)
+  if (atomic_load(&(io->close_thread)))
   {
     return false;
   }
@@ -126,18 +121,11 @@ void close_io(t_io* io)
   {
     if (io[i].socket_io != -1)
     {
-      pthread_mutex_lock(&(io[i].done_mutex));
-      if (!io[i].close_thread)
+      if (!atomic_exchange(&(io[i].close_thread), true))
       {
-        io[i].close_thread = true;
-        pthread_mutex_unlock(&(io[i].done_mutex));
         pthread_mutex_lock(&(io[i].io_list->io_list_mutex));
         pthread_cond_signal(&(io[i].new_process));
         pthread_mutex_unlock(&(io[i].io_list->io_list_mutex));
-      }
-      else
-      {
-        pthread_mutex_unlock(&(io[i].done_mutex));
       }
       shutdown(io[i].socket_io, SHUT_RDWR);
       pthread_join(io[i].io_thread, NULL);
@@ -313,13 +301,7 @@ static void free_request(void* request, t_io* io)
 
 static void close_thread_io(t_io* io)
 {
-  bool should_close = check_close_thread(io);
-  if (!should_close)
-  {
-    pthread_mutex_lock(&(io->done_mutex));
-    io->close_thread = true;
-    pthread_mutex_unlock(&(io->done_mutex));
-  }
+  atomic_store(&(io->close_thread), true);
   pthread_mutex_lock(&(io->io_list->io_list_mutex));
   while (!list_is_empty(io->io_list->io_list))
   {
@@ -519,14 +501,6 @@ static bool handle_io(t_io* io)
   return true;
 }
 
-static bool check_close_thread(t_io* io)
-{
-  pthread_mutex_lock(&(io->done_mutex));
-  bool close_io = io->close_thread;
-  pthread_mutex_unlock(&(io->done_mutex));
-  return close_io;
-}
-
 static void* io_thread(void* io_thread)
 {
   t_io* io = (t_io*)io_thread;
@@ -534,11 +508,12 @@ static void* io_thread(void* io_thread)
   while (seguir_atendiendo)
   {
     pthread_mutex_lock(&(io->io_list->io_list_mutex));
-    while (!check_close_thread(io) && list_is_empty(io->io_list->io_list))
+    while (!atomic_load(&(io->close_thread)) &&
+           list_is_empty(io->io_list->io_list))
     {
       pthread_cond_wait(&(io->new_process), &(io->io_list->io_list_mutex));
     }
-    if (check_close_thread(io))
+    if (atomic_load(&(io->close_thread)))
     {
       pthread_mutex_unlock(&(io->io_list->io_list_mutex));
       close_thread_io(io);
@@ -651,7 +626,6 @@ static void add_ordered(void* entry, t_io* io)
 
 static void destroy_io(t_io* io)
 {
-  pthread_mutex_destroy(&(io->done_mutex));
   pthread_cond_destroy(&(io->new_process));
   close(io->socket_io);
 }

@@ -5,12 +5,6 @@
 
 #include "utils/log.h"
 
-void ks_init_globals(void)
-{
-  init_mutex_pid_pcb();
-  init_mutex_shutdown();
-}
-
 t_log* ks_quiet_logger(void)
 {
   t_log* logger = log_create(NULL, "KS-test", false, LOG_LEVEL_ERROR, true);

@@ -8,13 +8,6 @@
  * @brief Shared helpers for the kernel_scheduler module test suites.
  */
 
-/**
- * @brief Initialises the module-global mutexes that `create_pcb()` and the
- *        shutdown path rely on. Call once at the start of every test that
- *        builds a PCB.
- */
-void ks_init_globals(void);
-
 /** @brief A console-only logger that stays silent below ERROR. */
 t_log* ks_quiet_logger(void);
 
