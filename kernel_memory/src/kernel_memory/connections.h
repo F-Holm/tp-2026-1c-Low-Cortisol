@@ -13,7 +13,8 @@ bool receive_stick_listen_port(t_stick_data* stick_data);
 
 void add_stick_connection(t_kernel_memory_data* kernel_data,
                           t_stick_data* stick_data);
-void add_cpu_connection(t_kernel_memory_data* kernel_data, t_cpu_data* cpu_data);
+void add_cpu_connection(t_kernel_memory_data* kernel_data,
+                        t_cpu_data* cpu_data);
 
 // Tell a newly connected CPU about every Memory Stick already online, and tell
 // every connected CPU about a newly connected stick.

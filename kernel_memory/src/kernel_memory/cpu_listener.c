@@ -84,7 +84,7 @@ void* listen_cpu(void* ptr)
         if (process == NULL)
         {
           log_debug(cpu_data->logger, "Process with PID %u was not found",
-                   *pid);
+                    *pid);
           free(pid);
           break;
         }

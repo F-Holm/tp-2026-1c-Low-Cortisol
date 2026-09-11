@@ -31,4 +31,3 @@ Test(cpu_decode, keeps_up_to_three_parameters)
   cr_assert_str_eq(instruction->parameters[2], "c");
   destroy_instruction(instruction);
 }
-

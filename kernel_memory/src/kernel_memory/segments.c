@@ -32,7 +32,7 @@ t_segment* find_and_remove_segment(uint32_t id, uint32_t pid,
     return found_segment;
   }
   log_error(logger, "Could not find the segment to remove (ID: %d, PID: %d)",
-           id, pid);
+            id, pid);
   return NULL;
 }
 
