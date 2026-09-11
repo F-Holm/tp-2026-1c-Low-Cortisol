@@ -43,7 +43,7 @@ void remove_segment(uint32_t id, uint32_t pid, t_main_memory* main_memory,
   t_hole* new_hole = malloc(sizeof(t_hole));
   new_hole->base = 0;
   new_hole->size = 0;
-  log_debug(logger, "removing requested segment ID : %d, PID : %d", id, pid);
+  log_debug(logger, "removing requested segment ID: %d, PID: %d", id, pid);
   t_segment* segment_aux =
       find_and_remove_segment(id, pid, main_memory, logger);
   pthread_mutex_lock(main_memory->main_memory_mutex);

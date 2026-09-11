@@ -83,12 +83,12 @@ void* listen_cpu(void* ptr)
             find_process(cpu_data->processes, cpu_data->processes_mutex, *pid);
         if (process == NULL)
         {
-          log_debug(cpu_data->logger,
-                    "Process with PID %u to terminate was not found", *pid);
+          log_debug(cpu_data->logger, "Process with PID %u was not found",
+                   *pid);
           free(pid);
           break;
         }
-        log_trace(cpu_data->logger, "Sending the segment table to the CPU : %d",
+        log_trace(cpu_data->logger, "Sending the segment table to CPU %d",
                   cpu_data->id);
         t_packet* process_segment_table = create_packet(OP_SEGMENT_TABLE);
         t_list* segment_list = filter_process_segments(
