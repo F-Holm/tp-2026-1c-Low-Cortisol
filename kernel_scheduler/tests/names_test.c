@@ -1,7 +1,7 @@
 #include <criterion/criterion.h>
 
-#include "kernel_scheduler/connections/cpu.h"
 #include "kernel_scheduler/app/kernel_scheduler.h"
+#include "kernel_scheduler/connections/cpu.h"
 
 Test(ks_names, state_names_follow_the_enum)
 {

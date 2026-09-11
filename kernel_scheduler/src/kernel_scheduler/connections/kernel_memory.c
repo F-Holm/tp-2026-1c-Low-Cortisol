@@ -1,9 +1,9 @@
 #include "kernel_scheduler/connections/kernel_memory.h"
-#include "kernel_scheduler/shutdown.h"
 
 #include <pthread.h>
 #include <stdbool.h>
 
+#include "kernel_scheduler/shutdown.h"
 #include "utils/msg.h"
 
 static int connect_kernel_memory(char* ip, char* port, t_log* logger);

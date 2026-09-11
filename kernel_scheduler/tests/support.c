@@ -61,7 +61,8 @@ t_queues* ks_stub_queues_full(t_log* logger)
   queues->thread_counter = create_counter();
   queues->syscall_counter = create_counter();
   queues->km_socket = init_socket_kernel_memory(-1);
-  queues->process_counter = init_counter_processes(-1, logger, queues->km_socket);
+  queues->process_counter =
+      init_counter_processes(-1, logger, queues->km_socket);
   atomic_init(&(queues->compaction_active), false);
   atomic_init(&(queues->resume_active), false);
   pthread_mutex_init(&(queues->routine_mutex), NULL);

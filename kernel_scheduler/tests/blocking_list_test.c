@@ -87,7 +87,8 @@ Test(ks_blocking_list, susp_block_is_kept_sorted_by_priority)
   destroy_blocking_list(&b);
 }
 
-Test(ks_blocking_list, susp_ready_is_kept_sorted_and_take_removes_a_specific_pcb)
+Test(ks_blocking_list,
+     susp_ready_is_kept_sorted_and_take_removes_a_specific_pcb)
 {
   t_blocking_list b;
   init_blocking_list(&b);

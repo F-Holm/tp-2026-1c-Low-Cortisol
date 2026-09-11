@@ -98,7 +98,7 @@ Test(ks_mutex, priority_inheritance_propagates_transitively_through_a_chain)
   cr_assert_eq(list_mutex_lock(list, "mutex_2", high), RM_WAITING_MUTEX);
   cr_assert_eq(get_priority_pcb(mid), 1, "mid should inherit high's priority");
   cr_assert_eq(get_priority_pcb(low), 1,
-              "low should transitively inherit high's priority through mid");
+               "low should transitively inherit high's priority through mid");
 
   destroy_pcb(low);
   destroy_pcb(mid);

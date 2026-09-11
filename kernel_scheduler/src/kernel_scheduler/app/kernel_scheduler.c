@@ -36,8 +36,8 @@ bool start_module(t_kernel_scheduler* resources, char* config_path)
     return false;
 
   // Create server socket
-  resources->socket_server =
-      create_socket_server(resources->config_vars.server_port, resources->logger);
+  resources->socket_server = create_socket_server(
+      resources->config_vars.server_port, resources->logger);
 
   return resources->socket_server > 0;
 }
@@ -47,8 +47,9 @@ void init_scheduler_resources(t_kernel_scheduler* resources)
   resources->km_socket_mutex =
       init_socket_kernel_memory(resources->socket_kernel_memory);
   resources->connection_check_thread_data =
-      start_thread_check_connection_kernel_memory(
-          resources->socket_server, resources->logger, resources->km_socket_mutex);
+      start_thread_check_connection_kernel_memory(resources->socket_server,
+                                                  resources->logger,
+                                                  resources->km_socket_mutex);
   resources->mutex_list = init_list_mutex();
   resources->queues = init_queues(
       resources->config_vars.scheduling_algorithm,

@@ -7,7 +7,8 @@
 
 static void update_highest_priority_ready_no_mutex(t_ready_queue* ready);
 
-void init_ready_queue(t_ready_queue* queue, int algorithm, t_list* cmn_algorithms)
+void init_ready_queue(t_ready_queue* queue, int algorithm,
+                      t_list* cmn_algorithms)
 {
   if (algorithm == AP_CMN)
   {
@@ -188,9 +189,8 @@ t_pcb* transition_take_ready_next(t_ready_queue* ready)
 t_pcb* transition_take_ready_blocking(t_ready_queue* ready)
 {
   pthread_mutex_lock(&(ready->queue_mutex));
-  while (!queue_ready_terminated(ready) &&
-         (ready->ready_process_count == 0 ||
-          atomic_load(&(ready->preempt_all))))
+  while (!queue_ready_terminated(ready) && (ready->ready_process_count == 0 ||
+                                            atomic_load(&(ready->preempt_all))))
   {
     if (!queue_ready_terminated(ready) && ready->ready_process_count == 0)
     {

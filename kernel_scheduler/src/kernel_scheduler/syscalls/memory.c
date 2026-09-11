@@ -1,6 +1,6 @@
 #include "kernel_scheduler/syscalls/memory.h"
-#include "kernel_scheduler/shutdown.h"
 
+#include "kernel_scheduler/shutdown.h"
 #include "utils/msg.h"
 
 static bool response_km_mem_alloc(t_queues* queues);

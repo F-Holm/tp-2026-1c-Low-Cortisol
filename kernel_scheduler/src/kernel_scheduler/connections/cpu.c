@@ -4,9 +4,9 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-#include "kernel_scheduler/syscalls/memory.h"
 #include "kernel_scheduler/common/handshake.h"
 #include "kernel_scheduler/common/time.h"
+#include "kernel_scheduler/syscalls/memory.h"
 #include "utils/collections/list.h"
 #include "utils/io.h"
 #include "utils/msg.h"

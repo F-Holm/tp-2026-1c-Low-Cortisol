@@ -21,7 +21,7 @@ t_stick_watchdog* start_stick_watchdog(t_kernel_memory_data* kernel_data)
   if (pthread_create(&(watchdog->thread), NULL, watch_sticks, watchdog) != 0)
   {
     log_error(kernel_data->logger,
-             "Error creating the memory stick connection-check thread");
+              "Error creating the memory stick connection-check thread");
   }
   return watchdog;
 }
@@ -82,11 +82,11 @@ static void notify_scheduler_memory_corrupted(t_kernel_memory_data* kernel_data,
   watchdog->already_notified = true;
 
   log_warning(kernel_data->logger,
-             "Notifying the Kernel Scheduler that memory is corrupted");
+              "Notifying the Kernel Scheduler that memory is corrupted");
   if (!send_string(OP_MEMORY_CORRUPTED, "Stick not available",
                    kernel_data->socket_scheduler))
   {
     log_error(kernel_data->logger,
-             "Could not send the BSOD to the Kernel Scheduler");
+              "Could not send the BSOD to the Kernel Scheduler");
   }
 }

@@ -96,7 +96,8 @@ Test(ks_exec_list, wait_for_empty_returns_at_once_when_already_empty)
   destroy_exec_list(&exec);
 }
 
-Test(ks_exec_list, wait_with_syscalls_returns_when_only_in_flight_syscalls_remain)
+Test(ks_exec_list,
+     wait_with_syscalls_returns_when_only_in_flight_syscalls_remain)
 {
   t_execute_list exec;
   init_exec_list(&exec, 0, false);

@@ -18,7 +18,8 @@
 static void* thread_suspender(void* data_void);
 static void* thread_resumer(void* data_void);
 static t_suspended_thread* init_data_thread_suspended(t_queues* queues);
-static void init_data_thread_suspender(t_queues* queues, int suspension_timeout);
+static void init_data_thread_suspender(t_queues* queues,
+                                       int suspension_timeout);
 static void init_data_thread_resumer(t_queues* queues);
 static void start_thread_suspender(t_queues* queues);
 static void start_thread_resumer(t_queues* queues);

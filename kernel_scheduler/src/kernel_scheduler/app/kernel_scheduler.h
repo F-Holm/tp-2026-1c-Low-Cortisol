@@ -7,8 +7,8 @@
 #include <stdlib.h>
 
 #include "kernel_scheduler/connections/kernel_memory.h"
-#include "kernel_scheduler/syscalls/mutex.h"
 #include "kernel_scheduler/scheduler/queues.h"
+#include "kernel_scheduler/syscalls/mutex.h"
 #include "utils/collections/list.h"
 #include "utils/config.h"
 #include "utils/log.h"

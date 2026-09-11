@@ -4,8 +4,8 @@
 #include <stdint.h>
 
 #include "kernel_scheduler/connections/io.h"
-#include "kernel_scheduler/syscalls/mutex.h"
 #include "kernel_scheduler/scheduler/queues.h"
+#include "kernel_scheduler/syscalls/mutex.h"
 #include "utils/collections/list.h"
 #include "utils/log.h"
 

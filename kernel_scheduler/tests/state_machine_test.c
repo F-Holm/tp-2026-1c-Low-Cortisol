@@ -6,7 +6,10 @@
 
 static t_queues* q;
 
-static void setup(void) { q = ks_stub_queues_full(ks_quiet_logger()); }
+static void setup(void)
+{
+  q = ks_stub_queues_full(ks_quiet_logger());
+}
 static void teardown(void)
 {
   log_destroy(q->logger);

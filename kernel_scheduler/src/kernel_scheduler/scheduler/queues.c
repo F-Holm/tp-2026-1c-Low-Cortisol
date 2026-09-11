@@ -1,14 +1,14 @@
-#include "kernel_scheduler/common/time.h"
-#include "kernel_scheduler/connections/kernel_memory.h"
 #include "kernel_scheduler/scheduler/queues.h"
-#include "kernel_scheduler/scheduler/compaction.h"
-#include "kernel_scheduler/scheduler/scheduler_internal.h"
-#include "kernel_scheduler/scheduler/suspension.h"
-#include "kernel_scheduler/shutdown.h"
 
 #include <limits.h>
 #include <unistd.h>
 
+#include "kernel_scheduler/common/time.h"
+#include "kernel_scheduler/connections/kernel_memory.h"
+#include "kernel_scheduler/scheduler/compaction.h"
+#include "kernel_scheduler/scheduler/scheduler_internal.h"
+#include "kernel_scheduler/scheduler/suspension.h"
+#include "kernel_scheduler/shutdown.h"
 #include "utils/msg.h"
 
 const char* const PROCESS_END_REASONS[9] = {
@@ -275,15 +275,15 @@ static void destroy_counter_syscalls(t_queues* queues)
   destroy_counter(queues->syscall_counter);
 }
 
-void log_transition_state(t_log* logger, uint32_t pid,
-                                 int previous_state, int state_new)
+void log_transition_state(t_log* logger, uint32_t pid, int previous_state,
+                          int state_new)
 {
   log_info(logger, "%d moves from state %s to state %s", pid,
            STATE_NAMES[previous_state], STATE_NAMES[state_new]);
 }
 
 void log_invalid_state(t_log* logger, uint32_t pid, int state,
-                              int expected_state, int next_state)
+                       int expected_state, int next_state)
 {
   log_error(logger,
             "%u Cannot move from state %s to state %s because it "
@@ -293,7 +293,7 @@ void log_invalid_state(t_log* logger, uint32_t pid, int state,
 }
 
 bool manage_state_pcb(t_log* logger, t_pcb* pcb, int expected_state,
-                             int next_state)
+                      int next_state)
 {
   if (pcb->state == expected_state)
   {
