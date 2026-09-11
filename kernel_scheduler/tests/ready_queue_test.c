@@ -1,7 +1,9 @@
 #include "kernel_scheduler/scheduler/ready_queue.h"
 
 #include <criterion/criterion.h>
+#include <pthread.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 #include "kernel_scheduler/domain/pcb.h"
 #include "utils/collections/list.h"
@@ -166,5 +168,60 @@ Test(ks_ready_queue, blocking_take_returns_a_ready_process_without_blocking)
   cr_assert_eq(transition_take_ready_blocking(&ready), a);
 
   destroy_pcb(a);
+  destroy_ready_queue(&ready);
+}
+
+struct blocking_take_result
+{
+  t_ready_queue* ready;
+  t_pcb* result;
+};
+
+static void* blocking_take_thread(void* arg)
+{
+  struct blocking_take_result* r = arg;
+  r->result = transition_take_ready_blocking(r->ready);
+  return NULL;
+}
+
+Test(ks_ready_queue, blocking_take_waits_for_a_new_arrival)
+{
+  t_ready_queue ready;
+  init_ready_queue(&ready, AP_FIFO, NULL);
+  struct blocking_take_result r = {&ready, NULL};
+
+  pthread_t taker;
+  pthread_create(&taker, NULL, blocking_take_thread, &r);
+  usleep(50000); /* let the thread reach its blocking wait on an empty queue */
+
+  t_pcb* pcb = create_pcb(EST_READY, 0);
+  transition_to_ready(pcb, &ready);
+  pthread_join(taker, NULL);
+
+  cr_assert_eq(r.result, pcb);
+
+  destroy_pcb(pcb);
+  destroy_ready_queue(&ready);
+}
+
+Test(ks_ready_queue, blocking_take_waits_out_a_preemption_lock)
+{
+  t_ready_queue ready;
+  init_ready_queue(&ready, AP_FIFO, NULL);
+  t_pcb* pcb = create_pcb(EST_READY, 0);
+  transition_to_ready(pcb, &ready);
+  lock_queue_ready(&ready); /* preempt_all: even a ready pcb must wait */
+
+  struct blocking_take_result r = {&ready, NULL};
+  pthread_t taker;
+  pthread_create(&taker, NULL, blocking_take_thread, &r);
+  usleep(50000); /* let the thread reach its wait on exit_unblocked */
+
+  unlock_queue_ready(&ready);
+  pthread_join(taker, NULL);
+
+  cr_assert_eq(r.result, pcb);
+
+  destroy_pcb(pcb);
   destroy_ready_queue(&ready);
 }

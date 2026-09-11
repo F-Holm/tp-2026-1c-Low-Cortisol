@@ -120,6 +120,18 @@ Test(ks_state_machine, unlock_from_susp_block_goes_to_susp_ready)
   destroy_pcb(pcb);
 }
 
+Test(ks_state_machine, unlock_from_block_goes_to_ready)
+{
+  t_pcb* pcb = create_pcb(EST_BLOCK, 0);
+  transition_to_block(pcb, &(q->block));
+
+  transition_unlock(pcb, q); /* EST_BLOCK -> ready */
+
+  cr_assert_eq(pcb->state, EST_READY);
+  cr_assert_eq(transition_take_ready_next(&(q->ready)), pcb);
+  destroy_pcb(pcb);
+}
+
 Test(ks_state_machine, syscall_counter_goes_up_and_down)
 {
   increment_syscall_counter(q);
