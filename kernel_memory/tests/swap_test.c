@@ -17,16 +17,17 @@
  * peers mocked at once: the memory stick(s), the swap module, and the
  * Kernel Scheduler that receives the final status.
  *
- * Every test built on this fixture is disabled below: on this environment
- * (Criterion/Boxfort 2.4.1 on glibc 2.43), running them hits assorted
- * "Fatal glibc error" aborts inside glibc's own pthread internals
- * (tpp.c's __pthread_tpp_change_priority, pthread_mutex_lock.c's robust-
- * mutex handling, ...) -- a different one each run, sometimes instead
- * hanging the whole test binary indefinitely even under -j1. A standalone
+ * Note: on this environment (Criterion/Boxfort 2.4.1), running these tests
+ * can intermittently hit a "Fatal glibc error" abort inside glibc's own
+ * pthread internals (tpp.c's __pthread_tpp_change_priority,
+ * pthread_mutex_lock.c's robust-mutex handling, ...) -- a different one
+ * each time, and not tied to this fixture specifically (the same failure
+ * has shown up in unrelated tests in other modules too). A standalone
  * reproduction outside Criterion, built from the exact same compiled
  * objects, runs suspend_process/resume_process's logic correctly every
- * time -- so this is a test-framework/glibc interaction, not an
- * application bug. Re-enable once Criterion is upgraded past 2.4.1. */
+ * time, so this is a test-framework/glibc interaction rather than an
+ * application bug; the Makefile's test-run timeout keeps a recurrence from
+ * hanging `make test` indefinitely. Re-run on failure. */
 typedef struct
 {
   t_log* logger;
@@ -97,8 +98,7 @@ Test(km_swap, suspend_process_guards_against_a_null_process)
   log_destroy(logger);
 }
 
-Test(km_swap, suspend_process_moves_a_segment_to_swap_and_reports_success,
-     .disabled = true)
+Test(km_swap, suspend_process_moves_a_segment_to_swap_and_reports_success)
 {
   t_swap_fixture f = make_swap_fixture(1000, 10, 10, 1000);
   list_add(f.memory->segments, km_make_segment(0, 1, 0, 10));
@@ -119,7 +119,7 @@ Test(km_swap, suspend_process_moves_a_segment_to_swap_and_reports_success,
   destroy_swap_fixture(&f);
 }
 
-Test(km_swap, suspend_process_reports_a_full_swap, .disabled = true)
+Test(km_swap, suspend_process_reports_a_full_swap)
 {
   t_swap_fixture f = make_swap_fixture(1000, 10, 10, 1000);
   list_add(f.memory->segments, km_make_segment(0, 1, 0, 10));
@@ -139,7 +139,7 @@ Test(km_swap, suspend_process_reports_a_full_swap, .disabled = true)
   destroy_swap_fixture(&f);
 }
 
-Test(km_swap, suspend_process_reports_a_missing_pid, .disabled = true)
+Test(km_swap, suspend_process_reports_a_missing_pid)
 {
   t_swap_fixture f = make_swap_fixture(1000, 10, 10, 1000);
   t_process process = {.pid = 1}; /* no matching segment in memory */
@@ -154,7 +154,7 @@ Test(km_swap, suspend_process_reports_a_missing_pid, .disabled = true)
 
 /* ── resume_process ────────────────────────────────────────────────────── */
 
-Test(km_swap, resume_process_reports_it_does_not_fit, .disabled = true)
+Test(km_swap, resume_process_reports_it_does_not_fit)
 {
   t_swap_fixture f = make_swap_fixture(1000, 10, 10, 10); /* no free space */
   t_block_data* block = list_get(f.swap_data->block_list, 0);
@@ -172,7 +172,7 @@ Test(km_swap, resume_process_reports_it_does_not_fit, .disabled = true)
   destroy_swap_fixture(&f);
 }
 
-Test(km_swap, resume_process_reports_a_missing_pid, .disabled = true)
+Test(km_swap, resume_process_reports_a_missing_pid)
 {
   t_swap_fixture f = make_swap_fixture(1000, 10, 10, 1000);
 
@@ -185,8 +185,7 @@ Test(km_swap, resume_process_reports_a_missing_pid, .disabled = true)
   destroy_swap_fixture(&f);
 }
 
-Test(km_swap, resume_process_restores_a_segment_and_reports_success,
-     .disabled = true)
+Test(km_swap, resume_process_restores_a_segment_and_reports_success)
 {
   t_swap_fixture f = make_swap_fixture(1000, 10, 10, 1000);
   list_add(f.memory->holes, km_make_hole(0, 1000)); /* room to regenerate */
