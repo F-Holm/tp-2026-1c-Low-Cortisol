@@ -2,6 +2,7 @@
 
 #include <criterion/criterion.h>
 #include <stdatomic.h>
+#include <sys/socket.h>
 #include <unistd.h>
 
 #include "kernel_scheduler/domain/pcb.h"
@@ -95,7 +96,10 @@ Test(ks_suspension, transition_block_susp_block_gives_up_on_a_notify_failure)
 {
   int server_fd;
   int client_fd = ks_connected_pair(&server_fd);
-  close(server_fd); /* the send() now fails deterministically */
+  /* shutdown(SHUT_WR), not close(): a single small send() on a loopback
+   * socket after the peer merely closes often still succeeds silently. */
+  shutdown(client_fd, SHUT_WR);
+  close(server_fd);
 
   t_log* logger = ks_quiet_logger();
   t_queues* queues = ks_stub_queues_full(logger);

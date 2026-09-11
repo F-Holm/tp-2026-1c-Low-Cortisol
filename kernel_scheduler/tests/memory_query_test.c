@@ -1,6 +1,7 @@
 #include "kernel_scheduler/scheduler/memory_query.h"
 
 #include <criterion/criterion.h>
+#include <sys/socket.h>
 #include <unistd.h>
 
 #include "support.h"
@@ -55,7 +56,10 @@ Test(ks_memory_query, space_available_reports_a_send_failure)
 {
   int server_fd;
   int client_fd = ks_connected_pair(&server_fd);
-  close(server_fd); /* the send() now fails deterministically */
+  /* shutdown(SHUT_WR), not close(): a single small send() on a loopback
+   * socket after the peer merely closes often still succeeds silently. */
+  shutdown(client_fd, SHUT_WR);
+  close(server_fd);
 
   t_log* logger = ks_quiet_logger();
   t_queues* queues = ks_stub_queues_full(logger);
