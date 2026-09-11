@@ -205,10 +205,10 @@ void* listen_scheduler(void* ptr)
             compute_free_space(scheduler_data->main_memory->holes,
                                scheduler_data->main_memory->main_memory_mutex,
                                scheduler_data->logger);
-        log_trace(scheduler_data->logger, "free space computed");
+        log_trace(scheduler_data->logger, "Free space computed");
         send_buffer(OP_FREE_MEMORY, &size, sizeof(int),
                     scheduler_data->socket_scheduler);
-        log_trace(scheduler_data->logger, "free space sent");
+        log_trace(scheduler_data->logger, "Free space sent");
         break;
       }
       case OP_REQUEST_PROCESS_SIZE:

@@ -39,7 +39,7 @@ void* listen_cpu(void* ptr)
           break;
         }
         log_trace(cpu_data->logger, "PID: %d - Get registers", *pid);
-        log_trace(cpu_data->logger, "instruction delay %d",
+        log_trace(cpu_data->logger, "Instruction delay %d",
                   cpu_data->instruction_delay);
         usleep(cpu_data->instruction_delay * 1000);
         send_buffer(OP_SEND_CONTEXT, &process->registers, sizeof(t_registers),

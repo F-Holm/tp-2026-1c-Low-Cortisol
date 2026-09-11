@@ -24,7 +24,7 @@ void suspend_process(t_process* process_to_suspend,
   if (process_to_suspend == NULL)
   {
     log_error(scheduler_data->logger,
-              "suspend_process received a NULL process");
+              "Suspend_process received a NULL process");
     return;
   }
 
