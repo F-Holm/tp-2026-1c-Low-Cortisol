@@ -74,7 +74,8 @@ $(foreach m,$(UNIT_MODULES),$(eval $(OBJDIR)/$(m)/tests/%.o: CFLAGS += $(CRITERI
 define unit_test_rule
 test-$(1): $(1)/bin/$(1)_test | criterion-check
 	@echo "Running '$(1)' unit tests..."
-	./$$<
+	timeout --foreground -k5 120 ./$$< || \
+	  { echo "'$(1)' unit tests timed out or crashed the whole binary" >&2; exit 1; }
 $(1)/bin/$(1)_test: $$(call test_objs,$(1)) $$(call code_objs,$(1)) $$(LIBUTILS)
 	@mkdir -p $$(@D)
 	$(CC) $(CFLAGS) -o $$@ $$^ $(LDLIBS) $$(CRITERION_LIBS)
