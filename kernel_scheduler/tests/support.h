@@ -35,3 +35,18 @@ void ks_destroy_stub_queues_blocking(t_queues* queues);
  */
 t_queues* ks_stub_queues_full(t_log* logger);
 void ks_destroy_stub_queues_full(t_queues* queues);
+
+/**
+ * @brief A loopback TCP listener on a kernel-assigned ephemeral port, for
+ *        tests that need a real socket without a fixed port. Writes the port
+ *        number (as a string) into `port_out`.
+ */
+int ks_listen_ephemeral(char* port_out, int port_len);
+
+/**
+ * @brief A connected loopback TCP pair: connects to a fresh ephemeral
+ *        listener and accepts that same connection, so both ends are real
+ *        sockets. Returns the client fd; writes the server-side fd into
+ *        `server_out`.
+ */
+int ks_connected_pair(int* server_out);
