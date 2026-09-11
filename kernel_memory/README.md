@@ -81,7 +81,8 @@ them in English.
 | `src/main.c` | Argument check, bootstrap. |
 | `configurator.c` | Config loading and validation. |
 | `server.c` | Multithreaded server; handshakes for scheduler, CPUs, sticks, SWAP. |
-| `listeners.c` | Per-connection request loops (scheduler, CPU, SWAP). |
+| `scheduler_listener.c` | The scheduler connection's request loop (NEW_PROCESS, MEM_ALLOC/FREE, address translation, reads/writes, SUSPEND/RESUME). |
+| `cpu_listener.c` | The CPU connection's request loop (NEXT_INSTRUCTION, registers, memory reads/writes). |
 | `protocol.h` | Umbrella header re-exporting the files below (kept for minimal churn at the call sites). |
 | `registry.c` | Generic locked-list append (`list_add_mtx`) and process lookup by pid. |
 | `connections.c` | CPU/stick handshake steps and the connected-CPU / connected-stick notifications. |
@@ -101,17 +102,17 @@ level that reaches the file (`INFO` shows `INFO`/`WARNING`/`ERROR`).
 
 | Level | Frequency | Message | Where |
 |-------|-----------|---------|-------|
-| `INFO` | per instruction request (mandatory) | `PID: <PID> - Get instruction: <PC> - Instruction: <instr>` | `listeners.c` |
-| `INFO` | per user read / write (mandatory) | `PID: <PID> - <Read/Write> - Phys. Addr: <addr> - Size: <size>` | `listeners.c` |
+| `INFO` | per instruction request (mandatory) | `PID: <PID> - Get instruction: <PC> - Instruction: <instr>` | `scheduler_listener.c`, `cpu_listener.c` |
+| `INFO` | per user read / write (mandatory) | `PID: <PID> - <Read/Write> - Phys. Addr: <addr> - Size: <size>` | `scheduler_listener.c`, `cpu_listener.c` |
 | `INFO` | per segment create / regenerate (mandatory) | `PID: <PID> - Segment created/regenerated <id> - Size: <size>` | `holes.c`, `swap.c` |
-| `INFO` | per process create (mandatory) | `PID: <PID>  - Process created` | `listeners.c` |
+| `INFO` | per process create (mandatory) | `PID: <PID>  - Process created` | `scheduler_listener.c`, `cpu_listener.c` |
 | `INFO` | per CPU / stick connect (mandatory) | `CPU <id> connected` / `Memory Stick of <size> bytes connected` | `connections.c` |
 | `INFO` | once, scheduler connect (mandatory) | `Kernel Scheduler Connected - FD of the socket: <fd>` | `server.c` |
-| `INFO` | per process end / suspend / resume | `Process with PID <PID> ended`, `Process PID <PID> was suspended/resumed successfully` | `listeners.c`, `swap.c` |
+| `INFO` | per process end / suspend / resume | `Process with PID <PID> ended`, `Process PID <PID> was suspended/resumed successfully` | `scheduler_listener.c`, `cpu_listener.c`, `swap.c` |
 | `INFO` | once, on startup | `Kernel Memory started` | `src/main.c` |
-| `WARNING` | on stick send / response failure (→ BSOD) | `Error sending read/write packet to stick <i>`, `Wrong response opcode from stick <i>`, `No more sticks available ...`, `Error writing to sticks`, `Notifying the Kernel Scheduler that memory is corrupted` | `address_translation.c`, `listeners.c` |
+| `WARNING` | on stick send / response failure (→ BSOD) | `Error sending read/write packet to stick <i>`, `Wrong response opcode from stick <i>`, `No more sticks available ...`, `Error writing to sticks`, `Notifying the Kernel Scheduler that memory is corrupted` | `address_translation.c`, `scheduler_listener.c`, `cpu_listener.c` |
 | `WARNING` | on swap read/write anomaly | `Unexpected response from the swap module ...`, `Could not read block <n> from swap ...`, `Could not allocate any hole.` | `swap.c` |
-| `ERROR` | rare (bad data / logic) | `Process with pid <n> not found`, `Segment not found`, `Segment number <n> was not found ...`, `The chosen hole-selection option is not valid.`, `The holes adjacent to the segment were not found`, `Error: unrecognized operation code`, `The computed physical address does not match any connected stick` | `listeners.c`, `holes.c`, `segments.c`, `address_translation.c` |
+| `ERROR` | rare (bad data / logic) | `Process with pid <n> not found`, `Segment not found`, `Segment number <n> was not found ...`, `The chosen hole-selection option is not valid.`, `The holes adjacent to the segment were not found`, `Error: unrecognized operation code`, `The computed physical address does not match any connected stick` | `scheduler_listener.c`, `cpu_listener.c`, `holes.c`, `segments.c`, `address_translation.c` |
 | `ERROR` | rare (startup / handshake) | `Error sending handshake for: <s>`, `Closed the connection with <s> ...`, `PID: <PID> - Could not open the file: <p>`, `Could not resolve the memory stick IP`, `Unexpected opcode while receiving swap info` | `error.c`, `initializer.c` |
-| `DEBUG` | per request / soft failure | `Received a MEM_ALLOC/MEM_FREE/SUSPEND/RESUME request`, `Not enough space to create/regenerate the segment`, `No available holes`, `no free blocks`, `... was not found`, connect confirmations | `listeners.c`, `holes.c`, `connections.c`, `swap.c`, `server.c` |
-| `TRACE` | per operation internals | `Calculating holes...`, `Free space computed / value sent`, `Searching N segments to remove one`, `Segment between/after/before hole`, `Reading/Read <n> bytes from physical_address ...`, `Get registers`, `Sending/Segment table sent`, `Adding/Removing swap block ...` | `holes.c`, `segments.c`, `address_translation.c`, `listeners.c`, `swap.c` |
+| `DEBUG` | per request / soft failure | `Received a MEM_ALLOC/MEM_FREE/SUSPEND/RESUME request`, `Not enough space to create/regenerate the segment`, `No available holes`, `no free blocks`, `... was not found`, connect confirmations | `scheduler_listener.c`, `cpu_listener.c`, `holes.c`, `connections.c`, `swap.c`, `server.c` |
+| `TRACE` | per operation internals | `Calculating holes...`, `Free space computed / value sent`, `Searching N segments to remove one`, `Segment between/after/before hole`, `Reading/Read <n> bytes from physical_address ...`, `Get registers`, `Sending/Segment table sent`, `Adding/Removing swap block ...` | `holes.c`, `segments.c`, `address_translation.c`, `scheduler_listener.c`, `cpu_listener.c`, `swap.c` |

@@ -26,7 +26,7 @@ make test-kernel_memory      # from the repo root
 The socket protocol handlers (`create_segment`, `remove_segment`,
 `translate_logical_address`, `read_from_sticks`, `write_to_sticks`,
 `compact_memory`, `suspend_process`, `resume_process`, everything in
-`listeners.h` and `server.h`, …) coordinate the scheduler, the CPUs and the
+`scheduler_listener.h`, `cpu_listener.h` and `server.h`, …) coordinate the scheduler, the CPUs and the
 memory sticks over sockets and mutate shared state under locks. They are
 exercised by the end-to-end scenarios under `tests/` (`mem-best`, `mem-worst`,
 `medium-term`, …).
