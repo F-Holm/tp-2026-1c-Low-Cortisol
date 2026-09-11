@@ -14,14 +14,14 @@ BIN_MODULES := cpu io kernel_memory kernel_scheduler memory_stick swap
 BUILD ?= debug
 CC ?= gcc
 AR := ar
-C_STD ?= c23
+# gnu23, not plain c23: this project is POSIX/Linux-only (pthreads, sockets,
+# readline, ...), so the GNU extensions -- which pull in POSIX/BSD library
+# declarations automatically -- are a better fit than strict ISO C.
+C_STD ?= gnu23
 
 CFLAGS_debug   := -g -Wall -DDEBUG -fdiagnostics-color=always
 CFLAGS_release := -O3 -Wall -DNDEBUG
-# -std=c23 is strict ISO C, which on glibc hides POSIX/BSD declarations
-# (mkdtemp, etc.) unless _DEFAULT_SOURCE is defined -- gnu23 would pull
-# those in automatically, but this keeps the standard itself strict.
-CFLAGS   := $(CFLAGS_$(BUILD)) -std=$(C_STD) -D_DEFAULT_SOURCE -fPIC
+CFLAGS   := $(CFLAGS_$(BUILD)) -std=$(C_STD) -fPIC
 DEPFLAGS := -MMD -MP
 LDLIBS   := -lpthread -lreadline -lm
 
