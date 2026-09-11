@@ -165,3 +165,153 @@ Test(ks_compaction, fits_process_retries_after_a_new_memory_stick)
   close(server_fd);
   log_destroy(logger);
 }
+
+/* ── routine_compaction ────────────────────────────────────────────────── */
+
+Test(ks_compaction, routine_compaction_is_a_no_op_while_already_compacting)
+{
+  t_log* logger = ks_quiet_logger();
+  t_queues* queues = ks_stub_queues_full(logger);
+  atomic_store(&(queues->compaction_active), true);
+
+  routine_compaction(queues);
+
+  cr_assert(is_compacting(queues));
+
+  ks_destroy_stub_queues_full(queues);
+  log_destroy(logger);
+}
+
+Test(ks_compaction,
+     routine_compaction_skips_the_body_when_routines_are_terminated)
+{
+  t_log* logger = ks_quiet_logger();
+  t_queues* queues = ks_stub_queues_full(logger);
+  queues->terminate_routines = true;
+
+  routine_compaction(queues);
+
+  /* set_is_compacting(true) runs unconditionally before the
+   * terminate_routines check, and the matching reset lives inside the
+   * guarded body -- so a terminated routine set leaves the flag stuck. That
+   * only matters mid-shutdown, when nothing reads it again. */
+  cr_assert(is_compacting(queues));
+
+  ks_destroy_stub_queues_full(queues);
+  log_destroy(logger);
+}
+
+Test(ks_compaction, routine_compaction_completes_when_kernel_memory_finishes)
+{
+  int server_fd;
+  int client_fd = ks_connected_pair(&server_fd);
+  cr_assert(send_string(OP_COMPACTION_DONE, "done", server_fd));
+
+  t_log* logger = ks_quiet_logger();
+  t_queues* queues = ks_stub_queues_full(logger);
+  queues->km_socket->km_socket = client_fd;
+  start_threads_suspended(queues, 60000);
+
+  routine_compaction(queues);
+
+  cr_assert_not(is_compacting(queues));
+
+  ks_wait_thread_counter_zero(queues);
+  terminate_threads_suspended(queues);
+  destroy_threads_suspended(queues);
+  ks_destroy_stub_queues_full(queues);
+  close(server_fd);
+  log_destroy(logger);
+}
+
+Test(ks_compaction, routine_compaction_retries_after_a_new_memory_stick)
+{
+  int server_fd;
+  int client_fd = ks_connected_pair(&server_fd);
+  cr_assert(send_string(OP_NEW_MEMORY_STICK, "a stick connected", server_fd));
+  cr_assert(send_string(OP_COMPACTION_DONE, "done", server_fd));
+
+  t_log* logger = ks_quiet_logger();
+  t_queues* queues = ks_stub_queues_full(logger);
+  queues->km_socket->km_socket = client_fd;
+  start_threads_suspended(queues, 60000);
+
+  routine_compaction(queues);
+
+  cr_assert_not(is_compacting(queues));
+
+  ks_wait_thread_counter_zero(queues);
+  terminate_threads_suspended(queues);
+  destroy_threads_suspended(queues);
+  ks_destroy_stub_queues_full(queues);
+  close(server_fd);
+  log_destroy(logger);
+}
+
+Test(ks_compaction, routine_compaction_shuts_down_on_memory_corruption)
+{
+  int server_fd;
+  int client_fd = ks_connected_pair(&server_fd);
+  cr_assert(send_string(OP_MEMORY_CORRUPTED, "boom", server_fd));
+
+  t_log* logger = ks_quiet_logger();
+  t_queues* queues = ks_stub_queues_full(logger);
+  queues->km_socket->km_socket = client_fd;
+  start_threads_suspended(queues, 60000);
+
+  routine_compaction(queues);
+
+  cr_assert_not(is_compacting(queues));
+
+  ks_wait_thread_counter_zero(queues);
+  terminate_threads_suspended(queues);
+  destroy_threads_suspended(queues);
+  ks_destroy_stub_queues_full(queues);
+  close(server_fd);
+  log_destroy(logger);
+}
+
+Test(ks_compaction, routine_compaction_shuts_down_on_an_unrecognized_reply)
+{
+  int server_fd;
+  int client_fd = ks_connected_pair(&server_fd);
+  cr_assert(send_string(OP_ID_CPU, "not expected here", server_fd));
+
+  t_log* logger = ks_quiet_logger();
+  t_queues* queues = ks_stub_queues_full(logger);
+  queues->km_socket->km_socket = client_fd;
+  start_threads_suspended(queues, 60000);
+
+  routine_compaction(queues);
+
+  cr_assert_not(is_compacting(queues));
+
+  ks_wait_thread_counter_zero(queues);
+  terminate_threads_suspended(queues);
+  destroy_threads_suspended(queues);
+  ks_destroy_stub_queues_full(queues);
+  close(server_fd);
+  log_destroy(logger);
+}
+
+Test(ks_compaction, routine_compaction_recovers_from_a_send_failure)
+{
+  int server_fd;
+  int client_fd = ks_connected_pair(&server_fd);
+  close(server_fd); /* the send() now fails deterministically */
+
+  t_log* logger = ks_quiet_logger();
+  t_queues* queues = ks_stub_queues_full(logger);
+  queues->km_socket->km_socket = client_fd;
+  start_threads_suspended(queues, 60000);
+
+  routine_compaction(queues);
+
+  cr_assert_not(is_compacting(queues));
+
+  ks_wait_thread_counter_zero(queues);
+  terminate_threads_suspended(queues);
+  destroy_threads_suspended(queues);
+  ks_destroy_stub_queues_full(queues);
+  log_destroy(logger);
+}
