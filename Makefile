@@ -12,13 +12,18 @@
 BIN_MODULES := cpu io kernel_memory kernel_scheduler memory_stick swap
 
 BUILD ?= debug
+CC ?= gcc
+AR := ar
+C_STD ?= c23
+
 CFLAGS_debug   := -g -Wall -DDEBUG -fdiagnostics-color=always
 CFLAGS_release := -O3 -Wall -DNDEBUG
-CFLAGS   := $(CFLAGS_$(BUILD)) -fPIC
+# -std=c23 is strict ISO C, which on glibc hides POSIX/BSD declarations
+# (mkdtemp, etc.) unless _DEFAULT_SOURCE is defined -- gnu23 would pull
+# those in automatically, but this keeps the standard itself strict.
+CFLAGS   := $(CFLAGS_$(BUILD)) -std=$(C_STD) -D_DEFAULT_SOURCE -fPIC
 DEPFLAGS := -MMD -MP
 LDLIBS   := -lpthread -lreadline -lm
-CC       := gcc
-AR       := ar
 
 OBJDIR   := build/$(BUILD)
 LIBUTILS := $(OBJDIR)/libutils.a
