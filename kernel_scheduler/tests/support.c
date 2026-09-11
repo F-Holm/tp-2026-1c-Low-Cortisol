@@ -120,3 +120,14 @@ int ks_connected_pair(int* server_out)
   *server_out = server_fd;
   return client_fd;
 }
+
+void ks_wait_thread_counter_zero(t_queues* queues)
+{
+  pthread_mutex_lock(&(queues->thread_counter->counter_mutex));
+  while (queues->thread_counter->count > 0)
+  {
+    pthread_cond_wait(&(queues->thread_counter->condition),
+                      &(queues->thread_counter->counter_mutex));
+  }
+  pthread_mutex_unlock(&(queues->thread_counter->counter_mutex));
+}

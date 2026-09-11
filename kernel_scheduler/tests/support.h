@@ -50,3 +50,12 @@ int ks_listen_ephemeral(char* port_out, int port_len);
  *        `server_out`.
  */
 int ks_connected_pair(int* server_out);
+
+/**
+ * @brief Blocks until queues->thread_counter drops to 0 -- the same
+ *        synchronization destroy_queues() uses to wait out any detached
+ *        worker thread (e.g. one spawned by create_resumption_routine_thread)
+ *        before tearing queues down. Call this before destroying a
+ *        ks_stub_queues_full() whenever a test may have triggered one.
+ */
+void ks_wait_thread_counter_zero(t_queues* queues);
