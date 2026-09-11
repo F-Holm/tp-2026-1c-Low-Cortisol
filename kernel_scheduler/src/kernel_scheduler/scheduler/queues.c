@@ -46,6 +46,8 @@ t_queues* init_queues(int algorithm, t_list* cmn_algorithms, int quantum,
   init_blocking_list(&(queues->susp_ready));
   queues->process_counter =
       init_counter_processes(server_socket, logger, km_socket);
+  queues->thread_counter = create_counter();
+  queues->syscall_counter = create_counter();
   pthread_mutex_init(&(queues->routine_mutex), NULL);
   pthread_cond_init(&(queues->routine_cond), NULL);
   queues->routine_active = false;
