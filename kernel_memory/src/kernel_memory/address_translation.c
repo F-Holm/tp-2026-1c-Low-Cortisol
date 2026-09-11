@@ -13,7 +13,7 @@ int translate_logical_address(uint32_t pid, uint32_t logical_address,
   // Compute the physical address
   int seg_max = main_memory->max_segment_size;
   uint32_t segment_number = logical_address / seg_max;
-  uint32_t desplazamiento = logical_address % seg_max;
+  uint32_t offset_in_segment = logical_address % seg_max;
 
   t_segment* found_seg = find_segment(main_memory, pid, segment_number);
   if (found_seg == NULL)
@@ -22,14 +22,14 @@ int translate_logical_address(uint32_t pid, uint32_t logical_address,
               segment_number, pid);
     return -1;
   }
-  int physical_address = found_seg->base + desplazamiento;
+  int physical_address = found_seg->base + offset_in_segment;
   return physical_address;
 }
 
 int find_stick(int physical_address, t_list* connected_sticks,
                pthread_mutex_t* sticks_mutex, int* stick_offset)
 {
-  int base_acumulada = 0;
+  int accumulated_base = 0;
   int index = -1;
   int current_index = 0;
 
@@ -38,16 +38,16 @@ int find_stick(int physical_address, t_list* connected_sticks,
   while (list_iterator_has_next(iterator))
   {
     t_stick_data* current_item = list_iterator_next(iterator);
-    if (physical_address >= base_acumulada &&
-        physical_address < base_acumulada + current_item->stick_size)
+    if (physical_address >= accumulated_base &&
+        physical_address < accumulated_base + current_item->stick_size)
     {
       // found the stick for the physical address
-      *stick_offset = physical_address - base_acumulada;
+      *stick_offset = physical_address - accumulated_base;
       index = current_index;
       break;
     }
     current_index++;
-    base_acumulada += current_item->stick_size;
+    accumulated_base += current_item->stick_size;
   }
   list_iterator_destroy(iterator);
   pthread_mutex_unlock(sticks_mutex);

@@ -33,22 +33,22 @@ t_main_memory* add_total_memory(t_main_memory* main_memory, int memory_total)
   int new_base = main_memory->total_size;
   main_memory->total_size += memory_total;
 
-  t_hole* hole_contiguo = NULL;
+  t_hole* adjacent_hole = NULL;
   t_list_iterator* iterator = list_iterator_create(main_memory->holes);
   while (list_iterator_has_next(iterator))
   {
     t_hole* h = list_iterator_next(iterator);
     if (h->base + h->size == new_base)
     {
-      hole_contiguo = h;
+      adjacent_hole = h;
       break;
     }
   }
   list_iterator_destroy(iterator);
 
-  if (hole_contiguo != NULL)
+  if (adjacent_hole != NULL)
   {
-    hole_contiguo->size += memory_total;
+    adjacent_hole->size += memory_total;
   }
   else
   {
