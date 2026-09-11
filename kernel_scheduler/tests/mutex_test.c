@@ -156,6 +156,67 @@ Test(ks_mutex, a_non_priority_mutex_hands_off_to_waiters_in_fifo_order)
   log_destroy(logger);
 }
 
+Test(ks_mutex,
+     priority_mutex_hands_off_to_the_highest_remaining_priority_waiter)
+{
+  t_log* logger = ks_quiet_logger();
+  t_queues* queues = ks_stub_queues_full(logger);
+  t_mutex_list* list = init_list_mutex();
+  t_pcb* owner = create_pcb(EST_EXEC, 10);
+  t_pcb* high = create_pcb(EST_EXEC, 1);
+  t_pcb* mid = create_pcb(EST_EXEC, 5);
+
+  create_and_add_mutex(list, "m", true, queues);
+  list_mutex_lock(list, "m", owner);
+  cr_assert_eq(list_mutex_lock(list, "m", high), RM_WAITING_MUTEX);
+  /* mid is not the highest-priority waiter, so its insert must not disturb
+   * the owner's already-inherited priority. */
+  cr_assert_eq(list_mutex_lock(list, "m", mid), RM_WAITING_MUTEX);
+
+  /* Two waiters queued (mutex->state == -2): unlocking hands off to the
+   * highest-priority one and must correctly recompute the next inherited
+   * priority from whoever is left, instead of assuming a single waiter. */
+  cr_assert_eq(list_mutex_unlock(list, "m", owner), RM_MUTEX_UNLOCKED);
+  cr_assert_eq(high->state, EST_READY);
+  cr_assert_eq(mid->state, EST_BLOCK, "the second waiter keeps waiting");
+
+  cr_assert_eq(list_mutex_unlock(list, "m", high), RM_MUTEX_UNLOCKED);
+  cr_assert_eq(mid->state, EST_READY, "the last waiter finally gets it");
+
+  transition_take_ready_next(&(queues->ready));
+  transition_take_ready_next(&(queues->ready));
+  destroy_pcb(owner);
+  destroy_pcb(high);
+  destroy_pcb(mid);
+  destroy_list_mutex(list);
+  ks_destroy_stub_queues_full(queues);
+  log_destroy(logger);
+}
+
+Test(ks_mutex, destroy_list_mutex_force_releases_remaining_waiters)
+{
+  t_log* logger = ks_quiet_logger();
+  t_queues* queues = ks_stub_queues_full(logger);
+  t_mutex_list* list = init_list_mutex();
+  t_pcb* owner = create_pcb(EST_EXEC, 0);
+  t_pcb* waiter = create_pcb(EST_EXEC, 0);
+
+  create_and_add_mutex(list, "m", false, queues);
+  list_mutex_lock(list, "m", owner);
+  cr_assert_eq(list_mutex_lock(list, "m", waiter), RM_WAITING_MUTEX);
+
+  destroy_list_mutex(list); /* force-releases `waiter` via transition_unlock */
+
+  cr_assert_eq(waiter->state, EST_READY);
+  cr_assert_null(get_mutex_blocking(waiter));
+
+  transition_take_ready_next(&(queues->ready));
+  destroy_pcb(owner);
+  destroy_pcb(waiter);
+  ks_destroy_stub_queues_full(queues);
+  log_destroy(logger);
+}
+
 Test(ks_mutex, an_inherited_priority_reverts_when_the_holder_unlocks)
 {
   t_log* logger = ks_quiet_logger();
