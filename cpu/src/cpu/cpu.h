@@ -47,10 +47,6 @@ typedef enum
   EB_NO_TABLE
 } t_extended_bool;
 
-bool receive_max_segment_size(t_cpu* cpu);
-bool listen_kernel_memory(t_cpu* cpu);
-bool parse_stick_packet(t_cpu* cpu, t_list* packet, char stick_ip[16],
-                        char stick_port[6], uint32_t* size);
 void run_instruction_loop(t_cpu* cpu);
 uint32_t receive_pid(t_cpu* cpu);
 bool request_context(t_cpu* cpu, uint32_t pid);
