@@ -251,7 +251,7 @@ static void manage_end_quantum(t_syscall_data* data)
 
 static bool send_preemption(t_syscall_data* data)
 {
-  log_trace(data->data->logger, "CPU %s: Sending message: preemption: %s",
+  log_trace(data->data->logger, "CPU %s: Sending preemption message: %s",
             data->data->id, PREEMPTION_REASONS[data->preemption_reason]);
   return send_string(
       (data->preemption_reason != PR_NO_PREEMPTION ? OP_INTERRUPT
