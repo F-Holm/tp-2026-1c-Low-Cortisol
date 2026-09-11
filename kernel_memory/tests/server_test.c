@@ -42,7 +42,7 @@ Test(km_server, handshake_registers_the_kernel_scheduler)
 
   cr_assert(handshake(kernel_data, server_fd));
   cr_assert_eq(receive_handshake(client_fd), MID_KERNEL_MEMORY);
-  cr_assert_eq(kernel_data->socket_scheduler, server_fd);
+  cr_assert_eq(atomic_load(&(kernel_data->socket_scheduler)), server_fd);
 
   /* Closing our end of the peer socket makes the detached scheduler-listener
    * thread's next read fail, so it shuts itself down and decrements

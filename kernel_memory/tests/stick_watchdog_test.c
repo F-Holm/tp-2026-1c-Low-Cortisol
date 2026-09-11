@@ -32,7 +32,7 @@ Test(km_stick_watchdog, notifies_the_scheduler_once_a_stick_goes_unreachable)
   t_log* logger = km_quiet_logger();
   t_kernel_memory_data* kernel_data =
       init_kernel_memory_data(-1, NULL, 0, 0, 1024, WORST, logger);
-  kernel_data->socket_scheduler = scheduler_server_fd;
+  atomic_store(&(kernel_data->socket_scheduler), scheduler_server_fd);
 
   t_stick_data* stick = km_make_stick(1024);
   stick->socket_stick = -1; /* pinging it always fails */

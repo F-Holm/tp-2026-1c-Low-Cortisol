@@ -1,6 +1,7 @@
 #pragma once
 
 #include <pthread.h>
+#include <stdatomic.h>
 
 #include "utils/collections/list.h"
 #include "utils/log.h"
@@ -39,7 +40,9 @@ typedef struct
   int compaction_delay;
   int segment_max_size;
   t_allocation_strategy allocation_strategy;
-  int socket_scheduler;
+  // Written by the accept-loop thread once the Kernel Scheduler connects,
+  // read by the stick connection-check watchdog thread -- must be atomic.
+  atomic_int socket_scheduler;
   char* scripts_basepath;
   t_log* logger;
   t_list* connected_sticks;
