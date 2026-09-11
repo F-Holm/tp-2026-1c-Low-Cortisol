@@ -194,12 +194,12 @@ void* handle_cpu_client(void* cpu_thread_void)
         int start_position = *(int*)list_get(packet, 0);
         int byte_count = *(int*)list_get(packet, 1);
         log_trace(cpu_thread->ms->logger,
-                  "Read of %d bytes, from %d, requested by the CPU", byte_count,
-                  start_position);
+                  "The CPU requested a read of %d bytes from offset %d",
+                  byte_count, start_position);
         list_destroy_and_destroy_elements(packet, free);
         read_memory(cpu_thread->ms, start_position, byte_count,
                     cpu_thread->socket_cpu);
-        log_info(cpu_thread->ms->logger, "Read of %d bytes", byte_count);
+        log_info(cpu_thread->ms->logger, "Read %d bytes", byte_count);
         break;
       }
       case OP_MEMORY_STICK_WRITE:
@@ -219,7 +219,7 @@ void* handle_cpu_client(void* cpu_thread_void)
         int byte_count = *(int*)list_get(packet, 2);
         write_memory(cpu_thread->ms, start_position, bytes_to_write, byte_count,
                      cpu_thread->socket_cpu);
-        log_info(cpu_thread->ms->logger, "Write of %d bytes", byte_count);
+        log_info(cpu_thread->ms->logger, "Wrote %d bytes", byte_count);
         list_destroy_and_destroy_elements(packet, free);
         break;
       }

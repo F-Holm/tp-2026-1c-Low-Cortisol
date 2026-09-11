@@ -50,7 +50,7 @@ int main(int argc, char* argv[])
         int start_position = *(int*)list_get(packet, 0);
         int byte_count = *(int*)list_get(packet, 1);
         read_memory(&ms, start_position, byte_count, ms.socket_km);
-        log_info(ms.logger, "Read of %d bytes", byte_count);
+        log_info(ms.logger, "Read %d bytes", byte_count);
         list_destroy_and_destroy_elements(packet, free);
         break;
       }
@@ -68,11 +68,11 @@ int main(int argc, char* argv[])
         int start_position = *(int*)list_get(packet, 0);
         char* bytes_to_write = (char*)list_get(packet, 1);
         int byte_count = *(int*)list_get(packet, 2);
-        log_trace(ms.logger, "Write from Kernel Memory of %d bytes, from %d",
+        log_trace(ms.logger, "Write requested by Kernel Memory: %d bytes from offset %d",
                   byte_count, start_position);
         write_memory(&ms, start_position, bytes_to_write, byte_count,
                      ms.socket_km);
-        log_info(ms.logger, "Write of %d bytes", byte_count);
+        log_info(ms.logger, "Wrote %d bytes", byte_count);
         list_destroy_and_destroy_elements(packet, free);
         break;
       }
