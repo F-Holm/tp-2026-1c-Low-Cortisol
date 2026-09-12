@@ -51,10 +51,17 @@ void create_resumption_routine_thread(t_queues* queues)
     return;
   }
 
+  /* Incremented here, before the thread exists, rather than as the first
+   * thing the new thread does: otherwise a caller that reaches
+   * ks_wait_thread_counter_zero() right after pthread_create() returns can
+   * observe the counter still at its old value and tear queues down out
+   * from under a thread that hasn't run its first instruction yet. */
+  increment_thread_counter(queues);
   pthread_t thread;
   if (pthread_create(&thread, NULL, resumption_routine_thread, queues) != 0)
   {
     log_error(queues->logger, "Error creating the resumption routine thread");
+    decrement_thread_counter(queues);
   }
   else
   {
@@ -154,7 +161,6 @@ static void resumption_routine(t_queues* queues)
 static void* resumption_routine_thread(void* data_resume_suspension)
 {
   t_queues* queues = (t_queues*)data_resume_suspension;
-  increment_thread_counter(queues);
   routine_enter(queues);
   if (!queues->terminate_routines)
   {
@@ -201,7 +207,6 @@ static void routine_leave(t_queues* queues)
 static void* thread_unlock_queue_ready(void* args)
 {
   t_queues* queues = (t_queues*)args;
-  increment_thread_counter(queues);
 
   wait_queue_exec_empty(&(queues->exec));
 
@@ -215,10 +220,15 @@ static void* thread_unlock_queue_ready(void* args)
 
 static void create_thread_unlock_queue_ready(t_queues* queues)
 {
+  /* Incremented here, before the thread exists -- see the comment in
+   * create_resumption_routine_thread() for why this can't be the first
+   * thing the new thread itself does. */
+  increment_thread_counter(queues);
   pthread_t thread;
   if (pthread_create(&thread, NULL, thread_unlock_queue_ready, queues) != 0)
   {
     log_error(queues->logger, "Error creating the ready-queue unblock thread");
+    decrement_thread_counter(queues);
   }
   else
   {
