@@ -164,6 +164,47 @@ Test(ks_io_connection, enqueue_io_request_inserts_by_priority_when_enabled)
   destroy_io_stub(&io);
 }
 
+Test(ks_io_connection, enqueue_io_request_inserts_stdout_by_priority)
+{
+  t_io io = make_io_stub(E_STDOUT, true);
+  t_pcb* low_priority = create_pcb(EST_BLOCK, 5);
+  t_pcb* high_priority = create_pcb(EST_BLOCK, 1);
+
+  cr_assert(enqueue_io_request(calloc(1, sizeof(t_stdout_request)), &io,
+                               low_priority));
+  cr_assert(enqueue_io_request(calloc(1, sizeof(t_stdout_request)), &io,
+                               high_priority));
+
+  cr_assert_eq(((t_stdout*)list_get(io.io_list->io_list, 0))->pcb,
+               high_priority);
+  cr_assert_eq(((t_stdout*)list_get(io.io_list->io_list, 1))->pcb,
+               low_priority);
+
+  destroy_pcb(low_priority);
+  destroy_pcb(high_priority);
+  destroy_io_stub(&io);
+}
+
+Test(ks_io_connection, enqueue_io_request_inserts_sleep_by_priority)
+{
+  t_io io = make_io_stub(E_SLEEP, true);
+  t_pcb* low_priority = create_pcb(EST_BLOCK, 5);
+  t_pcb* high_priority = create_pcb(EST_BLOCK, 1);
+
+  cr_assert(enqueue_io_request(calloc(1, sizeof(t_sleep_request)), &io,
+                               low_priority));
+  cr_assert(enqueue_io_request(calloc(1, sizeof(t_sleep_request)), &io,
+                               high_priority));
+
+  cr_assert_eq(((t_sleep*)list_get(io.io_list->io_list, 0))->pcb,
+               high_priority);
+  cr_assert_eq(((t_sleep*)list_get(io.io_list->io_list, 1))->pcb, low_priority);
+
+  destroy_pcb(low_priority);
+  destroy_pcb(high_priority);
+  destroy_io_stub(&io);
+}
+
 /* ── close_io drains pending requests ─────────────────────────────────── */
 
 Test(ks_io_connection, close_io_drains_and_unblocks_a_stuck_pending_request)
@@ -199,5 +240,89 @@ Test(ks_io_connection, close_io_drains_and_unblocks_a_stuck_pending_request)
   destroy_pcb(pcb);
   ks_destroy_stub_queues_full(queues);
   close(server_fd);
+  log_destroy(logger);
+}
+
+/* ── full round-trips through a real io_thread ────────────────────────── */
+
+Test(ks_io_connection, sleep_round_trip_unblocks_the_process)
+{
+  int server_fd;
+  int client_fd = ks_connected_pair(&server_fd);
+  cr_assert(send_string(OP_IO_TYPE, "SLEEP", server_fd));
+
+  t_log* logger = ks_quiet_logger();
+  t_queues* queues = ks_stub_queues_full(logger);
+  t_io* io = create_io_structures();
+
+  cr_assert(handle_new_io(io, client_fd, queues, false, -1));
+  cr_assert_eq(receive_handshake(server_fd), MID_KERNEL_SCHEDULER);
+
+  t_pcb* pcb = create_pcb(EST_BLOCK, 0);
+  transition_to_block(pcb, &(queues->block));
+
+  /* Queued ahead of time: communication_io_sleep() is a plain synchronous
+   * send+receive against this same connection, so the reply just has to be
+   * sitting on the wire whenever the worker thread gets to it. */
+  cr_assert(send_string(OP_SLEEP_RESPONSE, "OK", server_fd));
+
+  t_sleep_request* request = calloc(1, sizeof(t_sleep_request));
+  request->pid = pcb->pid;
+  cr_assert(enqueue_io_request(request, &(io[E_SLEEP]), pcb));
+
+  usleep(50000); /* let the worker thread run the round-trip */
+
+  cr_assert_eq(pcb->state, EST_READY);
+  cr_assert_eq(list_size(queues->block.list), 0);
+  cr_assert(list_is_empty(io[E_SLEEP].io_list->io_list));
+
+  destroy_pcb(pcb);
+  close_io(io);
+  ks_destroy_stub_queues_full(queues);
+  close(server_fd);
+  log_destroy(logger);
+}
+
+Test(ks_io_connection, stdout_round_trip_prints_and_unblocks_the_process)
+{
+  int server_fd;
+  int client_fd = ks_connected_pair(&server_fd);
+  cr_assert(send_string(OP_IO_TYPE, "STDOUT", server_fd));
+
+  int km_server_fd;
+  int km_client_fd = ks_connected_pair(&km_server_fd);
+
+  t_log* logger = ks_quiet_logger();
+  t_queues* queues = ks_stub_queues_full(logger);
+  queues->km_socket->km_socket = km_client_fd;
+  t_io* io = create_io_structures();
+
+  cr_assert(handle_new_io(io, client_fd, queues, false, -1));
+  cr_assert_eq(receive_handshake(server_fd), MID_KERNEL_SCHEDULER);
+
+  t_pcb* pcb = create_pcb(EST_BLOCK, 0);
+  transition_to_block(pcb, &(queues->block));
+
+  /* io_stdout_f() first asks Kernel Memory for the text to print, then
+   * relays it to the "IO" peer for printing -- both replies are queued
+   * ahead of time, same reasoning as the sleep round-trip above. */
+  cr_assert(send_string(OP_STDOUT_RESPONSE, "hello from memory", km_server_fd));
+  cr_assert(send_string(OP_STDOUT_RESPONSE, "OK", server_fd));
+
+  t_stdout_request* request = calloc(1, sizeof(t_stdout_request));
+  request->pid = pcb->pid;
+  cr_assert(enqueue_io_request(request, &(io[E_STDOUT]), pcb));
+
+  usleep(50000);
+
+  cr_assert_eq(pcb->state, EST_READY);
+  cr_assert_eq(list_size(queues->block.list), 0);
+  cr_assert(list_is_empty(io[E_STDOUT].io_list->io_list));
+
+  destroy_pcb(pcb);
+  close_io(io);
+  ks_destroy_stub_queues_full(queues);
+  close(server_fd);
+  close(km_server_fd);
   log_destroy(logger);
 }
