@@ -100,10 +100,13 @@ Test(ks_mutex, priority_inheritance_propagates_transitively_through_a_chain)
   cr_assert_eq(get_priority_pcb(low), 1,
                "low should transitively inherit high's priority through mid");
 
+  /* mid and high are still blocked (waiting) on mutex_1/mutex_2, so the
+   * mutex list must be torn down first -- destroying it unblocks/touches
+   * those pcbs, which must still be alive when that happens. */
+  destroy_list_mutex(list);
   destroy_pcb(low);
   destroy_pcb(mid);
   destroy_pcb(high);
-  destroy_list_mutex(list);
   ks_destroy_stub_queues_blocking(queues);
   log_destroy(logger);
 }
