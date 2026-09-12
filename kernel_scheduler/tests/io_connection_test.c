@@ -245,6 +245,50 @@ Test(ks_io_connection, close_io_drains_and_unblocks_a_stuck_pending_request)
 
 /* ── full round-trips through a real io_thread ────────────────────────── */
 
+Test(ks_io_connection, stdin_round_trip_reads_and_unblocks_the_process)
+{
+  int server_fd;
+  int client_fd = ks_connected_pair(&server_fd);
+  cr_assert(send_string(OP_IO_TYPE, "STDIN", server_fd));
+
+  int km_server_fd;
+  int km_client_fd = ks_connected_pair(&km_server_fd);
+
+  t_log* logger = ks_quiet_logger();
+  t_queues* queues = ks_stub_queues_full(logger);
+  queues->km_socket->km_socket = km_client_fd;
+  t_io* io = create_io_structures();
+
+  cr_assert(handle_new_io(io, client_fd, queues, false, -1));
+  cr_assert_eq(receive_handshake(server_fd), MID_KERNEL_SCHEDULER);
+
+  t_pcb* pcb = create_pcb(EST_BLOCK, 0);
+  transition_to_block(pcb, &(queues->block));
+
+  /* io_stdin_f() first asks the "IO" peer for the typed text, then relays
+   * it to Kernel Memory -- both replies queued ahead of time, same
+   * reasoning as the sleep/stdout round-trips below. */
+  cr_assert(send_string(OP_STDIN_RESPONSE, "typed answer", server_fd));
+  cr_assert(send_string(OP_STDIN_RESPONSE, "ack", km_server_fd));
+
+  t_stdin_request* request = calloc(1, sizeof(t_stdin_request));
+  request->pid = pcb->pid;
+  cr_assert(enqueue_io_request(request, &(io[E_STDIN]), pcb));
+
+  usleep(50000);
+
+  cr_assert_eq(pcb->state, EST_READY);
+  cr_assert_eq(list_size(queues->block.list), 0);
+  cr_assert(list_is_empty(io[E_STDIN].io_list->io_list));
+
+  destroy_pcb(pcb);
+  close_io(io);
+  ks_destroy_stub_queues_full(queues);
+  close(server_fd);
+  close(km_server_fd);
+  log_destroy(logger);
+}
+
 Test(ks_io_connection, sleep_round_trip_unblocks_the_process)
 {
   int server_fd;

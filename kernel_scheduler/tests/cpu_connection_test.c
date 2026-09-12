@@ -4,6 +4,7 @@
 #include <unistd.h>
 
 #include "kernel_scheduler/connections/cpu.h"
+#include "kernel_scheduler/connections/io.h"
 #include "kernel_scheduler/domain/pcb.h"
 #include "kernel_scheduler/scheduler/exec_list.h"
 #include "kernel_scheduler/scheduler/ready_queue.h"
@@ -442,6 +443,81 @@ Test(ks_cpu_connection, segmentation_fault_finishes_the_process)
 
   dispatch_fixture_end_after_preemption(&fx);
   close(km_peer_fd);
+}
+
+Test(ks_cpu_connection, io_sleep_syscall_blocks_the_process_for_io)
+{
+  t_dispatch_fixture fx;
+  dispatch_fixture_start(&fx);
+
+  int io_server_fd;
+  int io_client_fd = ks_connected_pair(&io_server_fd);
+  cr_assert(send_string(OP_IO_TYPE, "SLEEP", io_client_fd));
+  cr_assert(handle_new_io(fx.io, io_server_fd, fx.queues, false, -1));
+  cr_assert_eq(receive_handshake(io_client_fd), MID_KERNEL_SCHEDULER);
+  cr_assert(send_string(OP_SLEEP_RESPONSE, "OK", io_client_fd));
+
+  t_sleep_request request = {.pid = fx.pcb->pid, .blocked_time_ms = 10};
+  cr_assert(
+      send_buffer(OP_SYSCALL_SLEEP, &request, sizeof(request), fx.client_fd));
+  expect_preemption(fx.client_fd, OP_INTERRUPT, "IO operation");
+
+  dispatch_fixture_end_after_preemption(&fx);
+  close(io_client_fd);
+}
+
+Test(ks_cpu_connection, io_stdout_syscall_blocks_the_process_for_io)
+{
+  t_dispatch_fixture fx;
+  dispatch_fixture_start(&fx);
+  int km_server_fd;
+  int km_client_fd = ks_connected_pair(&km_server_fd);
+  fx.queues->km_socket->km_socket = km_client_fd;
+
+  int io_server_fd;
+  int io_client_fd = ks_connected_pair(&io_server_fd);
+  cr_assert(send_string(OP_IO_TYPE, "STDOUT", io_client_fd));
+  cr_assert(handle_new_io(fx.io, io_server_fd, fx.queues, false, -1));
+  cr_assert_eq(receive_handshake(io_client_fd), MID_KERNEL_SCHEDULER);
+  cr_assert(send_string(OP_STDOUT_RESPONSE, "printed text", km_server_fd));
+  cr_assert(send_string(OP_STDOUT_RESPONSE, "OK", io_client_fd));
+
+  t_stdout_request request = {
+      .pid = fx.pcb->pid, .bytes_to_write = 5, .logical_address = 0};
+  cr_assert(
+      send_buffer(OP_SYSCALL_STDOUT, &request, sizeof(request), fx.client_fd));
+  expect_preemption(fx.client_fd, OP_INTERRUPT, "IO operation");
+
+  dispatch_fixture_end_after_preemption(&fx);
+  close(io_client_fd);
+  close(km_server_fd);
+}
+
+Test(ks_cpu_connection, io_stdin_syscall_blocks_the_process_for_io)
+{
+  t_dispatch_fixture fx;
+  dispatch_fixture_start(&fx);
+  int km_server_fd;
+  int km_client_fd = ks_connected_pair(&km_server_fd);
+  fx.queues->km_socket->km_socket = km_client_fd;
+
+  int io_server_fd;
+  int io_client_fd = ks_connected_pair(&io_server_fd);
+  cr_assert(send_string(OP_IO_TYPE, "STDIN", io_client_fd));
+  cr_assert(handle_new_io(fx.io, io_server_fd, fx.queues, false, -1));
+  cr_assert_eq(receive_handshake(io_client_fd), MID_KERNEL_SCHEDULER);
+  cr_assert(send_string(OP_STDIN_RESPONSE, "typed answer", io_client_fd));
+  cr_assert(send_string(OP_STDIN_RESPONSE, "ack", km_server_fd));
+
+  t_stdin_request request = {
+      .pid = fx.pcb->pid, .bytes_to_read = 5, .logical_address = 0};
+  cr_assert(
+      send_buffer(OP_SYSCALL_STDIN, &request, sizeof(request), fx.client_fd));
+  expect_preemption(fx.client_fd, OP_INTERRUPT, "IO operation");
+
+  dispatch_fixture_end_after_preemption(&fx);
+  close(io_client_fd);
+  close(km_server_fd);
 }
 
 Test(ks_cpu_connection, cycle_cpu_ok_reports_no_preemption)
