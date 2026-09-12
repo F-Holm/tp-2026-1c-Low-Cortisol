@@ -18,6 +18,22 @@ t_log* cpu_quiet_logger(void);
  */
 int cpu_connected_pair(int* server_out);
 
+/**
+ * @brief Creates a listening socket on a kernel-assigned ephemeral port.
+ * @param port_out Buffer that receives the decimal port as a string.
+ * @param port_len Size of @p port_out.
+ * @return The listening fd, to be passed to `accept()` and closed by the
+ * caller.
+ */
+int cpu_listen_ephemeral(char* port_out, int port_len);
+
+/**
+ * @brief Writes a throwaway config file under /tmp with the given contents.
+ * @return Its path (heap-allocated); the caller unlinks the file and frees
+ * this.
+ */
+char* cpu_write_temp_config(const char* contents);
+
 /** @brief A zeroed execution context with an empty segment table. */
 t_context* cpu_make_context(void);
 

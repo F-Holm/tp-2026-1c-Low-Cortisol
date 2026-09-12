@@ -1,6 +1,6 @@
 # Pseudocode scripts
 
-The `.prc` / `.asm` files in this directory are the workloads the end-to-end test
+The `.prc` files in this directory are the workloads the end-to-end test
 scenarios run. Each line is one instruction; `INIT_PROC <file> <priority>` spawns
 another script as a child process.
 

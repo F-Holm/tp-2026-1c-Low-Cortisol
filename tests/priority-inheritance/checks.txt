@@ -1,0 +1,4 @@
+==1  Shutting down: BSOD: Corruption of memory detected
+==0  Shutting down: Processes finished successfully
+# 2 processes get boosted and revert to their original priority: 2 boosts + 2 reverts.
+>=4  Change of priority:

@@ -53,3 +53,19 @@ Test(km_configurator, init_config_returns_null_for_a_missing_file)
 {
   cr_assert_null(init_config("/no/such/kernel_memory.config"));
 }
+
+Test(km_configurator, init_logger_builds_a_working_logger)
+{
+  char* path = write_config();
+  t_config* config = init_config(path);
+  cr_assert_not_null(config);
+
+  t_log* logger = init_logger(config);
+  cr_assert_not_null(logger);
+
+  log_destroy(logger);
+  config_destroy(config);
+  unlink(path);
+  free(path);
+  unlink("kernel_memory.log");
+}

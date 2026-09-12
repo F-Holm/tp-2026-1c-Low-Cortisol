@@ -105,17 +105,52 @@ them in English.
 
 ## Source layout
 
+Sources live under `src/kernel_scheduler/` in packages:
+
+### `domain/` — core entities, no I/O
 | File | Responsibility |
 |------|----------------|
-| `src/main.c` | Argument parsing, bootstrap, shutdown. |
-| `kernel_scheduler.c` | Config loading, algorithm parsing. |
+| `pcb.c` | The `t_pcb` process control block: creation, teardown, state/priority accessors, active-instance counting. |
+| `kernel_memory_socket.c` | The `t_kernel_memory_socket` wrapper that serialises the connection to Kernel Memory. |
+
+### `scheduler/` — the queues and the state machine
+| File | Responsibility |
+|------|----------------|
+| `queue_types.h` | Every scheduler struct, including the `t_queues` aggregate. |
+| `queues.c` | The seven-state machine: every `transition_<from>_<to>` and the shutdown drain. |
+| `queues.h` | Umbrella header re-exporting the package. |
+| `suspension.c` | The suspender and resumer worker threads and the suspend/resume transitions. |
+| `compaction.c` | The memory-compaction and resumption-sweep routines (detached threads). |
+| `scheduler_internal.h` | Helpers shared between `queues.c`, `suspension.c` and `compaction.c` (not public API). |
+| `ready_queue.c` | `READY` as a data structure (single or multilevel), the preempt/terminate gates. |
+| `exec_list.c` | `EXEC` as a data structure and the "exec drained" waits. |
+| `blocking_list.c` | `BLOCK` / `SUSP. BLOCK` / `SUSP. READY` as data structures. |
+| `counter.c` | The `t_counter` primitive (thread and syscall counters). |
+| `memory_query.c` | Free-space / process-size request-response exchanges with Kernel Memory. |
+| `process_counter.c` | Live-process count; triggers `SR_NO_PROCESSES` shutdown when it hits zero. |
+
+### `connections/` — everything socket-facing
+| File | Responsibility |
+|------|----------------|
 | `server.c` | Multithreaded listener for CPUs and IO interfaces. |
 | `cpu.c` | Per-CPU thread: syscall dispatch, preemption, interrupts. |
 | `io.c` | Per-IO-interface request queues and `BLOCK` handling. |
-| `queue.c` | The seven-state machine; long/medium/short-term transitions; suspension and compaction routines. |
+| `kernel_memory.c` | The connection to Kernel Memory: connect, handshake, the connection-check watchdog. |
+
+### `syscalls/` — syscall implementations
+| File | Responsibility |
+|------|----------------|
 | `mutex.c` | Mutex ownership, wait queues, priority inheritance. |
 | `memory.c` | `MEM_ALLOC` / `MEM_FREE` requests and compaction coordination with Kernel Memory. |
-| `misc.c` | Process/thread counters, shutdown reasons, shared helpers. |
+
+### `app/` and top level
+| File | Responsibility |
+|------|----------------|
+| `../main.c` | Argument parsing, bootstrap, shutdown. |
+| `app/kernel_scheduler.c` | Config loading, algorithm parsing, module start/close. |
+| `shutdown.c` | The idempotent `close_kernel_scheduler` routine and the shutdown-reason resolution. |
+| `common/time.c` | `millis` / `time_diff`. |
+| `common/handshake.c` | `respond_handshake` (the module's handshake reply). |
 
 ## Log inventory
 
@@ -124,20 +159,20 @@ level that reaches the file (`INFO` shows `INFO`/`WARNING`/`ERROR`).
 
 | Level | Frequency | Message | Where |
 |-------|-----------|---------|-------|
-| `INFO` | per state change (mandatory) | `<PID> moves from state <from> to state <to>` | `queue.c` |
-| `INFO` | per syscall (mandatory) | `<PID> - Requested syscall: <name>` | `cpu.c` |
-| `INFO` | per process create / end (mandatory) | `<PID> Creating the process - State: NEW` / `<PID> finished execution with reason: <reason>` | `queue.c` |
-| `INFO` | per mutex op (mandatory) | `<PID> Takes/Releases the Mutex <name>` | `mutex.c` |
-| `INFO` | per priority change (mandatory) | `<PID> Change of priority: <old> - <new>` | `mutex.c` |
-| `INFO` | per preemption (mandatory) | `<PID> - Preempted due to quantum end`, `<PID> Priority: <p> - Preempted by a higher-priority queue ...` | `cpu.c` |
-| `INFO` | per IO end (mandatory) | `<PID> - Finished IO and moves to READY / SUSP. READY` | `io.c` |
-| `INFO` | per compaction (mandatory) | `Start of compaction` / `End of compaction` | `queue.c` |
-| `INFO` | once, on connect (mandatory) | `Connected to Kernel Memory` | `kernel_memory.c` |
-| `INFO` | per CPU / IO connection | `CPU <id> connected`, `IO of type <t> connected` | `cpu.c`, `io.c` |
-| `INFO` | once, on shutdown | `<reason>` (from `SHUTDOWN_REASONS`) | `misc.c` |
-| `WARNING` | on peer loss (CPU / IO / KM) | `Error communicating with Kernel Memory`, `Error sending to IO`, `CPU <id>: could not send the interrupt decision`, `The ... request queue was empty`, `IO operation of type <t> failed`, `Priority preemption failed` | `io.c`, `cpu.c`, `memory.c` |
-| `WARNING` | on bad handshake / duplicate | `Invalid handshake received`, `Duplicate IO type ...` | `server.c`, `io.c` |
-| `ERROR` | rare (thread / server creation) | `Error creating the CPU/suspender/resumer/... thread`, `Error creating the server` | `cpu.c`, `queue.c`, `server.c` |
-| `ERROR` | rare (state-machine violation / bad data) | `<PID> Cannot move from state ...`, `Wrong operation type. Expected: OP_IO_TYPE`, `Invalid IO type: <s>`, `Error sending the handshake to <s>`, `<reason>` (error `SHUTDOWN_REASONS`) | `queue.c`, `io.c`, `misc.c` |
-| `DEBUG` | per dispatch / soft outcome | `CPU %s: got process`, `Not enough space`, `Could not suspend/resume process <PID>`, `... thread started successfully`, connect/close confirmations | `cpu.c`, `queue.c`, `memory.c`, `server.c` |
-| `TRACE` | per cycle / per routine tick | `CPU %s: CPU cycle OK`, `CPU %s: Operation received`, `CPU %s: Code sent successfully`, `Space available`, `Process size`, `Suspended threads locked/unlocked` | `cpu.c`, `queue.c` |
+| `INFO` | per state change (mandatory) | `<PID> moves from state <from> to state <to>` | `scheduler/queues.c` |
+| `INFO` | per syscall (mandatory) | `<PID> - Requested syscall: <name>` | `connections/cpu.c` |
+| `INFO` | per process create / end (mandatory) | `<PID> Creating the process - State: NEW` / `<PID> finished execution with reason: <reason>` | `scheduler/queues.c` |
+| `INFO` | per mutex op (mandatory) | `<PID> Takes/Releases the Mutex <name>` | `syscalls/mutex.c` |
+| `INFO` | per priority change (mandatory) | `<PID> Change of priority: <old> - <new>` | `syscalls/mutex.c` |
+| `INFO` | per preemption (mandatory) | `<PID> - Preempted due to quantum end`, `<PID> Priority: <p> - Preempted by a higher-priority queue ...` | `connections/cpu.c` |
+| `INFO` | per IO end (mandatory) | `<PID> - Finished IO and moves to READY / SUSP. READY` | `connections/io.c` |
+| `INFO` | per compaction (mandatory) | `Start of compaction` / `End of compaction` | `scheduler/queues.c` |
+| `INFO` | once, on connect (mandatory) | `Connected to Kernel Memory` | `connections/kernel_memory.c` |
+| `INFO` | per CPU / IO connection | `CPU <id> connected`, `IO of type <t> connected` | `connections/cpu.c`, `connections/io.c` |
+| `INFO` | once, on shutdown | `<reason>` (from `SHUTDOWN_REASONS`) | `shutdown.c` |
+| `WARNING` | on peer loss (CPU / IO / KM) | `Error communicating with Kernel Memory`, `Error sending to IO`, `CPU <id>: could not send the interrupt decision`, `The ... request queue was empty`, `IO operation of type <t> failed`, `Priority preemption failed` | `connections/io.c`, `connections/cpu.c`, `syscalls/memory.c` |
+| `WARNING` | on bad handshake / duplicate | `Invalid handshake received`, `Duplicate IO type ...` | `connections/server.c`, `connections/io.c` |
+| `ERROR` | rare (thread / server creation) | `Error creating the CPU/suspender/resumer/... thread`, `Error creating the server` | `connections/cpu.c`, `scheduler/queues.c`, `connections/server.c` |
+| `ERROR` | rare (state-machine violation / bad data) | `<PID> Cannot move from state ...`, `Wrong operation type. Expected: OP_IO_TYPE`, `Invalid IO type: <s>`, `Error sending the handshake to <s>`, `<reason>` (error `SHUTDOWN_REASONS`) | `scheduler/queues.c`, `connections/io.c`, `shutdown.c`, `common/handshake.c` |
+| `DEBUG` | per dispatch / soft outcome | `CPU %s: got process`, `Not enough space`, `Could not suspend/resume process <PID>`, `... thread started successfully`, connect/close confirmations | `connections/cpu.c`, `scheduler/queues.c`, `syscalls/memory.c`, `connections/server.c` |
+| `TRACE` | per cycle / per routine tick | `CPU %s: CPU cycle OK`, `CPU %s: Operation received`, `CPU %s: Code sent successfully`, `Space available`, `Process size`, `Suspended threads locked/unlocked` | `connections/cpu.c`, `scheduler/queues.c` |

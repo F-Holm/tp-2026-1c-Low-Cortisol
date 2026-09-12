@@ -90,6 +90,7 @@ them in English.
 | `src/main.c` | Argument parsing, connection bootstrap, main loop. |
 | `initializer.c` | Config load, logger, socket setup. |
 | `connections.c` | Handshakes with scheduler, memory and sticks; Memory Stick discovery. |
+| `kernel_memory_protocol.c` | Kernel Memory control-plane exchanges: the max-segment-size handshake and in-band messages (new stick) between instruction cycles. |
 | `cpu.c` | Instruction-cycle driver, interrupt checking. |
 | `handlers.c` | One handler per instruction. |
 | `registers.c` | Register get/set by name and width. |
@@ -110,11 +111,11 @@ level that reaches the file (`INFO` shows `INFO`/`WARNING`/`ERROR`).
 | `INFO` | per dispatched process | `PID <PID> received - starting instruction cycle` | `cpu.c` |
 | `INFO` | once, on startup | `Starting CPU <id>` | `initializer.c` |
 | `WARNING` | on peer loss (KM / scheduler / stick) | `Kernel Memory disconnected`, `Kernel Scheduler disconnected...`, `Memory Stick disconnected`, `Could not send/request ...` | `cpu.c`, `memory.c`, `handlers.c`, `connections.c` |
-| `WARNING` | on unexpected op code | `Unrecognized operation code: <op>` | `cpu.c` |
+| `WARNING` | on unexpected op code | `Unrecognized operation code: <op>` | `kernel_memory_protocol.c` |
 | `ERROR` | rare (startup failure) | `Could not load the config` / `Could not load the logger` | `initializer.c` |
 | `ERROR` | rare (bad handshake) | `Could not send / receive the handshake ...` | `connections.c` |
-| `ERROR` | rare (bad data) | `Wrong operation code: <op>`, `Bad memory stick packet ...`, `Unknown instruction: <name>`, `Memory Stick not found`, `Memory Stick returned no data for the read` | `cpu.c`, `memory.c` |
-| `DEBUG` | once per connection / dispatch | handshakes, `Config loaded successfully`, `Context requested/received`, `Segment table received/updated`, `Maximum segment size received`, `Interrupt reason: <r>` | `connections.c`, `cpu.c` |
+| `ERROR` | rare (bad data) | `Wrong operation code: <op>`, `Bad memory stick packet ...`, `Unknown instruction: <name>`, `Memory Stick not found`, `Memory Stick returned no data for the read` | `kernel_memory_protocol.c`, `memory.c` |
+| `DEBUG` | once per connection / dispatch | handshakes, `Config loaded successfully`, `Context requested/received`, `Segment table received/updated`, `Maximum segment size received`, `Interrupt reason: <r>` | `connections.c`, `kernel_memory_protocol.c`, `cpu.c` |
 | `DEBUG` | per syscall instruction | `Syscall sent to the Kernel Scheduler` | `handlers.c` |
 | `TRACE` | per cycle | `No interrupt`, `Kernel Scheduler notified of the end of the cycle`, `Instruction requested successfully`, `Waiting for the segment table` | `cpu.c` |
 | `TRACE` | per memory access | `Read/Write requested from the Memory Stick`, `Read/Write done` | `memory.c` |

@@ -1,0 +1,9 @@
+==1  Shutting down: BSOD: Corruption of memory detected
+==0  Shutting down: Processes finished successfully
+# Without transitivity: 2 boosts + 2 reverts = 4 (same as priority-inheritance).
+# With transitivity: the process at the bottom of the chain (_V2_1, holding
+# MUTEX_1) gets re-boosted a second time when a third process blocks further
+# up the chain (on _V2_2, which is itself waiting on _V2_1) -- 3 boosts + 2
+# reverts = 5. Requiring >=5 here is specifically what proves the chain
+# propagated, not just direct pairwise inheritance.
+>=5  Change of priority:

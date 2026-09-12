@@ -11,7 +11,7 @@ t_kernel_memory_data* init_kernel_memory_data(
   t_kernel_memory_data* kernel_data = malloc(sizeof(t_kernel_memory_data));
   kernel_data->socket_kernel_memory = socket_kernel_memory;
   kernel_data->logger = logger;
-  kernel_data->socket_scheduler = -1;
+  atomic_init(&(kernel_data->socket_scheduler), -1);
   kernel_data->scripts_basepath = scripts_basepath;
   kernel_data->instruction_delay = instruction_delay;
   kernel_data->compaction_delay = compaction_delay;

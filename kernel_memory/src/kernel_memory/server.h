@@ -1,10 +1,11 @@
 #pragma once
 
 #include "kernel_memory/configurator.h"
+#include "kernel_memory/cpu_listener.h"
 #include "kernel_memory/error.h"
 #include "kernel_memory/initializer.h"
-#include "kernel_memory/listeners.h"
 #include "kernel_memory/protocol.h"
+#include "kernel_memory/scheduler_listener.h"
 #include "kernel_memory/structs.h"
 #include "utils/msg.h"
 

@@ -60,9 +60,10 @@ void free_kernel_memory_data(t_kernel_memory_data* kernel_data)
       shutdown(cpu->socket_cpu, SHUT_RDWR);
     }
   }
-  if (kernel_data->socket_scheduler != -1)
+  int socket_scheduler = atomic_load(&(kernel_data->socket_scheduler));
+  if (socket_scheduler != -1)
   {
-    shutdown(kernel_data->socket_scheduler, SHUT_RDWR);
+    shutdown(socket_scheduler, SHUT_RDWR);
   }
   pthread_mutex_lock(kernel_data->active_threads_mutex);
   while (kernel_data->active_threads > 0)

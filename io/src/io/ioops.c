@@ -8,7 +8,7 @@ bool run_stdin(t_io* io)
   log_info(io->logger, "PID %d - IO start", request->pid);
 
   // Ask for keyboard input.
-  log_info(io->logger, "PID %d - Enter %d characters", request->pid,
+  log_info(io->logger, "PID %d - Requesting %d characters", request->pid,
            request->bytes_to_read);
 
   char* buffer = NULL;

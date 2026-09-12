@@ -34,7 +34,7 @@ bool handshake(t_kernel_memory_data* kernel_data, int client_socket)
       pthread_mutex_lock(kernel_data->active_threads_mutex);
       kernel_data->active_threads++;
       pthread_mutex_unlock(kernel_data->active_threads_mutex);
-      kernel_data->socket_scheduler = client_socket;
+      atomic_store(&(kernel_data->socket_scheduler), client_socket);
       start_scheduler_listener(scheduler_data);
       socket_scheduler = client_socket;
     }
@@ -93,8 +93,9 @@ bool handshake(t_kernel_memory_data* kernel_data, int client_socket)
       }
       log_debug(kernel_data->logger, "A memory stick connected!");
       bool init_ok = true;
-      t_stick_data* stick_data = init_stick_data(
-          client_socket, kernel_data->logger, kernel_data->socket_scheduler);
+      t_stick_data* stick_data =
+          init_stick_data(client_socket, kernel_data->logger,
+                          atomic_load(&(kernel_data->socket_scheduler)));
       init_ok = resolve_stick_ip(stick_data, client_socket);
       init_ok = receive_stick_size(stick_data);
       init_ok = receive_stick_listen_port(stick_data);
@@ -103,7 +104,7 @@ bool handshake(t_kernel_memory_data* kernel_data, int client_socket)
       {
         send_cpu_connection(stick_data, kernel_data->connected_cpus);
         send_string(OP_NEW_MEMORY_STICK, "A new memory stick connected",
-                    kernel_data->socket_scheduler);
+                    atomic_load(&(kernel_data->socket_scheduler)));
         add_total_memory(kernel_data->main_memory, stick_data->stick_size);
       }
       else
