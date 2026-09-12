@@ -1,9 +1,17 @@
 ==1  Shutting down: BSOD: Corruption of memory detected
 ==0  Shutting down: Processes finished successfully
-# Without transitivity: 2 boosts + 2 reverts = 4 (same as priority-inheritance).
-# With transitivity: the process at the bottom of the chain (_V2_1, holding
-# MUTEX_1) gets re-boosted a second time when a third process blocks further
-# up the chain (on _V2_2, which is itself waiting on _V2_1) -- 3 boosts + 2
-# reverts = 5. Requiring >=5 here is specifically what proves the chain
-# propagated, not just direct pairwise inheritance.
->=5  Change of priority:
+# _V2_2 (prio 3) blocks on MUTEX_1, held by _V2_1 (prio 5): direct boost.
+# ">=", not "==", so the infinite-scenario early-exit still fires once these
+# are observed instead of soaking for the full TIMEOUT.
+>=1  Change of priority: 5 - 3
+# _V2_3 (prio 1) blocks on MUTEX_2, held by _V2_2: this directly boosts _V2_2
+# from 3 to 1, and that boost propagates transitively to _V2_1 (still holding
+# MUTEX_1 that _V2_2 is blocked on), re-boosting it from 3 to 1 as well. Both
+# produce the identical "3 - 1" text, so this line's count covers both --
+# requiring 2 here is what proves the chain propagated, not just direct
+# pairwise inheritance.
+>=2  Change of priority: 3 - 1
+# _V2_1 unlocks MUTEX_1 first and reverts to its base priority.
+>=1  Change of priority: 1 - 5
+# _V2_2 then unlocks MUTEX_2 and reverts to its base priority.
+>=1  Change of priority: 1 - 3

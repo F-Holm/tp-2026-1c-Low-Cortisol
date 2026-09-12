@@ -1,4 +1,12 @@
 ==1  Shutting down: BSOD: Corruption of memory detected
 ==0  Shutting down: Processes finished successfully
-# 2 processes get boosted and revert to their original priority: 2 boosts + 2 reverts.
->=4  Change of priority:
+# PRIORITY_INHERITANCE_4 (prio 2) blocks on MUTEX_1, held by PRIORITY_INHERITANCE_1
+# (prio 5): direct inheritance boost, then revert once _1 unlocks MUTEX_1.
+# ">=", not "==", so the infinite-scenario early-exit still fires once these
+# are observed instead of soaking for the full TIMEOUT.
+>=1  Change of priority: 5 - 2
+>=1  Change of priority: 2 - 5
+# PRIORITY_INHERITANCE_5 (prio 1) blocks on MUTEX_2, held by PRIORITY_INHERITANCE_2
+# (prio 4): same direct-inheritance boost/revert pair, an independent chain.
+>=1  Change of priority: 4 - 1
+>=1  Change of priority: 1 - 4

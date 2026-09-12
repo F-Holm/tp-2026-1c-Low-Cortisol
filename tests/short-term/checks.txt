@@ -1,2 +1,5 @@
 ==1  Shutting down: BSOD: Corruption of memory detected
 ==0  Shutting down: Processes finished successfully
+# RR_QUANTUM=1500 with SHORT_TERM_1/2/3 running under RR queues must produce
+# at least one eviction when a process's quantum runs out.
+>=1  Preempted due to quantum end
