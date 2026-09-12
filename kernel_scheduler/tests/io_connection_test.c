@@ -116,7 +116,8 @@ Test(ks_io_connection, enqueue_io_request_is_rejected_after_close)
   atomic_store(&(io.close_thread), true);
   t_pcb* pcb = create_pcb(EST_BLOCK, 0);
 
-  cr_assert_not(enqueue_io_request(malloc(sizeof(t_stdin_request)), &io, pcb));
+  cr_assert_not(
+      enqueue_io_request(calloc(1, sizeof(t_stdin_request)), &io, pcb));
   cr_assert(list_is_empty(io.io_list->io_list));
 
   destroy_pcb(pcb);
@@ -129,10 +130,10 @@ Test(ks_io_connection, enqueue_io_request_appends_in_arrival_order_by_default)
   t_pcb* low_priority = create_pcb(EST_BLOCK, 5);
   t_pcb* high_priority = create_pcb(EST_BLOCK, 1);
 
-  cr_assert(
-      enqueue_io_request(malloc(sizeof(t_stdin_request)), &io, low_priority));
-  cr_assert(
-      enqueue_io_request(malloc(sizeof(t_stdin_request)), &io, high_priority));
+  cr_assert(enqueue_io_request(calloc(1, sizeof(t_stdin_request)), &io,
+                               low_priority));
+  cr_assert(enqueue_io_request(calloc(1, sizeof(t_stdin_request)), &io,
+                               high_priority));
 
   cr_assert_eq(((t_stdin*)list_get(io.io_list->io_list, 0))->pcb, low_priority);
   cr_assert_eq(((t_stdin*)list_get(io.io_list->io_list, 1))->pcb,
@@ -149,10 +150,10 @@ Test(ks_io_connection, enqueue_io_request_inserts_by_priority_when_enabled)
   t_pcb* low_priority = create_pcb(EST_BLOCK, 5);
   t_pcb* high_priority = create_pcb(EST_BLOCK, 1);
 
-  cr_assert(
-      enqueue_io_request(malloc(sizeof(t_stdin_request)), &io, low_priority));
-  cr_assert(
-      enqueue_io_request(malloc(sizeof(t_stdin_request)), &io, high_priority));
+  cr_assert(enqueue_io_request(calloc(1, sizeof(t_stdin_request)), &io,
+                               low_priority));
+  cr_assert(enqueue_io_request(calloc(1, sizeof(t_stdin_request)), &io,
+                               high_priority));
 
   cr_assert_eq(((t_stdin*)list_get(io.io_list->io_list, 0))->pcb,
                high_priority);
@@ -180,8 +181,8 @@ Test(ks_io_connection, close_io_drains_and_unblocks_a_stuck_pending_request)
 
   t_pcb* pcb = create_pcb(EST_BLOCK, 0);
   transition_to_block(pcb, &(queues->block));
-  cr_assert(
-      enqueue_io_request(malloc(sizeof(t_stdin_request)), &(io[E_STDIN]), pcb));
+  cr_assert(enqueue_io_request(calloc(1, sizeof(t_stdin_request)),
+                               &(io[E_STDIN]), pcb));
 
   /* Give the worker thread a beat to pick it up and block on a reply that
    * will never come -- the fake "IO" peer above never answers. */
