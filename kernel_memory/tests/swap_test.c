@@ -15,19 +15,7 @@
 
 /* A full suspend_process/resume_process round-trip needs three independent
  * peers mocked at once: the memory stick(s), the swap module, and the
- * Kernel Scheduler that receives the final status.
- *
- * Note: on this environment (Criterion/Boxfort 2.4.1), running these tests
- * can intermittently hit a "Fatal glibc error" abort inside glibc's own
- * pthread internals (tpp.c's __pthread_tpp_change_priority,
- * pthread_mutex_lock.c's robust-mutex handling, ...) -- a different one
- * each time, and not tied to this fixture specifically (the same failure
- * has shown up in unrelated tests in other modules too). A standalone
- * reproduction outside Criterion, built from the exact same compiled
- * objects, runs suspend_process/resume_process's logic correctly every
- * time, so this is a test-framework/glibc interaction rather than an
- * application bug; the Makefile's test-run timeout keeps a recurrence from
- * hanging `make test` indefinitely. Re-run on failure. */
+ * Kernel Scheduler that receives the final status. */
 typedef struct
 {
   t_log* logger;
@@ -35,7 +23,7 @@ typedef struct
   int swap_client_fd, swap_server_fd;
   int scheduler_client_fd, scheduler_server_fd;
   t_list* sticks;
-  pthread_mutex_t sticks_mutex;
+  pthread_mutex_t* sticks_mutex;
   t_swap_data* swap_data;
   t_main_memory* memory;
   t_scheduler_data* scheduler_data;
@@ -52,7 +40,8 @@ static t_swap_fixture make_swap_fixture(int stick_size, int swap_size,
   stick->socket_stick = f.stick_client_fd;
   f.sticks = list_create();
   list_add(f.sticks, stick);
-  pthread_mutex_init(&f.sticks_mutex, NULL);
+  f.sticks_mutex = malloc(sizeof(pthread_mutex_t));
+  pthread_mutex_init(f.sticks_mutex, NULL);
 
   f.swap_client_fd = km_connected_pair(&f.swap_server_fd);
   t_swap_config config = {.swap_size = swap_size, .block_size = block_size};
@@ -67,7 +56,7 @@ static t_swap_fixture make_swap_fixture(int stick_size, int swap_size,
 
   f.scheduler_data = init_scheduler_data(
       -1, f.scheduler_client_fd, NULL, NULL, NULL, f.memory, f.sticks,
-      &f.sticks_mutex, f.swap_data, f.logger, NULL, NULL, NULL);
+      f.sticks_mutex, f.swap_data, f.logger, NULL, NULL, NULL);
   return f;
 }
 
@@ -81,7 +70,8 @@ static void destroy_swap_fixture(t_swap_fixture* f)
   close(f->stick_server_fd);
   close(f->swap_server_fd);
   close(f->scheduler_server_fd);
-  pthread_mutex_destroy(&f->sticks_mutex);
+  pthread_mutex_destroy(f->sticks_mutex);
+  free(f->sticks_mutex);
   log_destroy(f->logger);
 }
 
