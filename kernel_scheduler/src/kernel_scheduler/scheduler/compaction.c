@@ -121,6 +121,7 @@ bool fits_process(t_queues* queues, t_pcb* process)
 
 static bool remove_of_the_list(t_queues* queues)
 {
+  pthread_mutex_lock(&(queues->susp_ready.list_mutex));
   t_pcb* process = list_get(queues->susp_ready.list, 0);
   pthread_mutex_unlock(&(queues->susp_ready.list_mutex));
   pthread_mutex_lock(&(process->state_mutex));
@@ -143,13 +144,11 @@ static void resumption_routine(t_queues* queues)
   {
     if (is_compacting(queues))
     {
-      pthread_mutex_unlock(&(queues->susp_ready.list_mutex));
       break;
     }
 
     keep_running = remove_of_the_list(queues);
   }
-  pthread_mutex_unlock(&(queues->susp_ready.list_mutex));
 }
 
 static void* resumption_routine_thread(void* data_resume_suspension)
