@@ -104,6 +104,7 @@ $(OBJDIR)/%.o: %.c
 clean:
 	rm -rf build $(addsuffix /bin,$(BIN_MODULES) $(UNIT_MODULES)) \
 	       $(addsuffix /obj,$(BIN_MODULES) utils) utils/lib
+	find . -name "__pycache__" -o -name "*.pyc" -o -name ".pytest_cache" | xargs rm -rf
 
 logs:
 	@echo "Removing log files..."
