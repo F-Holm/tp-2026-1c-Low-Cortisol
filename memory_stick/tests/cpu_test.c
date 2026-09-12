@@ -532,3 +532,34 @@ Test(ms_cpu_listen_thread, accepts_a_cpu_and_serves_a_request_end_to_end)
   ms_destroy(ms);
   log_destroy(logger);
 }
+
+/* ── start_cpu_server ──────────────────────────────────────────────────── */
+
+Test(ms_cpu_listen_thread, start_cpu_server_spawns_a_working_listener)
+{
+  t_log* logger = ms_quiet_logger();
+  t_ms* ms = ms_make(16);
+
+  int listen_socket = create_server_cpu(logger);
+  cr_assert_gt(listen_socket, 0);
+  uint16_t port = get_cpu_port(listen_socket);
+
+  pthread_t thread;
+  cr_assert(start_cpu_server(&thread, listen_socket, logger, ms));
+
+  char port_str[16];
+  snprintf(port_str, sizeof(port_str), "%hu", port);
+  int cpu_fd = create_connection("127.0.0.1", port_str);
+  cr_assert_geq(cpu_fd, 0);
+
+  cr_assert(send_handshake(MID_CPU, cpu_fd));
+  cr_assert_eq(receive_handshake(cpu_fd), MID_MEMORY_STICK);
+
+  close(cpu_fd);
+  shutdown(listen_socket, SHUT_RDWR);
+  pthread_join(thread, NULL);
+
+  close(listen_socket);
+  ms_destroy(ms);
+  log_destroy(logger);
+}
