@@ -230,3 +230,83 @@ Test(ks_queues, update_priority_re_sorts_a_ready_pcb_into_its_new_level)
   list_destroy_and_destroy_elements(algos, free);
   log_destroy(logger);
 }
+
+/* ── mutex-taking wrappers around the *_no_mutex transitions ──────────────
+ * The _no_mutex core logic (called with pcb->state_mutex already held) is
+ * covered in depth by suspension_test.c; these just confirm the public
+ * wrapper actually takes the lock, delegates, and releases it. */
+
+Test(ks_queues, transition_block_susp_block_moves_the_pcb)
+{
+  int server_fd;
+  int client_fd = ks_connected_pair(&server_fd);
+  cr_assert(send_string(OP_SUSPENSION_OK, "suspended", server_fd));
+
+  t_log* logger = ks_quiet_logger();
+  t_queues* queues = ks_stub_queues_full(logger);
+  queues->km_socket->km_socket = client_fd;
+  atomic_store(&(queues->resume_active), true); /* skip the resumer wakeup */
+
+  t_pcb* pcb = create_pcb(EST_BLOCK, 0);
+  transition_to_block(pcb, &(queues->block));
+
+  transition_block_susp_block(pcb, queues);
+
+  cr_assert_eq(pcb->state, EST_SUSP_BLOCK);
+  cr_assert_eq(list_size(queues->susp_block.list), 1);
+
+  transition_take_susp_block(pcb, &(queues->susp_block));
+  destroy_pcb(pcb);
+  ks_destroy_stub_queues_full(queues);
+  close(server_fd);
+  log_destroy(logger);
+}
+
+Test(ks_queues, transition_susp_block_susp_ready_moves_the_pcb)
+{
+  t_log* logger = ks_quiet_logger();
+  t_queues* queues = ks_stub_queues_full(logger);
+  t_pcb* pcb = create_pcb(EST_SUSP_BLOCK, 0);
+  transition_to_susp_block(pcb, &(queues->susp_block));
+
+  transition_susp_block_susp_ready(pcb, queues);
+
+  cr_assert_eq(pcb->state, EST_SUSP_READY);
+  cr_assert_eq(list_size(queues->susp_ready.list), 1);
+
+  transition_take_susp_ready(pcb, &(queues->susp_ready));
+  destroy_pcb(pcb);
+  ks_destroy_stub_queues_full(queues);
+  log_destroy(logger);
+}
+
+Test(ks_queues, transition_susp_ready_moves_the_pcb_back_to_ready)
+{
+  int server_fd;
+  int client_fd = ks_connected_pair(&server_fd);
+  /* can_resume_suspended() makes two separate Kernel Memory round-trips
+   * (available space, then this process's size) before
+   * notify_process_resume_suspended() makes a third. */
+  int space = 1000;
+  cr_assert(send_buffer(OP_FREE_MEMORY, &space, sizeof(space), server_fd));
+  int size = 10;
+  cr_assert(send_buffer(OP_PROCESS_SIZE, &size, sizeof(size), server_fd));
+  cr_assert(send_string(OP_RESUME_SUSPENSION_OK, "resumed", server_fd));
+
+  t_log* logger = ks_quiet_logger();
+  t_queues* queues = ks_stub_queues_full(logger);
+  queues->km_socket->km_socket = client_fd;
+  t_pcb* pcb = create_pcb(EST_SUSP_READY, 0);
+  transition_to_susp_ready(pcb, &(queues->susp_ready));
+
+  cr_assert(transition_susp_ready(pcb, queues));
+
+  cr_assert_eq(pcb->state, EST_READY);
+  cr_assert_eq(list_size(queues->susp_ready.list), 0);
+
+  transition_take_ready_next(&(queues->ready));
+  destroy_pcb(pcb);
+  ks_destroy_stub_queues_full(queues);
+  close(server_fd);
+  log_destroy(logger);
+}
