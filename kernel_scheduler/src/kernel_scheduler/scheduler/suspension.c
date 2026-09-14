@@ -238,12 +238,10 @@ static bool receive_suspend_process_response(t_queues* queues)
       create_resumption_routine_thread(queues);
       return receive_suspend_process_response(queues);
     case OP_MEMORY_CORRUPTED:
-      close_kernel_scheduler(queues->server_socket, queues->logger,
-                             SR_CORRUPTED_MEMORY, -1);
+      close_kernel_scheduler(SR_CORRUPTED_MEMORY);
       break;
     default:
-      close_kernel_scheduler(queues->server_socket, queues->logger,
-                             SR_KERNEL_MEMORY_CONNECTION_FAILURE, -1);
+      close_kernel_scheduler(SR_KERNEL_MEMORY_CONNECTION_FAILURE);
       break;
   }
   free(receive_string(queues->km_socket->km_socket));
@@ -256,9 +254,7 @@ static bool notify_process_suspended(t_pcb* pcb, t_queues* queues)
   if (!send_buffer(OP_SUSPEND_PROCESS, &(pcb->pid), sizeof(uint32_t),
                    queues->km_socket->km_socket))
   {
-    close_kernel_scheduler(queues->server_socket, queues->logger,
-                           SR_KERNEL_MEMORY_SEND_ERROR,
-                           queues->km_socket->km_socket);
+    close_kernel_scheduler(SR_KERNEL_MEMORY_SEND_ERROR);
     pthread_mutex_unlock(&(queues->km_socket->socket_mutex));
     return false;
   }
@@ -275,9 +271,7 @@ static bool notify_process_resume_suspended(t_pcb* pcb, t_queues* queues)
   if (!(send_buffer(OP_RESUME_SUSPENDED_PROCESS, &(pcb->pid), sizeof(uint32_t),
                     queues->km_socket->km_socket)))
   {
-    close_kernel_scheduler(queues->server_socket, queues->logger,
-                           SR_KERNEL_MEMORY_SEND_ERROR,
-                           queues->km_socket->km_socket);
+    close_kernel_scheduler(SR_KERNEL_MEMORY_SEND_ERROR);
     pthread_mutex_unlock(&(queues->km_socket->socket_mutex));
     return false;
   }

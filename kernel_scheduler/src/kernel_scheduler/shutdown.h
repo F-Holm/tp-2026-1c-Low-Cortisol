@@ -13,8 +13,6 @@ typedef enum
 
 extern const char* const SHUTDOWN_REASONS[4];
 
-// Idempotent: only the first caller runs the shutdown sequence (notify Kernel
-// Memory, resolve the final reason, log it and shut the server socket down),
-// every later call returns immediately.
-void close_kernel_scheduler(int server_socket, t_log* logger,
-                            int reason_shutdown, int km_socket);
+// Must be called once, before any thread can reach close_kernel_scheduler.
+void init_shutdown(int server_socket, t_log* logger, int km_socket);
+void close_kernel_scheduler(int reason_shutdown);

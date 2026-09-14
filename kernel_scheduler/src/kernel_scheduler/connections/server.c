@@ -61,14 +61,13 @@ void server_listen(t_listen_server_data* data)
     switch (receive_handshake(socket_fd))
     {
       case MID_CPU:
-        handled_ok = handle_new_cpu(
-            socket_fd, list_sockets_cpu, &mutex_list_sockets_cpu,
-            &cpu_done_cond, data->logger, data->mutex_list, data->queues, io,
-            data->km_socket, data->socket_server);
+        handled_ok =
+            handle_new_cpu(socket_fd, list_sockets_cpu, &mutex_list_sockets_cpu,
+                           &cpu_done_cond, data->logger, data->mutex_list,
+                           data->queues, io, data->km_socket);
         break;
       case MID_IO:
-        handled_ok = handle_new_io(io, socket_fd, data->queues, false,
-                                   data->socket_server);
+        handled_ok = handle_new_io(io, socket_fd, data->queues, false);
         break;
       default:
         log_warning(data->logger, "Invalid handshake received");

@@ -8,6 +8,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
+#include "kernel_scheduler/shutdown.h"
 #include "utils/log.h"
 #include "utils/msg.h"
 
@@ -58,7 +59,6 @@ t_queues* ks_stub_queues_full(t_log* logger)
 {
   t_queues* queues = calloc(1, sizeof(t_queues));
   queues->logger = logger;
-  queues->server_socket = -1;
   init_ready_queue(&(queues->ready), AP_FIFO, NULL);
   init_exec_list(&(queues->exec), 0, false);
   init_blocking_list(&(queues->block));
@@ -67,8 +67,8 @@ t_queues* ks_stub_queues_full(t_log* logger)
   queues->thread_counter = create_counter();
   queues->syscall_counter = create_counter();
   queues->km_socket = init_socket_kernel_memory(-1);
-  queues->process_counter =
-      init_counter_processes(-1, logger, queues->km_socket);
+  queues->process_counter = init_counter_processes(queues->km_socket);
+  init_shutdown(-1, logger, -1);
   atomic_init(&(queues->compaction_active), false);
   atomic_init(&(queues->resume_active), false);
   pthread_mutex_init(&(queues->routine_mutex), NULL);

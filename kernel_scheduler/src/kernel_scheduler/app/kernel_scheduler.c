@@ -5,6 +5,7 @@
 
 #include "kernel_scheduler/connections/kernel_memory.h"
 #include "kernel_scheduler/connections/server.h"
+#include "kernel_scheduler/shutdown.h"
 #include "utils/config.h"
 #include "utils/log.h"
 #include "utils/msg.h"
@@ -38,8 +39,12 @@ bool start_module(t_kernel_scheduler* resources, char* config_path)
   // Create server socket
   resources->socket_server = create_socket_server(
       resources->config_vars.server_port, resources->logger);
+  if (resources->socket_server <= 0)
+    return false;
 
-  return resources->socket_server > 0;
+  init_shutdown(resources->socket_server, resources->logger,
+                resources->socket_kernel_memory);
+  return true;
 }
 
 void init_scheduler_resources(t_kernel_scheduler* resources)
@@ -47,16 +52,14 @@ void init_scheduler_resources(t_kernel_scheduler* resources)
   resources->km_socket_mutex =
       init_socket_kernel_memory(resources->socket_kernel_memory);
   resources->connection_check_thread_data =
-      start_thread_check_connection_kernel_memory(resources->socket_server,
-                                                  resources->logger,
+      start_thread_check_connection_kernel_memory(resources->logger,
                                                   resources->km_socket_mutex);
   resources->mutex_list = init_list_mutex();
   resources->queues = init_queues(
       resources->config_vars.scheduling_algorithm,
       resources->config_vars.cmn_algorithms, resources->config_vars.rr_quantum,
-      resources->config_vars.preemption, resources->socket_server,
-      resources->logger, resources->km_socket_mutex,
-      resources->config_vars.suspension_timeout);
+      resources->config_vars.preemption, resources->logger,
+      resources->km_socket_mutex, resources->config_vars.suspension_timeout);
 }
 
 void close_module_error(t_kernel_scheduler* resources)

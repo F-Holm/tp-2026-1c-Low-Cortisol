@@ -13,8 +13,9 @@ Test(ks_shutdown, notifies_kernel_memory_when_there_are_no_more_processes)
   int server_fd;
   int client_fd = ks_connected_pair(&server_fd);
   t_log* logger = ks_quiet_logger();
+  init_shutdown(-1, logger, client_fd);
 
-  close_kernel_scheduler(-1, logger, SR_NO_PROCESSES, client_fd);
+  close_kernel_scheduler(SR_NO_PROCESSES);
 
   cr_assert_eq(receive_op_code(server_fd), OP_KERNEL_SCHEDULER_SHUTDOWN);
   free(receive_string(server_fd));
@@ -29,9 +30,10 @@ Test(ks_shutdown, is_idempotent)
   int server_fd;
   int client_fd = ks_connected_pair(&server_fd);
   t_log* logger = ks_quiet_logger();
+  init_shutdown(-1, logger, client_fd);
 
-  close_kernel_scheduler(-1, logger, SR_NO_PROCESSES, client_fd);
-  close_kernel_scheduler(-1, logger, SR_NO_PROCESSES, client_fd);
+  close_kernel_scheduler(SR_NO_PROCESSES);
+  close_kernel_scheduler(SR_NO_PROCESSES);
 
   cr_assert_eq(receive_op_code(server_fd), OP_KERNEL_SCHEDULER_SHUTDOWN);
   free(receive_string(server_fd));
@@ -51,10 +53,11 @@ Test(ks_shutdown,
   int client_fd = ks_connected_pair(&server_fd);
   close(server_fd); /* the peer is already gone */
   t_log* logger = ks_quiet_logger();
+  init_shutdown(-1, logger, client_fd);
 
   /* Regression guard: check_reason_shutdown used to block forever here
    * waiting for a reply nobody would ever send. */
-  close_kernel_scheduler(-1, logger, SR_KERNEL_MEMORY_SEND_ERROR, client_fd);
+  close_kernel_scheduler(SR_KERNEL_MEMORY_SEND_ERROR);
 
   close(client_fd);
   log_destroy(logger);
@@ -69,7 +72,9 @@ Test(ks_shutdown, resolves_a_send_error_by_detecting_memory_corruption)
   cr_assert(send_string(OP_MEMORY_CORRUPTED, "boom", server_fd));
 
   t_log* logger = ks_quiet_logger();
-  close_kernel_scheduler(-1, logger, SR_KERNEL_MEMORY_SEND_ERROR, client_fd);
+  init_shutdown(-1, logger, client_fd);
+
+  close_kernel_scheduler(SR_KERNEL_MEMORY_SEND_ERROR);
 
   close(client_fd);
   close(server_fd);
@@ -86,8 +91,9 @@ Test(ks_shutdown, shuts_down_the_server_socket_regardless_of_reason)
   int km_client_fd = ks_connected_pair(&km_server_fd);
 
   t_log* logger = ks_quiet_logger();
-  close_kernel_scheduler(listen_side_fd, logger, SR_UNKNOWN_CAUSE,
-                         km_client_fd);
+  init_shutdown(listen_side_fd, logger, km_client_fd);
+
+  close_kernel_scheduler(SR_UNKNOWN_CAUSE);
 
   char buf[1];
   cr_assert_eq(recv(listen_peer_fd, buf, sizeof(buf), 0), 0);

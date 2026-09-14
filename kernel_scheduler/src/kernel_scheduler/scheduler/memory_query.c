@@ -16,9 +16,7 @@ int space_available_no_mutex(t_queues* queues, uint32_t pid)
   if (!(send_string(OP_REQUEST_FREE_MEMORY, "Requesting the available space",
                     queues->km_socket->km_socket)))
   {
-    close_kernel_scheduler(queues->server_socket, queues->logger,
-                           SR_KERNEL_MEMORY_SEND_ERROR,
-                           queues->km_socket->km_socket);
+    close_kernel_scheduler(SR_KERNEL_MEMORY_SEND_ERROR);
     return -1;
   }
   return receive_space(queues);
@@ -37,9 +35,7 @@ int process_size_no_mutex(t_queues* queues, uint32_t pid)
   if (!(send_buffer(OP_REQUEST_PROCESS_SIZE, &pid, sizeof(uint32_t),
                     queues->km_socket->km_socket)))
   {
-    close_kernel_scheduler(queues->server_socket, queues->logger,
-                           SR_KERNEL_MEMORY_SEND_ERROR,
-                           queues->km_socket->km_socket);
+    close_kernel_scheduler(SR_KERNEL_MEMORY_SEND_ERROR);
     return -1;
   }
 
@@ -81,12 +77,10 @@ static int receive_space(t_queues* queues)
       return receive_space(queues);
       break;
     case OP_MEMORY_CORRUPTED:
-      close_kernel_scheduler(queues->server_socket, queues->logger,
-                             SR_CORRUPTED_MEMORY, -1);
+      close_kernel_scheduler(SR_CORRUPTED_MEMORY);
       break;
     default:
-      close_kernel_scheduler(queues->server_socket, queues->logger,
-                             SR_KERNEL_MEMORY_CONNECTION_FAILURE, -1);
+      close_kernel_scheduler(SR_KERNEL_MEMORY_CONNECTION_FAILURE);
       break;
   }
   return -1;
@@ -112,12 +106,10 @@ static int receive_size(t_queues* queues)
       return receive_size(queues);
       break;
     case OP_MEMORY_CORRUPTED:
-      close_kernel_scheduler(queues->server_socket, queues->logger,
-                             SR_CORRUPTED_MEMORY, -1);
+      close_kernel_scheduler(SR_CORRUPTED_MEMORY);
       break;
     default:
-      close_kernel_scheduler(queues->server_socket, queues->logger,
-                             SR_KERNEL_MEMORY_CONNECTION_FAILURE, -1);
+      close_kernel_scheduler(SR_KERNEL_MEMORY_CONNECTION_FAILURE);
       break;
   }
   return -1;
@@ -142,12 +134,10 @@ static int receive_size_no_logger(t_queues* queues)
       return receive_size(queues);
       break;
     case OP_MEMORY_CORRUPTED:
-      close_kernel_scheduler(queues->server_socket, queues->logger,
-                             SR_CORRUPTED_MEMORY, -1);
+      close_kernel_scheduler(SR_CORRUPTED_MEMORY);
       break;
     default:
-      close_kernel_scheduler(queues->server_socket, queues->logger,
-                             SR_KERNEL_MEMORY_CONNECTION_FAILURE, -1);
+      close_kernel_scheduler(SR_KERNEL_MEMORY_CONNECTION_FAILURE);
       break;
   }
   return -1;
@@ -158,9 +148,7 @@ static int process_size_no_mutex_no_logger(t_queues* queues, uint32_t pid)
   if (!(send_buffer(OP_REQUEST_PROCESS_SIZE, &pid, sizeof(uint32_t),
                     queues->km_socket->km_socket)))
   {
-    close_kernel_scheduler(queues->server_socket, queues->logger,
-                           SR_KERNEL_MEMORY_SEND_ERROR,
-                           queues->km_socket->km_socket);
+    close_kernel_scheduler(SR_KERNEL_MEMORY_SEND_ERROR);
     return -1;
   }
 

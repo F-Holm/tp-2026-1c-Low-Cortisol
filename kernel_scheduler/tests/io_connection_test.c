@@ -22,7 +22,7 @@ Test(ks_io_connection, succeeds_and_starts_a_worker_thread_for_a_valid_io_type)
   t_queues* queues = ks_stub_queues(logger);
   t_io* io = create_io_structures();
 
-  cr_assert(handle_new_io(io, fds[0], queues, false, -1));
+  cr_assert(handle_new_io(io, fds[0], queues, false));
   cr_assert_eq(receive_handshake(fds[1]), MID_KERNEL_SCHEDULER);
   cr_assert_eq(io[E_STDIN].socket_io, fds[0]);
 
@@ -42,7 +42,7 @@ Test(ks_io_connection, fails_when_the_io_type_is_unknown)
   t_queues* queues = ks_stub_queues(logger);
   t_io* io = create_io_structures();
 
-  cr_assert_not(handle_new_io(io, fds[0], queues, false, -1));
+  cr_assert_not(handle_new_io(io, fds[0], queues, false));
 
   close_io(io);
   close(fds[0]);
@@ -64,8 +64,8 @@ Test(ks_io_connection, fails_when_the_io_type_is_a_duplicate)
   t_queues* queues = ks_stub_queues(logger);
   t_io* io = create_io_structures();
 
-  cr_assert(handle_new_io(io, fds[0], queues, false, -1));
-  cr_assert_not(handle_new_io(io, dup_fds[0], queues, false, -1));
+  cr_assert(handle_new_io(io, fds[0], queues, false));
+  cr_assert_not(handle_new_io(io, dup_fds[0], queues, false));
 
   close_io(io);
   close(fds[1]);
@@ -80,7 +80,7 @@ Test(ks_io_connection, fails_gracefully_on_a_dead_socket)
   t_queues* queues = ks_stub_queues(logger);
   t_io* io = create_io_structures();
 
-  cr_assert_not(handle_new_io(io, -1, queues, false, -1));
+  cr_assert_not(handle_new_io(io, -1, queues, false));
 
   close_io(io);
   free(queues);
@@ -217,7 +217,7 @@ Test(ks_io_connection, close_io_drains_and_unblocks_a_stuck_pending_request)
   t_queues* queues = ks_stub_queues_full(logger);
   t_io* io = create_io_structures();
 
-  cr_assert(handle_new_io(io, client_fd, queues, false, -1));
+  cr_assert(handle_new_io(io, client_fd, queues, false));
   cr_assert_eq(receive_handshake(server_fd), MID_KERNEL_SCHEDULER);
 
   t_pcb* pcb = create_pcb(EST_BLOCK, 0);
@@ -259,7 +259,7 @@ Test(ks_io_connection, stdin_round_trip_reads_and_unblocks_the_process)
   queues->km_socket->km_socket = km_client_fd;
   t_io* io = create_io_structures();
 
-  cr_assert(handle_new_io(io, client_fd, queues, false, -1));
+  cr_assert(handle_new_io(io, client_fd, queues, false));
   cr_assert_eq(receive_handshake(server_fd), MID_KERNEL_SCHEDULER);
 
   t_pcb* pcb = create_pcb(EST_BLOCK, 0);
@@ -299,7 +299,7 @@ Test(ks_io_connection, sleep_round_trip_unblocks_the_process)
   t_queues* queues = ks_stub_queues_full(logger);
   t_io* io = create_io_structures();
 
-  cr_assert(handle_new_io(io, client_fd, queues, false, -1));
+  cr_assert(handle_new_io(io, client_fd, queues, false));
   cr_assert_eq(receive_handshake(server_fd), MID_KERNEL_SCHEDULER);
 
   t_pcb* pcb = create_pcb(EST_BLOCK, 0);
@@ -341,7 +341,7 @@ Test(ks_io_connection, stdout_round_trip_prints_and_unblocks_the_process)
   queues->km_socket->km_socket = km_client_fd;
   t_io* io = create_io_structures();
 
-  cr_assert(handle_new_io(io, client_fd, queues, false, -1));
+  cr_assert(handle_new_io(io, client_fd, queues, false));
   cr_assert_eq(receive_handshake(server_fd), MID_KERNEL_SCHEDULER);
 
   t_pcb* pcb = create_pcb(EST_BLOCK, 0);

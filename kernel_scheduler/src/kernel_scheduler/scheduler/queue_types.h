@@ -133,7 +133,6 @@ typedef struct
   t_counter* syscall_counter;
   t_log* logger;
   t_kernel_memory_socket* km_socket;
-  int server_socket;
   t_suspension_data* suspension_data;
   pthread_mutex_t routine_mutex;
   pthread_cond_t routine_cond;

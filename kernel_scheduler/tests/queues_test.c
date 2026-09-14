@@ -30,7 +30,7 @@ Test(ks_queues, init_queues_builds_a_working_full_lifecycle)
   t_kernel_memory_socket* km_socket = init_socket_kernel_memory(-1);
 
   t_queues* queues =
-      init_queues(AP_FIFO, NULL, 0, false, -1, logger, km_socket, 1000);
+      init_queues(AP_FIFO, NULL, 0, false, logger, km_socket, 1000);
 
   cr_assert_not_null(queues);
   cr_assert_eq(queues->logger, logger);

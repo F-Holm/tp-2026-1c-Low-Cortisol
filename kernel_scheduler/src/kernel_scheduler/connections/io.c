@@ -49,7 +49,7 @@ t_io* create_io_structures(void)
 }
 
 bool handle_new_io(t_io io[3], int socket_fd, t_queues* queues,
-                   bool priority_active, int socket_server)
+                   bool priority_active)
 {
   if (!respond_handshake(socket_fd, MID_KERNEL_SCHEDULER, queues->logger))
     return false;
@@ -68,7 +68,6 @@ bool handle_new_io(t_io io[3], int socket_fd, t_queues* queues,
   // Prepare the t_io to create the thread
   io[io_type].socket_io = socket_fd;
   io[io_type].current_process = NULL;
-  io[io_type].socket_server = socket_server;
   io[io_type].queues = queues;
   io[io_type].logger = queues->logger;
   io[io_type].km_socket = queues->km_socket;
@@ -323,8 +322,7 @@ static bool chat_km_stdin(t_io* io_in)
   {
     case OP_MEMORY_CORRUPTED:
       free(receive_string(io_in->km_socket->km_socket));
-      close_kernel_scheduler(io_in->socket_server, io_in->logger,
-                             SR_CORRUPTED_MEMORY, -1);
+      close_kernel_scheduler(SR_CORRUPTED_MEMORY);
       return false;
     case OP_NEW_MEMORY_STICK:
       free(receive_string(io_in->km_socket->km_socket));
@@ -335,8 +333,7 @@ static bool chat_km_stdin(t_io* io_in)
       return true;
     default:
       free(receive_string(io_in->km_socket->km_socket));
-      close_kernel_scheduler(io_in->socket_server, io_in->logger,
-                             SR_KERNEL_MEMORY_CONNECTION_FAILURE, -1);
+      close_kernel_scheduler(SR_KERNEL_MEMORY_CONNECTION_FAILURE);
       return false;
   }
 }
@@ -355,9 +352,7 @@ static int io_stdin_f(t_stdin* request, t_io* io_in)
   send = send_stdin(request, io_in, buffer);
   if (!send)
   {
-    close_kernel_scheduler(io_in->socket_server, io_in->logger,
-                           SR_KERNEL_MEMORY_SEND_ERROR,
-                           io_in->km_socket->km_socket);
+    close_kernel_scheduler(SR_KERNEL_MEMORY_SEND_ERROR);
     pthread_mutex_unlock(&(io_in->km_socket->socket_mutex));
     free(buffer);
     return false;
@@ -381,8 +376,7 @@ static bool receive_km_stdout(t_io* io_out)
   {
     case OP_MEMORY_CORRUPTED:
       free(receive_string(io_out->km_socket->km_socket));
-      close_kernel_scheduler(io_out->socket_server, io_out->logger,
-                             SR_CORRUPTED_MEMORY, -1);
+      close_kernel_scheduler(SR_CORRUPTED_MEMORY);
       return false;
     case OP_NEW_MEMORY_STICK:
       free(receive_string(io_out->km_socket->km_socket));
@@ -392,8 +386,7 @@ static bool receive_km_stdout(t_io* io_out)
       return true;
     default:
       free(receive_string(io_out->km_socket->km_socket));
-      close_kernel_scheduler(io_out->socket_server, io_out->logger,
-                             SR_KERNEL_MEMORY_CONNECTION_FAILURE, -1);
+      close_kernel_scheduler(SR_KERNEL_MEMORY_CONNECTION_FAILURE);
       return false;
   }
 }
@@ -406,9 +399,7 @@ static bool io_stdout_f(t_stdout* request, t_io* io_out)
   bool send = request_stdout_km(request, io_out);
   if (!send)
   {
-    close_kernel_scheduler(io_out->socket_server, io_out->logger,
-                           SR_KERNEL_MEMORY_SEND_ERROR,
-                           io_out->km_socket->km_socket);
+    close_kernel_scheduler(SR_KERNEL_MEMORY_SEND_ERROR);
     pthread_mutex_unlock(&(io_out->km_socket->socket_mutex));
     return false;
   }
@@ -425,8 +416,7 @@ static bool io_stdout_f(t_stdout* request, t_io* io_out)
   {
     log_warning(io_out->logger, "Error receiving the Kernel Memory response");
     free(buffer);
-    close_kernel_scheduler(io_out->socket_server, io_out->logger,
-                           SR_KERNEL_MEMORY_CONNECTION_FAILURE, -1);
+    close_kernel_scheduler(SR_KERNEL_MEMORY_CONNECTION_FAILURE);
     return false;
   }
 

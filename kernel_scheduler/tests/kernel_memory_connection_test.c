@@ -4,6 +4,7 @@
 #include <unistd.h>
 
 #include "kernel_scheduler/connections/kernel_memory.h"
+#include "kernel_scheduler/shutdown.h"
 #include "support.h"
 #include "utils/msg.h"
 
@@ -88,8 +89,9 @@ Test(ks_km_connection, notify_terminate_process_sends_the_pid)
   int client_fd = ks_connected_pair(&server_fd);
   t_kernel_memory_socket* km_socket = init_socket_kernel_memory(client_fd);
   t_log* logger = ks_quiet_logger();
+  init_shutdown(-1, logger, client_fd);
 
-  cr_assert(notify_terminate_process(km_socket, 42, -1, logger));
+  cr_assert(notify_terminate_process(km_socket, 42));
 
   cr_assert_eq(receive_op_code(server_fd), OP_END_PROCESS);
   int size;
@@ -113,8 +115,9 @@ Test(ks_km_connection, notify_terminate_process_reports_a_dead_socket)
   close(server_fd);
   t_kernel_memory_socket* km_socket = init_socket_kernel_memory(client_fd);
   t_log* logger = ks_quiet_logger();
+  init_shutdown(-1, logger, client_fd);
 
-  cr_assert_not(notify_terminate_process(km_socket, 42, -1, logger));
+  cr_assert_not(notify_terminate_process(km_socket, 42));
 
   destroy_kernel_memory(km_socket);
   log_destroy(logger);
@@ -130,7 +133,7 @@ Test(ks_km_connection, the_watchdog_thread_stops_when_asked_to)
   t_log* logger = ks_quiet_logger();
 
   t_connection_check_thread* data =
-      start_thread_check_connection_kernel_memory(-1, logger, km_socket);
+      start_thread_check_connection_kernel_memory(logger, km_socket);
   cr_assert_not_null(data);
 
   destroy_thread_check_connection_kernel_memory(data); /* joins the thread */

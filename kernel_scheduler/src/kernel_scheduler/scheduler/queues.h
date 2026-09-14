@@ -14,7 +14,7 @@
 // pass NULL as t_list if the algorithm is not CMN
 // pass quantum = 0 if the algorithm is not RR
 t_queues* init_queues(int algorithm, t_list* cmn_algorithms, int quantum,
-                      bool preemption, int server_socket, t_log* logger,
+                      bool preemption, t_log* logger,
                       t_kernel_memory_socket* km_socket,
                       int suspension_timeout);
 void destroy_queues(t_queues* queues);

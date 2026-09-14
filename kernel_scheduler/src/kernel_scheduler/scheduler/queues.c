@@ -35,7 +35,7 @@ static bool notify_new_process(t_queues* queues, char* instructions_file,
                                uint32_t pid);
 
 t_queues* init_queues(int algorithm, t_list* cmn_algorithms, int quantum,
-                      bool preemption, int server_socket, t_log* logger,
+                      bool preemption, t_log* logger,
                       t_kernel_memory_socket* km_socket, int suspension_timeout)
 {
   t_queues* queues = malloc(sizeof(t_queues));
@@ -44,8 +44,7 @@ t_queues* init_queues(int algorithm, t_list* cmn_algorithms, int quantum,
   init_blocking_list(&(queues->block));
   init_blocking_list(&(queues->susp_block));
   init_blocking_list(&(queues->susp_ready));
-  queues->process_counter =
-      init_counter_processes(server_socket, logger, km_socket);
+  queues->process_counter = init_counter_processes(km_socket);
   queues->thread_counter = create_counter();
   queues->syscall_counter = create_counter();
   pthread_mutex_init(&(queues->routine_mutex), NULL);
@@ -54,7 +53,6 @@ t_queues* init_queues(int algorithm, t_list* cmn_algorithms, int quantum,
   queues->terminate_routines = false;
   queues->logger = logger;
   queues->km_socket = km_socket;
-  queues->server_socket = server_socket;
   atomic_init(&(queues->compaction_active), false);
   atomic_init(&(queues->resume_active), false);
   start_threads_suspended(queues, suspension_timeout);
@@ -320,8 +318,7 @@ static void transition_to_exit(t_pcb* pcb, t_queues* queues, int reason)
   if (reason != PER_SYSTEM_SHUTDOWN && reason != PER_INVALID_PRIORITY)
   {
     bool run_resumption_routine = process_size(queues, pcb->pid) > 0;
-    if (notify_terminate_process(queues->km_socket, pcb->pid,
-                                 queues->server_socket, queues->logger) &&
+    if (notify_terminate_process(queues->km_socket, pcb->pid) &&
         run_resumption_routine)
     {
       create_resumption_routine_thread(queues);
@@ -404,9 +401,7 @@ static bool notify_new_process(t_queues* queues, char* instructions_file,
 
   if (!ret)
   {
-    close_kernel_scheduler(queues->server_socket, queues->logger,
-                           SR_KERNEL_MEMORY_SEND_ERROR,
-                           queues->km_socket->km_socket);
+    close_kernel_scheduler(SR_KERNEL_MEMORY_SEND_ERROR);
     pthread_mutex_unlock(&(queues->km_socket->socket_mutex));
     return false;
   }
@@ -425,8 +420,7 @@ static bool notify_new_process(t_queues* queues, char* instructions_file,
         break;
       case OP_MEMORY_CORRUPTED:
         free(receive_string(queues->km_socket->km_socket));
-        close_kernel_scheduler(queues->server_socket, queues->logger,
-                               SR_CORRUPTED_MEMORY, -1);
+        close_kernel_scheduler(SR_CORRUPTED_MEMORY);
         keep_running = false;
         break;
       case OP_NEW_MEMORY_STICK:
@@ -436,8 +430,7 @@ static bool notify_new_process(t_queues* queues, char* instructions_file,
         break;
       default:
         free(receive_string(queues->km_socket->km_socket));
-        close_kernel_scheduler(queues->server_socket, queues->logger,
-                               SR_KERNEL_MEMORY_CONNECTION_FAILURE, -1);
+        close_kernel_scheduler(SR_KERNEL_MEMORY_CONNECTION_FAILURE);
         keep_running = false;
         break;
     }

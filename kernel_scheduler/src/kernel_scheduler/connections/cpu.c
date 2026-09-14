@@ -65,7 +65,7 @@ static t_cpu_thread* init_data_thread_cpu(
     int socket_cpu, t_list* list_sockets_cpu,
     pthread_mutex_t* mutex_list_sockets_cpu, pthread_cond_t* cpu_done_cond,
     char* id_cpu, t_log* logger, t_mutex_list* mutex_list, t_queues* queues,
-    t_io* io, t_kernel_memory_socket* km_socket, int server_socket);
+    t_io* io, t_kernel_memory_socket* km_socket);
 static bool create_thread_cpu(t_cpu_thread* data);
 static char* get_id_cpu(int socket_cpu, t_log* logger);
 
@@ -73,7 +73,7 @@ bool handle_new_cpu(int socket_cpu, t_list* list_sockets_cpu,
                     pthread_mutex_t* mutex_list_sockets_cpu,
                     pthread_cond_t* cpu_done_cond, t_log* logger,
                     t_mutex_list* mutex_list, t_queues* queues, t_io* io,
-                    t_kernel_memory_socket* km_socket, int server_socket)
+                    t_kernel_memory_socket* km_socket)
 {
   // Handshake with CPU
   if (!respond_handshake(socket_cpu, MID_KERNEL_SCHEDULER, logger))
@@ -87,7 +87,7 @@ bool handle_new_cpu(int socket_cpu, t_list* list_sockets_cpu,
   // Initialize cpu thread data
   t_cpu_thread* data_thread_cpu = init_data_thread_cpu(
       socket_cpu, list_sockets_cpu, mutex_list_sockets_cpu, cpu_done_cond,
-      id_cpu, logger, mutex_list, queues, io, km_socket, server_socket);
+      id_cpu, logger, mutex_list, queues, io, km_socket);
 
   // Add socket to the list
   pthread_mutex_lock(mutex_list_sockets_cpu);
@@ -563,7 +563,7 @@ static t_cpu_thread* init_data_thread_cpu(
     int socket_cpu, t_list* list_sockets_cpu,
     pthread_mutex_t* mutex_list_sockets_cpu, pthread_cond_t* cpu_done_cond,
     char* id_cpu, t_log* logger, t_mutex_list* mutex_list, t_queues* queues,
-    t_io* io, t_kernel_memory_socket* km_socket, int server_socket)
+    t_io* io, t_kernel_memory_socket* km_socket)
 {
   t_cpu_thread* data = malloc(sizeof(t_cpu_thread));
   data->socket_fd = socket_cpu;
@@ -576,7 +576,6 @@ static t_cpu_thread* init_data_thread_cpu(
   data->queues = queues;
   data->io = io;
   data->km_socket = km_socket;
-  data->server_socket = server_socket;
   return data;
 }
 

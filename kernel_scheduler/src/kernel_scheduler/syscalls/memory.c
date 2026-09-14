@@ -24,9 +24,7 @@ bool allocate_memory(t_syscall_memory* mem_alloc, t_queues* queues)
   if (!comms)
   {
     log_warning(queues->logger, "Error communicating with Kernel Memory");
-    close_kernel_scheduler(queues->server_socket, queues->logger,
-                           SR_KERNEL_MEMORY_SEND_ERROR,
-                           queues->km_socket->km_socket);
+    close_kernel_scheduler(SR_KERNEL_MEMORY_SEND_ERROR);
     pthread_mutex_unlock(&(queues->km_socket->socket_mutex));
     return false;
   }
@@ -46,9 +44,7 @@ bool free_memory(t_syscall_memory* mem_free, t_queues* queues)
   if (!comms)
   {
     log_warning(queues->logger, "Error communicating with Kernel Memory");
-    close_kernel_scheduler(queues->server_socket, queues->logger,
-                           SR_KERNEL_MEMORY_SEND_ERROR,
-                           queues->km_socket->km_socket);
+    close_kernel_scheduler(SR_KERNEL_MEMORY_SEND_ERROR);
     pthread_mutex_unlock(&(queues->km_socket->socket_mutex));
     return false;
   }
@@ -70,8 +66,7 @@ static bool response_km_mem_alloc(t_queues* queues)
   {
     case OP_MEMORY_CORRUPTED:
       free(receive_string(queues->km_socket->km_socket));
-      close_kernel_scheduler(queues->server_socket, queues->logger,
-                             SR_CORRUPTED_MEMORY, -1);
+      close_kernel_scheduler(SR_CORRUPTED_MEMORY);
       return true;
     case OP_SEGMENT_SIZE_EXCEEDED:
       free(receive_string(queues->km_socket->km_socket));
@@ -89,8 +84,7 @@ static bool response_km_mem_alloc(t_queues* queues)
       return response_km_mem_alloc(queues);
     default:
       free(receive_string(queues->km_socket->km_socket));
-      close_kernel_scheduler(queues->server_socket, queues->logger,
-                             SR_KERNEL_MEMORY_CONNECTION_FAILURE, -1);
+      close_kernel_scheduler(SR_KERNEL_MEMORY_CONNECTION_FAILURE);
       return true;
   }
 }
@@ -111,8 +105,7 @@ static bool response_km_mem_free(t_queues* queues)
   {
     case OP_MEMORY_CORRUPTED:
       free(receive_string(queues->km_socket->km_socket));
-      close_kernel_scheduler(queues->server_socket, queues->logger,
-                             SR_CORRUPTED_MEMORY, -1);
+      close_kernel_scheduler(SR_CORRUPTED_MEMORY);
       return false;
     case OP_MEMORY_FREED:
       free(receive_string(queues->km_socket->km_socket));
@@ -123,8 +116,7 @@ static bool response_km_mem_free(t_queues* queues)
       return response_km_mem_free(queues);
     default:
       free(receive_string(queues->km_socket->km_socket));
-      close_kernel_scheduler(queues->server_socket, queues->logger,
-                             SR_KERNEL_MEMORY_CONNECTION_FAILURE, -1);
+      close_kernel_scheduler(SR_KERNEL_MEMORY_CONNECTION_FAILURE);
       return false;
   }
 }

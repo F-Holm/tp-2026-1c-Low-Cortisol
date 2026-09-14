@@ -25,7 +25,6 @@ typedef struct
   t_queues* queues;
   t_log* logger;
   t_kernel_memory_socket* km_socket;
-  int socket_server;
   atomic_bool close_thread;
   pthread_t io_thread;
   t_io_list* io_list;
@@ -52,6 +51,6 @@ typedef struct
 
 t_io* create_io_structures(void);
 bool handle_new_io(t_io io[3], int socket_fd, t_queues* queues,
-                   bool priority_active, int socket_server);
+                   bool priority_active);
 bool enqueue_io_request(void* request, t_io* io, t_pcb* pcb);
 void close_io(t_io* io);

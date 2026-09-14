@@ -102,7 +102,7 @@ Test(ks_cpu_connection, succeeds_and_registers_a_worker_thread)
 
   cr_assert(handle_new_cpu(server_fd, list_sockets_cpu, &mutex_list_sockets_cpu,
                            &cpu_done_cond, logger, mutex_list, queues, io,
-                           queues->km_socket, -1));
+                           queues->km_socket));
   cr_assert_eq(receive_handshake(client_fd), MID_KERNEL_SCHEDULER);
   cr_assert_eq(list_size(list_sockets_cpu), 1);
 
@@ -136,7 +136,7 @@ Test(ks_cpu_connection, fails_when_the_id_handshake_is_wrong)
 
   cr_assert_not(handle_new_cpu(server_fd, list_sockets_cpu,
                                &mutex_list_sockets_cpu, &cpu_done_cond, logger,
-                               mutex_list, queues, io, NULL, -1));
+                               mutex_list, queues, io, NULL));
   cr_assert(list_is_empty(list_sockets_cpu));
 
   close(server_fd);
@@ -164,7 +164,7 @@ Test(ks_cpu_connection, fails_gracefully_on_a_dead_socket)
 
   cr_assert_not(handle_new_cpu(-1, list_sockets_cpu, &mutex_list_sockets_cpu,
                                &cpu_done_cond, logger, mutex_list, queues, io,
-                               NULL, -1));
+                               NULL));
 
   list_destroy(list_sockets_cpu);
   pthread_mutex_destroy(&mutex_list_sockets_cpu);
@@ -212,7 +212,7 @@ static void dispatch_fixture_start(t_dispatch_fixture* fx)
   cr_assert(handle_new_cpu(server_fd, fx->list_sockets_cpu,
                            &fx->mutex_list_sockets_cpu, &fx->cpu_done_cond,
                            fx->logger, fx->mutex_list, fx->queues, fx->io,
-                           fx->queues->km_socket, -1));
+                           fx->queues->km_socket));
   cr_assert_eq(receive_handshake(fx->client_fd), MID_KERNEL_SCHEDULER);
   cr_assert_eq(drain_resume_pid(fx->client_fd), fx->pcb->pid);
 }
@@ -323,7 +323,7 @@ Test(ks_cpu_connection, memory_allocation_succeeds_when_kernel_memory_allocates)
   cr_assert(handle_new_cpu(server_fd, fx.list_sockets_cpu,
                            &fx.mutex_list_sockets_cpu, &fx.cpu_done_cond,
                            fx.logger, fx.mutex_list, fx.queues, fx.io,
-                           fx.queues->km_socket, -1));
+                           fx.queues->km_socket));
   cr_assert_eq(receive_handshake(fx.client_fd), MID_KERNEL_SCHEDULER);
   cr_assert_eq(drain_resume_pid(fx.client_fd), fx.pcb->pid);
 
@@ -360,7 +360,7 @@ Test(ks_cpu_connection, memory_free_succeeds_when_kernel_memory_frees)
   cr_assert(handle_new_cpu(server_fd, fx.list_sockets_cpu,
                            &fx.mutex_list_sockets_cpu, &fx.cpu_done_cond,
                            fx.logger, fx.mutex_list, fx.queues, fx.io,
-                           fx.queues->km_socket, -1));
+                           fx.queues->km_socket));
   cr_assert_eq(receive_handshake(fx.client_fd), MID_KERNEL_SCHEDULER);
   cr_assert_eq(drain_resume_pid(fx.client_fd), fx.pcb->pid);
 
@@ -396,7 +396,7 @@ Test(ks_cpu_connection, start_process_creates_a_new_ready_pcb)
   cr_assert(handle_new_cpu(server_fd, fx.list_sockets_cpu,
                            &fx.mutex_list_sockets_cpu, &fx.cpu_done_cond,
                            fx.logger, fx.mutex_list, fx.queues, fx.io,
-                           fx.queues->km_socket, -1));
+                           fx.queues->km_socket));
   cr_assert_eq(receive_handshake(fx.client_fd), MID_KERNEL_SCHEDULER);
   cr_assert_eq(drain_resume_pid(fx.client_fd), fx.pcb->pid);
 
@@ -453,7 +453,7 @@ Test(ks_cpu_connection, io_sleep_syscall_blocks_the_process_for_io)
   int io_server_fd;
   int io_client_fd = ks_connected_pair(&io_server_fd);
   cr_assert(send_string(OP_IO_TYPE, "SLEEP", io_client_fd));
-  cr_assert(handle_new_io(fx.io, io_server_fd, fx.queues, false, -1));
+  cr_assert(handle_new_io(fx.io, io_server_fd, fx.queues, false));
   cr_assert_eq(receive_handshake(io_client_fd), MID_KERNEL_SCHEDULER);
   cr_assert(send_string(OP_SLEEP_RESPONSE, "OK", io_client_fd));
 
@@ -477,7 +477,7 @@ Test(ks_cpu_connection, io_stdout_syscall_blocks_the_process_for_io)
   int io_server_fd;
   int io_client_fd = ks_connected_pair(&io_server_fd);
   cr_assert(send_string(OP_IO_TYPE, "STDOUT", io_client_fd));
-  cr_assert(handle_new_io(fx.io, io_server_fd, fx.queues, false, -1));
+  cr_assert(handle_new_io(fx.io, io_server_fd, fx.queues, false));
   cr_assert_eq(receive_handshake(io_client_fd), MID_KERNEL_SCHEDULER);
   cr_assert(send_string(OP_STDOUT_RESPONSE, "printed text", km_server_fd));
   cr_assert(send_string(OP_STDOUT_RESPONSE, "OK", io_client_fd));
@@ -504,7 +504,7 @@ Test(ks_cpu_connection, io_stdin_syscall_blocks_the_process_for_io)
   int io_server_fd;
   int io_client_fd = ks_connected_pair(&io_server_fd);
   cr_assert(send_string(OP_IO_TYPE, "STDIN", io_client_fd));
-  cr_assert(handle_new_io(fx.io, io_server_fd, fx.queues, false, -1));
+  cr_assert(handle_new_io(fx.io, io_server_fd, fx.queues, false));
   cr_assert_eq(receive_handshake(io_client_fd), MID_KERNEL_SCHEDULER);
   cr_assert(send_string(OP_STDIN_RESPONSE, "typed answer", io_client_fd));
   cr_assert(send_string(OP_STDIN_RESPONSE, "ack", km_server_fd));

@@ -112,16 +112,14 @@ bool fits_process(t_queues* queues, t_pcb* process)
       return fits_process(queues, process);
     case OP_MEMORY_CORRUPTED:
       free(receive_string(queues->km_socket->km_socket));
-      close_kernel_scheduler(queues->server_socket, queues->logger,
-                             SR_CORRUPTED_MEMORY, -1);
+      close_kernel_scheduler(SR_CORRUPTED_MEMORY);
       return false;
     case OP_RESUME_SUSPENSION_OK:
       free(receive_string(queues->km_socket->km_socket));
       return true;
     default:
       free(receive_string(queues->km_socket->km_socket));
-      close_kernel_scheduler(queues->server_socket, queues->logger,
-                             SR_KERNEL_MEMORY_CONNECTION_FAILURE, -1);
+      close_kernel_scheduler(SR_KERNEL_MEMORY_CONNECTION_FAILURE);
       return false;
   }
 }
@@ -253,13 +251,11 @@ static bool compaction_finished(t_queues* queues)
       return true;
     case OP_MEMORY_CORRUPTED:
       free(receive_string(queues->km_socket->km_socket));
-      close_kernel_scheduler(queues->server_socket, queues->logger,
-                             SR_CORRUPTED_MEMORY, -1);
+      close_kernel_scheduler(SR_CORRUPTED_MEMORY);
       return false;
     default:
       free(receive_string(queues->km_socket->km_socket));
-      close_kernel_scheduler(queues->server_socket, queues->logger,
-                             SR_KERNEL_MEMORY_CONNECTION_FAILURE, -1);
+      close_kernel_scheduler(SR_KERNEL_MEMORY_CONNECTION_FAILURE);
       return false;
   }
 }
@@ -269,9 +265,7 @@ static void compaction(t_queues* queues)
   if (!(send_string(OP_CAN_COMPACT, "Start compaction",
                     queues->km_socket->km_socket)))
   {
-    close_kernel_scheduler(queues->server_socket, queues->logger,
-                           SR_KERNEL_MEMORY_SEND_ERROR,
-                           queues->km_socket->km_socket);
+    close_kernel_scheduler(SR_KERNEL_MEMORY_SEND_ERROR);
     return;
   }
   log_info(queues->logger, "Start of compaction");
