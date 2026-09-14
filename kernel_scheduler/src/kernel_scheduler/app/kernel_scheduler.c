@@ -11,7 +11,7 @@
 #include "utils/msg.h"
 #include "utils/string.h"
 
-const char* const SCHEDULING_ALGORITHMS[] = {"FIFO", "RR", "CMN"};
+const char* const SCHEDULING_ALGORITHMS[] = {"FIFO", "RR", "MULTILEVEL"};
 
 static t_config* start_config(char* config_path, t_config_vars* config_vars);
 static void close_config(t_config_vars* config_vars, t_config* config);
@@ -55,11 +55,12 @@ void init_scheduler_resources(t_kernel_scheduler* resources)
       start_thread_check_connection_kernel_memory(resources->logger,
                                                   resources->km_socket_mutex);
   resources->mutex_list = init_list_mutex();
-  resources->queues = init_queues(
-      resources->config_vars.scheduling_algorithm,
-      resources->config_vars.cmn_algorithms, resources->config_vars.rr_quantum,
-      resources->config_vars.preemption, resources->logger,
-      resources->km_socket_mutex, resources->config_vars.suspension_timeout);
+  resources->queues = init_queues(resources->config_vars.scheduling_algorithm,
+                                  resources->config_vars.multilevel_algorithms,
+                                  resources->config_vars.rr_quantum,
+                                  resources->config_vars.preemption,
+                                  resources->logger, resources->km_socket_mutex,
+                                  resources->config_vars.suspension_timeout);
 }
 
 void close_module_error(t_kernel_scheduler* resources)
@@ -117,7 +118,7 @@ static t_config* start_config(char* config_path, t_config_vars* config_vars)
     }
 
     char** array_str = config_get_array_value(config, "QUEUE_ALGORITHMS");
-    config_vars->cmn_algorithms = list_create();
+    config_vars->multilevel_algorithms = list_create();
     i = 0;
     while (array_str[i] != NULL)
     {
@@ -126,7 +127,7 @@ static t_config* start_config(char* config_path, t_config_vars* config_vars)
         *algorithm = AP_FIFO;
       else if (strcmp(array_str[i], SCHEDULING_ALGORITHMS[AP_RR]) == 0)
         *algorithm = AP_RR;
-      list_add(config_vars->cmn_algorithms, algorithm);
+      list_add(config_vars->multilevel_algorithms, algorithm);
       i++;
     }
     string_array_destroy(array_str);
@@ -154,7 +155,7 @@ static t_config* start_config(char* config_path, t_config_vars* config_vars)
 
 static void close_config(t_config_vars* config_vars, t_config* config)
 {
-  list_destroy_and_destroy_elements(config_vars->cmn_algorithms, free);
+  list_destroy_and_destroy_elements(config_vars->multilevel_algorithms, free);
   config_destroy(config);
 }
 

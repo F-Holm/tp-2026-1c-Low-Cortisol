@@ -8,14 +8,15 @@
 static void update_highest_priority_ready_no_mutex(t_ready_queue* ready);
 
 void init_ready_queue(t_ready_queue* queue, int algorithm,
-                      t_list* cmn_algorithms)
+                      t_list* multilevel_algorithms)
 {
-  if (algorithm == AP_CMN)
+  if (algorithm == AP_MULTILEVEL_QUEUES)
   {
     queue->multilevel_queue = true;
-    queue->queue_count = list_size(cmn_algorithms);
+    queue->queue_count = list_size(multilevel_algorithms);
     queue->queues = malloc(queue->queue_count * sizeof(t_ready_subqueue));
-    t_list_iterator* iterator_algorithms = list_iterator_create(cmn_algorithms);
+    t_list_iterator* iterator_algorithms =
+        list_iterator_create(multilevel_algorithms);
     for (int i = 0; i < queue->queue_count; i++)
     {
       queue->queues[i].algorithm =

@@ -42,7 +42,7 @@ One algorithm per run, chosen by config:
 |-----------|-----------|
 | `FIFO` | First-in first-out, priority ignored. |
 | `RR`   | Round-robin with `RR_QUANTUM` ms, priority ignored. |
-| `CMN`  | Multilevel queues (no feedback): one queue per priority level `0..N-1`, each running `FIFO` or `RR` as listed in `QUEUE_ALGORITHMS`. With `QUEUE_PREEMPTION=TRUE`, an arriving Process preempts a lower-priority running one. |
+| `MULTILEVEL`  | Multilevel queues (no feedback): one queue per priority level `0..N-1`, each running `FIFO` or `RR` as listed in `QUEUE_ALGORITHMS`. With `QUEUE_PREEMPTION=TRUE`, an arriving Process preempts a lower-priority running one. |
 
 Processes with a priority outside the configured range are never scheduled.
 
@@ -73,8 +73,8 @@ on that mutex, reverting to its own priority on unlock.
 | Key | Type | Description |
 |-----|------|-------------|
 | `LOG_LEVEL` | string | Maximum log detail (`log_level_from_string`). |
-| `SCHEDULING_ALGORITHM` | string | `FIFO`, `RR` or `CMN`. |
-| `QUEUE_ALGORITHMS` | list | Per-level algorithm list, used when `CMN`, e.g. `[FIFO,RR,RR,FIFO]`. |
+| `SCHEDULING_ALGORITHM` | string | `FIFO`, `RR` or `MULTILEVEL`. |
+| `QUEUE_ALGORITHMS` | list | Per-level algorithm list, used when `MULTILEVEL`, e.g. `[FIFO,RR,RR,FIFO]`. |
 | `RR_QUANTUM` | number | Round-robin quantum in ms. |
 | `QUEUE_PREEMPTION` | string | `TRUE` / `FALSE`, inter-queue preemption. |
 | `SUSPENSION_TIMEOUT` | number | ms in `BLOCK` before a Process is suspended. |

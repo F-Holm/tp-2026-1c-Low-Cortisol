@@ -15,7 +15,7 @@ scenarios.
 | `handshake_test.c` | `common/handshake`: `respond_handshake` over a live socket / a dead fd |
 | `counter_test.c` | `scheduler/counter`: `create_counter`, `counter_increment`, `destroy_counter` |
 | `process_counter_test.c` | `scheduler/process_counter`: increment / non-final decrement |
-| `ready_queue_test.c` | `scheduler/ready_queue`: FIFO and CMN init, the preempt / terminate gates, `check_priority_valid`, put/take ordering, multilevel priority, blocking take |
+| `ready_queue_test.c` | `scheduler/ready_queue`: FIFO and MULTILEVEL init, the preempt / terminate gates, `check_priority_valid`, put/take ordering, multilevel priority, blocking take |
 | `blocking_list_test.c` | `scheduler/blocking_list`: FIFO `BLOCK`, priority-sorted `SUSP. BLOCK` / `SUSP. READY`, blocked-time stamping, take-specific / take-next / empty |
 | `exec_list_test.c` | `scheduler/exec_list`: put/take, `transition_take_exec_next`, lowest-priority tracking with preemption, the non-blocking `wait_*` paths |
 | `state_machine_test.c` | `scheduler/queues`: `transition_exec_ready` / `_exec_block` / `_exec_exit` / `_block_ready` / `_ready_exec` / `_susp_block`, `transition_unlock`, wrong-state rejection, the syscall counter, `clear_queues` draining every queue |

@@ -21,7 +21,7 @@ typedef struct
 {
   t_log_level log_level;
   int scheduling_algorithm;
-  t_list* cmn_algorithms;
+  t_list* multilevel_algorithms;
   int rr_quantum;
   bool preemption;
   int suspension_timeout;

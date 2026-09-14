@@ -15,7 +15,7 @@ typedef enum
 {
   AP_FIFO,
   AP_RR,
-  AP_CMN
+  AP_MULTILEVEL_QUEUES  // "MULTILEVEL" in the config file
 } t_scheduling_algorithm;
 
 typedef enum

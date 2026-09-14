@@ -34,11 +34,11 @@ Test(ks_ready_queue, init_fifo_is_a_single_level)
   destroy_ready_queue(&ready);
 }
 
-Test(ks_ready_queue, init_cmn_makes_one_level_per_entry)
+Test(ks_ready_queue, init_multilevel_makes_one_level_per_entry)
 {
   t_list* algos = levels(4, AP_FIFO);
   t_ready_queue ready;
-  init_ready_queue(&ready, AP_CMN, algos);
+  init_ready_queue(&ready, AP_MULTILEVEL_QUEUES, algos);
   cr_assert(ready.multilevel_queue);
   cr_assert_eq(ready.queue_count, 4);
   destroy_ready_queue(&ready);
@@ -84,7 +84,7 @@ Test(ks_ready_queue, multilevel_rejects_a_priority_past_the_last_level)
 {
   t_list* algos = levels(3, AP_FIFO);
   t_ready_queue ready;
-  init_ready_queue(&ready, AP_CMN, algos);
+  init_ready_queue(&ready, AP_MULTILEVEL_QUEUES, algos);
   t_pcb* in = create_pcb(EST_READY, 2);
   t_pcb* out = create_pcb(EST_READY, 3);
   cr_assert(check_priority_valid(in, &ready));
@@ -141,7 +141,7 @@ Test(ks_ready_queue, multilevel_serves_the_highest_priority_level_first)
 {
   t_list* algos = levels(3, AP_FIFO);
   t_ready_queue ready;
-  init_ready_queue(&ready, AP_CMN, algos);
+  init_ready_queue(&ready, AP_MULTILEVEL_QUEUES, algos);
 
   t_pcb* low = create_pcb(EST_READY, 2);
   t_pcb* high = create_pcb(EST_READY, 0);

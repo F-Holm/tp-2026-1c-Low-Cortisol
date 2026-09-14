@@ -34,12 +34,12 @@ static bool transition_any_exit(t_queues* queues, int state, int reason);
 static bool notify_new_process(t_queues* queues, char* instructions_file,
                                uint32_t pid);
 
-t_queues* init_queues(int algorithm, t_list* cmn_algorithms, int quantum,
+t_queues* init_queues(int algorithm, t_list* multilevel_algorithms, int quantum,
                       bool preemption, t_log* logger,
                       t_kernel_memory_socket* km_socket, int suspension_timeout)
 {
   t_queues* queues = malloc(sizeof(t_queues));
-  init_ready_queue(&(queues->ready), algorithm, cmn_algorithms);
+  init_ready_queue(&(queues->ready), algorithm, multilevel_algorithms);
   init_exec_list(&(queues->exec), quantum, preemption);
   init_blocking_list(&(queues->block));
   init_blocking_list(&(queues->susp_block));

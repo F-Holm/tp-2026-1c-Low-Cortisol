@@ -6,7 +6,7 @@
 #include "kernel_scheduler/scheduler/queue_types.h"
 
 void init_ready_queue(t_ready_queue* queue, int algorithm,
-                      t_list* cmn_algorithms);
+                      t_list* multilevel_algorithms);
 void destroy_ready_queue(t_ready_queue* queue);
 
 bool is_queue_ready_empty(t_ready_queue* ready);

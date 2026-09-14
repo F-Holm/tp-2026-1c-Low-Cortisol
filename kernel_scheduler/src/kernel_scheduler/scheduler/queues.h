@@ -11,9 +11,9 @@
 #include "kernel_scheduler/scheduler/ready_queue.h"
 #include "kernel_scheduler/scheduler/suspension.h"
 
-// pass NULL as t_list if the algorithm is not CMN
+// pass NULL as t_list if the algorithm is not AP_MULTILEVEL_QUEUES
 // pass quantum = 0 if the algorithm is not RR
-t_queues* init_queues(int algorithm, t_list* cmn_algorithms, int quantum,
+t_queues* init_queues(int algorithm, t_list* multilevel_algorithms, int quantum,
                       bool preemption, t_log* logger,
                       t_kernel_memory_socket* km_socket,
                       int suspension_timeout);

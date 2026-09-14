@@ -17,7 +17,7 @@ Test(ks_names, scheduling_algorithm_names_follow_the_enum)
 {
   cr_assert_str_eq(SCHEDULING_ALGORITHMS[AP_FIFO], "FIFO");
   cr_assert_str_eq(SCHEDULING_ALGORITHMS[AP_RR], "RR");
-  cr_assert_str_eq(SCHEDULING_ALGORITHMS[AP_CMN], "CMN");
+  cr_assert_str_eq(SCHEDULING_ALGORITHMS[AP_MULTILEVEL_QUEUES], "MULTILEVEL");
 }
 
 Test(ks_names, syscall_names_follow_the_enum_order)

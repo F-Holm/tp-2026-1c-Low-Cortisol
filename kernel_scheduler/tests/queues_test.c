@@ -160,7 +160,7 @@ Test(ks_queues, transition_new_ready_exits_a_process_with_an_invalid_priority)
   queues->km_socket->km_socket = client_fd;
   destroy_ready_queue(&(queues->ready));
   t_list* algos = levels(2, AP_FIFO);
-  init_ready_queue(&(queues->ready), AP_CMN, algos);
+  init_ready_queue(&(queues->ready), AP_MULTILEVEL_QUEUES, algos);
 
   transition_new_ready(queues, "a.txt", 5); /* past the last level */
 
@@ -197,7 +197,7 @@ Test(ks_queues, update_priority_is_a_no_op_for_a_pcb_not_in_ready)
   t_queues* queues = ks_stub_queues_full(logger);
   destroy_ready_queue(&(queues->ready));
   t_list* algos = levels(3, AP_FIFO);
-  init_ready_queue(&(queues->ready), AP_CMN, algos);
+  init_ready_queue(&(queues->ready), AP_MULTILEVEL_QUEUES, algos);
   t_pcb* pcb = create_pcb(EST_BLOCK, 0);
 
   update_priority(pcb, queues);
@@ -216,7 +216,7 @@ Test(ks_queues, update_priority_re_sorts_a_ready_pcb_into_its_new_level)
   t_queues* queues = ks_stub_queues_full(logger);
   destroy_ready_queue(&(queues->ready));
   t_list* algos = levels(3, AP_FIFO);
-  init_ready_queue(&(queues->ready), AP_CMN, algos);
+  init_ready_queue(&(queues->ready), AP_MULTILEVEL_QUEUES, algos);
   t_pcb* pcb = create_pcb(EST_READY, 0);
   transition_to_ready(pcb, &(queues->ready));
 
