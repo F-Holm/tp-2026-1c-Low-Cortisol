@@ -100,6 +100,15 @@ bool check_priority_valid(t_pcb* pcb, t_ready_queue* ready)
   return !ready->multilevel_queue || get_priority_pcb(pcb) < ready->queue_count;
 }
 
+int get_algorithm_ready_queue(t_ready_queue* ready, int priority)
+{
+  if (!ready->multilevel_queue)
+  {
+    return ready->queues->algorithm;
+  }
+  return ready->queues[priority].algorithm;
+}
+
 void transition_to_ready(t_pcb* pcb, t_ready_queue* ready)
 {
   pthread_mutex_lock(&(ready->queue_mutex));

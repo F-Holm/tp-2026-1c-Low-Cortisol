@@ -40,7 +40,6 @@ static void manage_queue_blocked(t_syscall_data* data);
 static void log_preemption_end_quantum(t_log* logger, uint32_t pid);
 static bool is_process_lowest_priority(t_syscall_data* data, int priority);
 static void manage_preemption_priority(t_syscall_data* data);
-static bool is_rr(t_syscall_data* data);
 static void manage_end_quantum(t_syscall_data* data);
 static bool send_preemption(t_syscall_data* data);
 static void manage_request_process(t_syscall_data* data);
@@ -225,20 +224,12 @@ static void manage_preemption_priority(t_syscall_data* data)
   data->counter = millis();
 }
 
-static bool is_rr(t_syscall_data* data)
-{
-  if (!data->data->queues->ready.multilevel_queue)
-  {
-    return data->data->queues->ready.queues->algorithm == AP_RR;
-  }
-  return data->data->queues->ready.queues[get_priority_pcb(data->pcb)]
-             .algorithm == AP_RR;
-}
-
 static void manage_end_quantum(t_syscall_data* data)
 {
   if (data->preemption_reason == PR_NO_PREEMPTION &&
-      !is_queue_ready_empty(&(data->data->queues->ready)) && is_rr(data) &&
+      !is_queue_ready_empty(&(data->data->queues->ready)) &&
+      get_algorithm_ready_queue(&(data->data->queues->ready),
+                                get_priority_pcb(data->pcb)) == AP_RR &&
       data->data->queues->exec.quantum <= time_diff(data->counter, millis()))
   {
     log_debug(data->data->logger, "CPU %s: Preempting due to quantum end",

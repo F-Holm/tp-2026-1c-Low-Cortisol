@@ -19,6 +19,10 @@ void terminate_queue_ready(t_ready_queue* ready);
 // True unless the PCB's priority falls outside a multilevel queue's levels.
 bool check_priority_valid(t_pcb* pcb, t_ready_queue* ready);
 
+// The scheduling algorithm in effect at this priority level (of the single
+// queue, if `ready` is not a multilevel queue).
+int get_algorithm_ready_queue(t_ready_queue* ready, int priority);
+
 void transition_to_ready(t_pcb* pcb, t_ready_queue* ready);
 void transition_take_ready(t_pcb* pcb, t_ready_queue* ready);
 t_pcb* transition_take_ready_next(t_ready_queue* ready);
