@@ -18,6 +18,10 @@ void update_lowest_exec_priority(t_execute_list* exec);
 // Whether the quantum that started at `start` (a millis() reading) is over.
 bool quantum_ended(t_execute_list* exec, unsigned long start);
 
+// Whether no process in exec has a lower priority than this one (i.e. it is
+// (tied for) the worst-priority process currently running).
+bool is_lowest_priority_in_exec(t_execute_list* exec, int priority);
+
 // Blocks until EXEC is empty.
 void wait_queue_exec_empty(t_execute_list* exec);
 // Blocks until EXEC holds nothing but in-flight syscalls.

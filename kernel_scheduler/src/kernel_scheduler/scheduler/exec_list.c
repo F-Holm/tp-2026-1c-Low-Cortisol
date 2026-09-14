@@ -45,6 +45,14 @@ bool quantum_ended(t_execute_list* exec, unsigned long start)
   return exec->quantum <= time_diff(start, millis());
 }
 
+bool is_lowest_priority_in_exec(t_execute_list* exec, int priority)
+{
+  pthread_mutex_lock(&(exec->list_mutex));
+  bool ret = priority >= exec->lowest_priority;
+  pthread_mutex_unlock(&(exec->list_mutex));
+  return ret;
+}
+
 void wait_queue_exec_empty(t_execute_list* exec)
 {
   pthread_mutex_lock(&(exec->list_mutex));

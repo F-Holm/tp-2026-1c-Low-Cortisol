@@ -38,7 +38,6 @@ static void log_preemption_queue_priority(t_log* logger, uint32_t preempted_pid,
                                           uint32_t pid_new, int priority_new);
 static void manage_queue_blocked(t_syscall_data* data);
 static void log_preemption_end_quantum(t_log* logger, uint32_t pid);
-static bool is_process_lowest_priority(t_syscall_data* data, int priority);
 static void manage_preemption_priority(t_syscall_data* data);
 static void manage_end_quantum(t_syscall_data* data);
 static bool send_preemption(t_syscall_data* data);
@@ -170,14 +169,6 @@ static void log_preemption_end_quantum(t_log* logger, uint32_t pid)
   log_info(logger, "%u - Preempted due to quantum end", pid);
 }
 
-static bool is_process_lowest_priority(t_syscall_data* data, int priority)
-{
-  pthread_mutex_lock(&(data->data->queues->exec.list_mutex));
-  bool ret = priority >= data->data->queues->exec.lowest_priority;
-  pthread_mutex_unlock(&(data->data->queues->exec.list_mutex));
-  return ret;
-}
-
 static void manage_preemption_priority(t_syscall_data* data)
 {
   if (data->preemption_reason != PR_NO_PREEMPTION ||
@@ -188,7 +179,8 @@ static void manage_preemption_priority(t_syscall_data* data)
 
   int preempted_priority = get_priority_pcb(data->pcb);
 
-  if (!is_process_lowest_priority(data, preempted_priority))
+  if (!is_lowest_priority_in_exec(&(data->data->queues->exec),
+                                  preempted_priority))
   {
     return;
   }
