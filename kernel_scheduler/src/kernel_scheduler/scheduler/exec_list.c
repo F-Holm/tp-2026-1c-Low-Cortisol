@@ -1,5 +1,6 @@
 #include "kernel_scheduler/scheduler/exec_list.h"
 
+#include "kernel_scheduler/common/time.h"
 #include "utils/collections/list.h"
 
 void init_exec_list(t_execute_list* list, int quantum, bool preemption)
@@ -37,6 +38,11 @@ void update_lowest_exec_priority(t_execute_list* exec)
   }
   list_iterator_destroy(iterator_list);
   pthread_mutex_unlock(&(exec->list_mutex));
+}
+
+bool quantum_ended(t_execute_list* exec, unsigned long start)
+{
+  return exec->quantum <= time_diff(start, millis());
 }
 
 void wait_queue_exec_empty(t_execute_list* exec)

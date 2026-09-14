@@ -230,7 +230,7 @@ static void manage_end_quantum(t_syscall_data* data)
       !is_queue_ready_empty(&(data->data->queues->ready)) &&
       get_algorithm_ready_queue(&(data->data->queues->ready),
                                 get_priority_pcb(data->pcb)) == AP_RR &&
-      data->data->queues->exec.quantum <= time_diff(data->counter, millis()))
+      quantum_ended(&(data->data->queues->exec), data->counter))
   {
     log_debug(data->data->logger, "CPU %s: Preempting due to quantum end",
               data->data->id);
