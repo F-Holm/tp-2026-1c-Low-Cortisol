@@ -63,7 +63,7 @@ static void init_data_thread_suspender(t_queues* queues, int suspension_timeout)
   data->data = init_data_thread_suspended(queues);
   data->data->wait_process = &(queues->block.new_process_cond);
   data->suspension_timeout = suspension_timeout;
-  queues->suspension_data->suspender_thread_data = data;
+  queues->routines.suspension_data->suspender_thread_data = data;
 }
 
 static void init_data_thread_resumer(t_queues* queues)
@@ -71,14 +71,14 @@ static void init_data_thread_resumer(t_queues* queues)
   t_resumer_thread* data = malloc(sizeof(t_resumer_thread));
   data->data = init_data_thread_suspended(queues);
   data->data->wait_process = &(queues->susp_ready.new_process_cond);
-  queues->suspension_data->resumer_thread_data = data;
+  queues->routines.suspension_data->resumer_thread_data = data;
 }
 
 static void start_thread_suspender(t_queues* queues)
 {
-  if (pthread_create(
-          &(queues->suspension_data->suspender_thread_data->data->thread), NULL,
-          thread_suspender, queues) != 0)
+  if (pthread_create(&(queues->routines.suspension_data->suspender_thread_data
+                           ->data->thread),
+                     NULL, thread_suspender, queues) != 0)
   {
     log_error(queues->logger, "Error creating the suspender thread");
   }
@@ -90,9 +90,9 @@ static void start_thread_suspender(t_queues* queues)
 
 static void start_thread_resumer(t_queues* queues)
 {
-  if (pthread_create(
-          &(queues->suspension_data->resumer_thread_data->data->thread), NULL,
-          thread_resumer, queues) != 0)
+  if (pthread_create(&(queues->routines.suspension_data->resumer_thread_data
+                           ->data->thread),
+                     NULL, thread_resumer, queues) != 0)
   {
     log_error(queues->logger, "Error creating the resumer thread");
   }
@@ -104,7 +104,7 @@ static void start_thread_resumer(t_queues* queues)
 
 void start_threads_suspended(t_queues* queues, int suspension_timeout)
 {
-  queues->suspension_data = malloc(sizeof(t_suspension_data));
+  queues->routines.suspension_data = malloc(sizeof(t_suspension_data));
   init_data_thread_suspender(queues, suspension_timeout);
   init_data_thread_resumer(queues);
   start_thread_suspender(queues);
@@ -151,18 +151,23 @@ static void destroy_thread_resumer(t_resumer_thread* data)
 void terminate_threads_suspended(t_queues* queues)
 {
   terminate_thread_suspended(
-      queues->suspension_data->suspender_thread_data->data, &(queues->block));
-  terminate_thread_suspended(queues->suspension_data->resumer_thread_data->data,
-                             &(queues->susp_ready));
-  wait_thread_suspended(queues->suspension_data->suspender_thread_data->data);
-  wait_thread_suspended(queues->suspension_data->resumer_thread_data->data);
+      queues->routines.suspension_data->suspender_thread_data->data,
+      &(queues->block));
+  terminate_thread_suspended(
+      queues->routines.suspension_data->resumer_thread_data->data,
+      &(queues->susp_ready));
+  wait_thread_suspended(
+      queues->routines.suspension_data->suspender_thread_data->data);
+  wait_thread_suspended(
+      queues->routines.suspension_data->resumer_thread_data->data);
 }
 
 void destroy_threads_suspended(t_queues* queues)
 {
-  destroy_thread_suspender(queues->suspension_data->suspender_thread_data);
-  destroy_thread_resumer(queues->suspension_data->resumer_thread_data);
-  free(queues->suspension_data);
+  destroy_thread_suspender(
+      queues->routines.suspension_data->suspender_thread_data);
+  destroy_thread_resumer(queues->routines.suspension_data->resumer_thread_data);
+  free(queues->routines.suspension_data);
 }
 
 /* ── park / wake ────────────────────────────────────────────────────────── */
@@ -207,17 +212,21 @@ static void wait_unlock(t_suspended_thread* data)
 
 void lock_threads_suspended(t_queues* queues)
 {
-  lock_thread_suspended(queues->suspension_data->suspender_thread_data->data,
-                        &(queues->block));
-  lock_thread_suspended(queues->suspension_data->resumer_thread_data->data,
-                        &(queues->susp_ready));
+  lock_thread_suspended(
+      queues->routines.suspension_data->suspender_thread_data->data,
+      &(queues->block));
+  lock_thread_suspended(
+      queues->routines.suspension_data->resumer_thread_data->data,
+      &(queues->susp_ready));
   log_trace(queues->logger, "Suspended threads locked");
 }
 
 void unlock_threads_suspended(t_queues* queues)
 {
-  unlock_thread_suspended(queues->suspension_data->suspender_thread_data->data);
-  unlock_thread_suspended(queues->suspension_data->resumer_thread_data->data);
+  unlock_thread_suspended(
+      queues->routines.suspension_data->suspender_thread_data->data);
+  unlock_thread_suspended(
+      queues->routines.suspension_data->resumer_thread_data->data);
   log_trace(queues->logger, "Suspended threads unlocked");
 }
 
@@ -311,10 +320,11 @@ void transition_block_susp_block_no_mutex(t_pcb* pcb, t_queues* queues)
   transition_take_block(pcb, &(queues->block));
   transition_to_susp_block(pcb, &(queues->susp_block));
 
-  if (!atomic_load(&(queues->compaction_active)) &&
-      !atomic_load(&(queues->resume_active)))
+  if (!atomic_load(&(queues->routines.compaction_active)) &&
+      !atomic_load(&(queues->routines.resume_active)))
   {
-    unlock_thread_suspended(queues->suspension_data->resumer_thread_data->data);
+    unlock_thread_suspended(
+        queues->routines.suspension_data->resumer_thread_data->data);
   }
 }
 
@@ -489,7 +499,8 @@ static void wait_process_susp_ready(t_queues* queues, t_resumer_thread* data)
 static void* thread_suspender(void* data_void)
 {
   t_queues* queues = (t_queues*)data_void;
-  t_suspender_thread* data = queues->suspension_data->suspender_thread_data;
+  t_suspender_thread* data =
+      queues->routines.suspension_data->suspender_thread_data;
   bool keep_running = true;
 
   while (keep_running)
@@ -522,7 +533,8 @@ static void* thread_suspender(void* data_void)
 static void* thread_resumer(void* data_void)
 {
   t_queues* queues = (t_queues*)data_void;
-  t_resumer_thread* data = queues->suspension_data->resumer_thread_data;
+  t_resumer_thread* data =
+      queues->routines.suspension_data->resumer_thread_data;
   bool keep_running = true;
 
   while (keep_running)

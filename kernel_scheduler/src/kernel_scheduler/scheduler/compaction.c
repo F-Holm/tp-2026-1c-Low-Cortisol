@@ -28,19 +28,19 @@ static void compaction(t_queues* queues);
 
 bool is_compacting(t_queues* queues)
 {
-  return atomic_load(&(queues->compaction_active));
+  return atomic_load(&(queues->routines.compaction_active));
 }
 
 bool is_resuming(t_queues* queues)
 {
-  return atomic_load(&(queues->resume_active));
+  return atomic_load(&(queues->routines.resume_active));
 }
 
 void terminate_routines(t_queues* queues)
 {
-  pthread_mutex_lock(&(queues->routine_mutex));
-  queues->terminate_routines = true;
-  pthread_mutex_unlock(&(queues->routine_mutex));
+  pthread_mutex_lock(&(queues->routines.routine_mutex));
+  queues->routines.terminate_routines = true;
+  pthread_mutex_unlock(&(queues->routines.routine_mutex));
 }
 
 // used for freed memory, a new stick or the end of compaction
@@ -78,7 +78,7 @@ void routine_compaction(t_queues* queues)
   }
 
   routine_enter(queues);
-  if (!queues->terminate_routines)
+  if (!queues->routines.terminate_routines)
   {
     lock_all(queues);
     compaction(queues);
@@ -94,7 +94,8 @@ static void lock_all(t_queues* queues)
 {
   lock_queue_ready(&(queues->ready));
   lock_threads_suspended(queues);
-  wait_queue_exec_empty_with_syscalls(&(queues->exec), queues->syscall_counter);
+  wait_queue_exec_empty_with_syscalls(&(queues->exec),
+                                      queues->routines.syscall_counter);
 }
 
 bool fits_process(t_queues* queues, t_pcb* process)
@@ -160,7 +161,7 @@ static void* resumption_routine_thread(void* data_resume_suspension)
 {
   t_queues* queues = (t_queues*)data_resume_suspension;
   routine_enter(queues);
-  if (!queues->terminate_routines)
+  if (!queues->routines.terminate_routines)
   {
     lock_threads_suspended(queues);
     resumption_routine(queues);
@@ -175,31 +176,32 @@ static void* resumption_routine_thread(void* data_resume_suspension)
 
 static bool set_is_resuming(t_queues* queues, bool new_state)
 {
-  return atomic_exchange(&(queues->resume_active), new_state);
+  return atomic_exchange(&(queues->routines.resume_active), new_state);
 }
 
 static bool set_is_compacting(t_queues* queues, bool new_state)
 {
-  return atomic_exchange(&(queues->compaction_active), new_state);
+  return atomic_exchange(&(queues->routines.compaction_active), new_state);
 }
 
 static void routine_enter(t_queues* queues)
 {
-  pthread_mutex_lock(&(queues->routine_mutex));
-  while (queues->routine_active)
+  pthread_mutex_lock(&(queues->routines.routine_mutex));
+  while (queues->routines.routine_active)
   {
-    pthread_cond_wait(&(queues->routine_cond), &(queues->routine_mutex));
+    pthread_cond_wait(&(queues->routines.routine_cond),
+                      &(queues->routines.routine_mutex));
   }
-  queues->routine_active = true;
-  pthread_mutex_unlock(&(queues->routine_mutex));
+  queues->routines.routine_active = true;
+  pthread_mutex_unlock(&(queues->routines.routine_mutex));
 }
 
 static void routine_leave(t_queues* queues)
 {
-  pthread_mutex_lock(&(queues->routine_mutex));
-  queues->routine_active = false;
-  pthread_cond_signal(&(queues->routine_cond));
-  pthread_mutex_unlock(&(queues->routine_mutex));
+  pthread_mutex_lock(&(queues->routines.routine_mutex));
+  queues->routines.routine_active = false;
+  pthread_cond_signal(&(queues->routines.routine_cond));
+  pthread_mutex_unlock(&(queues->routines.routine_mutex));
 }
 
 static void* thread_unlock_queue_ready(void* args)
@@ -208,7 +210,7 @@ static void* thread_unlock_queue_ready(void* args)
 
   wait_queue_exec_empty(&(queues->exec));
 
-  if (!atomic_load(&(queues->compaction_active)))
+  if (!atomic_load(&(queues->routines.compaction_active)))
   {
     unlock_queue_ready(&(queues->ready));
   }

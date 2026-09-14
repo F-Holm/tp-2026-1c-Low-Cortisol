@@ -32,9 +32,9 @@ t_queues* ks_stub_queues_blocking(t_log* logger)
   queues->logger = logger;
   queues->exec.list = list_create();
   queues->block.list = list_create();
-  queues->syscall_counter = calloc(1, sizeof(t_counter));
-  pthread_mutex_init(&(queues->syscall_counter->counter_mutex), NULL);
-  pthread_cond_init(&(queues->syscall_counter->condition), NULL);
+  queues->routines.syscall_counter = calloc(1, sizeof(t_counter));
+  pthread_mutex_init(&(queues->routines.syscall_counter->counter_mutex), NULL);
+  pthread_cond_init(&(queues->routines.syscall_counter->condition), NULL);
   // Single non-multilevel ready subqueue -- enough for a BLOCK->READY
   // transition (e.g. a process that unblocks once a mutex it was waiting on
   // is released) to have somewhere to land.
@@ -49,9 +49,9 @@ void ks_destroy_stub_queues_blocking(t_queues* queues)
   list_destroy(queues->block.list);
   list_destroy(queues->ready.queues->queue);
   free(queues->ready.queues);
-  pthread_mutex_destroy(&(queues->syscall_counter->counter_mutex));
-  pthread_cond_destroy(&(queues->syscall_counter->condition));
-  free(queues->syscall_counter);
+  pthread_mutex_destroy(&(queues->routines.syscall_counter->counter_mutex));
+  pthread_cond_destroy(&(queues->routines.syscall_counter->condition));
+  free(queues->routines.syscall_counter);
   free(queues);
 }
 
@@ -64,15 +64,15 @@ t_queues* ks_stub_queues_full(t_log* logger)
   init_blocking_list(&(queues->block));
   init_blocking_list(&(queues->susp_block));
   init_blocking_list(&(queues->susp_ready));
-  queues->thread_counter = create_counter();
-  queues->syscall_counter = create_counter();
+  queues->routines.thread_counter = create_counter();
+  queues->routines.syscall_counter = create_counter();
   queues->km_socket = init_socket_kernel_memory(-1);
   queues->process_counter = init_counter_processes(queues->km_socket);
   init_shutdown(-1, logger, -1);
-  atomic_init(&(queues->compaction_active), false);
-  atomic_init(&(queues->resume_active), false);
-  pthread_mutex_init(&(queues->routine_mutex), NULL);
-  pthread_cond_init(&(queues->routine_cond), NULL);
+  atomic_init(&(queues->routines.compaction_active), false);
+  atomic_init(&(queues->routines.resume_active), false);
+  pthread_mutex_init(&(queues->routines.routine_mutex), NULL);
+  pthread_cond_init(&(queues->routines.routine_cond), NULL);
   return queues;
 }
 
@@ -83,12 +83,12 @@ void ks_destroy_stub_queues_full(t_queues* queues)
   destroy_blocking_list(&(queues->block));
   destroy_blocking_list(&(queues->susp_block));
   destroy_blocking_list(&(queues->susp_ready));
-  destroy_counter(queues->thread_counter);
-  destroy_counter(queues->syscall_counter);
+  destroy_counter(queues->routines.thread_counter);
+  destroy_counter(queues->routines.syscall_counter);
   destroy_counter_processes(queues->process_counter);
   destroy_kernel_memory(queues->km_socket);
-  pthread_mutex_destroy(&(queues->routine_mutex));
-  pthread_cond_destroy(&(queues->routine_cond));
+  pthread_mutex_destroy(&(queues->routines.routine_mutex));
+  pthread_cond_destroy(&(queues->routines.routine_cond));
   free(queues);
 }
 
@@ -123,11 +123,11 @@ int ks_connected_pair(int* server_out)
 
 void ks_wait_thread_counter_zero(t_queues* queues)
 {
-  pthread_mutex_lock(&(queues->thread_counter->counter_mutex));
-  while (queues->thread_counter->count > 0)
+  pthread_mutex_lock(&(queues->routines.thread_counter->counter_mutex));
+  while (queues->routines.thread_counter->count > 0)
   {
-    pthread_cond_wait(&(queues->thread_counter->condition),
-                      &(queues->thread_counter->counter_mutex));
+    pthread_cond_wait(&(queues->routines.thread_counter->condition),
+                      &(queues->routines.thread_counter->counter_mutex));
   }
-  pthread_mutex_unlock(&(queues->thread_counter->counter_mutex));
+  pthread_mutex_unlock(&(queues->routines.thread_counter->counter_mutex));
 }

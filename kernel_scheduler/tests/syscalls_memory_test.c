@@ -168,7 +168,7 @@ Test(ks_syscalls_memory, allocate_memory_retries_after_a_new_memory_stick)
   t_log* logger = ks_quiet_logger();
   t_queues* queues = ks_stub_queues_full(logger);
   queues->km_socket->km_socket = client_fd;
-  queues->terminate_routines = true;
+  queues->routines.terminate_routines = true;
   t_syscall_memory request = {.pid = 1, .segment_id = 0, .size = 100};
 
   cr_assert(allocate_memory(&request, queues));
@@ -210,7 +210,7 @@ Test(ks_syscalls_memory, free_memory_succeeds_when_kernel_memory_frees)
   t_log* logger = ks_quiet_logger();
   t_queues* queues = ks_stub_queues_full(logger);
   queues->km_socket->km_socket = client_fd;
-  queues->terminate_routines =
+  queues->routines.terminate_routines =
       true; /* isolates the always-on resumption kick */
   t_syscall_memory request = {.pid = 1, .segment_id = 0, .size = 100};
 
@@ -231,7 +231,7 @@ Test(ks_syscalls_memory, free_memory_reports_memory_corruption)
   t_log* logger = ks_quiet_logger();
   t_queues* queues = ks_stub_queues_full(logger);
   queues->km_socket->km_socket = client_fd;
-  queues->terminate_routines = true;
+  queues->routines.terminate_routines = true;
   t_syscall_memory request = {.pid = 1, .segment_id = 0, .size = 100};
 
   cr_assert_not(free_memory(&request, queues));
@@ -251,7 +251,7 @@ Test(ks_syscalls_memory, free_memory_reports_an_unrecognized_reply)
   t_log* logger = ks_quiet_logger();
   t_queues* queues = ks_stub_queues_full(logger);
   queues->km_socket->km_socket = client_fd;
-  queues->terminate_routines = true;
+  queues->routines.terminate_routines = true;
   t_syscall_memory request = {.pid = 1, .segment_id = 0, .size = 100};
 
   cr_assert_not(free_memory(&request, queues));
@@ -272,7 +272,7 @@ Test(ks_syscalls_memory, free_memory_retries_after_a_new_memory_stick)
   t_log* logger = ks_quiet_logger();
   t_queues* queues = ks_stub_queues_full(logger);
   queues->km_socket->km_socket = client_fd;
-  queues->terminate_routines = true;
+  queues->routines.terminate_routines = true;
   t_syscall_memory request = {.pid = 1, .segment_id = 0, .size = 100};
 
   cr_assert(free_memory(&request, queues));

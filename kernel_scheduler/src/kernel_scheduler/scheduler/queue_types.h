@@ -119,8 +119,24 @@ typedef struct
   t_resumer_thread* resumer_thread_data;
 } t_suspension_data;
 
-// The whole scheduler state. Every queue lives here by value; the worker
-// threads, counters and routine flags hang off it too.
+// Everything that coordinates the compaction/resumption background
+// routines: the counters they wait on, the mutex/condition/flags that gate
+// a routine running at a time, and the suspender/resumer thread handles.
+typedef struct
+{
+  t_counter* thread_counter;
+  t_counter* syscall_counter;
+  pthread_mutex_t routine_mutex;
+  pthread_cond_t routine_cond;
+  bool routine_active;
+  bool terminate_routines;
+  atomic_bool compaction_active;
+  atomic_bool resume_active;
+  t_suspension_data* suspension_data;
+} t_routine_state;
+
+// The whole scheduler state. Every queue lives here by value; the shared
+// resources and the routine-coordination state hang off it too.
 typedef struct
 {
   t_ready_queue ready;
@@ -129,15 +145,7 @@ typedef struct
   t_blocking_list susp_block;
   t_blocking_list susp_ready;
   t_process_counter* process_counter;
-  t_counter* thread_counter;
-  t_counter* syscall_counter;
   t_log* logger;
   t_kernel_memory_socket* km_socket;
-  t_suspension_data* suspension_data;
-  pthread_mutex_t routine_mutex;
-  pthread_cond_t routine_cond;
-  bool routine_active;
-  bool terminate_routines;
-  atomic_bool compaction_active;
-  atomic_bool resume_active;
+  t_routine_state routines;
 } t_queues;

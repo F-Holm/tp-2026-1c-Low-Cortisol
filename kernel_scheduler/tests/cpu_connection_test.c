@@ -344,7 +344,8 @@ Test(ks_cpu_connection, memory_free_succeeds_when_kernel_memory_frees)
   int km_server_fd;
   int km_client_fd = ks_connected_pair(&km_server_fd);
   fx.queues->km_socket->km_socket = km_client_fd;
-  fx.queues->terminate_routines = true; /* isolates the resumption kick */
+  fx.queues->routines.terminate_routines =
+      true; /* isolates the resumption kick */
   cr_assert(send_string(OP_MEMORY_FREED, "freed", km_server_fd));
 
   fx.mutex_list = init_list_mutex();

@@ -45,16 +45,16 @@ t_queues* init_queues(int algorithm, t_list* cmn_algorithms, int quantum,
   init_blocking_list(&(queues->susp_block));
   init_blocking_list(&(queues->susp_ready));
   queues->process_counter = init_counter_processes(km_socket);
-  queues->thread_counter = create_counter();
-  queues->syscall_counter = create_counter();
-  pthread_mutex_init(&(queues->routine_mutex), NULL);
-  pthread_cond_init(&(queues->routine_cond), NULL);
-  queues->routine_active = false;
-  queues->terminate_routines = false;
+  queues->routines.thread_counter = create_counter();
+  queues->routines.syscall_counter = create_counter();
+  pthread_mutex_init(&(queues->routines.routine_mutex), NULL);
+  pthread_cond_init(&(queues->routines.routine_cond), NULL);
+  queues->routines.routine_active = false;
+  queues->routines.terminate_routines = false;
   queues->logger = logger;
   queues->km_socket = km_socket;
-  atomic_init(&(queues->compaction_active), false);
-  atomic_init(&(queues->resume_active), false);
+  atomic_init(&(queues->routines.compaction_active), false);
+  atomic_init(&(queues->routines.resume_active), false);
   start_threads_suspended(queues, suspension_timeout);
   return queues;
 }
@@ -73,8 +73,8 @@ void destroy_queues(t_queues* queues)
   destroy_blocking_list(&(queues->susp_block));
   destroy_blocking_list(&(queues->susp_ready));
   destroy_counter_processes(queues->process_counter);
-  pthread_mutex_destroy(&(queues->routine_mutex));
-  pthread_cond_destroy(&(queues->routine_cond));
+  pthread_mutex_destroy(&(queues->routines.routine_mutex));
+  pthread_cond_destroy(&(queues->routines.routine_cond));
   free(queues);
 }
 
@@ -128,7 +128,8 @@ void transition_exec_ready(t_pcb* pcb, t_queues* queues)
   pthread_mutex_lock(&(pcb->state_mutex));
   if (manage_state_pcb(queues->logger, pcb, EST_EXEC, EST_READY))
   {
-    transition_take_exec(pcb, &(queues->exec), queues->syscall_counter);
+    transition_take_exec(pcb, &(queues->exec),
+                         queues->routines.syscall_counter);
     transition_to_ready(pcb, &(queues->ready));
   }
   pthread_mutex_unlock(&(pcb->state_mutex));
@@ -139,7 +140,8 @@ void transition_exec_exit(t_pcb* pcb, t_queues* queues, int reason)
   pthread_mutex_lock(&(pcb->state_mutex));
   if (manage_state_pcb(queues->logger, pcb, EST_EXEC, EST_EXIT))
   {
-    transition_take_exec(pcb, &(queues->exec), queues->syscall_counter);
+    transition_take_exec(pcb, &(queues->exec),
+                         queues->routines.syscall_counter);
     pthread_mutex_unlock(&(pcb->state_mutex));
     transition_to_exit(pcb, queues, reason);
   }
@@ -154,7 +156,8 @@ void transition_exec_block(t_pcb* pcb, t_queues* queues)
   pthread_mutex_lock(&(pcb->state_mutex));
   if (manage_state_pcb(queues->logger, pcb, EST_EXEC, EST_BLOCK))
   {
-    transition_take_exec(pcb, &(queues->exec), queues->syscall_counter);
+    transition_take_exec(pcb, &(queues->exec),
+                         queues->routines.syscall_counter);
     transition_to_block(pcb, &(queues->block));
   }
   pthread_mutex_unlock(&(pcb->state_mutex));
@@ -226,53 +229,53 @@ void clear_queues(t_queues* queues)
 
 void increment_syscall_counter(t_queues* queues)
 {
-  counter_increment(queues->syscall_counter);
+  counter_increment(queues->routines.syscall_counter);
 }
 
 void decrement_syscall_counter(t_queues* queues)
 {
-  pthread_mutex_lock(&(queues->syscall_counter->counter_mutex));
-  queues->syscall_counter->count--;
-  pthread_mutex_unlock(&(queues->syscall_counter->counter_mutex));
+  pthread_mutex_lock(&(queues->routines.syscall_counter->counter_mutex));
+  queues->routines.syscall_counter->count--;
+  pthread_mutex_unlock(&(queues->routines.syscall_counter->counter_mutex));
 }
 
 void increment_thread_counter(t_queues* queues)
 {
-  counter_increment(queues->thread_counter);
+  counter_increment(queues->routines.thread_counter);
 }
 
 void decrement_thread_counter(t_queues* queues)
 {
-  pthread_mutex_lock(&(queues->thread_counter->counter_mutex));
-  queues->thread_counter->count--;
-  if (queues->thread_counter->count <= 0)
+  pthread_mutex_lock(&(queues->routines.thread_counter->counter_mutex));
+  queues->routines.thread_counter->count--;
+  if (queues->routines.thread_counter->count <= 0)
   {
-    pthread_cond_signal(&(queues->thread_counter->condition));
+    pthread_cond_signal(&(queues->routines.thread_counter->condition));
   }
-  pthread_mutex_unlock(&(queues->thread_counter->counter_mutex));
+  pthread_mutex_unlock(&(queues->routines.thread_counter->counter_mutex));
 }
 
 static void wait_counter_threads(t_queues* queues)
 {
   log_debug(queues->logger, "Waiting for all threads to finish");
-  pthread_mutex_lock(&(queues->thread_counter->counter_mutex));
-  while (queues->thread_counter->count > 0)
+  pthread_mutex_lock(&(queues->routines.thread_counter->counter_mutex));
+  while (queues->routines.thread_counter->count > 0)
   {
-    pthread_cond_wait(&(queues->thread_counter->condition),
-                      &(queues->thread_counter->counter_mutex));
+    pthread_cond_wait(&(queues->routines.thread_counter->condition),
+                      &(queues->routines.thread_counter->counter_mutex));
   }
-  pthread_mutex_unlock(&(queues->thread_counter->counter_mutex));
+  pthread_mutex_unlock(&(queues->routines.thread_counter->counter_mutex));
   log_debug(queues->logger, "Threads finished");
 }
 
 static void destroy_counter_threads(t_queues* queues)
 {
-  destroy_counter(queues->thread_counter);
+  destroy_counter(queues->routines.thread_counter);
 }
 
 static void destroy_counter_syscalls(t_queues* queues)
 {
-  destroy_counter(queues->syscall_counter);
+  destroy_counter(queues->routines.syscall_counter);
 }
 
 void log_transition_state(t_log* logger, uint32_t pid, int previous_state,

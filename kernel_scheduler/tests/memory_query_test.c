@@ -42,7 +42,7 @@ Test(ks_memory_query, space_available_retries_after_a_new_memory_stick)
   /* create_resumption_routine_thread's spawned thread no-ops immediately
    * when terminate_routines is set -- isolates this test from the resumer
    * subsystem, which needs its own dedicated coverage. */
-  queues->terminate_routines = true;
+  queues->routines.terminate_routines = true;
 
   cr_assert_eq(space_available(queues, 1), 700);
 

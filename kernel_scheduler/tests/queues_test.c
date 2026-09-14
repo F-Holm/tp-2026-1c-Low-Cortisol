@@ -35,8 +35,8 @@ Test(ks_queues, init_queues_builds_a_working_full_lifecycle)
   cr_assert_not_null(queues);
   cr_assert_eq(queues->logger, logger);
   cr_assert_eq(queues->km_socket, km_socket);
-  cr_assert_not_null(queues->suspension_data);
-  cr_assert_not(queues->terminate_routines);
+  cr_assert_not_null(queues->routines.suspension_data);
+  cr_assert_not(queues->routines.terminate_routines);
 
   /* destroy_queues waits out the suspender/resumer threads itself. */
   destroy_queues(queues);
@@ -135,7 +135,7 @@ Test(ks_queues, transition_new_ready_retries_after_a_new_memory_stick)
   t_log* logger = ks_quiet_logger();
   t_queues* queues = ks_stub_queues_full(logger);
   queues->km_socket->km_socket = client_fd;
-  queues->terminate_routines = true;
+  queues->routines.terminate_routines = true;
 
   transition_new_ready(queues, "a.txt", 0);
 
@@ -245,7 +245,8 @@ Test(ks_queues, transition_block_susp_block_moves_the_pcb)
   t_log* logger = ks_quiet_logger();
   t_queues* queues = ks_stub_queues_full(logger);
   queues->km_socket->km_socket = client_fd;
-  atomic_store(&(queues->resume_active), true); /* skip the resumer wakeup */
+  atomic_store(&(queues->routines.resume_active),
+               true); /* skip the resumer wakeup */
 
   t_pcb* pcb = create_pcb(EST_BLOCK, 0);
   transition_to_block(pcb, &(queues->block));

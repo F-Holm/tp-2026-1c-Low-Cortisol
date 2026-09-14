@@ -20,13 +20,15 @@ Test(ks_suspension, starts_and_stops_the_suspender_and_resumer_threads_cleanly)
   t_queues* queues = ks_stub_queues_full(logger);
 
   start_threads_suspended(queues, 1000);
-  cr_assert_not_null(queues->suspension_data);
+  cr_assert_not_null(queues->routines.suspension_data);
 
   terminate_threads_suspended(queues);
-  cr_assert_eq(queues->suspension_data->suspender_thread_data->data->state,
-               HS_FINISHED);
-  cr_assert_eq(queues->suspension_data->resumer_thread_data->data->state,
-               HS_FINISHED);
+  cr_assert_eq(
+      queues->routines.suspension_data->suspender_thread_data->data->state,
+      HS_FINISHED);
+  cr_assert_eq(
+      queues->routines.suspension_data->resumer_thread_data->data->state,
+      HS_FINISHED);
 
   destroy_threads_suspended(queues);
   ks_destroy_stub_queues_full(queues);
@@ -44,9 +46,9 @@ Test(ks_suspension, lock_threads_suspended_parks_both_worker_threads)
   /* The workers may still be mid-iteration the instant we lock them; poll
    * briefly (bounded) rather than assume they're already parked. */
   t_suspended_thread* suspender_data =
-      queues->suspension_data->suspender_thread_data->data;
+      queues->routines.suspension_data->suspender_thread_data->data;
   t_suspended_thread* resumer_data =
-      queues->suspension_data->resumer_thread_data->data;
+      queues->routines.suspension_data->resumer_thread_data->data;
   bool suspender_blocked = false;
   bool resumer_blocked = false;
   for (int i = 0; i < 500 && !(suspender_blocked && resumer_blocked); i++)
@@ -130,7 +132,7 @@ Test(ks_suspension,
   /* Skip the resumer-thread wakeup at the end -- that's the suspension
    * subsystem's own concern, already covered by the thread-lifecycle
    * tests above. */
-  atomic_store(&(queues->resume_active), true);
+  atomic_store(&(queues->routines.resume_active), true);
 
   t_pcb* pcb = create_pcb(EST_BLOCK, 0);
   transition_to_block(pcb, &(queues->block));

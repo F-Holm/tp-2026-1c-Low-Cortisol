@@ -136,9 +136,9 @@ Test(ks_state_machine, syscall_counter_goes_up_and_down)
 {
   increment_syscall_counter(q);
   increment_syscall_counter(q);
-  cr_assert_eq(q->syscall_counter->count, 2);
+  cr_assert_eq(q->routines.syscall_counter->count, 2);
   decrement_syscall_counter(q);
-  cr_assert_eq(q->syscall_counter->count, 1);
+  cr_assert_eq(q->routines.syscall_counter->count, 1);
 }
 
 Test(ks_state_machine, clear_queues_drains_every_queue)

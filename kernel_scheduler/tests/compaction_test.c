@@ -17,7 +17,7 @@ Test(ks_compaction, is_compacting_reflects_the_compaction_active_flag)
   t_queues* queues = ks_stub_queues_full(logger);
 
   cr_assert_not(is_compacting(queues));
-  atomic_store(&(queues->compaction_active), true);
+  atomic_store(&(queues->routines.compaction_active), true);
   cr_assert(is_compacting(queues));
 
   ks_destroy_stub_queues_full(queues);
@@ -30,7 +30,7 @@ Test(ks_compaction, is_resuming_reflects_the_resume_active_flag)
   t_queues* queues = ks_stub_queues_full(logger);
 
   cr_assert_not(is_resuming(queues));
-  atomic_store(&(queues->resume_active), true);
+  atomic_store(&(queues->routines.resume_active), true);
   cr_assert(is_resuming(queues));
 
   ks_destroy_stub_queues_full(queues);
@@ -42,9 +42,9 @@ Test(ks_compaction, terminate_routines_sets_the_flag)
   t_log* logger = ks_quiet_logger();
   t_queues* queues = ks_stub_queues_full(logger);
 
-  cr_assert_not(queues->terminate_routines);
+  cr_assert_not(queues->routines.terminate_routines);
   terminate_routines(queues);
-  cr_assert(queues->terminate_routines);
+  cr_assert(queues->routines.terminate_routines);
 
   ks_destroy_stub_queues_full(queues);
   log_destroy(logger);
@@ -57,7 +57,7 @@ Test(ks_compaction,
 {
   t_log* logger = ks_quiet_logger();
   t_queues* queues = ks_stub_queues_full(logger);
-  atomic_store(&(queues->compaction_active), true);
+  atomic_store(&(queues->routines.compaction_active), true);
 
   create_resumption_routine_thread(queues);
 
@@ -72,7 +72,7 @@ Test(ks_compaction,
 {
   t_log* logger = ks_quiet_logger();
   t_queues* queues = ks_stub_queues_full(logger);
-  atomic_store(&(queues->resume_active), true);
+  atomic_store(&(queues->routines.resume_active), true);
 
   create_resumption_routine_thread(queues);
 
@@ -94,7 +94,7 @@ Test(ks_compaction,
   /* The spawned thread no-ops immediately once it sees terminate_routines,
    * isolating this test from the resumer subsystem's own logic (covered
    * separately in suspension_test.c). */
-  queues->terminate_routines = true;
+  queues->routines.terminate_routines = true;
 
   create_resumption_routine_thread(queues);
 
@@ -155,7 +155,7 @@ Test(ks_compaction, fits_process_retries_after_a_new_memory_stick)
   t_log* logger = ks_quiet_logger();
   t_queues* queues = ks_stub_queues_full(logger);
   queues->km_socket->km_socket = client_fd;
-  queues->terminate_routines = true;
+  queues->routines.terminate_routines = true;
   t_pcb* pcb = create_pcb(EST_SUSP_READY, 0);
 
   cr_assert(fits_process(queues, pcb));
@@ -173,7 +173,7 @@ Test(ks_compaction, routine_compaction_is_a_no_op_while_already_compacting)
 {
   t_log* logger = ks_quiet_logger();
   t_queues* queues = ks_stub_queues_full(logger);
-  atomic_store(&(queues->compaction_active), true);
+  atomic_store(&(queues->routines.compaction_active), true);
 
   routine_compaction(queues);
 
@@ -188,7 +188,7 @@ Test(ks_compaction,
 {
   t_log* logger = ks_quiet_logger();
   t_queues* queues = ks_stub_queues_full(logger);
-  queues->terminate_routines = true;
+  queues->routines.terminate_routines = true;
 
   routine_compaction(queues);
 
