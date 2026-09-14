@@ -19,7 +19,8 @@ Test(km_address_translation,
      translate_logical_address_computes_the_physical_offset)
 {
   t_log* logger = km_quiet_logger();
-  t_main_memory* memory = init_main_memory(100, BEST, 0); /* max_segment=100 */
+  t_main_memory* memory =
+      init_main_memory(100, AS_BEST, 0); /* max_segment=100 */
   list_add(memory->segments, km_make_segment(0, 1, 500, 100));
 
   /* logical address 50 -> segment 0, offset 50 */
@@ -33,7 +34,7 @@ Test(km_address_translation,
      translate_logical_address_reports_a_missing_segment)
 {
   t_log* logger = km_quiet_logger();
-  t_main_memory* memory = init_main_memory(100, BEST, 0);
+  t_main_memory* memory = init_main_memory(100, AS_BEST, 0);
 
   cr_assert_eq(translate_logical_address(1, 50, 4, memory, logger), -1);
 

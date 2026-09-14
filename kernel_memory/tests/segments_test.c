@@ -29,7 +29,7 @@ Test(km_segments, hole_adjacency_checks)
 
 Test(km_segments, compute_process_size_adds_only_the_owned_segments)
 {
-  t_main_memory* memory = init_main_memory(4096, BEST, 0);
+  t_main_memory* memory = init_main_memory(4096, AS_BEST, 0);
   list_add(memory->segments, km_make_segment(0, 1, 0, 100));
   list_add(memory->segments, km_make_segment(1, 1, 100, 50));
   list_add(memory->segments, km_make_segment(0, 2, 150, 999));
@@ -45,7 +45,7 @@ Test(km_segments, compute_process_size_adds_only_the_owned_segments)
 Test(km_segments, find_and_remove_segment_removes_the_matching_segment)
 {
   t_log* logger = km_quiet_logger();
-  t_main_memory* memory = init_main_memory(4096, BEST, 0);
+  t_main_memory* memory = init_main_memory(4096, AS_BEST, 0);
   list_add(memory->segments, km_make_segment(0, 1, 0, 100));
   list_add(memory->segments, km_make_segment(1, 1, 100, 50));
 
@@ -63,7 +63,7 @@ Test(km_segments, find_and_remove_segment_removes_the_matching_segment)
 Test(km_segments, find_and_remove_segment_reports_not_found)
 {
   t_log* logger = km_quiet_logger();
-  t_main_memory* memory = init_main_memory(4096, BEST, 0);
+  t_main_memory* memory = init_main_memory(4096, AS_BEST, 0);
   list_add(memory->segments, km_make_segment(0, 1, 0, 100));
 
   cr_assert_null(find_and_remove_segment(99, 1, memory, logger));
@@ -78,7 +78,7 @@ Test(km_segments, find_and_remove_segment_reports_not_found)
 Test(km_segments, remove_segment_merges_two_adjacent_holes)
 {
   t_log* logger = km_quiet_logger();
-  t_main_memory* memory = init_main_memory(4096, BEST, 0);
+  t_main_memory* memory = init_main_memory(4096, AS_BEST, 0);
   list_add(memory->segments, km_make_segment(0, 1, 50, 100)); /* [50, 150) */
   list_add(memory->holes, km_make_hole(0, 50));               /* ends at 50 */
   list_add(memory->holes, km_make_hole(150, 30)); /* starts at 150 */
@@ -98,7 +98,7 @@ Test(km_segments, remove_segment_merges_two_adjacent_holes)
 Test(km_segments, remove_segment_merges_with_a_hole_before_it)
 {
   t_log* logger = km_quiet_logger();
-  t_main_memory* memory = init_main_memory(4096, BEST, 0);
+  t_main_memory* memory = init_main_memory(4096, AS_BEST, 0);
   list_add(memory->segments, km_make_segment(0, 1, 50, 100)); /* [50, 150) */
   list_add(memory->holes, km_make_hole(0, 50));               /* ends at 50 */
 
@@ -116,7 +116,7 @@ Test(km_segments, remove_segment_merges_with_a_hole_before_it)
 Test(km_segments, remove_segment_merges_with_a_hole_after_it)
 {
   t_log* logger = km_quiet_logger();
-  t_main_memory* memory = init_main_memory(4096, BEST, 0);
+  t_main_memory* memory = init_main_memory(4096, AS_BEST, 0);
   list_add(memory->segments, km_make_segment(0, 1, 50, 100)); /* [50, 150) */
   list_add(memory->holes, km_make_hole(150, 30)); /* starts at 150 */
 
@@ -134,7 +134,7 @@ Test(km_segments, remove_segment_merges_with_a_hole_after_it)
 Test(km_segments, remove_segment_becomes_a_standalone_hole_with_no_neighbors)
 {
   t_log* logger = km_quiet_logger();
-  t_main_memory* memory = init_main_memory(4096, BEST, 0);
+  t_main_memory* memory = init_main_memory(4096, AS_BEST, 0);
   list_add(memory->segments, km_make_segment(0, 1, 50, 100)); /* [50, 150) */
 
   remove_segment(0, 1, memory, logger);
@@ -151,7 +151,7 @@ Test(km_segments, remove_segment_becomes_a_standalone_hole_with_no_neighbors)
 Test(km_segments, remove_segment_is_a_no_op_when_the_segment_is_missing)
 {
   t_log* logger = km_quiet_logger();
-  t_main_memory* memory = init_main_memory(4096, BEST, 0);
+  t_main_memory* memory = init_main_memory(4096, AS_BEST, 0);
 
   remove_segment(0, 1, memory, logger); /* must not crash */
 
@@ -165,7 +165,7 @@ Test(km_segments, remove_segment_is_a_no_op_when_the_segment_is_missing)
 
 Test(km_segments, find_segment_returns_the_nth_segment_for_a_pid)
 {
-  t_main_memory* memory = init_main_memory(4096, BEST, 0);
+  t_main_memory* memory = init_main_memory(4096, AS_BEST, 0);
   t_segment* pid1_first = km_make_segment(0, 1, 0, 10);
   t_segment* pid2_first = km_make_segment(0, 2, 10, 10);
   t_segment* pid1_second = km_make_segment(1, 1, 20, 10);
@@ -186,7 +186,7 @@ Test(km_segments, find_segment_returns_the_nth_segment_for_a_pid)
 Test(km_segments, filter_process_segments_keeps_only_the_matching_pid)
 {
   t_log* logger = km_quiet_logger();
-  t_main_memory* memory = init_main_memory(4096, BEST, 0);
+  t_main_memory* memory = init_main_memory(4096, AS_BEST, 0);
   t_segment* mine = km_make_segment(0, 1, 0, 10);
   list_add(memory->segments, mine);
   list_add(memory->segments, km_make_segment(0, 2, 10, 10));

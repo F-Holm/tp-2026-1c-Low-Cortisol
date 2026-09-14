@@ -62,7 +62,7 @@ Test(km_compaction, compact_memory_compacts_and_notifies_the_scheduler)
   int server_fd;
   int client_fd = km_connected_pair(&server_fd);
 
-  t_main_memory* memory = init_main_memory(1000, BEST, 0);
+  t_main_memory* memory = init_main_memory(1000, AS_BEST, 0);
   memory->total_size = 1000;
   list_add(memory->segments, km_make_segment(0, 1, 100, 50)); /* gap before */
   list_add(memory->segments, km_make_segment(1, 1, 300, 20)); /* gap between */

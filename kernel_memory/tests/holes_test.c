@@ -27,7 +27,7 @@ Test(km_holes, compute_free_space_sums_the_hole_sizes)
 
 Test(km_holes, add_total_memory_grows_the_size_and_adds_a_tail_hole)
 {
-  t_main_memory* memory = init_main_memory(4096, BEST, 0);
+  t_main_memory* memory = init_main_memory(4096, AS_BEST, 0);
 
   add_total_memory(memory, 1024);
   cr_assert_eq(memory->total_size, 1024);
@@ -47,7 +47,7 @@ Test(km_holes, add_total_memory_grows_the_size_and_adds_a_tail_hole)
 Test(km_select_hole, best_fit_picks_the_smallest_hole_that_fits)
 {
   t_log* logger = km_quiet_logger();
-  t_main_memory* memory = init_main_memory(4096, BEST, 0);
+  t_main_memory* memory = init_main_memory(4096, AS_BEST, 0);
   list_add(memory->holes, km_make_hole(0, 100));
   list_add(memory->holes, km_make_hole(100, 40));
   list_add(memory->holes, km_make_hole(140, 200));
@@ -67,7 +67,7 @@ Test(km_select_hole, best_fit_picks_the_smallest_hole_that_fits)
 Test(km_select_hole, worst_fit_picks_the_largest_hole)
 {
   t_log* logger = km_quiet_logger();
-  t_main_memory* memory = init_main_memory(4096, WORST, 0);
+  t_main_memory* memory = init_main_memory(4096, AS_WORST, 0);
   list_add(memory->holes, km_make_hole(0, 100));
   list_add(memory->holes, km_make_hole(100, 40));
   list_add(memory->holes, km_make_hole(140, 200));
@@ -82,7 +82,7 @@ Test(km_select_hole, worst_fit_picks_the_largest_hole)
 Test(km_select_hole, an_exact_fit_removes_the_hole)
 {
   t_log* logger = km_quiet_logger();
-  t_main_memory* memory = init_main_memory(4096, BEST, 0);
+  t_main_memory* memory = init_main_memory(4096, AS_BEST, 0);
   list_add(memory->holes, km_make_hole(0, 64));
 
   t_hole chosen = select_hole(64, logger, memory);
@@ -96,7 +96,7 @@ Test(km_select_hole, an_exact_fit_removes_the_hole)
 Test(km_select_hole, reports_no_hole_when_nothing_fits)
 {
   t_log* logger = km_quiet_logger();
-  t_main_memory* memory = init_main_memory(4096, BEST, 0);
+  t_main_memory* memory = init_main_memory(4096, AS_BEST, 0);
   list_add(memory->holes, km_make_hole(0, 8));
 
   t_hole chosen = select_hole(64, logger, memory);
@@ -109,8 +109,8 @@ Test(km_select_hole, reports_no_hole_when_nothing_fits)
 Test(km_select_hole, reports_an_error_for_an_unrecognized_strategy)
 {
   t_log* logger = km_quiet_logger();
-  t_main_memory* memory = init_main_memory(4096, BEST, 0);
-  memory->allocation_strategy = 99; /* neither BEST nor WORST */
+  t_main_memory* memory = init_main_memory(4096, AS_BEST, 0);
+  memory->allocation_strategy = 99; /* neither AS_BEST nor AS_WORST */
   list_add(memory->holes, km_make_hole(0, 100));
 
   t_hole chosen = select_hole(30, logger, memory);
@@ -125,7 +125,7 @@ Test(km_select_hole, reports_an_error_for_an_unrecognized_strategy)
 
 Test(km_holes, update_segment_list_appends_a_new_segment)
 {
-  t_main_memory* memory = init_main_memory(4096, BEST, 0);
+  t_main_memory* memory = init_main_memory(4096, AS_BEST, 0);
   t_hole chosen = {.base = 128, .size = 999};
 
   update_segment_list(memory, chosen, 64, 7, 3);
@@ -147,7 +147,7 @@ Test(km_create_segment, succeeds_when_a_hole_fits)
   int server_fd;
   int client_fd = km_connected_pair(&server_fd);
   t_log* logger = km_quiet_logger();
-  t_main_memory* memory = init_main_memory(4096, BEST, 0);
+  t_main_memory* memory = init_main_memory(4096, AS_BEST, 0);
   list_add(memory->holes, km_make_hole(0, 100));
 
   create_segment(1, 1, 64, memory, client_fd, logger);
@@ -167,7 +167,7 @@ Test(km_create_segment, reports_not_enough_memory)
   int server_fd;
   int client_fd = km_connected_pair(&server_fd);
   t_log* logger = km_quiet_logger();
-  t_main_memory* memory = init_main_memory(4096, BEST, 0);
+  t_main_memory* memory = init_main_memory(4096, AS_BEST, 0);
   list_add(memory->holes, km_make_hole(0, 8));
 
   create_segment(1, 1, 64, memory, client_fd, logger);
@@ -187,7 +187,7 @@ Test(km_create_segment, rejects_a_segment_larger_than_the_max_size)
   int server_fd;
   int client_fd = km_connected_pair(&server_fd);
   t_log* logger = km_quiet_logger();
-  t_main_memory* memory = init_main_memory(32, BEST, 0);
+  t_main_memory* memory = init_main_memory(32, AS_BEST, 0);
   list_add(memory->holes, km_make_hole(0, 1000));
 
   create_segment(1, 1, 64, memory, client_fd, logger);
@@ -213,7 +213,7 @@ Test(km_create_segment, compacts_memory_when_no_single_hole_is_big_enough)
   cr_assert(send_string(OP_CAN_COMPACT, "go ahead", server_fd));
 
   t_log* logger = km_quiet_logger();
-  t_main_memory* memory = init_main_memory(4096, BEST, 0);
+  t_main_memory* memory = init_main_memory(4096, AS_BEST, 0);
   list_add(memory->segments, km_make_segment(0, 1, 0, 10));
   list_add(memory->holes, km_make_hole(10, 20)); /* too small alone */
   list_add(memory->holes, km_make_hole(30, 20)); /* too small alone */

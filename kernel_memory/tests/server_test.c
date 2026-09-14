@@ -11,7 +11,7 @@
 
 static t_kernel_memory_data* km_stub_kernel_data(t_log* logger)
 {
-  return init_kernel_memory_data(-1, NULL, 0, 0, 1024, WORST, logger);
+  return init_kernel_memory_data(-1, NULL, 0, 0, 1024, AS_WORST, logger);
 }
 
 Test(km_server, handshake_rejects_an_unrecognized_identifier)

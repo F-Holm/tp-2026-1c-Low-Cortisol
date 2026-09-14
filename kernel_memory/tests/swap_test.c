@@ -52,7 +52,7 @@ static t_swap_fixture make_swap_fixture(int stick_size, int swap_size,
 
   f.scheduler_client_fd = km_connected_pair(&f.scheduler_server_fd);
 
-  f.memory = init_main_memory(max_segment_size, BEST, 0);
+  f.memory = init_main_memory(max_segment_size, AS_BEST, 0);
 
   f.scheduler_data = init_scheduler_data(
       -1, f.scheduler_client_fd, NULL, NULL, NULL, f.memory, f.sticks,

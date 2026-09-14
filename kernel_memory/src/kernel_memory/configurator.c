@@ -47,9 +47,9 @@ t_allocation_strategy get_allocation_strategy(t_config* config)
 t_allocation_strategy allocation_from_string(char* strategy)
 {
   if (strcmp(strategy, "BEST") == 0)
-    return BEST;
+    return AS_BEST;
   else if (strcmp(strategy, "WORST") == 0)
-    return WORST;
+    return AS_WORST;
   else
     return -1;
 }

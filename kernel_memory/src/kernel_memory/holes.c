@@ -65,10 +65,12 @@ t_main_memory* add_total_memory(t_main_memory* main_memory, int memory_total)
 t_hole select_hole(uint32_t size, t_log* logger, t_main_memory* memory)
 {
   t_hole chosen_hole = {-1, -1};
-  if (memory->allocation_strategy == BEST)
-    chosen_hole = hole_selection_algorithm(size, memory->holes, logger, BEST);
-  else if (memory->allocation_strategy == WORST)
-    chosen_hole = hole_selection_algorithm(size, memory->holes, logger, WORST);
+  if (memory->allocation_strategy == AS_BEST)
+    chosen_hole =
+        hole_selection_algorithm(size, memory->holes, logger, AS_BEST);
+  else if (memory->allocation_strategy == AS_WORST)
+    chosen_hole =
+        hole_selection_algorithm(size, memory->holes, logger, AS_WORST);
   else
   {
     log_error(logger,
@@ -146,11 +148,11 @@ static t_hole hole_selection_algorithm(
     {
       switch (allocation_strategy)
       {
-        case BEST:
+        case AS_BEST:
           if (chosen_hole.size == -1 || chosen_hole.size > current_hole->size)
             chosen_hole = *current_hole;
           break;
-        case WORST:
+        case AS_WORST:
           if (chosen_hole.size == -1 || chosen_hole.size < current_hole->size)
             chosen_hole = *current_hole;
           break;

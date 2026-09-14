@@ -9,8 +9,8 @@
 
 typedef enum
 {
-  BEST,
-  WORST
+  AS_BEST,
+  AS_WORST
 } t_allocation_strategy;
 
 typedef struct

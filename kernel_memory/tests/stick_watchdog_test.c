@@ -14,7 +14,7 @@ Test(km_stick_watchdog, starts_and_stops_cleanly_with_no_sticks_connected)
 {
   t_log* logger = km_quiet_logger();
   t_kernel_memory_data* kernel_data =
-      init_kernel_memory_data(-1, NULL, 0, 0, 1024, WORST, logger);
+      init_kernel_memory_data(-1, NULL, 0, 0, 1024, AS_WORST, logger);
 
   t_stick_watchdog* watchdog = start_stick_watchdog(kernel_data);
   cr_assert_not_null(watchdog);
@@ -31,7 +31,7 @@ Test(km_stick_watchdog, notifies_the_scheduler_once_a_stick_goes_unreachable)
 
   t_log* logger = km_quiet_logger();
   t_kernel_memory_data* kernel_data =
-      init_kernel_memory_data(-1, NULL, 0, 0, 1024, WORST, logger);
+      init_kernel_memory_data(-1, NULL, 0, 0, 1024, AS_WORST, logger);
   atomic_store(&(kernel_data->socket_scheduler), scheduler_server_fd);
 
   t_stick_data* stick = km_make_stick(1024);
