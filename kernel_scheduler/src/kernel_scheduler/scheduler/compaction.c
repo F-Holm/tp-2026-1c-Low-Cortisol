@@ -20,7 +20,7 @@ static bool set_is_resuming(t_queues* queues, bool new_state);
 static bool set_is_compacting(t_queues* queues, bool new_state);
 static void routine_enter(t_queues* queues);
 static void routine_leave(t_queues* queues);
-static void lock_total(t_queues* queues);
+static void lock_all(t_queues* queues);
 static void* thread_unlock_queue_ready(void* args);
 static void create_thread_unlock_queue_ready(t_queues* queues);
 static bool compaction_finished(t_queues* queues);
@@ -80,7 +80,7 @@ void routine_compaction(t_queues* queues)
   routine_enter(queues);
   if (!queues->terminate_routines)
   {
-    lock_total(queues);
+    lock_all(queues);
     compaction(queues);
     set_is_compacting(queues, false);
     create_thread_unlock_queue_ready(queues);
@@ -90,7 +90,7 @@ void routine_compaction(t_queues* queues)
 }
 
 // total lock/unlock functions
-static void lock_total(t_queues* queues)
+static void lock_all(t_queues* queues)
 {
   lock_queue_ready(&(queues->ready));
   lock_threads_suspended(queues);
