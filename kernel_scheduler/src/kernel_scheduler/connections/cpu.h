@@ -21,16 +21,13 @@ typedef struct
   t_queues* queues;
   t_io* io;
   t_kernel_memory_socket* km_socket;
-} t_cpu_thread;
-
-typedef struct
-{
-  t_cpu_thread* data;
+  // per-cycle state, reset by init_data_thread_cpu, mutated by
+  // handle_cpu_client's own thread only
   t_pcb* pcb;
   bool keep_running;
   unsigned long counter;
   int preemption_reason;
-} t_syscall_data;
+} t_cpu_thread;
 
 typedef enum
 {
