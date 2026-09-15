@@ -28,7 +28,7 @@ bool handshake(t_kernel_memory_data* kernel_data, int client_socket)
           kernel_data->processes, kernel_data->scripts_basepath,
           kernel_data->processes_mutex, kernel_data->main_memory,
           kernel_data->connected_sticks, kernel_data->socket_list_mutex,
-          kernel_data->swap_data, kernel_data->logger,
+          &kernel_data->swap_data, kernel_data->logger,
           &kernel_data->active_threads, kernel_data->active_threads_mutex,
           kernel_data->active_threads_cond);
       pthread_mutex_lock(kernel_data->active_threads_mutex);
@@ -125,7 +125,7 @@ bool handshake(t_kernel_memory_data* kernel_data, int client_socket)
       log_debug(kernel_data->logger, "SWAP connected");
       t_swap_data* swap_data =
           init_swap_data(client_socket, kernel_data->logger);
-      kernel_data->swap_data = swap_data;
+      atomic_store(&kernel_data->swap_data, swap_data);
       break;
     }
     default:

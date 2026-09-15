@@ -137,9 +137,10 @@ Test(km_server, handshake_registers_swap)
 
   cr_assert(handshake(kernel_data, server_fd));
   cr_assert_eq(receive_handshake(client_fd), MID_KERNEL_MEMORY);
-  cr_assert_not_null(kernel_data->swap_data);
-  cr_assert_eq(kernel_data->swap_data->swap_size, 4096);
-  cr_assert_eq(kernel_data->swap_data->block_size, 64);
+  t_swap_data* swap_data = atomic_load(&kernel_data->swap_data);
+  cr_assert_not_null(swap_data);
+  cr_assert_eq(swap_data->swap_size, 4096);
+  cr_assert_eq(swap_data->block_size, 64);
 
   close(client_fd);
   free_kernel_memory_data(kernel_data);

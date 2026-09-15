@@ -22,7 +22,7 @@ t_kernel_memory_data* init_kernel_memory_data(
   kernel_data->processes = list_create();
   kernel_data->main_memory =
       init_main_memory(segment_max_size, allocation_strategy, compaction_delay);
-  kernel_data->swap_data = NULL;
+  atomic_init(&(kernel_data->swap_data), NULL);
   kernel_data->processes_mutex = malloc(sizeof(pthread_mutex_t));
   kernel_data->socket_list_mutex = malloc(sizeof(pthread_mutex_t));
   pthread_mutex_init(kernel_data->processes_mutex, NULL);
@@ -39,8 +39,8 @@ t_scheduler_data* init_scheduler_data(
     int socket_kernel_memory, int socket_scheduler, t_list* processes,
     char* scripts_basepath, pthread_mutex_t* processes_mutex,
     t_main_memory* main_memory, t_list* connected_sticks,
-    pthread_mutex_t* sticks_mutex, t_swap_data* swap_data, t_log* logger,
-    int* active_threads, pthread_mutex_t* active_threads_mutex,
+    pthread_mutex_t* sticks_mutex, _Atomic(t_swap_data*)* swap_data,
+    t_log* logger, int* active_threads, pthread_mutex_t* active_threads_mutex,
     pthread_cond_t* active_threads_cond)
 {
   t_scheduler_data* scheduler_data = malloc(sizeof(t_scheduler_data));

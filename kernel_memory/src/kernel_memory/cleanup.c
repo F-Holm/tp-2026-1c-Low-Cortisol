@@ -112,9 +112,10 @@ void free_kernel_memory_data(t_kernel_memory_data* kernel_data)
     }
     list_destroy(kernel_data->connected_cpus);
   }
-  if (kernel_data->swap_data != NULL)
+  t_swap_data* swap_data = atomic_load(&kernel_data->swap_data);
+  if (swap_data != NULL)
   {
-    free_swap_data(kernel_data->swap_data);
+    free_swap_data(swap_data);
   }
   if (kernel_data->main_memory != NULL)
   {

@@ -28,7 +28,18 @@ void suspend_process(t_process* process_to_suspend,
     return;
   }
 
-  int block_size = scheduler_data->swap_data->block_size;
+  t_swap_data* swap_data = atomic_load(scheduler_data->swap_data);
+  if (swap_data == NULL)
+  {
+    log_warning(scheduler_data->logger,
+               "Cannot suspend PID %d: the Swap module is not connected yet.",
+               process_to_suspend->pid);
+    send_string(OP_SUSPENSION_FAILED, "Swap module is not connected yet.",
+               scheduler_data->socket_scheduler);
+    return;
+  }
+
+  int block_size = swap_data->block_size;
   bool process_suspended = false;
   t_list* segments_to_remove = list_create();
   t_list_iterator* iterator =
@@ -52,12 +63,11 @@ void suspend_process(t_process* process_to_suspend,
             scheduler_data->connected_sticks, scheduler_data->socket_list_mutex,
             scheduler_data->logger, scheduler_data->socket_scheduler);
         int block_number =
-            add_block_to_swap(current_segment, i, scheduler_data->swap_data,
+            add_block_to_swap(current_segment, i, swap_data,
                               scheduler_data->logger);
         if (block_number != -1)
         {
-          write_block_to_swap(block_number, content, bytes_to_read,
-                              scheduler_data->swap_data);
+          write_block_to_swap(block_number, content, bytes_to_read, swap_data);
           segment_suspended = true;
         }
         else
@@ -109,7 +119,18 @@ void suspend_process(t_process* process_to_suspend,
 
 void resume_process(uint32_t pid, t_scheduler_data* scheduler_data)
 {
-  int block_size = scheduler_data->swap_data->block_size;
+  t_swap_data* swap_data = atomic_load(scheduler_data->swap_data);
+  if (swap_data == NULL)
+  {
+    log_warning(scheduler_data->logger,
+               "Cannot resume PID %u: the Swap module is not connected yet.",
+               pid);
+    send_string(OP_RESUME_SUSPENSION_FAILED, "Swap module is not connected yet.",
+               scheduler_data->socket_scheduler);
+    return;
+  }
+
+  int block_size = swap_data->block_size;
   bool process_found = false;
   if (!can_resume(pid, scheduler_data))
   {
@@ -120,8 +141,7 @@ void resume_process(uint32_t pid, t_scheduler_data* scheduler_data)
                 scheduler_data->socket_scheduler);
     return;
   }
-  t_list_iterator* iterator =
-      list_iterator_create(scheduler_data->swap_data->block_list);
+  t_list_iterator* iterator = list_iterator_create(swap_data->block_list);
   while (list_iterator_has_next(iterator))
   {
     t_block_data* block = list_iterator_next(iterator);
@@ -142,8 +162,7 @@ void resume_process(uint32_t pid, t_scheduler_data* scheduler_data)
           return;
         }
       }
-      char* content =
-          read_block_from_swap(block->block_number, scheduler_data->swap_data);
+      char* content = read_block_from_swap(block->block_number, swap_data);
       if (content == NULL)
       {
         log_warning(scheduler_data->logger,
@@ -168,7 +187,7 @@ void resume_process(uint32_t pid, t_scheduler_data* scheduler_data)
                       scheduler_data->socket_scheduler);
       free(content);
       if (block->block_number !=
-          remove_block_from_swap(block->block_number, scheduler_data->swap_data,
+          remove_block_from_swap(block->block_number, swap_data,
                                  scheduler_data->logger))
       {
         log_debug(scheduler_data->logger,
@@ -284,8 +303,14 @@ static void remove_process_segments(t_list* segments_to_remove, uint32_t pid,
 // RESUME PROCESS
 static bool can_resume(uint32_t pid, t_scheduler_data* scheduler_data)
 {
+  t_swap_data* swap_data = atomic_load(scheduler_data->swap_data);
+  if (swap_data == NULL)
+  {
+    return false;
+  }
+
   int process_size = 0;
-  t_list* blocks = scheduler_data->swap_data->block_list;
+  t_list* blocks = swap_data->block_list;
   for (int i = 0; i < list_size(blocks); i++)
   {
     t_block_data* block = list_get(blocks, i);

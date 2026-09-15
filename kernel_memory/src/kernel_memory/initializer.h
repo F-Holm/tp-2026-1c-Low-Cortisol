@@ -19,7 +19,8 @@ t_scheduler_data* init_scheduler_data(
     int socket_kernel_memory, int socket_scheduler, t_list* processes,
     char* scripts_basepath, pthread_mutex_t* processes_mutex,
     t_main_memory* main_memory, t_list* connected_sticks,
-    pthread_mutex_t* sticks_mutex, t_swap_data* swap_data, t_log* logger,
+    pthread_mutex_t* sticks_mutex, _Atomic(t_swap_data*)* swap_data,
+    t_log* logger,
     int* active_threads, pthread_mutex_t* active_threads_mutex,
     pthread_cond_t* active_threads_cond);
 t_cpu_data* init_cpu_data(int socket_cpu, t_list* processes,

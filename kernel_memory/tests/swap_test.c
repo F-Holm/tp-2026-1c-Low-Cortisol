@@ -25,6 +25,14 @@ typedef struct
   t_list* sticks;
   pthread_mutex_t* sticks_mutex;
   t_swap_data* swap_data;
+  /* init_scheduler_data now wants a live reference (see structs.h), not a
+   * value snapshot -- this fixture's own swap_data field above stays a plain
+   * pointer for the test's own direct use, and this slot is what gets handed
+   * to scheduler_data. Heap-allocated (not an inline struct member) because
+   * make_swap_fixture returns t_swap_fixture by value: an inline member's
+   * address would point at the function's stack frame, dangling the moment
+   * it returns. */
+  _Atomic(t_swap_data*)* swap_data_slot;
   t_main_memory* memory;
   t_scheduler_data* scheduler_data;
 } t_swap_fixture;
@@ -49,6 +57,8 @@ static t_swap_fixture make_swap_fixture(int stick_size, int swap_size,
       send_buffer(OP_INFO_SWAP, &config, sizeof(config), f.swap_server_fd));
   f.swap_data = init_swap_data(f.swap_client_fd, f.logger);
   cr_assert_not_null(f.swap_data);
+  f.swap_data_slot = malloc(sizeof(_Atomic(t_swap_data*)));
+  atomic_init(f.swap_data_slot, f.swap_data);
 
   f.scheduler_client_fd = km_connected_pair(&f.scheduler_server_fd);
 
@@ -56,7 +66,7 @@ static t_swap_fixture make_swap_fixture(int stick_size, int swap_size,
 
   f.scheduler_data = init_scheduler_data(
       -1, f.scheduler_client_fd, NULL, NULL, NULL, f.memory, f.sticks,
-      f.sticks_mutex, f.swap_data, f.logger, NULL, NULL, NULL);
+      f.sticks_mutex, f.swap_data_slot, f.logger, NULL, NULL, NULL);
   return f;
 }
 
@@ -64,6 +74,7 @@ static void destroy_swap_fixture(t_swap_fixture* f)
 {
   free_main_memory(f->memory);
   free_swap_data(f->swap_data);           /* closes swap_client_fd */
+  free(f->swap_data_slot);
   free_scheduler_data(f->scheduler_data); /* closes scheduler_client_fd */
   list_destroy_and_destroy_elements(f->sticks, free);
   close(f->stick_client_fd);
