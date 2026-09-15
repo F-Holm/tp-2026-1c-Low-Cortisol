@@ -32,10 +32,10 @@ void suspend_process(t_process* process_to_suspend,
   if (swap_data == NULL)
   {
     log_warning(scheduler_data->logger,
-               "Cannot suspend PID %d: the Swap module is not connected yet.",
-               process_to_suspend->pid);
+                "Cannot suspend PID %d: the Swap module is not connected yet.",
+                process_to_suspend->pid);
     send_string(OP_SUSPENSION_FAILED, "Swap module is not connected yet.",
-               scheduler_data->socket_scheduler);
+                scheduler_data->socket_scheduler);
     return;
   }
 
@@ -62,9 +62,8 @@ void suspend_process(t_process* process_to_suspend,
             current_segment->base + offset, bytes_to_read,
             scheduler_data->connected_sticks, scheduler_data->socket_list_mutex,
             scheduler_data->logger, scheduler_data->socket_scheduler);
-        int block_number =
-            add_block_to_swap(current_segment, i, swap_data,
-                              scheduler_data->logger);
+        int block_number = add_block_to_swap(current_segment, i, swap_data,
+                                             scheduler_data->logger);
         if (block_number != -1)
         {
           write_block_to_swap(block_number, content, bytes_to_read, swap_data);
@@ -123,10 +122,11 @@ void resume_process(uint32_t pid, t_scheduler_data* scheduler_data)
   if (swap_data == NULL)
   {
     log_warning(scheduler_data->logger,
-               "Cannot resume PID %u: the Swap module is not connected yet.",
-               pid);
-    send_string(OP_RESUME_SUSPENSION_FAILED, "Swap module is not connected yet.",
-               scheduler_data->socket_scheduler);
+                "Cannot resume PID %u: the Swap module is not connected yet.",
+                pid);
+    send_string(OP_RESUME_SUSPENSION_FAILED,
+                "Swap module is not connected yet.",
+                scheduler_data->socket_scheduler);
     return;
   }
 
@@ -186,9 +186,9 @@ void resume_process(uint32_t pid, t_scheduler_data* scheduler_data)
                       scheduler_data->socket_list_mutex, scheduler_data->logger,
                       scheduler_data->socket_scheduler);
       free(content);
-      if (block->block_number !=
-          remove_block_from_swap(block->block_number, swap_data,
-                                 scheduler_data->logger))
+      if (block->block_number != remove_block_from_swap(block->block_number,
+                                                        swap_data,
+                                                        scheduler_data->logger))
       {
         log_debug(scheduler_data->logger,
                   "Since block #%d was not found in swap, "

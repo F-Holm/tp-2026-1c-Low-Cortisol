@@ -73,7 +73,7 @@ static t_swap_fixture make_swap_fixture(int stick_size, int swap_size,
 static void destroy_swap_fixture(t_swap_fixture* f)
 {
   free_main_memory(f->memory);
-  free_swap_data(f->swap_data);           /* closes swap_client_fd */
+  free_swap_data(f->swap_data); /* closes swap_client_fd */
   free(f->swap_data_slot);
   free_scheduler_data(f->scheduler_data); /* closes scheduler_client_fd */
   list_destroy_and_destroy_elements(f->sticks, free);
