@@ -7,4 +7,4 @@ CPU_STAGGER     :=
 # within TIMEOUT seconds; if it doesn't, run_e2e.py treats it as a hang
 # (deadlock or similar) and fails the scenario without forcing anything.
 TERMINATION := finite
-TIMEOUT     := 3600
+TIMEOUT     := 180

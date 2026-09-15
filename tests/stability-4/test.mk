@@ -8,5 +8,5 @@ CPU_STAGGER     := 2
 # run for TIMEOUT seconds, then disconnects memory_stick_1 to force a BSOD,
 # and gives it TIMEOUT_BSOD more seconds to shut down cleanly.
 TERMINATION := infinite
-TIMEOUT     := 3600
+TIMEOUT     := 180
 TIMEOUT_BSOD := 900
