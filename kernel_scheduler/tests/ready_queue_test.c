@@ -25,7 +25,7 @@ static t_list* levels(int count, int algo)
 Test(ks_ready_queue, init_fifo_is_a_single_level)
 {
   t_ready_queue ready;
-  init_ready_queue(&ready, AP_FIFO, NULL);
+  init_ready_queue(&ready, SA_FIFO, NULL);
   cr_assert_not(ready.multilevel_queue);
   cr_assert_eq(ready.queue_count, 1);
   cr_assert(is_queue_ready_empty(&ready));
@@ -36,9 +36,9 @@ Test(ks_ready_queue, init_fifo_is_a_single_level)
 
 Test(ks_ready_queue, init_multilevel_makes_one_level_per_entry)
 {
-  t_list* algos = levels(4, AP_FIFO);
+  t_list* algos = levels(4, SA_FIFO);
   t_ready_queue ready;
-  init_ready_queue(&ready, AP_MULTILEVEL_QUEUES, algos);
+  init_ready_queue(&ready, SA_MULTILEVEL_QUEUES, algos);
   cr_assert(ready.multilevel_queue);
   cr_assert_eq(ready.queue_count, 4);
   destroy_ready_queue(&ready);
@@ -50,7 +50,7 @@ Test(ks_ready_queue, init_multilevel_makes_one_level_per_entry)
 Test(ks_ready_queue, lock_and_unlock_toggle_the_preempt_flag)
 {
   t_ready_queue ready;
-  init_ready_queue(&ready, AP_FIFO, NULL);
+  init_ready_queue(&ready, SA_FIFO, NULL);
   lock_queue_ready(&ready);
   cr_assert(is_queue_ready_blocked(&ready));
   unlock_queue_ready(&ready);
@@ -61,7 +61,7 @@ Test(ks_ready_queue, lock_and_unlock_toggle_the_preempt_flag)
 Test(ks_ready_queue, terminate_is_sticky_and_makes_blocking_take_return_null)
 {
   t_ready_queue ready;
-  init_ready_queue(&ready, AP_FIFO, NULL);
+  init_ready_queue(&ready, SA_FIFO, NULL);
   terminate_queue_ready(&ready);
   cr_assert(queue_ready_terminated(&ready));
   cr_assert_null(transition_take_ready_blocking(&ready));
@@ -73,8 +73,8 @@ Test(ks_ready_queue, terminate_is_sticky_and_makes_blocking_take_return_null)
 Test(ks_ready_queue, single_level_accepts_any_priority)
 {
   t_ready_queue ready;
-  init_ready_queue(&ready, AP_FIFO, NULL);
-  t_pcb* pcb = create_pcb(EST_READY, 99);
+  init_ready_queue(&ready, SA_FIFO, NULL);
+  t_pcb* pcb = create_pcb(PS_READY, 99);
   cr_assert(check_priority_valid(pcb, &ready));
   destroy_pcb(pcb);
   destroy_ready_queue(&ready);
@@ -82,11 +82,11 @@ Test(ks_ready_queue, single_level_accepts_any_priority)
 
 Test(ks_ready_queue, multilevel_rejects_a_priority_past_the_last_level)
 {
-  t_list* algos = levels(3, AP_FIFO);
+  t_list* algos = levels(3, SA_FIFO);
   t_ready_queue ready;
-  init_ready_queue(&ready, AP_MULTILEVEL_QUEUES, algos);
-  t_pcb* in = create_pcb(EST_READY, 2);
-  t_pcb* out = create_pcb(EST_READY, 3);
+  init_ready_queue(&ready, SA_MULTILEVEL_QUEUES, algos);
+  t_pcb* in = create_pcb(PS_READY, 2);
+  t_pcb* out = create_pcb(PS_READY, 3);
   cr_assert(check_priority_valid(in, &ready));
   cr_assert_not(check_priority_valid(out, &ready));
   destroy_pcb(in);
@@ -100,9 +100,9 @@ Test(ks_ready_queue, multilevel_rejects_a_priority_past_the_last_level)
 Test(ks_ready_queue, fifo_take_next_returns_processes_in_arrival_order)
 {
   t_ready_queue ready;
-  init_ready_queue(&ready, AP_FIFO, NULL);
-  t_pcb* a = create_pcb(EST_READY, 0);
-  t_pcb* b = create_pcb(EST_READY, 0);
+  init_ready_queue(&ready, SA_FIFO, NULL);
+  t_pcb* a = create_pcb(PS_READY, 0);
+  t_pcb* b = create_pcb(PS_READY, 0);
 
   transition_to_ready(a, &ready);
   transition_to_ready(b, &ready);
@@ -121,9 +121,9 @@ Test(ks_ready_queue, fifo_take_next_returns_processes_in_arrival_order)
 Test(ks_ready_queue, take_ready_removes_a_specific_process)
 {
   t_ready_queue ready;
-  init_ready_queue(&ready, AP_FIFO, NULL);
-  t_pcb* a = create_pcb(EST_READY, 0);
-  t_pcb* b = create_pcb(EST_READY, 0);
+  init_ready_queue(&ready, SA_FIFO, NULL);
+  t_pcb* a = create_pcb(PS_READY, 0);
+  t_pcb* b = create_pcb(PS_READY, 0);
   transition_to_ready(a, &ready);
   transition_to_ready(b, &ready);
 
@@ -139,12 +139,12 @@ Test(ks_ready_queue, take_ready_removes_a_specific_process)
 
 Test(ks_ready_queue, multilevel_serves_the_highest_priority_level_first)
 {
-  t_list* algos = levels(3, AP_FIFO);
+  t_list* algos = levels(3, SA_FIFO);
   t_ready_queue ready;
-  init_ready_queue(&ready, AP_MULTILEVEL_QUEUES, algos);
+  init_ready_queue(&ready, SA_MULTILEVEL_QUEUES, algos);
 
-  t_pcb* low = create_pcb(EST_READY, 2);
-  t_pcb* high = create_pcb(EST_READY, 0);
+  t_pcb* low = create_pcb(PS_READY, 2);
+  t_pcb* high = create_pcb(PS_READY, 0);
   transition_to_ready(low, &ready);
   transition_to_ready(high, &ready);
 
@@ -161,8 +161,8 @@ Test(ks_ready_queue, multilevel_serves_the_highest_priority_level_first)
 Test(ks_ready_queue, blocking_take_returns_a_ready_process_without_blocking)
 {
   t_ready_queue ready;
-  init_ready_queue(&ready, AP_FIFO, NULL);
-  t_pcb* a = create_pcb(EST_READY, 0);
+  init_ready_queue(&ready, SA_FIFO, NULL);
+  t_pcb* a = create_pcb(PS_READY, 0);
   transition_to_ready(a, &ready);
 
   cr_assert_eq(transition_take_ready_blocking(&ready), a);
@@ -187,14 +187,14 @@ static void* blocking_take_thread(void* arg)
 Test(ks_ready_queue, blocking_take_waits_for_a_new_arrival)
 {
   t_ready_queue ready;
-  init_ready_queue(&ready, AP_FIFO, NULL);
+  init_ready_queue(&ready, SA_FIFO, NULL);
   struct blocking_take_result r = {&ready, NULL};
 
   pthread_t taker;
   pthread_create(&taker, NULL, blocking_take_thread, &r);
   usleep(50000); /* let the thread reach its blocking wait on an empty queue */
 
-  t_pcb* pcb = create_pcb(EST_READY, 0);
+  t_pcb* pcb = create_pcb(PS_READY, 0);
   transition_to_ready(pcb, &ready);
   pthread_join(taker, NULL);
 
@@ -207,8 +207,8 @@ Test(ks_ready_queue, blocking_take_waits_for_a_new_arrival)
 Test(ks_ready_queue, blocking_take_waits_out_a_preemption_lock)
 {
   t_ready_queue ready;
-  init_ready_queue(&ready, AP_FIFO, NULL);
-  t_pcb* pcb = create_pcb(EST_READY, 0);
+  init_ready_queue(&ready, SA_FIFO, NULL);
+  t_pcb* pcb = create_pcb(PS_READY, 0);
   transition_to_ready(pcb, &ready);
   lock_queue_ready(&ready); /* preempt_all: even a ready pcb must wait */
 

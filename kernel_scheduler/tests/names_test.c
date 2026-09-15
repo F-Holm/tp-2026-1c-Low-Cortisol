@@ -5,19 +5,19 @@
 
 Test(ks_names, state_names_follow_the_enum)
 {
-  cr_assert_str_eq(STATE_NAMES[EST_NEW], "NEW");
-  cr_assert_str_eq(STATE_NAMES[EST_READY], "READY");
-  cr_assert_str_eq(STATE_NAMES[EST_EXEC], "EXEC");
-  cr_assert_str_eq(STATE_NAMES[EST_BLOCK], "BLOCK");
-  cr_assert_str_eq(STATE_NAMES[EST_SUSP_READY], "SUSP. READY");
-  cr_assert_str_eq(STATE_NAMES[EST_EXIT], "EXIT");
+  cr_assert_str_eq(STATE_NAMES[PS_NEW], "NEW");
+  cr_assert_str_eq(STATE_NAMES[PS_READY], "READY");
+  cr_assert_str_eq(STATE_NAMES[PS_EXEC], "EXEC");
+  cr_assert_str_eq(STATE_NAMES[PS_BLOCK], "BLOCK");
+  cr_assert_str_eq(STATE_NAMES[PS_SUSP_READY], "SUSP. READY");
+  cr_assert_str_eq(STATE_NAMES[PS_EXIT], "EXIT");
 }
 
 Test(ks_names, scheduling_algorithm_names_follow_the_enum)
 {
-  cr_assert_str_eq(SCHEDULING_ALGORITHMS[AP_FIFO], "FIFO");
-  cr_assert_str_eq(SCHEDULING_ALGORITHMS[AP_RR], "RR");
-  cr_assert_str_eq(SCHEDULING_ALGORITHMS[AP_MULTILEVEL_QUEUES], "MULTILEVEL");
+  cr_assert_str_eq(SCHEDULING_ALGORITHMS[SA_FIFO], "FIFO");
+  cr_assert_str_eq(SCHEDULING_ALGORITHMS[SA_RR], "RR");
+  cr_assert_str_eq(SCHEDULING_ALGORITHMS[SA_MULTILEVEL_QUEUES], "MULTILEVEL");
 }
 
 Test(ks_names, syscall_names_follow_the_enum_order)

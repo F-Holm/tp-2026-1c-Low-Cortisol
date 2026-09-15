@@ -24,7 +24,7 @@ Test(ks_io_connection, succeeds_and_starts_a_worker_thread_for_a_valid_io_type)
 
   cr_assert(handle_new_io(io, fds[0], queues, false));
   cr_assert_eq(receive_handshake(fds[1]), MID_KERNEL_SCHEDULER);
-  cr_assert_eq(io[E_STDIN].socket_io, fds[0]);
+  cr_assert_eq(io[IO_STDIN].socket_io, fds[0]);
 
   close_io(io);
   close(fds[1]);
@@ -112,9 +112,9 @@ static void destroy_io_stub(t_io* io)
 
 Test(ks_io_connection, enqueue_io_request_is_rejected_after_close)
 {
-  t_io io = make_io_stub(E_STDIN, false);
+  t_io io = make_io_stub(IO_STDIN, false);
   atomic_store(&(io.close_thread), true);
-  t_pcb* pcb = create_pcb(EST_BLOCK, 0);
+  t_pcb* pcb = create_pcb(PS_BLOCK, 0);
 
   cr_assert_not(
       enqueue_io_request(calloc(1, sizeof(t_stdin_request)), &io, pcb));
@@ -126,9 +126,9 @@ Test(ks_io_connection, enqueue_io_request_is_rejected_after_close)
 
 Test(ks_io_connection, enqueue_io_request_appends_in_arrival_order_by_default)
 {
-  t_io io = make_io_stub(E_STDIN, false);
-  t_pcb* low_priority = create_pcb(EST_BLOCK, 5);
-  t_pcb* high_priority = create_pcb(EST_BLOCK, 1);
+  t_io io = make_io_stub(IO_STDIN, false);
+  t_pcb* low_priority = create_pcb(PS_BLOCK, 5);
+  t_pcb* high_priority = create_pcb(PS_BLOCK, 1);
 
   cr_assert(enqueue_io_request(calloc(1, sizeof(t_stdin_request)), &io,
                                low_priority));
@@ -146,9 +146,9 @@ Test(ks_io_connection, enqueue_io_request_appends_in_arrival_order_by_default)
 
 Test(ks_io_connection, enqueue_io_request_inserts_by_priority_when_enabled)
 {
-  t_io io = make_io_stub(E_STDIN, true);
-  t_pcb* low_priority = create_pcb(EST_BLOCK, 5);
-  t_pcb* high_priority = create_pcb(EST_BLOCK, 1);
+  t_io io = make_io_stub(IO_STDIN, true);
+  t_pcb* low_priority = create_pcb(PS_BLOCK, 5);
+  t_pcb* high_priority = create_pcb(PS_BLOCK, 1);
 
   cr_assert(enqueue_io_request(calloc(1, sizeof(t_stdin_request)), &io,
                                low_priority));
@@ -166,9 +166,9 @@ Test(ks_io_connection, enqueue_io_request_inserts_by_priority_when_enabled)
 
 Test(ks_io_connection, enqueue_io_request_inserts_stdout_by_priority)
 {
-  t_io io = make_io_stub(E_STDOUT, true);
-  t_pcb* low_priority = create_pcb(EST_BLOCK, 5);
-  t_pcb* high_priority = create_pcb(EST_BLOCK, 1);
+  t_io io = make_io_stub(IO_STDOUT, true);
+  t_pcb* low_priority = create_pcb(PS_BLOCK, 5);
+  t_pcb* high_priority = create_pcb(PS_BLOCK, 1);
 
   cr_assert(enqueue_io_request(calloc(1, sizeof(t_stdout_request)), &io,
                                low_priority));
@@ -187,9 +187,9 @@ Test(ks_io_connection, enqueue_io_request_inserts_stdout_by_priority)
 
 Test(ks_io_connection, enqueue_io_request_inserts_sleep_by_priority)
 {
-  t_io io = make_io_stub(E_SLEEP, true);
-  t_pcb* low_priority = create_pcb(EST_BLOCK, 5);
-  t_pcb* high_priority = create_pcb(EST_BLOCK, 1);
+  t_io io = make_io_stub(IO_SLEEP, true);
+  t_pcb* low_priority = create_pcb(PS_BLOCK, 5);
+  t_pcb* high_priority = create_pcb(PS_BLOCK, 1);
 
   cr_assert(enqueue_io_request(calloc(1, sizeof(t_sleep_request)), &io,
                                low_priority));
@@ -220,10 +220,10 @@ Test(ks_io_connection, close_io_drains_and_unblocks_a_stuck_pending_request)
   cr_assert(handle_new_io(io, client_fd, queues, false));
   cr_assert_eq(receive_handshake(server_fd), MID_KERNEL_SCHEDULER);
 
-  t_pcb* pcb = create_pcb(EST_BLOCK, 0);
+  t_pcb* pcb = create_pcb(PS_BLOCK, 0);
   transition_to_block(pcb, &(queues->block));
   cr_assert(enqueue_io_request(calloc(1, sizeof(t_stdin_request)),
-                               &(io[E_STDIN]), pcb));
+                               &(io[IO_STDIN]), pcb));
 
   /* Give the worker thread a beat to pick it up and block on a reply that
    * will never come -- the fake "IO" peer above never answers. */
@@ -234,7 +234,7 @@ Test(ks_io_connection, close_io_drains_and_unblocks_a_stuck_pending_request)
    * which calls transition_unlock() on it. */
   close_io(io);
 
-  cr_assert_eq(pcb->state, EST_READY);
+  cr_assert_eq(pcb->state, PS_READY);
   cr_assert_eq(list_size(queues->block.list), 0);
 
   destroy_pcb(pcb);
@@ -262,7 +262,7 @@ Test(ks_io_connection, stdin_round_trip_reads_and_unblocks_the_process)
   cr_assert(handle_new_io(io, client_fd, queues, false));
   cr_assert_eq(receive_handshake(server_fd), MID_KERNEL_SCHEDULER);
 
-  t_pcb* pcb = create_pcb(EST_BLOCK, 0);
+  t_pcb* pcb = create_pcb(PS_BLOCK, 0);
   transition_to_block(pcb, &(queues->block));
 
   /* io_stdin_f() first asks the "IO" peer for the typed text, then relays
@@ -273,13 +273,13 @@ Test(ks_io_connection, stdin_round_trip_reads_and_unblocks_the_process)
 
   t_stdin_request* request = calloc(1, sizeof(t_stdin_request));
   request->pid = pcb->pid;
-  cr_assert(enqueue_io_request(request, &(io[E_STDIN]), pcb));
+  cr_assert(enqueue_io_request(request, &(io[IO_STDIN]), pcb));
 
   usleep(50000);
 
-  cr_assert_eq(pcb->state, EST_READY);
+  cr_assert_eq(pcb->state, PS_READY);
   cr_assert_eq(list_size(queues->block.list), 0);
-  cr_assert(list_is_empty(io[E_STDIN].io_list->io_list));
+  cr_assert(list_is_empty(io[IO_STDIN].io_list->io_list));
 
   destroy_pcb(pcb);
   close_io(io);
@@ -302,7 +302,7 @@ Test(ks_io_connection, sleep_round_trip_unblocks_the_process)
   cr_assert(handle_new_io(io, client_fd, queues, false));
   cr_assert_eq(receive_handshake(server_fd), MID_KERNEL_SCHEDULER);
 
-  t_pcb* pcb = create_pcb(EST_BLOCK, 0);
+  t_pcb* pcb = create_pcb(PS_BLOCK, 0);
   transition_to_block(pcb, &(queues->block));
 
   /* Queued ahead of time: communication_io_sleep() is a plain synchronous
@@ -312,13 +312,13 @@ Test(ks_io_connection, sleep_round_trip_unblocks_the_process)
 
   t_sleep_request* request = calloc(1, sizeof(t_sleep_request));
   request->pid = pcb->pid;
-  cr_assert(enqueue_io_request(request, &(io[E_SLEEP]), pcb));
+  cr_assert(enqueue_io_request(request, &(io[IO_SLEEP]), pcb));
 
   usleep(50000); /* let the worker thread run the round-trip */
 
-  cr_assert_eq(pcb->state, EST_READY);
+  cr_assert_eq(pcb->state, PS_READY);
   cr_assert_eq(list_size(queues->block.list), 0);
-  cr_assert(list_is_empty(io[E_SLEEP].io_list->io_list));
+  cr_assert(list_is_empty(io[IO_SLEEP].io_list->io_list));
 
   destroy_pcb(pcb);
   close_io(io);
@@ -344,7 +344,7 @@ Test(ks_io_connection, stdout_round_trip_prints_and_unblocks_the_process)
   cr_assert(handle_new_io(io, client_fd, queues, false));
   cr_assert_eq(receive_handshake(server_fd), MID_KERNEL_SCHEDULER);
 
-  t_pcb* pcb = create_pcb(EST_BLOCK, 0);
+  t_pcb* pcb = create_pcb(PS_BLOCK, 0);
   transition_to_block(pcb, &(queues->block));
 
   /* io_stdout_f() first asks Kernel Memory for the text to print, then
@@ -355,13 +355,13 @@ Test(ks_io_connection, stdout_round_trip_prints_and_unblocks_the_process)
 
   t_stdout_request* request = calloc(1, sizeof(t_stdout_request));
   request->pid = pcb->pid;
-  cr_assert(enqueue_io_request(request, &(io[E_STDOUT]), pcb));
+  cr_assert(enqueue_io_request(request, &(io[IO_STDOUT]), pcb));
 
   usleep(50000);
 
-  cr_assert_eq(pcb->state, EST_READY);
+  cr_assert_eq(pcb->state, PS_READY);
   cr_assert_eq(list_size(queues->block.list), 0);
-  cr_assert(list_is_empty(io[E_STDOUT].io_list->io_list));
+  cr_assert(list_is_empty(io[IO_STDOUT].io_list->io_list));
 
   destroy_pcb(pcb);
   close_io(io);

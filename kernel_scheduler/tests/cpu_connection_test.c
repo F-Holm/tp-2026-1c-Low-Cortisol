@@ -26,12 +26,12 @@ TestSuite(ks_cpu_connection, .timeout = 10.0);
  * test plays the CPU side of one syscall round-trip before tearing
  * everything down with close_cpu(). */
 
-/** @brief Creates a pcb in EST_READY and places it directly in the ready
+/** @brief Creates a pcb in PS_READY and places it directly in the ready
  *         queue, standing in for a process the dispatch loop's
  *         transition_take_ready_blocking() will hand to the worker thread. */
 static t_pcb* seed_ready_pcb(t_queues* queues, int priority)
 {
-  t_pcb* pcb = create_pcb(EST_READY, priority);
+  t_pcb* pcb = create_pcb(PS_READY, priority);
   transition_to_ready(pcb, &(queues->ready));
   return pcb;
 }
@@ -258,7 +258,7 @@ Test(ks_cpu_connection, mutex_create_registers_a_new_mutex)
   expect_preemption(fx.client_fd, OP_NO_INTERRUPT, "no preemption occurred");
 
   cr_assert_eq(create_and_add_mutex(fx.mutex_list, "m", true, fx.queues),
-               RM_MUTEX_NAME_ALREADY_EXISTS);
+               MR_MUTEX_NAME_ALREADY_EXISTS);
 
   dispatch_fixture_end_no_preemption(&fx);
 }
@@ -268,13 +268,13 @@ Test(ks_cpu_connection, mutex_lock_locks_an_uncontended_mutex)
   t_dispatch_fixture fx;
   dispatch_fixture_start(&fx);
   cr_assert_eq(create_and_add_mutex(fx.mutex_list, "m", true, fx.queues),
-               RM_MUTEX_CREATED);
+               MR_MUTEX_CREATED);
 
   cr_assert(send_string(OP_SYSCALL_MUTEX_LOCK, "m", fx.client_fd));
   expect_preemption(fx.client_fd, OP_NO_INTERRUPT, "no preemption occurred");
 
-  t_pcb* other = create_pcb(EST_EXEC, 5);
-  cr_assert_eq(list_mutex_lock(fx.mutex_list, "m", other), RM_WAITING_MUTEX);
+  t_pcb* other = create_pcb(PS_EXEC, 5);
+  cr_assert_eq(list_mutex_lock(fx.mutex_list, "m", other), MR_WAITING_MUTEX);
   destroy_pcb(other);
 
   dispatch_fixture_end_no_preemption(&fx);
@@ -285,14 +285,14 @@ Test(ks_cpu_connection, mutex_unlock_hands_off_the_mutex)
   t_dispatch_fixture fx;
   dispatch_fixture_start(&fx);
   cr_assert_eq(create_and_add_mutex(fx.mutex_list, "m", true, fx.queues),
-               RM_MUTEX_CREATED);
-  cr_assert_eq(list_mutex_lock(fx.mutex_list, "m", fx.pcb), RM_MUTEX_LOCKED);
+               MR_MUTEX_CREATED);
+  cr_assert_eq(list_mutex_lock(fx.mutex_list, "m", fx.pcb), MR_MUTEX_LOCKED);
 
   cr_assert(send_string(OP_SYSCALL_MUTEX_UNLOCK, "m", fx.client_fd));
   expect_preemption(fx.client_fd, OP_NO_INTERRUPT, "no preemption occurred");
 
-  t_pcb* other = create_pcb(EST_EXEC, 5);
-  cr_assert_eq(list_mutex_lock(fx.mutex_list, "m", other), RM_MUTEX_LOCKED);
+  t_pcb* other = create_pcb(PS_EXEC, 5);
+  cr_assert_eq(list_mutex_lock(fx.mutex_list, "m", other), MR_MUTEX_LOCKED);
   destroy_pcb(other);
 
   dispatch_fixture_end_no_preemption(&fx);

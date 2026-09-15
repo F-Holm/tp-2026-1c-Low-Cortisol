@@ -25,10 +25,10 @@ Test(ks_suspension, starts_and_stops_the_suspender_and_resumer_threads_cleanly)
   terminate_threads_suspended(queues);
   cr_assert_eq(
       queues->routines.suspension_data->suspender_thread_data->data->state,
-      HS_FINISHED);
+      TS_FINISHED);
   cr_assert_eq(
       queues->routines.suspension_data->resumer_thread_data->data->state,
-      HS_FINISHED);
+      TS_FINISHED);
 
   destroy_threads_suspended(queues);
   ks_destroy_stub_queues_full(queues);
@@ -54,11 +54,11 @@ Test(ks_suspension, lock_threads_suspended_parks_both_worker_threads)
   for (int i = 0; i < 500 && !(suspender_blocked && resumer_blocked); i++)
   {
     pthread_mutex_lock(&(suspender_data->state_mutex));
-    suspender_blocked = suspender_data->state == HS_BLOCKED;
+    suspender_blocked = suspender_data->state == TS_BLOCKED;
     pthread_mutex_unlock(&(suspender_data->state_mutex));
 
     pthread_mutex_lock(&(resumer_data->state_mutex));
-    resumer_blocked = resumer_data->state == HS_BLOCKED;
+    resumer_blocked = resumer_data->state == TS_BLOCKED;
     pthread_mutex_unlock(&(resumer_data->state_mutex));
 
     if (!(suspender_blocked && resumer_blocked))
@@ -81,13 +81,13 @@ Test(ks_suspension, transition_block_susp_block_rejects_a_pcb_not_in_block)
 {
   t_log* logger = ks_quiet_logger();
   t_queues* queues = ks_stub_queues_full(logger);
-  t_pcb* pcb = create_pcb(EST_READY, 0);
+  t_pcb* pcb = create_pcb(PS_READY, 0);
 
   pthread_mutex_lock(&(pcb->state_mutex));
   transition_block_susp_block_no_mutex(pcb, queues);
   pthread_mutex_unlock(&(pcb->state_mutex));
 
-  cr_assert_eq(pcb->state, EST_READY);
+  cr_assert_eq(pcb->state, PS_READY);
 
   destroy_pcb(pcb);
   ks_destroy_stub_queues_full(queues);
@@ -106,13 +106,13 @@ Test(ks_suspension, transition_block_susp_block_gives_up_on_a_notify_failure)
   t_log* logger = ks_quiet_logger();
   t_queues* queues = ks_stub_queues_full(logger);
   queues->km_socket->km_socket = client_fd;
-  t_pcb* pcb = create_pcb(EST_BLOCK, 0);
+  t_pcb* pcb = create_pcb(PS_BLOCK, 0);
 
   pthread_mutex_lock(&(pcb->state_mutex));
   transition_block_susp_block_no_mutex(pcb, queues);
   pthread_mutex_unlock(&(pcb->state_mutex));
 
-  cr_assert_eq(pcb->state, EST_BLOCK);
+  cr_assert_eq(pcb->state, PS_BLOCK);
 
   destroy_pcb(pcb);
   ks_destroy_stub_queues_full(queues);
@@ -134,14 +134,14 @@ Test(ks_suspension,
    * tests above. */
   atomic_store(&(queues->routines.resume_active), true);
 
-  t_pcb* pcb = create_pcb(EST_BLOCK, 0);
+  t_pcb* pcb = create_pcb(PS_BLOCK, 0);
   transition_to_block(pcb, &(queues->block));
 
   pthread_mutex_lock(&(pcb->state_mutex));
   transition_block_susp_block_no_mutex(pcb, queues);
   pthread_mutex_unlock(&(pcb->state_mutex));
 
-  cr_assert_eq(pcb->state, EST_SUSP_BLOCK);
+  cr_assert_eq(pcb->state, PS_SUSP_BLOCK);
   cr_assert_eq(list_size(queues->block.list), 0);
   cr_assert_eq(list_size(queues->susp_block.list), 1);
 
@@ -159,13 +159,13 @@ Test(ks_suspension,
 {
   t_log* logger = ks_quiet_logger();
   t_queues* queues = ks_stub_queues_full(logger);
-  t_pcb* pcb = create_pcb(EST_READY, 0);
+  t_pcb* pcb = create_pcb(PS_READY, 0);
 
   pthread_mutex_lock(&(pcb->state_mutex));
   transition_susp_block_susp_ready_no_mutex(pcb, queues);
   pthread_mutex_unlock(&(pcb->state_mutex));
 
-  cr_assert_eq(pcb->state, EST_READY);
+  cr_assert_eq(pcb->state, PS_READY);
 
   destroy_pcb(pcb);
   ks_destroy_stub_queues_full(queues);
@@ -176,14 +176,14 @@ Test(ks_suspension, transition_susp_block_susp_ready_moves_the_pcb)
 {
   t_log* logger = ks_quiet_logger();
   t_queues* queues = ks_stub_queues_full(logger);
-  t_pcb* pcb = create_pcb(EST_SUSP_BLOCK, 0);
+  t_pcb* pcb = create_pcb(PS_SUSP_BLOCK, 0);
   transition_to_susp_block(pcb, &(queues->susp_block));
 
   pthread_mutex_lock(&(pcb->state_mutex));
   transition_susp_block_susp_ready_no_mutex(pcb, queues);
   pthread_mutex_unlock(&(pcb->state_mutex));
 
-  cr_assert_eq(pcb->state, EST_SUSP_READY);
+  cr_assert_eq(pcb->state, PS_SUSP_READY);
   cr_assert_eq(list_size(queues->susp_block.list), 0);
   cr_assert_eq(list_size(queues->susp_ready.list), 1);
 
@@ -199,7 +199,7 @@ Test(ks_suspension, transition_susp_ready_rejects_a_pcb_not_in_susp_ready)
 {
   t_log* logger = ks_quiet_logger();
   t_queues* queues = ks_stub_queues_full(logger);
-  t_pcb* pcb = create_pcb(EST_READY, 0);
+  t_pcb* pcb = create_pcb(PS_READY, 0);
 
   pthread_mutex_lock(&(pcb->state_mutex));
   cr_assert_not(transition_susp_ready_no_mutex(pcb, queues));
@@ -223,13 +223,13 @@ Test(ks_suspension,
   t_log* logger = ks_quiet_logger();
   t_queues* queues = ks_stub_queues_full(logger);
   queues->km_socket->km_socket = client_fd;
-  t_pcb* pcb = create_pcb(EST_SUSP_READY, 0);
+  t_pcb* pcb = create_pcb(PS_SUSP_READY, 0);
 
   pthread_mutex_lock(&(pcb->state_mutex));
   cr_assert_not(transition_susp_ready_no_mutex(pcb, queues));
   pthread_mutex_unlock(&(pcb->state_mutex));
 
-  cr_assert_eq(pcb->state, EST_SUSP_READY);
+  cr_assert_eq(pcb->state, PS_SUSP_READY);
 
   destroy_pcb(pcb);
   ks_destroy_stub_queues_full(queues);
@@ -251,13 +251,13 @@ Test(ks_suspension,
   t_log* logger = ks_quiet_logger();
   t_queues* queues = ks_stub_queues_full(logger);
   queues->km_socket->km_socket = client_fd;
-  t_pcb* pcb = create_pcb(EST_SUSP_READY, 0);
+  t_pcb* pcb = create_pcb(PS_SUSP_READY, 0);
 
   pthread_mutex_lock(&(pcb->state_mutex));
   cr_assert_not(transition_susp_ready_no_mutex(pcb, queues));
   pthread_mutex_unlock(&(pcb->state_mutex));
 
-  cr_assert_eq(pcb->state, EST_SUSP_READY);
+  cr_assert_eq(pcb->state, PS_SUSP_READY);
 
   destroy_pcb(pcb);
   ks_destroy_stub_queues_full(queues);
@@ -278,14 +278,14 @@ Test(ks_suspension, transition_susp_ready_moves_the_pcb_back_to_ready)
   t_log* logger = ks_quiet_logger();
   t_queues* queues = ks_stub_queues_full(logger);
   queues->km_socket->km_socket = client_fd;
-  t_pcb* pcb = create_pcb(EST_SUSP_READY, 0);
+  t_pcb* pcb = create_pcb(PS_SUSP_READY, 0);
   transition_to_susp_ready(pcb, &(queues->susp_ready));
 
   pthread_mutex_lock(&(pcb->state_mutex));
   cr_assert(transition_susp_ready_no_mutex(pcb, queues));
   pthread_mutex_unlock(&(pcb->state_mutex));
 
-  cr_assert_eq(pcb->state, EST_READY);
+  cr_assert_eq(pcb->state, PS_READY);
   cr_assert_eq(list_size(queues->susp_ready.list), 0);
   cr_assert_eq(transition_take_ready_next(&(queues->ready)), pcb);
 

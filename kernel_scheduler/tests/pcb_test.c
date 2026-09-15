@@ -8,8 +8,8 @@
 
 Test(ks_pcb, create_pcb_sets_the_initial_state_and_priority)
 {
-  t_pcb* pcb = create_pcb(EST_NEW, 3);
-  cr_assert_eq(get_state_pcb(pcb), EST_NEW);
+  t_pcb* pcb = create_pcb(PS_NEW, 3);
+  cr_assert_eq(get_state_pcb(pcb), PS_NEW);
   cr_assert_eq(get_priority_pcb(pcb), 3);
   cr_assert_eq(pcb->active_instances, 0);
   destroy_pcb(pcb);
@@ -17,8 +17,8 @@ Test(ks_pcb, create_pcb_sets_the_initial_state_and_priority)
 
 Test(ks_pcb, pids_are_handed_out_in_order)
 {
-  t_pcb* first = create_pcb(EST_NEW, 0);
-  t_pcb* second = create_pcb(EST_NEW, 0);
+  t_pcb* first = create_pcb(PS_NEW, 0);
+  t_pcb* second = create_pcb(PS_NEW, 0);
   cr_assert_eq(second->pid, first->pid + 1);
   destroy_pcb(first);
   destroy_pcb(second);
@@ -26,7 +26,7 @@ Test(ks_pcb, pids_are_handed_out_in_order)
 
 Test(ks_pcb, active_instance_counter_goes_up_and_down)
 {
-  t_pcb* pcb = create_pcb(EST_READY, 0);
+  t_pcb* pcb = create_pcb(PS_READY, 0);
   increment_active_instances(pcb);
   increment_active_instances(pcb);
   cr_assert_eq(pcb->active_instances, 2);
@@ -37,7 +37,7 @@ Test(ks_pcb, active_instance_counter_goes_up_and_down)
 
 Test(ks_pcb, wait_zero_active_instances_returns_immediately_when_already_zero)
 {
-  t_pcb* pcb = create_pcb(EST_READY, 0);
+  t_pcb* pcb = create_pcb(PS_READY, 0);
   wait_zero_active_instances(pcb); /* must not block */
   destroy_pcb(pcb);
 }
@@ -52,7 +52,7 @@ static void* decrement_after_a_moment(void* arg)
 
 Test(ks_pcb, wait_zero_active_instances_blocks_until_the_last_decrement)
 {
-  t_pcb* pcb = create_pcb(EST_READY, 0);
+  t_pcb* pcb = create_pcb(PS_READY, 0);
   increment_active_instances(pcb);
 
   pthread_t decrementer;
@@ -67,7 +67,7 @@ Test(ks_pcb, wait_zero_active_instances_blocks_until_the_last_decrement)
 
 Test(ks_pcb, blocking_mutex_is_stored_and_read_back)
 {
-  t_pcb* pcb = create_pcb(EST_READY, 0);
+  t_pcb* pcb = create_pcb(PS_READY, 0);
   int marker;
   cr_assert_null(get_mutex_blocking(pcb));
   set_mutex_blocking(pcb, &marker);
@@ -78,9 +78,9 @@ Test(ks_pcb, blocking_mutex_is_stored_and_read_back)
 Test(ks_pcb, insert_pcb_sorted_keeps_the_list_ordered_by_priority)
 {
   t_list* list = list_create();
-  t_pcb* low = create_pcb(EST_READY, 5);
-  t_pcb* high = create_pcb(EST_READY, 1);
-  t_pcb* mid = create_pcb(EST_READY, 3);
+  t_pcb* low = create_pcb(PS_READY, 5);
+  t_pcb* high = create_pcb(PS_READY, 1);
+  t_pcb* mid = create_pcb(PS_READY, 3);
 
   insert_pcb_sorted(list, low);
   insert_pcb_sorted(list, high);

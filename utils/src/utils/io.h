@@ -16,9 +16,9 @@
 
 typedef enum
 {
-  E_STDIN,
-  E_STDOUT,
-  E_SLEEP
+  IO_STDIN,
+  IO_STDOUT,
+  IO_SLEEP
 
 } t_io_type;
 

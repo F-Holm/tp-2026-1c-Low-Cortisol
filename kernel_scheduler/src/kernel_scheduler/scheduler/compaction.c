@@ -131,7 +131,7 @@ static bool remove_of_the_list(t_queues* queues)
   t_pcb* process = list_get(queues->susp_ready.list, 0);
   pthread_mutex_unlock(&(queues->susp_ready.list_mutex));
   pthread_mutex_lock(&(process->state_mutex));
-  if (process->state == EST_SUSP_READY)
+  if (process->state == PS_SUSP_READY)
   {
     bool result = transition_susp_ready_no_mutex(process, queues);
     pthread_mutex_unlock(&(process->state_mutex));

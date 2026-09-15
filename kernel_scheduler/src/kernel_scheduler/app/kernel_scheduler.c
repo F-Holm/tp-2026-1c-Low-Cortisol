@@ -123,10 +123,10 @@ static t_config* start_config(char* config_path, t_config_vars* config_vars)
     while (array_str[i] != NULL)
     {
       int* algorithm = malloc(sizeof(int));
-      if (strcmp(array_str[i], SCHEDULING_ALGORITHMS[AP_FIFO]) == 0)
-        *algorithm = AP_FIFO;
-      else if (strcmp(array_str[i], SCHEDULING_ALGORITHMS[AP_RR]) == 0)
-        *algorithm = AP_RR;
+      if (strcmp(array_str[i], SCHEDULING_ALGORITHMS[SA_FIFO]) == 0)
+        *algorithm = SA_FIFO;
+      else if (strcmp(array_str[i], SCHEDULING_ALGORITHMS[SA_RR]) == 0)
+        *algorithm = SA_RR;
       list_add(config_vars->multilevel_algorithms, algorithm);
       i++;
     }

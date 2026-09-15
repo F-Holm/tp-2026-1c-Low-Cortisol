@@ -218,7 +218,7 @@ static void manage_end_quantum(t_cpu_thread* data)
   if (data->preemption_reason == PR_NO_PREEMPTION &&
       !is_queue_ready_empty(&(data->queues->ready)) &&
       get_algorithm_ready_queue(&(data->queues->ready),
-                                get_priority_pcb(data->pcb)) == AP_RR &&
+                                get_priority_pcb(data->pcb)) == SA_RR &&
       quantum_ended(&(data->queues->exec), data->counter))
   {
     log_debug(data->logger, "CPU %s: Preempting due to quantum end", data->id);
@@ -279,9 +279,9 @@ static void handle_syscall_mutex_create(t_cpu_thread* data)
   char* id_mutex = receive_string(data->socket_fd);
   switch (create_and_add_mutex(data->mutex_list, id_mutex, true, data->queues))
   {
-    case RM_MUTEX_CREATED:
+    case MR_MUTEX_CREATED:
       break;
-    case RM_MUTEX_NAME_ALREADY_EXISTS:
+    case MR_MUTEX_NAME_ALREADY_EXISTS:
       transition_exec_exit(data->pcb, data->queues,
                            PER_MUTEX_NAME_ALREADY_EXISTS);
       data->preemption_reason = PR_MUTEX_NAME_ALREADY_EXISTS;
@@ -295,13 +295,13 @@ static void handle_syscall_mutex_lock(t_cpu_thread* data)
   char* id_mutex = receive_string(data->socket_fd);
   switch (list_mutex_lock(data->mutex_list, id_mutex, data->pcb))
   {
-    case RM_MUTEX_NAME_NOT_FOUND:
+    case MR_MUTEX_NAME_NOT_FOUND:
       transition_exec_exit(data->pcb, data->queues, PER_MUTEX_NAME_NOT_FOUND);
       data->preemption_reason = PR_MUTEX_NAME_NOT_FOUND;
       break;
-    case RM_MUTEX_LOCKED:
+    case MR_MUTEX_LOCKED:
       break;
-    case RM_WAITING_MUTEX:
+    case MR_WAITING_MUTEX:
       data->preemption_reason = PR_MUTEX_LOCKED;
       break;
   }
@@ -313,13 +313,13 @@ static void handle_syscall_mutex_unlock(t_cpu_thread* data)
   char* id_mutex = receive_string(data->socket_fd);
   switch (list_mutex_unlock(data->mutex_list, id_mutex, data->pcb))
   {
-    case RM_MUTEX_NAME_NOT_FOUND:
+    case MR_MUTEX_NAME_NOT_FOUND:
       transition_exec_exit(data->pcb, data->queues, PER_MUTEX_NAME_NOT_FOUND);
       data->preemption_reason = PR_MUTEX_NAME_NOT_FOUND;
       break;
-    case RM_MUTEX_UNLOCKED:
+    case MR_MUTEX_UNLOCKED:
       break;
-    case RM_PROCESS_HAS_NO_LOCKED_MUTEX:
+    case MR_PROCESS_HAS_NO_LOCKED_MUTEX:
       transition_exec_exit(data->pcb, data->queues,
                            PER_PROCESS_HAS_NO_LOCKED_MUTEX);
       data->preemption_reason = PR_PROCESS_HAS_NO_LOCKED_MUTEX;
@@ -356,7 +356,7 @@ static void handle_syscall_io_sleep(t_cpu_thread* data)
   int size;
   t_sleep_request* request = receive_buffer(&size, data->socket_fd);
   data->preemption_reason = PR_IO;
-  if (!enqueue_io_request(request, &(data->io[E_SLEEP]), data->pcb))
+  if (!enqueue_io_request(request, &(data->io[IO_SLEEP]), data->pcb))
   {
     transition_exec_exit(data->pcb, data->queues, PER_IO_FAILURE);
   }
@@ -371,7 +371,7 @@ static void handle_syscall_io_stdout(t_cpu_thread* data)
   int size;
   t_stdout_request* request = receive_buffer(&size, data->socket_fd);
   data->preemption_reason = PR_IO;
-  if (!enqueue_io_request(request, &(data->io[E_STDOUT]), data->pcb))
+  if (!enqueue_io_request(request, &(data->io[IO_STDOUT]), data->pcb))
   {
     transition_exec_exit(data->pcb, data->queues, PER_IO_FAILURE);
   }
@@ -386,7 +386,7 @@ static void handle_syscall_io_stdin(t_cpu_thread* data)
   int size;
   t_stdin_request* request = receive_buffer(&size, data->socket_fd);
   data->preemption_reason = PR_IO;
-  if (!enqueue_io_request(request, &(data->io[E_STDIN]), data->pcb))
+  if (!enqueue_io_request(request, &(data->io[IO_STDIN]), data->pcb))
   {
     transition_exec_exit(data->pcb, data->queues, PER_IO_FAILURE);
   }

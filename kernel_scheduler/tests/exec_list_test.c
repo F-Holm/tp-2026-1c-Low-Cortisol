@@ -21,8 +21,8 @@ Test(ks_exec_list, put_and_take_a_specific_process)
   t_execute_list exec;
   init_exec_list(&exec, 0, false);
   t_counter* syscalls = create_counter();
-  t_pcb* a = create_pcb(EST_EXEC, 0);
-  t_pcb* b = create_pcb(EST_EXEC, 0);
+  t_pcb* a = create_pcb(PS_EXEC, 0);
+  t_pcb* b = create_pcb(PS_EXEC, 0);
 
   transition_to_exec(a, &exec);
   transition_to_exec(b, &exec);
@@ -51,9 +51,9 @@ Test(ks_exec_list, with_preemption_tracks_the_lowest_running_priority)
   t_execute_list exec;
   init_exec_list(&exec, 0, true);
   t_counter* syscalls = create_counter();
-  t_pcb* p1 = create_pcb(EST_EXEC, 1);
-  t_pcb* p4 = create_pcb(EST_EXEC, 4);
-  t_pcb* p2 = create_pcb(EST_EXEC, 2);
+  t_pcb* p1 = create_pcb(PS_EXEC, 1);
+  t_pcb* p4 = create_pcb(PS_EXEC, 4);
+  t_pcb* p2 = create_pcb(PS_EXEC, 2);
 
   transition_to_exec(p1, &exec);
   transition_to_exec(p4, &exec);
@@ -74,8 +74,8 @@ Test(ks_exec_list, update_lowest_exec_priority_walks_the_list)
 {
   t_execute_list exec;
   init_exec_list(&exec, 0, true);
-  t_pcb* p3 = create_pcb(EST_EXEC, 3);
-  t_pcb* p7 = create_pcb(EST_EXEC, 7);
+  t_pcb* p3 = create_pcb(PS_EXEC, 3);
+  t_pcb* p7 = create_pcb(PS_EXEC, 7);
   transition_to_exec(p3, &exec);
   transition_to_exec(p7, &exec);
 
@@ -102,7 +102,7 @@ Test(ks_exec_list,
   t_execute_list exec;
   init_exec_list(&exec, 0, false);
   t_counter* syscalls = create_counter();
-  t_pcb* a = create_pcb(EST_EXEC, 0);
+  t_pcb* a = create_pcb(PS_EXEC, 0);
   transition_to_exec(a, &exec);
   counter_increment(syscalls); /* the one process is inside a syscall */
 

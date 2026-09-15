@@ -86,7 +86,7 @@ void update_priority(t_pcb* pcb, t_queues* queues)
   }
 
   pthread_mutex_lock(&(pcb->state_mutex));
-  if (pcb->state == EST_READY)
+  if (pcb->state == PS_READY)
   {
     transition_take_ready(pcb, &(queues->ready));
     transition_to_ready(pcb, &(queues->ready));
@@ -97,7 +97,7 @@ void update_priority(t_pcb* pcb, t_queues* queues)
 void transition_ready_exec(t_pcb* pcb, t_queues* queues)
 {
   pthread_mutex_lock(&(pcb->state_mutex));
-  manage_state_pcb(queues->logger, pcb, EST_READY, EST_EXEC);
+  manage_state_pcb(queues->logger, pcb, PS_READY, PS_EXEC);
   pthread_mutex_unlock(&(pcb->state_mutex));
 }
 
@@ -111,13 +111,13 @@ void transition_new_ready(t_queues* queues, char* instructions_file,
   {
     if (!check_priority_valid(pcb, &(queues->ready)))
     {
-      log_transition_state(queues->logger, pcb->pid, EST_NEW, EST_EXIT);
+      log_transition_state(queues->logger, pcb->pid, PS_NEW, PS_EXIT);
       transition_to_exit(pcb, queues, PER_INVALID_PRIORITY);
     }
     else
     {
-      pcb->state = EST_READY;
-      log_transition_state(queues->logger, pcb->pid, EST_NEW, EST_READY);
+      pcb->state = PS_READY;
+      log_transition_state(queues->logger, pcb->pid, PS_NEW, PS_READY);
       transition_to_ready(pcb, &(queues->ready));
     }
   }
@@ -126,7 +126,7 @@ void transition_new_ready(t_queues* queues, char* instructions_file,
 void transition_exec_ready(t_pcb* pcb, t_queues* queues)
 {
   pthread_mutex_lock(&(pcb->state_mutex));
-  if (manage_state_pcb(queues->logger, pcb, EST_EXEC, EST_READY))
+  if (manage_state_pcb(queues->logger, pcb, PS_EXEC, PS_READY))
   {
     transition_take_exec(pcb, &(queues->exec),
                          queues->routines.syscall_counter);
@@ -138,7 +138,7 @@ void transition_exec_ready(t_pcb* pcb, t_queues* queues)
 void transition_exec_exit(t_pcb* pcb, t_queues* queues, int reason)
 {
   pthread_mutex_lock(&(pcb->state_mutex));
-  if (manage_state_pcb(queues->logger, pcb, EST_EXEC, EST_EXIT))
+  if (manage_state_pcb(queues->logger, pcb, PS_EXEC, PS_EXIT))
   {
     transition_take_exec(pcb, &(queues->exec),
                          queues->routines.syscall_counter);
@@ -154,7 +154,7 @@ void transition_exec_exit(t_pcb* pcb, t_queues* queues, int reason)
 void transition_exec_block(t_pcb* pcb, t_queues* queues)
 {
   pthread_mutex_lock(&(pcb->state_mutex));
-  if (manage_state_pcb(queues->logger, pcb, EST_EXEC, EST_BLOCK))
+  if (manage_state_pcb(queues->logger, pcb, PS_EXEC, PS_BLOCK))
   {
     transition_take_exec(pcb, &(queues->exec),
                          queues->routines.syscall_counter);
@@ -180,7 +180,7 @@ void transition_block_susp_block(t_pcb* pcb, t_queues* queues)
 void transition_susp_block(t_pcb* pcb, t_queues* queues)
 {
   pthread_mutex_lock(&(pcb->state_mutex));
-  if (manage_state_pcb(queues->logger, pcb, EST_SUSP_BLOCK, EST_BLOCK))
+  if (manage_state_pcb(queues->logger, pcb, PS_SUSP_BLOCK, PS_BLOCK))
   {
     transition_take_susp_block(pcb, &(queues->susp_block));
     transition_to_block(pcb, &(queues->block));
@@ -206,7 +206,7 @@ bool transition_susp_ready(t_pcb* pcb, t_queues* queues)
 void transition_unlock(t_pcb* pcb, t_queues* queues)
 {
   pthread_mutex_lock(&(pcb->state_mutex));
-  if (pcb->state == EST_BLOCK)
+  if (pcb->state == PS_BLOCK)
   {
     transition_block_ready_no_mutex(pcb, queues);
   }
@@ -219,7 +219,7 @@ void transition_unlock(t_pcb* pcb, t_queues* queues)
 
 void clear_queues(t_queues* queues)
 {
-  for (int i = EST_READY; i < EST_EXIT; i++)
+  for (int i = PS_READY; i < PS_EXIT; i++)
   {
     while (transition_any_exit(queues, i, PER_SYSTEM_SHUTDOWN))
     {
@@ -335,13 +335,13 @@ static void transition_to_exit(t_pcb* pcb, t_queues* queues, int reason)
 static t_pcb* transition_take_new(char* instructions_file, int priority,
                                   t_queues* queues)
 {
-  t_pcb* pcb = create_pcb(EST_NEW, priority);
+  t_pcb* pcb = create_pcb(PS_NEW, priority);
   log_info(queues->logger, "%u Creating the process - State: NEW", pcb->pid);
 
   increment_process_count(queues->process_counter);
   if (!notify_new_process(queues, instructions_file, pcb->pid))
   {
-    log_transition_state(queues->logger, pcb->pid, EST_NEW, EST_EXIT);
+    log_transition_state(queues->logger, pcb->pid, PS_NEW, PS_EXIT);
     transition_to_exit(pcb, queues, PER_SYSTEM_SHUTDOWN);
 
     return NULL;
@@ -351,7 +351,7 @@ static t_pcb* transition_take_new(char* instructions_file, int priority,
 
 static void transition_block_ready_no_mutex(t_pcb* pcb, t_queues* queues)
 {
-  if (manage_state_pcb(queues->logger, pcb, EST_BLOCK, EST_READY))
+  if (manage_state_pcb(queues->logger, pcb, PS_BLOCK, PS_READY))
   {
     transition_take_block(pcb, &(queues->block));
     transition_to_ready(pcb, &(queues->ready));
@@ -363,19 +363,19 @@ static bool transition_any_exit(t_queues* queues, int state, int reason)
   t_pcb* pcb = NULL;
   switch (state)
   {
-    case EST_READY:
+    case PS_READY:
       pcb = transition_take_ready_next(&(queues->ready));
       break;
-    case EST_EXEC:
+    case PS_EXEC:
       pcb = transition_take_exec_next(&(queues->exec));
       break;
-    case EST_BLOCK:
+    case PS_BLOCK:
       pcb = transition_take_block_next(&(queues->block));
       break;
-    case EST_SUSP_BLOCK:
+    case PS_SUSP_BLOCK:
       pcb = transition_take_susp_block_next(&(queues->susp_block));
       break;
-    case EST_SUSP_READY:
+    case PS_SUSP_READY:
       pcb = transition_take_susp_ready_next(&(queues->susp_ready));
       break;
   }
@@ -385,7 +385,7 @@ static bool transition_any_exit(t_queues* queues, int state, int reason)
     return false;
   }
 
-  log_transition_state(queues->logger, pcb->pid, state, EST_EXIT);
+  log_transition_state(queues->logger, pcb->pid, state, PS_EXIT);
   transition_to_exit(pcb, queues, reason);
   return true;
 }

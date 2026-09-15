@@ -52,7 +52,7 @@ int create_and_add_mutex(t_mutex_list* mutex_list, char* id,
   }
   pthread_mutex_unlock(&(mutex_list->list_mutex));
 
-  return ret ? RM_MUTEX_CREATED : RM_MUTEX_NAME_ALREADY_EXISTS;
+  return ret ? MR_MUTEX_CREATED : MR_MUTEX_NAME_ALREADY_EXISTS;
 }
 
 int list_mutex_lock(t_mutex_list* mutex_list, char* id, t_pcb* pcb)
@@ -60,7 +60,7 @@ int list_mutex_lock(t_mutex_list* mutex_list, char* id, t_pcb* pcb)
   pthread_mutex_lock(&(mutex_list->list_mutex));
   t_mutex* mutex = dictionary_get(mutex_list->list, id);
   pthread_mutex_unlock(&(mutex_list->list_mutex));
-  return mutex == NULL ? RM_MUTEX_NAME_NOT_FOUND : mutex_lock(mutex, pcb);
+  return mutex == NULL ? MR_MUTEX_NAME_NOT_FOUND : mutex_lock(mutex, pcb);
 }
 
 int list_mutex_unlock(t_mutex_list* mutex_list, char* id, t_pcb* pcb)
@@ -68,7 +68,7 @@ int list_mutex_unlock(t_mutex_list* mutex_list, char* id, t_pcb* pcb)
   pthread_mutex_lock(&(mutex_list->list_mutex));
   t_mutex* mutex = dictionary_get(mutex_list->list, id);
   pthread_mutex_unlock(&(mutex_list->list_mutex));
-  return mutex == NULL ? RM_MUTEX_NAME_NOT_FOUND : mutex_unlock(mutex, pcb);
+  return mutex == NULL ? MR_MUTEX_NAME_NOT_FOUND : mutex_unlock(mutex, pcb);
 }
 
 static void log_mutex_tomado(t_log* logger, uint32_t pid, char* id_mutex)
@@ -241,7 +241,7 @@ static bool remove_priority(t_pcb* pcb, int priority, t_log* logger)
 
 static int mutex_lock(t_mutex* mutex, t_pcb* pcb)
 {
-  int ret = RM_WAITING_MUTEX;
+  int ret = MR_WAITING_MUTEX;
   int priority_pcb = get_priority_pcb(pcb);
   pthread_mutex_lock(&(mutex->mutex));
   if (mutex->state == 1)
@@ -250,7 +250,7 @@ static int mutex_lock(t_mutex* mutex, t_pcb* pcb)
     mutex->current_process = pcb;
     mutex->next_priority = INT_MAX;
     insert_priority(pcb, mutex->next_priority, mutex->queues->logger);
-    ret = RM_MUTEX_LOCKED;
+    ret = MR_MUTEX_LOCKED;
   }
   else if (mutex->priority_active)
   {
@@ -281,7 +281,7 @@ static int mutex_unlock(t_mutex* mutex, t_pcb* pcb)
   if (pcb != mutex->current_process)
   {
     pthread_mutex_unlock(&(mutex->mutex));
-    return RM_PROCESS_HAS_NO_LOCKED_MUTEX;
+    return MR_PROCESS_HAS_NO_LOCKED_MUTEX;
   }
   if (mutex->priority_active &&
       remove_priority(pcb, mutex->next_priority, mutex->queues->logger))
@@ -317,7 +317,7 @@ static int mutex_unlock(t_mutex* mutex, t_pcb* pcb)
   }
   mutex->state++;
   pthread_mutex_unlock(&(mutex->mutex));
-  return RM_MUTEX_UNLOCKED;
+  return MR_MUTEX_UNLOCKED;
 }
 
 static void destroy_mutex(t_mutex* mutex)

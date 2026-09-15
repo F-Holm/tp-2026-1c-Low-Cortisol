@@ -8,13 +8,13 @@
 
 typedef enum
 {
-  EST_NEW,
-  EST_READY,
-  EST_EXEC,
-  EST_BLOCK,
-  EST_SUSP_BLOCK,
-  EST_SUSP_READY,
-  EST_EXIT
+  PS_NEW,
+  PS_READY,
+  PS_EXEC,
+  PS_BLOCK,
+  PS_SUSP_BLOCK,
+  PS_SUSP_READY,
+  PS_EXIT
 } t_process_state;
 
 extern const char* const STATE_NAMES[7];

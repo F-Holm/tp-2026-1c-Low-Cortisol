@@ -13,9 +13,9 @@
 
 typedef enum
 {
-  AP_FIFO,
-  AP_RR,
-  AP_MULTILEVEL_QUEUES  // "MULTILEVEL" in the config file
+  SA_FIFO,
+  SA_RR,
+  SA_MULTILEVEL_QUEUES  // "MULTILEVEL" in the config file
 } t_scheduling_algorithm;
 
 typedef enum
@@ -86,11 +86,11 @@ typedef struct
 
 typedef enum
 {
-  HS_RUNNING,
-  HS_WAITING_PROCESS,
-  HS_BLOCKED,
-  HS_FINISHING,
-  HS_FINISHED
+  TS_RUNNING,
+  TS_WAITING_PROCESS,
+  TS_BLOCKED,
+  TS_FINISHING,
+  TS_FINISHED
 } t_thread_state;
 
 typedef struct

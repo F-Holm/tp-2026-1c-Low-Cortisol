@@ -52,7 +52,7 @@ static t_suspended_thread* init_data_thread_suspended(t_queues* queues)
 {
   t_suspended_thread* data = malloc(sizeof(t_suspended_thread));
   pthread_mutex_init(&(data->state_mutex), NULL);
-  data->state = HS_RUNNING;
+  data->state = TS_RUNNING;
   pthread_cond_init(&(data->unlock), NULL);
   return data;
 }
@@ -119,14 +119,14 @@ static void terminate_thread_suspended(t_suspended_thread* data,
   pthread_cond_signal(data->wait_process);
   pthread_cond_signal(&(data->unlock));
   pthread_mutex_unlock(&(list->list_mutex));
-  data->state = HS_FINISHING;
+  data->state = TS_FINISHING;
   pthread_mutex_unlock(&(data->state_mutex));
 }
 
 static void wait_thread_suspended(t_suspended_thread* data)
 {
   pthread_join(data->thread, NULL);
-  data->state = HS_FINISHED;
+  data->state = TS_FINISHED;
 }
 
 static void destroy_thread_suspended(t_suspended_thread* data)
@@ -178,12 +178,12 @@ static void lock_thread_suspended(t_suspended_thread* data,
   pthread_mutex_lock(&(data->state_mutex));
   switch (data->state)
   {
-    case HS_RUNNING:
-      data->state = HS_BLOCKED;
+    case TS_RUNNING:
+      data->state = TS_BLOCKED;
       break;
-    case HS_WAITING_PROCESS:
+    case TS_WAITING_PROCESS:
       pthread_mutex_lock(&(list->list_mutex));
-      data->state = HS_BLOCKED;
+      data->state = TS_BLOCKED;
       pthread_cond_signal(data->wait_process);
       pthread_mutex_unlock(&(list->list_mutex));
       break;
@@ -194,17 +194,17 @@ static void lock_thread_suspended(t_suspended_thread* data,
 static void unlock_thread_suspended(t_suspended_thread* data)
 {
   pthread_mutex_lock(&(data->state_mutex));
-  if (data->state == HS_BLOCKED)
+  if (data->state == TS_BLOCKED)
   {
     pthread_cond_signal(&(data->unlock));
-    data->state = HS_RUNNING;
+    data->state = TS_RUNNING;
   }
   pthread_mutex_unlock(&(data->state_mutex));
 }
 
 static void wait_unlock(t_suspended_thread* data)
 {
-  while (data->state == HS_BLOCKED)
+  while (data->state == TS_BLOCKED)
   {
     pthread_cond_wait(&(data->unlock), &(data->state_mutex));
   }
@@ -301,10 +301,10 @@ static bool can_resume_suspended(t_pcb* pcb, t_queues* queues)
 
 void transition_block_susp_block_no_mutex(t_pcb* pcb, t_queues* queues)
 {
-  if (pcb->state != EST_BLOCK)
+  if (pcb->state != PS_BLOCK)
   {
-    log_invalid_state(queues->logger, pcb->pid, pcb->state, EST_BLOCK,
-                      EST_SUSP_BLOCK);
+    log_invalid_state(queues->logger, pcb->pid, pcb->state, PS_BLOCK,
+                      PS_SUSP_BLOCK);
     return;
   }
 
@@ -314,8 +314,8 @@ void transition_block_susp_block_no_mutex(t_pcb* pcb, t_queues* queues)
     return;
   }
 
-  log_transition_state(queues->logger, pcb->pid, EST_BLOCK, EST_SUSP_BLOCK);
-  pcb->state = EST_SUSP_BLOCK;
+  log_transition_state(queues->logger, pcb->pid, PS_BLOCK, PS_SUSP_BLOCK);
+  pcb->state = PS_SUSP_BLOCK;
 
   transition_take_block(pcb, &(queues->block));
   transition_to_susp_block(pcb, &(queues->susp_block));
@@ -330,7 +330,7 @@ void transition_block_susp_block_no_mutex(t_pcb* pcb, t_queues* queues)
 
 void transition_susp_block_susp_ready_no_mutex(t_pcb* pcb, t_queues* queues)
 {
-  if (manage_state_pcb(queues->logger, pcb, EST_SUSP_BLOCK, EST_SUSP_READY))
+  if (manage_state_pcb(queues->logger, pcb, PS_SUSP_BLOCK, PS_SUSP_READY))
   {
     transition_take_susp_block(pcb, &(queues->susp_block));
     transition_to_susp_ready(pcb, &(queues->susp_ready));
@@ -339,10 +339,10 @@ void transition_susp_block_susp_ready_no_mutex(t_pcb* pcb, t_queues* queues)
 
 bool transition_susp_ready_no_mutex(t_pcb* pcb, t_queues* queues)
 {
-  if (pcb->state != EST_SUSP_READY)
+  if (pcb->state != PS_SUSP_READY)
   {
-    log_invalid_state(queues->logger, pcb->pid, pcb->state, EST_SUSP_READY,
-                      EST_READY);
+    log_invalid_state(queues->logger, pcb->pid, pcb->state, PS_SUSP_READY,
+                      PS_READY);
     return false;
   }
 
@@ -359,8 +359,8 @@ bool transition_susp_ready_no_mutex(t_pcb* pcb, t_queues* queues)
     return false;
   }
 
-  log_transition_state(queues->logger, pcb->pid, EST_SUSP_READY, EST_READY);
-  pcb->state = EST_READY;
+  log_transition_state(queues->logger, pcb->pid, PS_SUSP_READY, PS_READY);
+  pcb->state = PS_READY;
   transition_take_susp_ready(pcb, &(queues->susp_ready));
   transition_to_ready(pcb, &(queues->ready));
   return true;
@@ -391,7 +391,7 @@ static t_pcb* get_process_blocked(t_queues* queues, t_suspender_thread* data)
   if (process == NULL)
   {
     queues->block.new_process = false;
-    data->data->state = HS_WAITING_PROCESS;
+    data->data->state = TS_WAITING_PROCESS;
   }
   pthread_mutex_unlock(&(queues->block.list_mutex));
   list_iterator_destroy(iterator);
@@ -405,7 +405,7 @@ static void run_suspend_process(t_queues* queues, t_suspender_thread* data,
   pthread_mutex_lock(&(process->state_mutex));
   unsigned long sleep_time = millis() - process->blocked_time;
   bool must_suspend = sleep_time >= data->suspension_timeout;
-  if (must_suspend && process->state == EST_BLOCK)
+  if (must_suspend && process->state == PS_BLOCK)
   {
     transition_block_susp_block_no_mutex(process, queues);
   }
@@ -432,9 +432,9 @@ static void wait_process_blocked(t_queues* queues, t_suspender_thread* data)
   bool list_empty = list_is_empty(queues->block.list);
   pthread_mutex_unlock(&(queues->block.list_mutex));
   pthread_mutex_lock(&(data->data->state_mutex));
-  if (!list_empty && data->data->state == HS_WAITING_PROCESS)
+  if (!list_empty && data->data->state == TS_WAITING_PROCESS)
   {
-    data->data->state = HS_RUNNING;
+    data->data->state = TS_RUNNING;
   }
 }
 
@@ -450,7 +450,7 @@ static t_pcb* get_process_susp_ready(t_queues* queues, t_resumer_thread* data)
   pthread_mutex_unlock(&(queues->susp_ready.list_mutex));
   if (process == NULL)
   {
-    data->data->state = HS_WAITING_PROCESS;
+    data->data->state = TS_WAITING_PROCESS;
   }
   return process;
 }
@@ -462,7 +462,7 @@ static void resume_suspended_process(t_queues* queues, t_resumer_thread* data,
   pthread_mutex_lock(&(process->state_mutex));
 
   bool succeeded = false;
-  if (process->state == EST_SUSP_READY)
+  if (process->state == PS_SUSP_READY)
   {
     succeeded = transition_susp_ready_no_mutex(process, queues);
   }
@@ -490,9 +490,9 @@ static void wait_process_susp_ready(t_queues* queues, t_resumer_thread* data)
   bool list_empty = list_is_empty(queues->susp_ready.list);
   pthread_mutex_unlock(&(queues->susp_ready.list_mutex));
   pthread_mutex_lock(&(data->data->state_mutex));
-  if (!list_empty && data->data->state == HS_WAITING_PROCESS)
+  if (!list_empty && data->data->state == TS_WAITING_PROCESS)
   {
-    data->data->state = HS_RUNNING;
+    data->data->state = TS_RUNNING;
   }
 }
 
@@ -508,20 +508,20 @@ static void* thread_suspender(void* data_void)
     pthread_mutex_lock(&(data->data->state_mutex));
     switch (data->data->state)
     {
-      case HS_RUNNING:
+      case TS_RUNNING:
         t_pcb* process = get_process_blocked(queues, data);
         if (process != NULL)
         {
           run_suspend_process(queues, data, process);
         }
         break;
-      case HS_WAITING_PROCESS:
+      case TS_WAITING_PROCESS:
         wait_process_blocked(queues, data);
         break;
-      case HS_BLOCKED:
+      case TS_BLOCKED:
         wait_unlock(data->data);
         break;
-      case HS_FINISHING:
+      case TS_FINISHING:
         keep_running = false;
         break;
     }
@@ -542,20 +542,20 @@ static void* thread_resumer(void* data_void)
     pthread_mutex_lock(&(data->data->state_mutex));
     switch (data->data->state)
     {
-      case HS_RUNNING:
+      case TS_RUNNING:
         t_pcb* process = get_process_susp_ready(queues, data);
         if (process != NULL)
         {
           resume_suspended_process(queues, data, process);
         }
         break;
-      case HS_WAITING_PROCESS:
+      case TS_WAITING_PROCESS:
         wait_process_susp_ready(queues, data);
         break;
-      case HS_BLOCKED:
+      case TS_BLOCKED:
         wait_unlock(data->data);
         break;
-      case HS_FINISHING:
+      case TS_FINISHING:
         keep_running = false;
         break;
     }

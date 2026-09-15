@@ -59,7 +59,7 @@ t_queues* ks_stub_queues_full(t_log* logger)
 {
   t_queues* queues = calloc(1, sizeof(t_queues));
   queues->logger = logger;
-  init_ready_queue(&(queues->ready), AP_FIFO, NULL);
+  init_ready_queue(&(queues->ready), SA_FIFO, NULL);
   init_exec_list(&(queues->exec), 0, false);
   init_blocking_list(&(queues->block));
   init_blocking_list(&(queues->susp_block));

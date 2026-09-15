@@ -10,7 +10,7 @@ static void update_highest_priority_ready_no_mutex(t_ready_queue* ready);
 void init_ready_queue(t_ready_queue* queue, int algorithm,
                       t_list* multilevel_algorithms)
 {
-  if (algorithm == AP_MULTILEVEL_QUEUES)
+  if (algorithm == SA_MULTILEVEL_QUEUES)
   {
     queue->multilevel_queue = true;
     queue->queue_count = list_size(multilevel_algorithms);

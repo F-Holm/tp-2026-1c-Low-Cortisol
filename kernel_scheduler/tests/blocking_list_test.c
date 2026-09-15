@@ -18,7 +18,7 @@ Test(ks_blocking_list, to_block_stamps_the_time_and_raises_the_new_process_flag)
 {
   t_blocking_list b;
   init_blocking_list(&b);
-  t_pcb* pcb = create_pcb(EST_EXEC, 0);
+  t_pcb* pcb = create_pcb(PS_EXEC, 0);
   pcb->blocked_time = 0;
 
   transition_to_block(pcb, &b);
@@ -35,7 +35,7 @@ Test(ks_blocking_list, take_block_clears_the_blocked_time)
 {
   t_blocking_list b;
   init_blocking_list(&b);
-  t_pcb* pcb = create_pcb(EST_BLOCK, 0);
+  t_pcb* pcb = create_pcb(PS_BLOCK, 0);
   transition_to_block(pcb, &b);
 
   transition_take_block(pcb, &b);
@@ -51,8 +51,8 @@ Test(ks_blocking_list, take_block_next_is_fifo_and_returns_null_when_empty)
 {
   t_blocking_list b;
   init_blocking_list(&b);
-  t_pcb* a = create_pcb(EST_BLOCK, 0);
-  t_pcb* c = create_pcb(EST_BLOCK, 0);
+  t_pcb* a = create_pcb(PS_BLOCK, 0);
+  t_pcb* c = create_pcb(PS_BLOCK, 0);
   transition_to_block(a, &b);
   transition_to_block(c, &b);
 
@@ -69,9 +69,9 @@ Test(ks_blocking_list, susp_block_is_kept_sorted_by_priority)
 {
   t_blocking_list b;
   init_blocking_list(&b);
-  t_pcb* low = create_pcb(EST_SUSP_BLOCK, 5);
-  t_pcb* high = create_pcb(EST_SUSP_BLOCK, 1);
-  t_pcb* mid = create_pcb(EST_SUSP_BLOCK, 3);
+  t_pcb* low = create_pcb(PS_SUSP_BLOCK, 5);
+  t_pcb* high = create_pcb(PS_SUSP_BLOCK, 1);
+  t_pcb* mid = create_pcb(PS_SUSP_BLOCK, 3);
 
   transition_to_susp_block(low, &b);
   transition_to_susp_block(high, &b);
@@ -92,8 +92,8 @@ Test(ks_blocking_list,
 {
   t_blocking_list b;
   init_blocking_list(&b);
-  t_pcb* low = create_pcb(EST_SUSP_READY, 5);
-  t_pcb* high = create_pcb(EST_SUSP_READY, 1);
+  t_pcb* low = create_pcb(PS_SUSP_READY, 5);
+  t_pcb* high = create_pcb(PS_SUSP_READY, 1);
   transition_to_susp_ready(low, &b);
   transition_to_susp_ready(high, &b);
 

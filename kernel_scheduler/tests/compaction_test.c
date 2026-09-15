@@ -116,7 +116,7 @@ Test(ks_compaction, fits_process_true_when_kernel_memory_approves)
   t_log* logger = ks_quiet_logger();
   t_queues* queues = ks_stub_queues_full(logger);
   queues->km_socket->km_socket = client_fd;
-  t_pcb* pcb = create_pcb(EST_SUSP_READY, 0);
+  t_pcb* pcb = create_pcb(PS_SUSP_READY, 0);
 
   cr_assert(fits_process(queues, pcb));
 
@@ -135,7 +135,7 @@ Test(ks_compaction, fits_process_false_when_kernel_memory_rejects)
   t_log* logger = ks_quiet_logger();
   t_queues* queues = ks_stub_queues_full(logger);
   queues->km_socket->km_socket = client_fd;
-  t_pcb* pcb = create_pcb(EST_SUSP_READY, 0);
+  t_pcb* pcb = create_pcb(PS_SUSP_READY, 0);
 
   cr_assert_not(fits_process(queues, pcb));
 
@@ -156,7 +156,7 @@ Test(ks_compaction, fits_process_retries_after_a_new_memory_stick)
   t_queues* queues = ks_stub_queues_full(logger);
   queues->km_socket->km_socket = client_fd;
   queues->routines.terminate_routines = true;
-  t_pcb* pcb = create_pcb(EST_SUSP_READY, 0);
+  t_pcb* pcb = create_pcb(PS_SUSP_READY, 0);
 
   cr_assert(fits_process(queues, pcb));
 

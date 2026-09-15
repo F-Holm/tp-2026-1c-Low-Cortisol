@@ -277,13 +277,13 @@ static void free_request(void* request, t_io* io)
   t_pcb* pcb;
   switch (io->io_type)
   {
-    case E_STDIN:
+    case IO_STDIN:
       t_stdin* entry1 = (t_stdin*)request;
       pcb = entry1->pcb;
       free(entry1->request);
       free(entry1);
       break;
-    case E_STDOUT:
+    case IO_STDOUT:
       t_stdout* entry2 = (t_stdout*)request;
       pcb = entry2->pcb;
       free(entry2->request);
@@ -479,13 +479,13 @@ static bool handle_io(t_io* io)
 {
   switch (io->io_type)
   {
-    case E_STDIN:
+    case IO_STDIN:
       return handle_stdin(io);
       break;
-    case E_STDOUT:
+    case IO_STDOUT:
       return handle_stdout(io);
       break;
-    case E_SLEEP:
+    case IO_SLEEP:
       return handle_sleep(io);
       break;
   }
@@ -533,12 +533,12 @@ static int get_io_type(int socket_fd, t_log* logger)
   char* buffer = receive_string(socket_fd);
   int io_type;
 
-  if (strcmp(buffer, IO_TYPE_NAMES[E_STDIN]) == 0)
-    io_type = E_STDIN;
-  else if (strcmp(buffer, IO_TYPE_NAMES[E_STDOUT]) == 0)
-    io_type = E_STDOUT;
-  else if (strcmp(buffer, IO_TYPE_NAMES[E_SLEEP]) == 0)
-    io_type = E_SLEEP;
+  if (strcmp(buffer, IO_TYPE_NAMES[IO_STDIN]) == 0)
+    io_type = IO_STDIN;
+  else if (strcmp(buffer, IO_TYPE_NAMES[IO_STDOUT]) == 0)
+    io_type = IO_STDOUT;
+  else if (strcmp(buffer, IO_TYPE_NAMES[IO_SLEEP]) == 0)
+    io_type = IO_SLEEP;
   else
   {
     log_error(logger, "Invalid IO type: %s", buffer);
@@ -576,13 +576,13 @@ static void* transform_request(void* request, int io_type, t_pcb* pcb)
   void* entry;
   switch (io_type)
   {
-    case E_STDIN:
+    case IO_STDIN:
       t_stdin* stdin = malloc(sizeof(t_stdin));
       stdin->pcb = pcb;
       stdin->request = request;
       entry = stdin;
       break;
-    case E_STDOUT:
+    case IO_STDOUT:
       t_stdout* stdout = malloc(sizeof(t_stdout));
       stdout->pcb = pcb;
       stdout->request = request;
@@ -602,11 +602,11 @@ static void add_ordered(void* entry, t_io* io)
 {
   switch (io->io_type)
   {
-    case E_STDIN:
+    case IO_STDIN:
       list_add_sorted(io->io_list->io_list, entry, compare_priority_stdin);
       break;
 
-    case E_STDOUT:
+    case IO_STDOUT:
       list_add_sorted(io->io_list->io_list, entry, compare_priority_stdout);
       break;
     default:
