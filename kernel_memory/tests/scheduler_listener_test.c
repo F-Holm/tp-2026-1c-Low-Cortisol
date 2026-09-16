@@ -31,7 +31,10 @@ typedef struct
   pthread_mutex_t* sticks_mutex;
   t_main_memory* memory;
   _Atomic(t_swap_data*)* swap_data_slot;
-  int active_threads;
+  /* Heap-allocated, not an inline struct member: start_fixture returns
+   * t_listener_fixture by value, so an inline int's address would point at
+   * start_fixture's own stack frame, dangling the moment it returns. */
+  int* active_threads;
   pthread_mutex_t* active_threads_mutex;
   pthread_cond_t* active_threads_cond;
   t_scheduler_data* scheduler_data;
@@ -58,7 +61,8 @@ static t_listener_fixture start_fixture(char* scripts_basepath)
   f.swap_data_slot = malloc(sizeof(_Atomic(t_swap_data*)));
   atomic_init(f.swap_data_slot, NULL);
 
-  f.active_threads = 1;
+  f.active_threads = malloc(sizeof(int));
+  *f.active_threads = 1;
   f.active_threads_mutex = malloc(sizeof(pthread_mutex_t));
   pthread_mutex_init(f.active_threads_mutex, NULL);
   f.active_threads_cond = malloc(sizeof(pthread_cond_t));
@@ -66,7 +70,7 @@ static t_listener_fixture start_fixture(char* scripts_basepath)
 
   f.scheduler_data = init_scheduler_data(
       -1, server_fd, f.processes, scripts_basepath, f.processes_mutex, f.memory,
-      f.sticks, f.sticks_mutex, f.swap_data_slot, f.logger, &f.active_threads,
+      f.sticks, f.sticks_mutex, f.swap_data_slot, f.logger, f.active_threads,
       f.active_threads_mutex, f.active_threads_cond);
 
   pthread_create(&f.thread, NULL, listen_scheduler, f.scheduler_data);
@@ -95,6 +99,7 @@ static void destroy_fixture(t_listener_fixture* f)
   free(f->sticks_mutex);
   free_main_memory(f->memory);
   free(f->swap_data_slot);
+  free(f->active_threads);
   free(f->active_threads_mutex);
   free(f->active_threads_cond);
   log_destroy(f->logger);
@@ -129,16 +134,9 @@ Test(km_scheduler_listener, closing_the_socket_ends_the_loop)
   t_listener_fixture f = start_fixture("/tmp");
   close(f.peer_fd);
   pthread_join(f.thread, NULL);
-  f.peer_fd = -1;
-  list_destroy_and_destroy_elements(f.processes, (void (*)(void*))free_process);
-  free(f.processes_mutex);
-  list_destroy_and_destroy_elements(f.sticks, free);
-  free(f.sticks_mutex);
-  free_main_memory(f.memory);
-  free(f.swap_data_slot);
-  free(f.active_threads_mutex);
-  free(f.active_threads_cond);
-  log_destroy(f.logger);
+  f.peer_fd = -1; /* already closed above; destroy_fixture closing it again is
+                   * a harmless no-op (EBADF) */
+  destroy_fixture(&f);
 }
 
 Test(km_scheduler_listener, an_unrecognized_op_code_ends_the_loop)
