@@ -146,3 +146,22 @@ Test(km_server, handshake_registers_swap)
   free_kernel_memory_data(kernel_data);
   log_destroy(logger);
 }
+
+Test(km_server, accept_client_accepts_and_handshakes_one_connection)
+{
+  char port[16];
+  int listen_fd = km_listen_ephemeral(port, sizeof(port));
+  int client_fd = create_connection("127.0.0.1", port);
+  cr_assert_neq(client_fd, -1);
+  cr_assert(send_handshake(MID_IO, client_fd)); /* unrecognized -> false */
+
+  t_log* logger = km_quiet_logger();
+  t_kernel_memory_data* kernel_data =
+      init_kernel_memory_data(listen_fd, NULL, 0, 0, 1024, AS_WORST, logger);
+
+  cr_assert_not(accept_client(kernel_data));
+
+  close(client_fd);
+  free_kernel_memory_data(kernel_data);
+  log_destroy(logger);
+}
