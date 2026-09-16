@@ -50,11 +50,20 @@ extern const char* const PREEMPTION_REASONS[13];
 
 extern const char* const SYSCALL_NAMES[10];
 
+/**
+ * @brief Handshakes a freshly accepted CPU connection, registers its socket
+ *        and spawns its serving thread.
+ * @return false on handshake/registration failure (caller should close the
+ *         socket).
+ */
 bool handle_new_cpu(int socket_cpu, t_list* list_sockets_cpu,
                     pthread_mutex_t* mutex_list_sockets_cpu,
                     pthread_cond_t* cpu_done_cond, t_log* logger,
                     t_mutex_list* mutex_list, t_queues* queues, t_io* io,
                     t_kernel_memory_socket* km_socket);
+
+/** @brief Terminates the ready queue and waits for every CPU thread to
+ *         finish before returning. */
 void close_cpu(t_list* list_sockets_cpu,
                pthread_mutex_t* mutex_list_sockets_cpu,
                pthread_cond_t* cpu_done_cond, t_queues* queues);

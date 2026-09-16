@@ -49,8 +49,23 @@ typedef struct
   t_sleep_request* request;
 } t_sleep;
 
+/** @brief Allocates the 3-element STDIN/STDOUT/SLEEP t_io array. */
 t_io* create_io_structures(void);
+
+/**
+ * @brief Handshakes a freshly accepted IO connection, fills in its slot in
+ *        @p io (by type) and spawns its serving thread.
+ * @return false on handshake failure or a duplicate/invalid IO type.
+ */
 bool handle_new_io(t_io io[3], int socket_fd, t_queues* queues,
                    bool priority_active);
+
+/**
+ * @brief Queues @p request for @p pcb on @p io, waking its thread.
+ * @return false if the IO's thread is already shutting down.
+ */
 bool enqueue_io_request(void* request, t_io* io, t_pcb* pcb);
+
+/** @brief Stops and joins every IO thread, discarding pending requests, and
+ *         frees @p io. */
 void close_io(t_io* io);
