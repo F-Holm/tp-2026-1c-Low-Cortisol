@@ -17,6 +17,11 @@ static int remove_block_from_swap(int block_number, t_swap_data* swap_data,
 static int compute_address_with_offset(int block_size,
                                        t_main_memory* main_memory, uint32_t pid,
                                        t_block_data* block);
+static bool suspend_segment(t_segment* segment, t_swap_data* swap_data,
+                            t_scheduler_data* scheduler_data);
+static bool resume_block(t_block_data* block, uint32_t pid, int block_size,
+                         t_swap_data* swap_data,
+                         t_scheduler_data* scheduler_data);
 
 void suspend_process(t_process* process_to_suspend,
                      t_scheduler_data* scheduler_data)
@@ -39,7 +44,6 @@ void suspend_process(t_process* process_to_suspend,
     return;
   }
 
-  int block_size = swap_data->block_size;
   bool process_suspended = false;
   t_list* segments_to_remove = list_create();
   t_list_iterator* iterator =
@@ -49,42 +53,7 @@ void suspend_process(t_process* process_to_suspend,
     t_segment* current_segment = list_iterator_next(iterator);
     if (current_segment->pid == process_to_suspend->pid)
     {
-      int segment_block_count =
-          (current_segment->size + block_size - 1) / block_size;
-      bool segment_suspended = false;
-      for (int i = 0; i < segment_block_count; i++)
-      {
-        int offset = i * block_size;
-        int bytes_to_read = (current_segment->size - offset) < block_size
-                                ? (current_segment->size - offset)
-                                : block_size;
-        char* content = read_from_sticks(
-            current_segment->base + offset, bytes_to_read,
-            scheduler_data->connected_sticks, scheduler_data->socket_list_mutex,
-            scheduler_data->logger, scheduler_data->socket_scheduler);
-        int block_number = add_block_to_swap(current_segment, i, swap_data,
-                                             scheduler_data->logger);
-        if (block_number != -1)
-        {
-          write_block_to_swap(block_number, content, bytes_to_read, swap_data);
-          segment_suspended = true;
-        }
-        else
-        {
-          log_debug(scheduler_data->logger,
-                    "Could not suspend process PID %d: not free blocks "
-                    "in swap.",
-                    process_to_suspend->pid);
-          send_string(OP_SUSPENSION_FAILED,
-                      "Could not suspend the process because swap is full.",
-                      scheduler_data->socket_scheduler);
-          segment_suspended = false;
-          free(content);
-          break;
-        }
-        free(content);
-      }
-      if (segment_suspended)
+      if (suspend_segment(current_segment, swap_data, scheduler_data))
       {
         list_add(segments_to_remove, current_segment);
         process_suspended = true;
@@ -114,6 +83,43 @@ void suspend_process(t_process* process_to_suspend,
                 "Could not suspend the process because its pid was not found.",
                 scheduler_data->socket_scheduler);
   }
+}
+
+// Moves one segment's blocks to swap, one at a time. Returns whether every
+// block made it -- false on the first one that doesn't fit, having already
+// reported the failure to the scheduler.
+static bool suspend_segment(t_segment* segment, t_swap_data* swap_data,
+                            t_scheduler_data* scheduler_data)
+{
+  int block_size = swap_data->block_size;
+  int segment_block_count = (segment->size + block_size - 1) / block_size;
+  for (int i = 0; i < segment_block_count; i++)
+  {
+    int offset = i * block_size;
+    int bytes_to_read = (segment->size - offset) < block_size
+                            ? (segment->size - offset)
+                            : block_size;
+    char* content = read_from_sticks(
+        segment->base + offset, bytes_to_read, scheduler_data->connected_sticks,
+        scheduler_data->socket_list_mutex, scheduler_data->logger,
+        scheduler_data->socket_scheduler);
+    int block_number =
+        add_block_to_swap(segment, i, swap_data, scheduler_data->logger);
+    if (block_number == -1)
+    {
+      log_debug(scheduler_data->logger,
+                "Could not suspend process PID %d: not free blocks in swap.",
+                segment->pid);
+      send_string(OP_SUSPENSION_FAILED,
+                  "Could not suspend the process because swap is full.",
+                  scheduler_data->socket_scheduler);
+      free(content);
+      return false;
+    }
+    write_block_to_swap(block_number, content, bytes_to_read, swap_data);
+    free(content);
+  }
+  return true;
 }
 
 void resume_process(uint32_t pid, t_scheduler_data* scheduler_data)
@@ -150,53 +156,8 @@ void resume_process(uint32_t pid, t_scheduler_data* scheduler_data)
       /* works because blocks of the same segment are assumed to be in
        * order due to the logic of find_free_block */
       process_found = true;
-      if (block->segment_block_number == 0)
+      if (!resume_block(block, pid, block_size, swap_data, scheduler_data))
       {
-        bool regen_ok = regenerate_segment(
-            block->segment_number, pid, block->segment_size,
-            scheduler_data->main_memory, scheduler_data->socket_scheduler,
-            scheduler_data->logger);
-        if (!regen_ok)
-        {
-          list_iterator_destroy(iterator);
-          return;
-        }
-      }
-      char* content = read_block_from_swap(block->block_number, swap_data);
-      if (content == NULL)
-      {
-        log_warning(scheduler_data->logger,
-                    "Could not read block %d from swap for PID %d",
-                    block->block_number, pid);
-        send_string(OP_RESUME_SUSPENSION_FAILED, "Error reading swap block",
-                    scheduler_data->socket_scheduler);
-        list_iterator_destroy(iterator);
-        return;
-      }
-      int block_offset = block->segment_block_number * block_size;
-      int real_bytes = (block->segment_size - block_offset) < block_size
-                           ? (block->segment_size - block_offset)
-                           : block_size;
-
-      int write_address = compute_address_with_offset(
-          block_size, scheduler_data->main_memory, pid, block);
-
-      write_to_sticks(pid, write_address, real_bytes, content,
-                      scheduler_data->connected_sticks,
-                      scheduler_data->socket_list_mutex, scheduler_data->logger,
-                      scheduler_data->socket_scheduler);
-      free(content);
-      if (block->block_number != remove_block_from_swap(block->block_number,
-                                                        swap_data,
-                                                        scheduler_data->logger))
-      {
-        log_debug(scheduler_data->logger,
-                  "Since block #%d was not found in swap, "
-                  "PID %d cannot be resumed.",
-                  block->block_number, pid);
-        send_string(OP_RESUME_SUSPENSION_FAILED,
-                    "Could not remove the swap block.",
-                    scheduler_data->socket_scheduler);
         list_iterator_destroy(iterator);
         return;
       }
@@ -219,6 +180,60 @@ void resume_process(uint32_t pid, t_scheduler_data* scheduler_data)
              pid);
     send_string(OP_RESUME_SUSPENSION_OK, "", scheduler_data->socket_scheduler);
   }
+}
+
+// Regenerates the segment if this is its first block, restores this block's
+// content to memory, and removes it from swap. Returns false -- having
+// already reported the failure to the scheduler -- on any step that fails.
+static bool resume_block(t_block_data* block, uint32_t pid, int block_size,
+                         t_swap_data* swap_data,
+                         t_scheduler_data* scheduler_data)
+{
+  if (block->segment_block_number == 0)
+  {
+    bool regen_ok = regenerate_segment(
+        block->segment_number, pid, block->segment_size,
+        scheduler_data->main_memory, scheduler_data->socket_scheduler,
+        scheduler_data->logger);
+    if (!regen_ok)
+      return false;
+  }
+  char* content = read_block_from_swap(block->block_number, swap_data);
+  if (content == NULL)
+  {
+    log_warning(scheduler_data->logger,
+                "Could not read block %d from swap for PID %d",
+                block->block_number, pid);
+    send_string(OP_RESUME_SUSPENSION_FAILED, "Error reading swap block",
+                scheduler_data->socket_scheduler);
+    return false;
+  }
+  int block_offset = block->segment_block_number * block_size;
+  int real_bytes = (block->segment_size - block_offset) < block_size
+                       ? (block->segment_size - block_offset)
+                       : block_size;
+
+  int write_address = compute_address_with_offset(
+      block_size, scheduler_data->main_memory, pid, block);
+
+  write_to_sticks(pid, write_address, real_bytes, content,
+                  scheduler_data->connected_sticks,
+                  scheduler_data->socket_list_mutex, scheduler_data->logger,
+                  scheduler_data->socket_scheduler);
+  free(content);
+  if (block->block_number != remove_block_from_swap(block->block_number,
+                                                    swap_data,
+                                                    scheduler_data->logger))
+  {
+    log_debug(scheduler_data->logger,
+              "Since block #%d was not found in swap, "
+              "PID %d cannot be resumed.",
+              block->block_number, pid);
+    send_string(OP_RESUME_SUSPENSION_FAILED, "Could not remove the swap block.",
+                scheduler_data->socket_scheduler);
+    return false;
+  }
+  return true;
 }
 
 // SUSPEND PROCESS
