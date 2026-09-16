@@ -288,10 +288,7 @@ Test(km_scheduler_listener, request_free_memory_reports_the_free_space)
   destroy_fixture(&f);
 }
 
-/* ── OP_REQUEST_PROCESS_SIZE ──────────────────────────────────────────────
- * Only the pid-found path is exercised: compute_process_size() dereferences
- * its t_process* argument unconditionally, so a not-found pid would crash
- * the module (a pre-existing bug, not introduced by this test). */
+/* ── OP_REQUEST_PROCESS_SIZE ──────────────────────────────────────────────*/
 
 Test(km_scheduler_listener, request_process_size_sums_its_segments)
 {
@@ -306,6 +303,23 @@ Test(km_scheduler_listener, request_process_size_sums_its_segments)
   int a;
   int* size = receive_buffer(&a, f.peer_fd);
   cr_assert_eq(*size, 100);
+  free(size);
+
+  shutdown_and_join(&f);
+  destroy_fixture(&f);
+}
+
+Test(km_scheduler_listener,
+     request_process_size_reports_zero_for_an_unknown_pid)
+{
+  t_listener_fixture f = start_fixture("/tmp");
+
+  uint32_t pid = 404;
+  cr_assert(send_buffer(OP_REQUEST_PROCESS_SIZE, &pid, sizeof(pid), f.peer_fd));
+  cr_assert_eq(receive_op_code(f.peer_fd), OP_PROCESS_SIZE);
+  int a;
+  int* size = receive_buffer(&a, f.peer_fd);
+  cr_assert_eq(*size, 0);
   free(size);
 
   shutdown_and_join(&f);

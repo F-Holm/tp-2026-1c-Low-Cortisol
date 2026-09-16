@@ -216,7 +216,18 @@ static bool handle_request_process_size(t_scheduler_data* scheduler_data)
   uint32_t pid = receive_pid(scheduler_data->socket_scheduler);
   t_process* process = find_process(scheduler_data->processes,
                                     scheduler_data->processes_mutex, pid);
-  int size = compute_process_size(process, scheduler_data->main_memory);
+  /* compute_process_size() dereferences process unconditionally, so an
+   * unknown pid must be handled here instead -- the caller always awaits an
+   * OP_PROCESS_SIZE reply for this request (no dedicated failure op-code
+   * exists for it), so still reply, with a size of 0. */
+  int size = process == NULL
+                 ? 0
+                 : compute_process_size(process, scheduler_data->main_memory);
+  if (process == NULL)
+  {
+    log_debug(scheduler_data->logger,
+              "Process with PID %u to compute the size of was not found", pid);
+  }
   send_buffer(OP_PROCESS_SIZE, &size, sizeof(int),
               scheduler_data->socket_scheduler);
   return true;
