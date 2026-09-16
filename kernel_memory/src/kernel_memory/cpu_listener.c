@@ -15,6 +15,100 @@ static void send_segment_table(t_cpu_data* cpu_data, uint32_t pid)
   destroy_packet(process_segment_table);
 }
 
+static bool handle_next_instruction(t_cpu_data* cpu_data)
+{
+  t_list* packet = receive_packet(cpu_data->socket_cpu);
+  uint32_t pid = *(uint32_t*)list_get(packet, 0);
+  uint32_t pc = *(uint32_t*)list_get(packet, 1);
+
+  t_process* process =
+      find_process(cpu_data->processes, cpu_data->processes_mutex, pid);
+  char* instruction = process->instructions[pc];
+  log_info(cpu_data->logger, "PID: %u - Get instruction: %u - Instruction: %s",
+           pid, pc, instruction);
+  usleep(cpu_data->instruction_delay * 1000);
+  send_string(OP_SEND_INSTRUCTION, instruction, cpu_data->socket_cpu);
+  list_destroy_and_destroy_elements(packet, free);
+  return true;
+}
+
+static bool handle_request_context(t_cpu_data* cpu_data)
+{
+  int a;
+  uint32_t* pid = (uint32_t*)receive_buffer(&a, cpu_data->socket_cpu);
+  t_process* process =
+      find_process(cpu_data->processes, cpu_data->processes_mutex, *pid);
+  if (process == NULL)
+  {
+    log_error(cpu_data->logger, "Process with pid %d not found", *pid);
+    free(pid);
+    return true;
+  }
+  log_trace(cpu_data->logger, "PID: %d - Get registers", *pid);
+  log_trace(cpu_data->logger, "Instruction delay %d",
+            cpu_data->instruction_delay);
+  usleep(cpu_data->instruction_delay * 1000);
+  send_buffer(OP_SEND_CONTEXT, &process->registers, sizeof(t_registers),
+              cpu_data->socket_cpu);
+  log_trace(cpu_data->logger, "Sending the segment table");
+  send_segment_table(cpu_data, *pid);
+  log_trace(cpu_data->logger, "Segment table sent");
+  free(pid);
+  return true;
+}
+
+static bool handle_updated_context(t_cpu_data* cpu_data)
+{
+  t_list* packet = receive_packet(cpu_data->socket_cpu);
+  uint32_t pid = *(uint32_t*)list_get(packet, 0);
+  t_registers registers = *(t_registers*)list_get(packet, 1);
+  t_process* process =
+      find_process(cpu_data->processes, cpu_data->processes_mutex, pid);
+  if (process != NULL)
+  {
+    pthread_mutex_lock(cpu_data->processes_mutex);
+    process->registers = registers;
+    pthread_mutex_unlock(cpu_data->processes_mutex);
+  }
+  list_destroy_and_destroy_elements(packet, free);
+  return true;
+}
+
+static bool handle_updated_segment_table(t_cpu_data* cpu_data)
+{
+  log_trace(cpu_data->logger, "CPU needs to update the segment table");
+  int a;
+  uint32_t* pid = (uint32_t*)receive_buffer(&a, cpu_data->socket_cpu);
+  t_process* process =
+      find_process(cpu_data->processes, cpu_data->processes_mutex, *pid);
+  if (process == NULL)
+  {
+    log_debug(cpu_data->logger, "Process with PID %u was not found", *pid);
+    free(pid);
+    return true;
+  }
+  log_trace(cpu_data->logger, "Sending the segment table to CPU %d",
+            cpu_data->id);
+  send_segment_table(cpu_data, *pid);
+  log_trace(cpu_data->logger, "Segment table sent to the CPU");
+  free(pid);
+  return true;
+}
+
+static bool handle_stick_disconnected(t_cpu_data* cpu_data)
+{
+  log_warning(cpu_data->logger,
+              "Notifying the Kernel Scheduler that memory is corrupted");
+  if (!send_string(OP_MEMORY_CORRUPTED, "Corrupted memory",
+                   cpu_data->socket_scheduler))
+  {
+    log_error(cpu_data->logger,
+              "Could not send the BSOD to the Kernel Scheduler");
+  }
+  shutdown(cpu_data->socket_scheduler, SHUT_RDWR);
+  return false;
+}
+
 void* listen_cpu(void* ptr)
 {
   t_cpu_data* cpu_data = (t_cpu_data*)ptr;
@@ -24,94 +118,20 @@ void* listen_cpu(void* ptr)
     switch (receive_op_code(cpu_data->socket_cpu))
     {
       case OP_NEXT_INSTRUCTION:
-      {
-        t_list* packet = receive_packet(cpu_data->socket_cpu);
-        uint32_t pid = *(uint32_t*)list_get(packet, 0);
-        uint32_t pc = *(uint32_t*)list_get(packet, 1);
-
-        t_process* process =
-            find_process(cpu_data->processes, cpu_data->processes_mutex, pid);
-        char* instruction = process->instructions[pc];
-        log_info(cpu_data->logger,
-                 "PID: %u - Get instruction: %u - Instruction: %s", pid, pc,
-                 instruction);
-        usleep(cpu_data->instruction_delay * 1000);
-        send_string(OP_SEND_INSTRUCTION, instruction, cpu_data->socket_cpu);
-        list_destroy_and_destroy_elements(packet, free);
-
+        connection_alive = handle_next_instruction(cpu_data);
         break;
-      }
       case OP_REQUEST_CONTEXT:
-      {
-        int a;
-        uint32_t* pid = (uint32_t*)receive_buffer(&a, cpu_data->socket_cpu);
-        t_process* process =
-            find_process(cpu_data->processes, cpu_data->processes_mutex, *pid);
-        if (process == NULL)
-        {
-          log_error(cpu_data->logger, "Process with pid %d not found", *pid);
-          free(pid);
-          break;
-        }
-        log_trace(cpu_data->logger, "PID: %d - Get registers", *pid);
-        log_trace(cpu_data->logger, "Instruction delay %d",
-                  cpu_data->instruction_delay);
-        usleep(cpu_data->instruction_delay * 1000);
-        send_buffer(OP_SEND_CONTEXT, &process->registers, sizeof(t_registers),
-                    cpu_data->socket_cpu);
-        log_trace(cpu_data->logger, "Sending the segment table");
-        send_segment_table(cpu_data, *pid);
-        log_trace(cpu_data->logger, "Segment table sent");
-        free(pid);
+        connection_alive = handle_request_context(cpu_data);
         break;
-      }
       case OP_UPDATED_CONTEXT:
-      {
-        t_list* packet = receive_packet(cpu_data->socket_cpu);
-        uint32_t pid = *(uint32_t*)list_get(packet, 0);
-        t_registers registers = *(t_registers*)list_get(packet, 1);
-        t_process* process =
-            find_process(cpu_data->processes, cpu_data->processes_mutex, pid);
-        if (process != NULL)
-        {
-          pthread_mutex_lock(cpu_data->processes_mutex);
-          process->registers = registers;
-          pthread_mutex_unlock(cpu_data->processes_mutex);
-        }
-        list_destroy_and_destroy_elements(packet, free);
+        connection_alive = handle_updated_context(cpu_data);
         break;
-      }
       case OP_UPDATED_SEGMENT_TABLE:
-      {
-        log_trace(cpu_data->logger, "CPU needs to update the segment table");
-        int a;
-        uint32_t* pid = (uint32_t*)receive_buffer(&a, cpu_data->socket_cpu);
-        t_process* process =
-            find_process(cpu_data->processes, cpu_data->processes_mutex, *pid);
-        if (process == NULL)
-        {
-          log_debug(cpu_data->logger, "Process with PID %u was not found",
-                    *pid);
-          free(pid);
-          break;
-        }
-        log_trace(cpu_data->logger, "Sending the segment table to CPU %d",
-                  cpu_data->id);
-        send_segment_table(cpu_data, *pid);
-        log_trace(cpu_data->logger, "Segment table sent to the CPU");
-        free(pid);
+        connection_alive = handle_updated_segment_table(cpu_data);
         break;
-      }
       case OP_STICK_DISCONNECTED:
-        log_warning(cpu_data->logger,
-                    "Notifying the Kernel Scheduler that memory is corrupted");
-        if (!send_string(OP_MEMORY_CORRUPTED, "Corrupted memory",
-                         cpu_data->socket_scheduler))
-        {
-          log_error(cpu_data->logger,
-                    "Could not send the BSOD to the Kernel Scheduler");
-        }
-        shutdown(cpu_data->socket_scheduler, SHUT_RDWR);
+        connection_alive = handle_stick_disconnected(cpu_data);
+        break;
       case OP_CODE_ERROR:
       default:
         connection_alive = false;
