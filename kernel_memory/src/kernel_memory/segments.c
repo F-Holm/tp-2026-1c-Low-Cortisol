@@ -36,12 +36,36 @@ t_segment* find_and_remove_segment(uint32_t id, uint32_t pid,
   return NULL;
 }
 
+// Finds, in a single pass over `holes`, the index of the hole immediately
+// before the segment [segment_base, segment_base+segment_size) and the index
+// of the one immediately after it (or -1 for either that doesn't exist).
+// remove_segment used to re-scan the list separately for each case (on top
+// of hole_before_segment/hole_after_segment already having scanned it once
+// each just to answer yes/no) -- one scan settles both at once.
+static void find_adjacent_hole_indices(t_list* holes, int segment_base,
+                                       int segment_size, int* index_before,
+                                       int* index_after)
+{
+  int segment_end = segment_base + segment_size;
+  *index_before = -1;
+  *index_after = -1;
+  t_list_iterator* iterator = list_iterator_create(holes);
+  int i = 0;
+  while (list_iterator_has_next(iterator))
+  {
+    t_hole* current_hole = list_iterator_next(iterator);
+    if (current_hole->base + current_hole->size == segment_base)
+      *index_before = i;
+    if (current_hole->base == segment_end)
+      *index_after = i;
+    i++;
+  }
+  list_iterator_destroy(iterator);
+}
+
 void remove_segment(uint32_t id, uint32_t pid, t_main_memory* main_memory,
                     t_log* logger)
 {
-  t_hole* new_hole = malloc(sizeof(t_hole));
-  new_hole->base = 0;
-  new_hole->size = 0;
   log_debug(logger, "Removing requested segment ID: %d, PID: %d", id, pid);
   t_segment* segment_aux =
       find_and_remove_segment(id, pid, main_memory, logger);
@@ -50,116 +74,57 @@ void remove_segment(uint32_t id, uint32_t pid, t_main_memory* main_memory,
   {
     log_error(logger, "Segment not found");
     pthread_mutex_unlock(main_memory->main_memory_mutex);
-    free(new_hole);
     return;
   }
 
-  bool has_hole_before = hole_before_segment(
-      segment_aux->base, segment_aux->base + segment_aux->size,
-      main_memory->holes);
-  bool has_hole_after = hole_after_segment(
-      segment_aux->base, segment_aux->base + segment_aux->size,
-      main_memory->holes);
+  int index_before, index_after;
+  find_adjacent_hole_indices(main_memory->holes, segment_aux->base,
+                             segment_aux->size, &index_before, &index_after);
 
-  if (has_hole_before && has_hole_after)
+  t_hole* new_hole = malloc(sizeof(t_hole));
+  new_hole->base = segment_aux->base;
+  new_hole->size = segment_aux->size;
+
+  if (index_before != -1 && index_after != -1)
   {
-    int index1 = -1;
-    int index2 = -1;
-    // SEGMENT BETWEEN HOLES
-    t_list_iterator* iterator = list_iterator_create(main_memory->holes);
-    int i = 0;
-    while (list_iterator_has_next(iterator))
+    t_hole* hole_before = list_get(main_memory->holes, index_before);
+    t_hole* hole_after = list_get(main_memory->holes, index_after);
+    new_hole->base = hole_before->base;
+    new_hole->size += hole_before->size + hole_after->size;
+    // remove the higher index first, so the lower index stays valid
+    if (index_before < index_after)
     {
-      t_hole* current_hole = list_iterator_next(iterator);
-      if (current_hole->base + current_hole->size == segment_aux->base)
-      {
-        new_hole->base = current_hole->base;
-        new_hole->size += current_hole->size + segment_aux->size;
-        index1 = i;
-      }
-      if (current_hole->base == segment_aux->base + segment_aux->size)
-      {
-        new_hole->size += current_hole->size;
-        index2 = i;
-      }
-      i++;
-    }
-    list_iterator_destroy(iterator);
-
-    if (index1 == -1 || index2 == -1)
-    {
-      log_error(logger, "The holes adjacent to the segment were not found");
-      pthread_mutex_unlock(main_memory->main_memory_mutex);
-      free(segment_aux);
-      free(new_hole);
-      return;
-    }
-    if (index1 < index2)
-    {
-      list_remove_and_destroy_element(main_memory->holes, index2, free);
-      list_remove_and_destroy_element(main_memory->holes, index1, free);
+      list_remove_and_destroy_element(main_memory->holes, index_after, free);
+      list_remove_and_destroy_element(main_memory->holes, index_before, free);
     }
     else
     {
-      list_remove_and_destroy_element(main_memory->holes, index1, free);
-      list_remove_and_destroy_element(main_memory->holes, index2, free);
+      list_remove_and_destroy_element(main_memory->holes, index_before, free);
+      list_remove_and_destroy_element(main_memory->holes, index_after, free);
     }
-    list_add(main_memory->holes, new_hole);
     log_trace(logger, "Segment between holes");
   }
-  else if (has_hole_before)
+  else if (index_before != -1)
   {
-    int index1 = -1;
-    // SEGMENT AFTER HOLE
-    t_list_iterator* iterator = list_iterator_create(main_memory->holes);
-    int i = 0;
-    while (list_iterator_has_next(iterator))
-    {
-      t_hole* current_hole = list_iterator_next(iterator);
-      if (current_hole->base + current_hole->size == segment_aux->base)
-      {
-        new_hole->base = current_hole->base;
-        new_hole->size = current_hole->size + segment_aux->size;
-        index1 = i;
-      }
-      i++;
-    }
-    list_iterator_destroy(iterator);
-
-    list_remove_and_destroy_element(main_memory->holes, index1, free);
-    list_add(main_memory->holes, new_hole);
+    t_hole* hole_before = list_get(main_memory->holes, index_before);
+    new_hole->base = hole_before->base;
+    new_hole->size += hole_before->size;
+    list_remove_and_destroy_element(main_memory->holes, index_before, free);
     log_trace(logger, "Segment after hole");
   }
-  else if (has_hole_after)
+  else if (index_after != -1)
   {
-    int index2 = -1;
-    // SEGMENT BEFORE HOLE
-    t_list_iterator* iterator = list_iterator_create(main_memory->holes);
-    int i = 0;
-    while (list_iterator_has_next(iterator))
-    {
-      t_hole* current_hole = list_iterator_next(iterator);
-      if (current_hole->base == segment_aux->base + segment_aux->size)
-      {
-        new_hole->base = segment_aux->base;
-        new_hole->size = current_hole->size + segment_aux->size;
-        index2 = i;
-      }
-      i++;
-    }
-    list_iterator_destroy(iterator);
-
-    list_remove_and_destroy_element(main_memory->holes, index2, free);
-    list_add(main_memory->holes, new_hole);
+    t_hole* hole_after = list_get(main_memory->holes, index_after);
+    new_hole->size += hole_after->size;
+    list_remove_and_destroy_element(main_memory->holes, index_after, free);
     log_trace(logger, "Segment before hole");
   }
   else
   {
-    new_hole->base = segment_aux->base;
-    new_hole->size = segment_aux->size;
-    list_add(main_memory->holes, new_hole);
     log_trace(logger, "Segment between two segments");
   }
+  list_add(main_memory->holes, new_hole);
+
   pthread_mutex_unlock(main_memory->main_memory_mutex);
   free(segment_aux);
 }
