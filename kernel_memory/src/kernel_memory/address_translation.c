@@ -54,6 +54,23 @@ int find_stick(int physical_address, t_list* connected_sticks,
   return index;
 }
 
+// read_from_sticks and write_to_sticks both report a stick as gone the same
+// way, and both need to clamp a transfer to whatever's left in the current
+// stick before it spills into the next one. The two loops otherwise differ
+// enough (locking granularity, how they walk the stick list) that unifying
+// them further would risk changing that behavior under concurrency, so only
+// this much is shared.
+static void notify_stick_corrupted(t_log* logger, int socket_scheduler)
+{
+  send_string(OP_MEMORY_CORRUPTED, "Stick not available", socket_scheduler);
+}
+
+static int stick_chunk_size(t_stick_data* stick, int offset, int remaining)
+{
+  int space_left_in_stick = stick->stick_size - offset;
+  return remaining < space_left_in_stick ? remaining : space_left_in_stick;
+}
+
 char* read_from_sticks(int physical_address, int size, t_list* connected_sticks,
                        pthread_mutex_t* sticks_mutex, t_log* logger,
                        int socket_scheduler)
@@ -78,11 +95,8 @@ char* read_from_sticks(int physical_address, int size, t_list* connected_sticks,
     }
     pthread_mutex_lock(sticks_mutex);
     t_stick_data* stick = list_get(connected_sticks, index);
-    int bytes_to_stick_end = stick->stick_size - stick_offset;
-    int bytes_to_read_count = size - bytes_read;
-    // check whether the requested size fits in the stick or spills past its end
-    if (bytes_to_read_count > bytes_to_stick_end)
-      bytes_to_read_count = bytes_to_stick_end;
+    int bytes_to_read_count =
+        stick_chunk_size(stick, stick_offset, size - bytes_read);
     // Send read request to the stick
     t_packet* packet = create_packet(OP_MEMORY_STICK_READ);
     packet_append(packet, &stick_offset, sizeof(int));
@@ -90,7 +104,7 @@ char* read_from_sticks(int physical_address, int size, t_list* connected_sticks,
     if (!send_packet(packet, stick->socket_stick))
     {
       log_warning(logger, "Error sending read packet to stick %d", index);
-      send_string(OP_MEMORY_CORRUPTED, "Stick not available", socket_scheduler);
+      notify_stick_corrupted(logger, socket_scheduler);
       free(result);
       pthread_mutex_unlock(sticks_mutex);
       return NULL;
@@ -104,7 +118,7 @@ char* read_from_sticks(int physical_address, int size, t_list* connected_sticks,
     int op = receive_op_code(stick_socket);
     if (op == 0)
     {
-      send_string(OP_MEMORY_CORRUPTED, "Stick not available", socket_scheduler);
+      notify_stick_corrupted(logger, socket_scheduler);
     }
     if (op != OP_MEMORY_STICK_READ_DONE)
     {
@@ -153,13 +167,12 @@ bool write_to_sticks(int pid, int physical_address, int bytes_to_read,
                   "No more sticks available to finish the write "
                   "(PID: %d, Phys. Addr: %d)",
                   pid, physical_address);
-      send_string(OP_MEMORY_CORRUPTED, "Stick not available", socket_scheduler);
+      notify_stick_corrupted(logger, socket_scheduler);
       ok = false;
       break;
     }
 
-    int available_space = current_stick->stick_size - current_offset;
-    int to_write = remaining < available_space ? remaining : available_space;
+    int to_write = stick_chunk_size(current_stick, current_offset, remaining);
 
     log_trace(logger, "Starting to write to stick %d, offset %d", i,
               current_offset);
@@ -172,7 +185,7 @@ bool write_to_sticks(int pid, int physical_address, int bytes_to_read,
     if (!send_packet(packet, current_stick->socket_stick))
     {
       log_warning(logger, "Error sending write packet to stick %d", i);
-      send_string(OP_MEMORY_CORRUPTED, "Stick not available", socket_scheduler);
+      notify_stick_corrupted(logger, socket_scheduler);
       destroy_packet(packet);
       ok = false;
       break;
@@ -190,7 +203,7 @@ bool write_to_sticks(int pid, int physical_address, int bytes_to_read,
     }
     else
     {
-      send_string(OP_MEMORY_CORRUPTED, "Stick not available", socket_scheduler);
+      notify_stick_corrupted(logger, socket_scheduler);
     }
 
     buffer_pointer += to_write;
