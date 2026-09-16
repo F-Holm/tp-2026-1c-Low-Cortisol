@@ -9,11 +9,6 @@
 #include "cpu/handlers.h"
 #include "utils/collections/dictionary.h"
 
-/* init_module's failure path (a missing config file) is not tested here: it
- * dereferences cpu->config via config_get_string_value() before checking
- * whether config_create() returned NULL, so a missing config crashes the
- * module instead of returning false. Pre-existing bug, not covered by this
- * commit's scope. */
 Test(cpu_initializer, init_module_loads_the_config_and_logger)
 {
   char path[] = "/tmp/cpu_init_test_XXXXXX";
@@ -34,6 +29,12 @@ Test(cpu_initializer, init_module_loads_the_config_and_logger)
   config_destroy(cpu.config);
   unlink(path);
   unlink("cpu.log"); /* init_module hardcodes this filename */
+}
+
+Test(cpu_initializer, init_module_fails_on_a_missing_config)
+{
+  t_cpu cpu = {.id = "CPU-1"};
+  cr_assert_not(init_module(&cpu, "/no/such/cpu.config"));
 }
 
 Test(cpu_initializer, check_arguments_needs_config_and_id,

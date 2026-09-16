@@ -19,23 +19,15 @@ bool check_arguments(int argc, char** argv)
 bool init_module(t_cpu* cpu, char* config_path)
 {
   cpu->config = config_create(config_path);
+  if (cpu->config == NULL)
+    return false;
 
   t_log_level log_level =
       log_level_from_string(config_get_string_value(cpu->config, "LOG_LEVEL"));
 
   cpu->logger = log_create("cpu.log", cpu->id, true, log_level, false);
-
-  if (cpu->config == NULL)
-  {
-    log_error(cpu->logger, "Could not load the config");
-    return false;
-  }
-
   if (cpu->logger == NULL)
-  {
-    log_error(cpu->logger, "Could not load the logger");
     return false;
-  }
 
   log_info(cpu->logger, "Starting CPU %s", cpu->id);
   log_debug(cpu->logger, "Config loaded successfully");
