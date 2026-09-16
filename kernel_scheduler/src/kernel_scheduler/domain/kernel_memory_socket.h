@@ -11,5 +11,8 @@ typedef struct
   pthread_mutex_t socket_mutex;
 } t_kernel_memory_socket;
 
+/** @brief Wraps @p km_socket with its serializing mutex. */
 t_kernel_memory_socket* init_socket_kernel_memory(int km_socket);
+
+/** @brief Destroys the mutex and frees @p km_socket (does not close the fd). */
 void destroy_kernel_memory(t_kernel_memory_socket* km_socket);

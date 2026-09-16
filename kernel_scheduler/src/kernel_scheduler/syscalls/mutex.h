@@ -37,10 +37,29 @@ typedef enum
   MR_PROCESS_HAS_NO_LOCKED_MUTEX
 } t_mutex_result;
 
+/** @brief Creates an empty mutex dictionary. */
 t_mutex_list* init_list_mutex(void);
+
+/** @brief Destroys every mutex in the list and the list itself. */
 void destroy_list_mutex(t_mutex_list* mutex_list);
 
+/**
+ * @brief Creates a mutex named @p id if it doesn't already exist.
+ * @return MR_MUTEX_CREATED or MR_MUTEX_NAME_ALREADY_EXISTS.
+ */
 int create_and_add_mutex(t_mutex_list* mutex_list, char* id,
                          bool priority_active, t_queues* queues);
+
+/**
+ * @brief Locks the mutex @p id for @p pcb, blocking it (EXEC -> BLOCK) if
+ *        already taken.
+ * @return MR_MUTEX_NAME_NOT_FOUND, MR_MUTEX_LOCKED or MR_WAITING_MUTEX.
+ */
 int list_mutex_lock(t_mutex_list* mutex_list, char* id, t_pcb* pcb);
+
+/**
+ * @brief Unlocks the mutex @p id, handing it to the next waiter if any.
+ * @return MR_MUTEX_NAME_NOT_FOUND, MR_PROCESS_HAS_NO_LOCKED_MUTEX or
+ *         MR_MUTEX_UNLOCKED.
+ */
 int list_mutex_unlock(t_mutex_list* mutex_list, char* id, t_pcb* pcb);
