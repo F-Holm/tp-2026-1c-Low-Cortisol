@@ -19,5 +19,8 @@ typedef struct
   bool already_notified;
 } t_stick_watchdog;
 
+/** @brief Starts the periodic stick connection-check thread. */
 t_stick_watchdog* start_stick_watchdog(t_kernel_memory_data* kernel_data);
+
+/** @brief Stops the watchdog thread and frees it. */
 void destroy_stick_watchdog(t_stick_watchdog* watchdog);
