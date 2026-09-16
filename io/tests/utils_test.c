@@ -32,9 +32,9 @@ Test(io_parse_args, recognises_every_interface_type)
     char* name;
     int type;
   } cases[] = {
-      {"STDIN", E_STDIN},
-      {"STDOUT", E_STDOUT},
-      {"SLEEP", E_SLEEP},
+      {"STDIN", IO_STDIN},
+      {"STDOUT", IO_STDOUT},
+      {"SLEEP", IO_SLEEP},
   };
 
   for (int i = 0; i < 3; i++)
@@ -163,7 +163,7 @@ Test(io_connect, completes_the_handshake_and_announces_its_type)
   io.logger = io_quiet_logger();
   io.ip = "127.0.0.1";
   io.port = port;
-  io.io_type = E_STDOUT;
+  io.io_type = IO_STDOUT;
 
   cr_assert(connect_to_scheduler(&io));
 
@@ -196,7 +196,7 @@ Test(io_connect, fails_when_the_peer_is_not_the_kernel_scheduler)
   io.logger = io_quiet_logger();
   io.ip = "127.0.0.1";
   io.port = port;
-  io.io_type = E_SLEEP;
+  io.io_type = IO_SLEEP;
 
   cr_assert_not(connect_to_scheduler(&io)); /* close_io runs on this path */
 
@@ -217,7 +217,7 @@ Test(io_connect, fails_when_the_scheduler_is_unreachable)
   io.logger = io_quiet_logger();
   io.ip = "127.0.0.1";
   io.port = port;
-  io.io_type = E_STDIN;
+  io.io_type = IO_STDIN;
 
   cr_assert_not(connect_to_scheduler(&io));
 }

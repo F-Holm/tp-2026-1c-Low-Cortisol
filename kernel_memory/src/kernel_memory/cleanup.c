@@ -46,12 +46,11 @@ void free_scheduler_data(t_scheduler_data* scheduler_data)
   free(scheduler_data);
 }
 
-void free_kernel_memory_data(t_kernel_memory_data* kernel_data)
+// Tells every connected peer (CPUs, the scheduler) we're going down, so
+// their listener threads unblock from whatever they're reading and exit --
+// that's what wait_for_listener_threads below is waiting on.
+static void disconnect_all_peers(t_kernel_memory_data* kernel_data)
 {
-  log_debug(kernel_data->logger,
-            "Freeing kernel memory data and ending the program.");
-  if (kernel_data == NULL)
-    return;
   if (kernel_data->connected_cpus != NULL)
   {
     for (int i = 0; i < list_size(kernel_data->connected_cpus); i++)
@@ -60,10 +59,15 @@ void free_kernel_memory_data(t_kernel_memory_data* kernel_data)
       shutdown(cpu->socket_cpu, SHUT_RDWR);
     }
   }
-  if (kernel_data->socket_scheduler != -1)
+  int socket_scheduler = atomic_load(&(kernel_data->socket_scheduler));
+  if (socket_scheduler != -1)
   {
-    shutdown(kernel_data->socket_scheduler, SHUT_RDWR);
+    shutdown(socket_scheduler, SHUT_RDWR);
   }
+}
+
+static void wait_for_listener_threads(t_kernel_memory_data* kernel_data)
+{
   pthread_mutex_lock(kernel_data->active_threads_mutex);
   while (kernel_data->active_threads > 0)
   {
@@ -71,8 +75,10 @@ void free_kernel_memory_data(t_kernel_memory_data* kernel_data)
                       kernel_data->active_threads_mutex);
   }
   pthread_mutex_unlock(kernel_data->active_threads_mutex);
+}
 
-  // Free mutexes
+static void free_kernel_memory_mutexes(t_kernel_memory_data* kernel_data)
+{
   pthread_mutex_destroy(kernel_data->socket_list_mutex);
   pthread_mutex_destroy(kernel_data->processes_mutex);
   free(kernel_data->socket_list_mutex);
@@ -82,59 +88,69 @@ void free_kernel_memory_data(t_kernel_memory_data* kernel_data)
   pthread_cond_destroy(kernel_data->active_threads_cond);
   free(kernel_data->active_threads_mutex);
   free(kernel_data->active_threads_cond);
-  // Free the lists (only the structure, not the elements)
-  if (kernel_data->connected_sticks != NULL)
+}
+
+static void free_connected_sticks(t_kernel_memory_data* kernel_data)
+{
+  if (kernel_data->connected_sticks == NULL)
+    return;
+  for (int i = 0; i < list_size(kernel_data->connected_sticks); i++)
   {
-    for (int i = 0; i < list_size(kernel_data->connected_sticks); i++)
-    {
-      t_stick_data* stick =
-          (t_stick_data*)list_get(kernel_data->connected_sticks, i);
-      free_stick_data(stick);
-    }
-    list_destroy(kernel_data->connected_sticks);
+    t_stick_data* stick =
+        (t_stick_data*)list_get(kernel_data->connected_sticks, i);
+    free_stick_data(stick);
   }
-  if (kernel_data->connected_cpus != NULL)
+  list_destroy(kernel_data->connected_sticks);
+}
+
+static void free_connected_cpus(t_kernel_memory_data* kernel_data)
+{
+  if (kernel_data->connected_cpus == NULL)
+    return;
+  while (!list_is_empty(kernel_data->connected_cpus))
   {
-    /*for (int i = 0; i < list_size(kernel_data->connected_cpus); i++)
-    {
-      t_cpu_data* cpu =
-          (t_cpu_data*)list_get(kernel_data->connected_cpus, i);
-      //free_cpu_data(cpu);
-      list_remove(kernel_data->connected_cpus, cpu);
-      shutdown(cpu->socket_cpu, SHUT_RDWR);
-    }*/
-    while (!list_is_empty(kernel_data->connected_cpus))
-    {
-      t_cpu_data* cpu = list_remove(kernel_data->connected_cpus, 0);
-      shutdown(cpu->socket_cpu, SHUT_RDWR);
-      free(cpu);
-    }
-    list_destroy(kernel_data->connected_cpus);
+    t_cpu_data* cpu = list_remove(kernel_data->connected_cpus, 0);
+    shutdown(cpu->socket_cpu, SHUT_RDWR);
+    free(cpu);
   }
-  if (kernel_data->swap_data != NULL)
+  list_destroy(kernel_data->connected_cpus);
+}
+
+static void free_all_processes(t_kernel_memory_data* kernel_data)
+{
+  if (kernel_data->processes == NULL)
+    return;
+  t_list_iterator* iterator = list_iterator_create(kernel_data->processes);
+  while (list_iterator_has_next(iterator))
   {
-    free_swap_data(kernel_data->swap_data);
+    t_process* p = list_iterator_next(iterator);
+    free_process(p);
   }
-  if (kernel_data->main_memory != NULL)
-  {
-    free_main_memory(kernel_data->main_memory);
-  }
-  if (kernel_data->processes != NULL)
-  {
-    t_list_iterator* iterator = list_iterator_create(kernel_data->processes);
-    while (list_iterator_has_next(iterator))
-    {
-      t_process* p = list_iterator_next(iterator);
-      free_process(p);
-    }
-    list_iterator_destroy(iterator);
-    list_destroy(kernel_data->processes);
-  }
+  list_iterator_destroy(iterator);
+  list_destroy(kernel_data->processes);
+}
+
+void free_kernel_memory_data(t_kernel_memory_data* kernel_data)
+{
+  if (kernel_data == NULL)
+    return;
+  log_debug(kernel_data->logger,
+            "Freeing kernel memory data and ending the program.");
+
+  disconnect_all_peers(kernel_data);
+  wait_for_listener_threads(kernel_data);
+  free_kernel_memory_mutexes(kernel_data);
+
+  free_connected_sticks(kernel_data);
+  free_connected_cpus(kernel_data);
+  free_swap_data(atomic_load(&kernel_data->swap_data));
+  free_main_memory(kernel_data->main_memory);
+  free_all_processes(kernel_data);
+
   if (kernel_data->socket_kernel_memory > 0)
   {
     close_communication(kernel_data->socket_kernel_memory);
   }
-
   free(kernel_data);
 }
 

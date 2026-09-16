@@ -5,6 +5,7 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "memory_stick/cpu.h"
 #include "support.h"
 #include "utils/msg.h"
 
@@ -126,4 +127,62 @@ Test(ms_cleanup, close_module_on_error_releases_only_what_was_acquired)
   ms.socket_server_cpu = -1;
   /* no config, no memory, no mutex */
   close_module_on_error(&ms); /* must not crash */
+}
+
+Test(ms_cleanup, close_module_joins_the_cpu_thread_and_releases_everything)
+{
+  t_ms* ms = ms_make(16);
+  ms->socket_server_cpu = create_server_cpu(ms->logger);
+  cr_assert_gt(ms->socket_server_cpu, 0);
+
+  pthread_t thread;
+  cr_assert(start_cpu_server(&thread, ms->socket_server_cpu, ms->logger, ms));
+
+  int km_fd;
+  ms->socket_km = ms_connected_pair(&km_fd);
+
+  char* config_path = ms_write_temp_config();
+  ms->config = config_create(config_path);
+  cr_assert_not_null(ms->config);
+
+  close_module(ms, &thread); /* must not crash; joins the thread itself */
+
+  close(km_fd);
+  unlink(config_path);
+  free(config_path);
+  free(ms);
+}
+
+/* ── init_logger ────────────────────────────────────────────────────────── */
+
+Test(ms_init, init_logger_builds_a_working_logger)
+{
+  t_log* logger = init_logger(LOG_LEVEL_INFO);
+  cr_assert_not_null(logger);
+  log_destroy(logger);
+  unlink("memory_stick.log"); /* init_logger hardcodes this filename */
+}
+
+/* ── send_cpu_server_port ──────────────────────────────────────────────── */
+
+Test(ms_init, send_cpu_server_port_reports_the_listening_port)
+{
+  t_log* logger = ms_quiet_logger();
+  int km_fd;
+  int stick_fd = ms_connected_pair(&km_fd);
+
+  int listen_socket = create_server_cpu(logger);
+  cr_assert_gt(listen_socket, 0);
+
+  cr_assert(send_cpu_server_port(stick_fd, listen_socket, logger));
+
+  cr_assert_eq(receive_op_code(km_fd), OP_PORT);
+  char* port = receive_string(km_fd);
+  cr_assert_gt(atoi(port), 0);
+  free(port);
+
+  close(listen_socket);
+  close(stick_fd);
+  close(km_fd);
+  log_destroy(logger);
 }

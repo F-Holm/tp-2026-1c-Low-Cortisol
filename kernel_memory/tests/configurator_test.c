@@ -27,8 +27,8 @@ static char* write_config(void)
 
 Test(km_configurator, allocation_from_string)
 {
-  cr_assert_eq(allocation_from_string("BEST"), BEST);
-  cr_assert_eq(allocation_from_string("WORST"), WORST);
+  cr_assert_eq(allocation_from_string("BEST"), AS_BEST);
+  cr_assert_eq(allocation_from_string("WORST"), AS_WORST);
   cr_assert_eq(allocation_from_string("FIRST"), (t_allocation_strategy)-1);
 }
 
@@ -42,7 +42,7 @@ Test(km_configurator, the_getters_read_their_keys)
   cr_assert_eq(get_instruction_delay(config), 50);
   cr_assert_eq(get_compaction_delay(config), 120);
   cr_assert_eq(get_segment_max_size(config), 4096);
-  cr_assert_eq(get_allocation_strategy(config), WORST);
+  cr_assert_eq(get_allocation_strategy(config), AS_WORST);
 
   config_destroy(config);
   unlink(path);
@@ -52,4 +52,20 @@ Test(km_configurator, the_getters_read_their_keys)
 Test(km_configurator, init_config_returns_null_for_a_missing_file)
 {
   cr_assert_null(init_config("/no/such/kernel_memory.config"));
+}
+
+Test(km_configurator, init_logger_builds_a_working_logger)
+{
+  char* path = write_config();
+  t_config* config = init_config(path);
+  cr_assert_not_null(config);
+
+  t_log* logger = init_logger(config);
+  cr_assert_not_null(logger);
+
+  log_destroy(logger);
+  config_destroy(config);
+  unlink(path);
+  free(path);
+  unlink("kernel_memory.log");
 }

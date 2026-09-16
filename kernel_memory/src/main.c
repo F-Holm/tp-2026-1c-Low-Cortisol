@@ -5,6 +5,7 @@
 #include "kernel_memory/configurator.h"
 #include "kernel_memory/initializer.h"
 #include "kernel_memory/server.h"
+#include "kernel_memory/stick_watchdog.h"
 #include "utils/collections/list.h"
 #include "utils/config.h"
 #include "utils/log.h"
@@ -30,6 +31,8 @@ int main(int argc, char* argv[])
       socket_kernel_memory, scripts_basepath, instruction_delay,
       compaction_delay, segment_max_size, allocation_strategy, logger);
 
+  t_stick_watchdog* stick_watchdog = start_stick_watchdog(kernel_data);
+
   log_info(logger, "Kernel Memory started");
   bool connection_alive = true;
   while (connection_alive)
@@ -37,6 +40,7 @@ int main(int argc, char* argv[])
     connection_alive = accept_client(kernel_data);
   }
 
+  destroy_stick_watchdog(stick_watchdog);
   free_kernel_memory_data(kernel_data);
   config_destroy(config);
   log_destroy(logger);

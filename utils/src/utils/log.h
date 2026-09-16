@@ -56,6 +56,11 @@ t_log* log_create(char* file, char* program_name, bool is_active_console,
 /** @brief Closes the log file and releases the logger. */
 void log_destroy(t_log* logger);
 
+/**
+ * @brief Logs a printf-style message at the level named by the function
+ *        (trace/debug/info/warning/error), filtered by the logger's
+ *        configured detail level.
+ */
 void log_trace(t_log* logger, const char* message, ...)
     __attribute__((format(printf, 2, 3)));
 void log_debug(t_log* logger, const char* message, ...)

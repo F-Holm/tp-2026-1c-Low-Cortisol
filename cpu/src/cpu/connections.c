@@ -4,6 +4,7 @@
 
 #include "cpu/cleanup.h"
 #include "cpu/cpu.h"
+#include "cpu/kernel_memory_protocol.h"
 #include "utils/log.h"
 
 bool connect_to_kernel_scheduler(t_cpu* cpu)

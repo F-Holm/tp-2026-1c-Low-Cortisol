@@ -1,0 +1,4 @@
+==1  Shutting down: Processes finished successfully
+==0  Shutting down: BSOD: Corruption of memory detected
+==0  \[ERROR\]
+==0  Memory needs to be compacted

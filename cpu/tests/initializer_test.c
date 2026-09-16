@@ -2,10 +2,40 @@
 
 #include <criterion/criterion.h>
 #include <criterion/redirect.h>
+#include <stdio.h>
+#include <unistd.h>
 
 #include "cpu/cpu.h"
 #include "cpu/handlers.h"
 #include "utils/collections/dictionary.h"
+
+Test(cpu_initializer, init_module_loads_the_config_and_logger)
+{
+  char path[] = "/tmp/cpu_init_test_XXXXXX";
+  int fd = mkstemp(path);
+  cr_assert_neq(fd, -1);
+  FILE* file = fdopen(fd, "w");
+  fputs("LOG_LEVEL=INFO\n", file);
+  fclose(file);
+
+  t_cpu cpu = {.id = "CPU-1"};
+  cr_assert(init_module(&cpu, path));
+  cr_assert_not_null(cpu.config);
+  cr_assert_not_null(cpu.logger);
+  cr_assert_not_null(cpu.memory_sticks);
+
+  list_destroy(cpu.memory_sticks);
+  log_destroy(cpu.logger);
+  config_destroy(cpu.config);
+  unlink(path);
+  unlink("cpu.log"); /* init_module hardcodes this filename */
+}
+
+Test(cpu_initializer, init_module_fails_on_a_missing_config)
+{
+  t_cpu cpu = {.id = "CPU-1"};
+  cr_assert_not(init_module(&cpu, "/no/such/cpu.config"));
+}
 
 Test(cpu_initializer, check_arguments_needs_config_and_id,
      .init = cr_redirect_stdout)

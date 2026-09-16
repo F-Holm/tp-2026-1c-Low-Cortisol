@@ -1,24 +1,23 @@
 #include <criterion/criterion.h>
 
-#include "kernel_scheduler/cpu.h"
-#include "kernel_scheduler/kernel_scheduler.h"
-#include "kernel_scheduler/misc.h"
+#include "kernel_scheduler/app/kernel_scheduler.h"
+#include "kernel_scheduler/connections/cpu.h"
 
 Test(ks_names, state_names_follow_the_enum)
 {
-  cr_assert_str_eq(STATE_NAMES[EST_NEW], "NEW");
-  cr_assert_str_eq(STATE_NAMES[EST_READY], "READY");
-  cr_assert_str_eq(STATE_NAMES[EST_EXEC], "EXEC");
-  cr_assert_str_eq(STATE_NAMES[EST_BLOCK], "BLOCK");
-  cr_assert_str_eq(STATE_NAMES[EST_SUSP_READY], "SUSP. READY");
-  cr_assert_str_eq(STATE_NAMES[EST_EXIT], "EXIT");
+  cr_assert_str_eq(STATE_NAMES[PS_NEW], "NEW");
+  cr_assert_str_eq(STATE_NAMES[PS_READY], "READY");
+  cr_assert_str_eq(STATE_NAMES[PS_EXEC], "EXEC");
+  cr_assert_str_eq(STATE_NAMES[PS_BLOCK], "BLOCK");
+  cr_assert_str_eq(STATE_NAMES[PS_SUSP_READY], "SUSP. READY");
+  cr_assert_str_eq(STATE_NAMES[PS_EXIT], "EXIT");
 }
 
 Test(ks_names, scheduling_algorithm_names_follow_the_enum)
 {
-  cr_assert_str_eq(SCHEDULING_ALGORITHMS[AP_FIFO], "FIFO");
-  cr_assert_str_eq(SCHEDULING_ALGORITHMS[AP_RR], "RR");
-  cr_assert_str_eq(SCHEDULING_ALGORITHMS[AP_CMN], "CMN");
+  cr_assert_str_eq(SCHEDULING_ALGORITHMS[SA_FIFO], "FIFO");
+  cr_assert_str_eq(SCHEDULING_ALGORITHMS[SA_RR], "RR");
+  cr_assert_str_eq(SCHEDULING_ALGORITHMS[SA_MULTILEVEL_QUEUES], "MULTILEVEL");
 }
 
 Test(ks_names, syscall_names_follow_the_enum_order)

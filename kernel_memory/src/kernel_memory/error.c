@@ -2,7 +2,7 @@
 
 void send_handshake_error(t_log* logger, int client_socket, char* error_section)
 {
-  log_error(logger, "Error sending handshake for: %s", error_section);
+  log_error(logger, "Error sending the handshake to %s", error_section);
   close(client_socket);
 }
 

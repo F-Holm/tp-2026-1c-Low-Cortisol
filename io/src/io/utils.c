@@ -75,17 +75,17 @@ bool parse_args(int argc, char** argv, t_io* io)
   char* config_path = argv[1];
   io->config = config_create(config_path);
   // Check that the received IO operation exists.
-  if (strcmp(IO_TYPE_NAMES[E_STDIN], argv[2]) == 0)
+  if (strcmp(IO_TYPE_NAMES[IO_STDIN], argv[2]) == 0)
   {
-    io->io_type = E_STDIN;
+    io->io_type = IO_STDIN;
   }
-  else if (strcmp(IO_TYPE_NAMES[E_STDOUT], argv[2]) == 0)
+  else if (strcmp(IO_TYPE_NAMES[IO_STDOUT], argv[2]) == 0)
   {
-    io->io_type = E_STDOUT;
+    io->io_type = IO_STDOUT;
   }
-  else if (strcmp(IO_TYPE_NAMES[E_SLEEP], argv[2]) == 0)
+  else if (strcmp(IO_TYPE_NAMES[IO_SLEEP], argv[2]) == 0)
   {
-    io->io_type = E_SLEEP;
+    io->io_type = IO_SLEEP;
   }
   else
   {

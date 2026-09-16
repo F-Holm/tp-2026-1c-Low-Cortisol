@@ -1,4 +1,6 @@
 #include <criterion/criterion.h>
+#include <errno.h>
+#include <fcntl.h>
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -15,11 +17,11 @@
 
 Test(km_init, init_main_memory_starts_empty)
 {
-  t_main_memory* memory = init_main_memory(2048, WORST, 30);
+  t_main_memory* memory = init_main_memory(2048, AS_WORST, 30);
   cr_assert_eq(memory->total_size, 0);
   cr_assert_eq(memory->max_segment_size, 2048);
   cr_assert_eq(memory->compaction_delay, 30);
-  cr_assert_eq(memory->allocation_strategy, WORST);
+  cr_assert_eq(memory->allocation_strategy, AS_WORST);
   cr_assert_eq(list_size(memory->segments), 0);
   cr_assert_eq(list_size(memory->holes), 0);
   free_main_memory(memory);
@@ -103,8 +105,23 @@ Test(km_cleanup, free_swap_data_tolerates_a_null_argument)
 
 Test(km_cleanup, free_main_memory_releases_segments_and_holes)
 {
-  t_main_memory* memory = init_main_memory(1024, BEST, 0);
+  t_main_memory* memory = init_main_memory(1024, AS_BEST, 0);
   list_add(memory->segments, km_make_segment(0, 1, 0, 64));
   list_add(memory->holes, km_make_hole(64, 960));
   free_main_memory(memory); /* leak-checked under valgrind */
+}
+
+Test(km_cleanup, free_cpu_data_closes_the_socket_and_frees_the_struct)
+{
+  int fds[2];
+  cr_assert_eq(pipe(fds), 0);
+
+  t_cpu_data* cpu = calloc(1, sizeof(t_cpu_data));
+  cpu->socket_cpu = fds[0];
+
+  free_cpu_data(cpu); /* leak-checked under valgrind */
+
+  cr_assert_eq(fcntl(fds[0], F_GETFD), -1);
+  cr_assert_eq(errno, EBADF);
+  close(fds[1]);
 }

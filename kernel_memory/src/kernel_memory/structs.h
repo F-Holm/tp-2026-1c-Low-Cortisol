@@ -1,6 +1,7 @@
 #pragma once
 
 #include <pthread.h>
+#include <stdatomic.h>
 
 #include "utils/collections/list.h"
 #include "utils/log.h"
@@ -8,8 +9,8 @@
 
 typedef enum
 {
-  BEST,
-  WORST
+  AS_BEST,
+  AS_WORST
 } t_allocation_strategy;
 
 typedef struct
@@ -39,14 +40,20 @@ typedef struct
   int compaction_delay;
   int segment_max_size;
   t_allocation_strategy allocation_strategy;
-  int socket_scheduler;
+  // Written by the accept-loop thread once the Kernel Scheduler connects,
+  // read by the stick connection-check watchdog thread -- must be atomic.
+  atomic_int socket_scheduler;
   char* scripts_basepath;
   t_log* logger;
   t_list* connected_sticks;
   t_list* connected_cpus;
   t_list* processes;
   t_main_memory* main_memory;
-  t_swap_data* swap_data;
+  // Written by the accept-loop thread once the Swap module connects, read by
+  // any already-connected Kernel Scheduler's listener thread (via the
+  // t_scheduler_data below) -- must be atomic, since Swap is free to connect
+  // after the scheduler already has.
+  _Atomic(t_swap_data*) swap_data;
   pthread_mutex_t* processes_mutex;
   pthread_mutex_t* socket_list_mutex;
   int active_threads;
@@ -65,7 +72,11 @@ typedef struct
   t_list* connected_sticks;
   pthread_mutex_t* socket_list_mutex;
   t_main_memory* main_memory;
-  t_swap_data* swap_data;
+  // Points at the Kernel Memory data's own atomic swap_data field, so a Swap
+  // module connecting after this scheduler already did is still picked up
+  // (see the comment on t_kernel_memory_data.swap_data). Load it fresh with
+  // atomic_load at every use instead of caching the result.
+  _Atomic(t_swap_data*)* swap_data;
   int* active_threads;
   pthread_mutex_t* active_threads_mutex;
   pthread_cond_t* active_threads_cond;

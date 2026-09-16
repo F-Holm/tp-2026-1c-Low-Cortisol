@@ -5,12 +5,12 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#include "kernel_scheduler/io.h"
-#include "kernel_scheduler/kernel_memory.h"
-#include "kernel_scheduler/kernel_scheduler.h"
-#include "kernel_scheduler/mutex.h"
-#include "kernel_scheduler/queue.h"
-#include "kernel_scheduler/server.h"
+#include "kernel_scheduler/app/kernel_scheduler.h"
+#include "kernel_scheduler/connections/io.h"
+#include "kernel_scheduler/connections/kernel_memory.h"
+#include "kernel_scheduler/connections/server.h"
+#include "kernel_scheduler/scheduler/queues.h"
+#include "kernel_scheduler/syscalls/mutex.h"
 #include "utils/collections/list.h"
 #include "utils/config.h"
 #include "utils/log.h"
@@ -18,7 +18,7 @@
 
 int main(int argc, char* argv[])
 {
-  t_kernel_scheduler recursos = {0};
+  t_kernel_scheduler resources = {0};
 
   // args
   if (argc != 3)
@@ -27,23 +27,23 @@ int main(int argc, char* argv[])
   char* initial_process_path = argv[2];
 
   // Start the module
-  if (!start_module(&recursos, config_path))
+  if (!start_module(&resources, config_path))
   {
-    close_module_error(&recursos);
+    close_module_error(&resources);
     return EXIT_FAILURE;
   }
 
   // Initialize data for the server
-  init_queues_mutex(&recursos);
+  init_scheduler_resources(&resources);
   t_listen_server_data data;
-  init_data_server_listen(&data, recursos.socket_server, recursos.logger,
-                          recursos.mutex_list, recursos.queues,
-                          recursos.km_socket_mutex, initial_process_path);
+  init_data_server_listen(&data, resources.socket_server, resources.logger,
+                          resources.mutex_list, resources.queues,
+                          resources.km_socket_mutex, initial_process_path);
 
   // Start listening on the server
   server_listen(&data);
 
   // Release and close
-  close_module(&recursos);
+  close_module(&resources);
   return EXIT_SUCCESS;
 }
