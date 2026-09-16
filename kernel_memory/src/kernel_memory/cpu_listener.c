@@ -1,5 +1,20 @@
 #include "kernel_memory/cpu_listener.h"
 
+// OP_REQUEST_CONTEXT and OP_UPDATED_SEGMENT_TABLE both need to hand the CPU
+// pid's current segment table -- the only difference is the log wording.
+static void send_segment_table(t_cpu_data* cpu_data, uint32_t pid)
+{
+  t_packet* process_segment_table = create_packet(OP_SEGMENT_TABLE);
+  t_list* segment_list =
+      filter_process_segments(pid, cpu_data->main_memory, cpu_data->logger);
+
+  add_segments_to_packet(segment_list, process_segment_table);
+
+  list_destroy(segment_list);
+  send_packet(process_segment_table, cpu_data->socket_cpu);
+  destroy_packet(process_segment_table);
+}
+
 void* listen_cpu(void* ptr)
 {
   t_cpu_data* cpu_data = (t_cpu_data*)ptr;
@@ -45,16 +60,8 @@ void* listen_cpu(void* ptr)
         send_buffer(OP_SEND_CONTEXT, &process->registers, sizeof(t_registers),
                     cpu_data->socket_cpu);
         log_trace(cpu_data->logger, "Sending the segment table");
-        t_packet* process_segment_table = create_packet(OP_SEGMENT_TABLE);
-        t_list* segment_list = filter_process_segments(
-            *pid, cpu_data->main_memory, cpu_data->logger);
-
-        add_segments_to_packet(segment_list, process_segment_table);
-
-        list_destroy(segment_list);
-        send_packet(process_segment_table, cpu_data->socket_cpu);
+        send_segment_table(cpu_data, *pid);
         log_trace(cpu_data->logger, "Segment table sent");
-        destroy_packet(process_segment_table);
         free(pid);
         break;
       }
@@ -90,16 +97,8 @@ void* listen_cpu(void* ptr)
         }
         log_trace(cpu_data->logger, "Sending the segment table to CPU %d",
                   cpu_data->id);
-        t_packet* process_segment_table = create_packet(OP_SEGMENT_TABLE);
-        t_list* segment_list = filter_process_segments(
-            *pid, cpu_data->main_memory, cpu_data->logger);
-
-        add_segments_to_packet(segment_list, process_segment_table);
-
-        list_destroy(segment_list);
-        send_packet(process_segment_table, cpu_data->socket_cpu);
+        send_segment_table(cpu_data, *pid);
         log_trace(cpu_data->logger, "Segment table sent to the CPU");
-        destroy_packet(process_segment_table);
         free(pid);
         break;
       }

@@ -7,67 +7,47 @@
 #include "kernel_memory/registry.h"
 #include "utils/msg.h"
 
-bool receive_cpu_id(t_cpu_data* cpu_data)
+// Reads one handshake field shaped as "an expected op-code, then an int sent
+// as a string": receive_cpu_id/receive_stick_size/receive_stick_listen_port
+// are all this same shape, differing only in the op-code, the field's name
+// for logging, and where the parsed value is stored.
+static bool receive_int_field(int socket, t_log* logger, int expected_op,
+                              const char* field_name, int* out_value)
 {
-  if (receive_op_code(cpu_data->socket_cpu) == OP_ID_CPU)
+  if (receive_op_code(socket) != expected_op)
   {
-    char* id_cpu = receive_string(cpu_data->socket_cpu);
-    log_info(cpu_data->logger, "CPU %s connected", id_cpu);
-    cpu_data->id = atoi(id_cpu);
-    free(id_cpu);
-    return true;
-  }
-  else
-  {
-    log_debug(cpu_data->logger,
-              "Could not connect to the CPU because it could not "
-              "sent the ID operation");
-    close_communication(cpu_data->socket_cpu);
+    log_debug(logger,
+              "Could not connect because the peer did not send the %s "
+              "operation",
+              field_name);
+    close_communication(socket);
     return false;
   }
-  return false;
+  char* value = receive_string(socket);
+  log_debug(logger, "%s received: %s", field_name, value);
+  *out_value = atoi(value);
+  free(value);
+  return true;
+}
+
+bool receive_cpu_id(t_cpu_data* cpu_data)
+{
+  return receive_int_field(cpu_data->socket_cpu, cpu_data->logger, OP_ID_CPU,
+                           "CPU id", &cpu_data->id);
 }
 
 bool receive_stick_size(t_stick_data* stick_data)
 {
-  if (receive_op_code(stick_data->socket_stick) == OP_MEMORY_SIZE)
-  {
-    char* size = receive_string(stick_data->socket_stick);
-    log_info(stick_data->logger, "Memory Stick of %s bytes connected", size);
-    stick_data->stick_size = atoi(size);
-    free(size);
-    return true;
-  }
-  else
-  {
-    log_debug(stick_data->logger,
-              "Could not connect to the stick because it could not "
-              "sent the size operation");
-    close_communication(stick_data->socket_stick);
-    return false;
-  }
-  return false;
+  return receive_int_field(stick_data->socket_stick, stick_data->logger,
+                           OP_MEMORY_SIZE, "Memory Stick size",
+                           &stick_data->stick_size);
 }
 
 bool receive_stick_listen_port(t_stick_data* stick_data)
 {
-  if (receive_op_code(stick_data->socket_stick) == OP_PORT)
-  {
-    char* port = receive_string(stick_data->socket_stick);
-    log_debug(stick_data->logger, "Memory Stick port received %s", port);
-    stick_data->stick_port = atoi(port);
-    free(port);
-    return true;
-  }
-  else
-  {
-    log_debug(stick_data->logger,
-              "Could not connect to the stick because it could not "
-              "sent the port operation");
-    close_communication(stick_data->socket_stick);
-    return false;
-  }
-  return false;
+  return receive_int_field(stick_data->socket_stick, stick_data->logger,
+                           OP_PORT, "Memory Stick port",
+                           &stick_data->stick_port);
 }
 
 void add_stick_connection(t_kernel_memory_data* kernel_data,

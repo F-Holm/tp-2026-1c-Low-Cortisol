@@ -64,20 +64,14 @@ t_main_memory* add_total_memory(t_main_memory* main_memory, int memory_total)
 
 t_hole select_hole(uint32_t size, t_log* logger, t_main_memory* memory)
 {
-  t_hole chosen_hole = {-1, -1};
-  if (memory->allocation_strategy == AS_BEST)
-    chosen_hole =
-        hole_selection_algorithm(size, memory->holes, logger, AS_BEST);
-  else if (memory->allocation_strategy == AS_WORST)
-    chosen_hole =
-        hole_selection_algorithm(size, memory->holes, logger, AS_WORST);
-  else
+  if (memory->allocation_strategy != AS_BEST &&
+      memory->allocation_strategy != AS_WORST)
   {
-    log_error(logger,
-              "The chosen hole-selection option "
-              "is not valid.");
-    return chosen_hole;
+    log_error(logger, "The chosen hole-selection option is not valid.");
+    return (t_hole){-1, -1};
   }
+  t_hole chosen_hole = hole_selection_algorithm(size, memory->holes, logger,
+                                                memory->allocation_strategy);
   update_hole_table(memory, chosen_hole, size);
   return chosen_hole;
 }
