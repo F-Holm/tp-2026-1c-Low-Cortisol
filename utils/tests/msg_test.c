@@ -1,7 +1,7 @@
 #include "utils/msg.h"
 
 #include <criterion/criterion.h>
-#include <stdint.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

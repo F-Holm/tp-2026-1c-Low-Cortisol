@@ -1,9 +1,8 @@
 #include "utils/sockets.h"
 
 #include <criterion/criterion.h>
+#include <stdbool.h>
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
 #include "utils/threads.h"
 

@@ -2,7 +2,6 @@
 
 #include <criterion/criterion.h>
 #include <stdbool.h>
-#include <stdlib.h>
 
 #include "utils/mutex.h"
 

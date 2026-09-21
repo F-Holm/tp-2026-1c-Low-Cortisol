@@ -2,7 +2,7 @@
 
 #include <criterion/criterion.h>
 #include <stdbool.h>
-#include <stdlib.h>
+#include <string.h>
 
 static int values[] = {10, 20, 30, 40, 50};
 
