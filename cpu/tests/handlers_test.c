@@ -1,12 +1,16 @@
 #include "cpu/handlers.h"
 
 #include <criterion/criterion.h>
-#include <unistd.h>
+#include <stdint.h>
+#include <stdlib.h>
 
 #include "cpu/cpu.h"
 #include "cpu/registers.h"
 #include "support.h"
 #include "utils/collections/list.h"
+#include "utils/log.h"
+#include "utils/msg.h"
+#include "utils/sockets.h"
 #include "utils/syscalls.h"
 
 /* These handlers only touch the context's registers, so the cpu and the pid are

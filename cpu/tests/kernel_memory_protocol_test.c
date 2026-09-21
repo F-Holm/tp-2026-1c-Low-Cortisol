@@ -1,13 +1,16 @@
 #include "cpu/kernel_memory_protocol.h"
 
 #include <criterion/criterion.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 
+#include "cpu/cpu.h"
 #include "support.h"
 #include "utils/collections/list.h"
+#include "utils/log.h"
 #include "utils/msg.h"
+#include "utils/sockets.h"
 
 static t_list* stick_packet(const char* ip, const char* port, int size)
 {

@@ -1,7 +1,7 @@
 #include "cpu/registers.h"
 
 #include <criterion/criterion.h>
-#include <stdlib.h>
+#include <stdint.h>
 
 #include "utils/registers_cpu.h"
 

@@ -3,14 +3,18 @@
 #include <criterion/criterion.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include <unistd.h>
 
 #include "cpu/cleanup.h"
 #include "cpu/handlers.h"
 #include "cpu/initializer.h"
+#include "cpu/registers.h"
 #include "support.h"
 #include "utils/collections/dictionary.h"
 #include "utils/collections/list.h"
+#include "utils/log.h"
+#include "utils/msg.h"
+#include "utils/registers_cpu.h"
+#include "utils/sockets.h"
 
 /* ── decode_stage ──────────────────────────────────────────────────────── */
 

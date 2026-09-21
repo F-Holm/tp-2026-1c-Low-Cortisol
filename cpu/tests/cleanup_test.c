@@ -2,11 +2,12 @@
 
 #include <criterion/criterion.h>
 #include <stdlib.h>
-#include <unistd.h>
 
 #include "cpu/cpu.h"
 #include "support.h"
-#include "utils/collections/list.h"
+#include "utils/collections/dictionary.h"
+#include "utils/msg.h"
+#include "utils/sockets.h"
 
 Test(cpu_cleanup, destroy_instruction_frees_the_name_and_parameters)
 {

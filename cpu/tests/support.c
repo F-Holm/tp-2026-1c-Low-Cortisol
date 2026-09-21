@@ -1,13 +1,18 @@
 #include "support.h"
 
 #include <criterion/criterion.h>
+#include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 
+#include "cpu/cpu.h"
+#include "cpu/registers.h"
 #include "utils/collections/list.h"
-#include "utils/msg.h"
+#include "utils/log.h"
+#include "utils/registers_cpu.h"
+#include "utils/sockets.h"
 
 t_log* cpu_quiet_logger(void)
 {

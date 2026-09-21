@@ -1,7 +1,12 @@
 #pragma once
 
+#include <stdint.h>
+
 #include "cpu/cpu.h"
 #include "cpu/registers.h"
+#include "utils/log.h"
+#include "utils/registers_cpu.h"
+#include "utils/sockets.h"
 
 /**
  * @file

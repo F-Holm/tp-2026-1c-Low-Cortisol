@@ -2,10 +2,16 @@
 
 #include <criterion/criterion.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "cpu/cpu.h"
+#include "cpu/registers.h"
 #include "support.h"
 #include "utils/collections/list.h"
+#include "utils/log.h"
+#include "utils/msg.h"
+#include "utils/registers_cpu.h"
+#include "utils/sockets.h"
 
 /* ── find_segment_by_id ────────────────────────────────────────────────── */
 

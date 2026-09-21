@@ -3,11 +3,15 @@
 #include <criterion/criterion.h>
 #include <criterion/redirect.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 
 #include "cpu/cpu.h"
 #include "cpu/handlers.h"
 #include "utils/collections/dictionary.h"
+#include "utils/collections/list.h"
+#include "utils/config.h"
+#include "utils/log.h"
 
 Test(cpu_initializer, init_module_loads_the_config_and_logger)
 {
