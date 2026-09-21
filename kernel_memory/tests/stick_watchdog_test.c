@@ -1,14 +1,17 @@
 #include "kernel_memory/stick_watchdog.h"
 
 #include <criterion/criterion.h>
+#include <stdatomic.h>
 #include <stdlib.h>
-#include <unistd.h>
 
 #include "kernel_memory/cleanup.h"
 #include "kernel_memory/initializer.h"
+#include "kernel_memory/structs.h"
 #include "support.h"
 #include "utils/collections/list.h"
+#include "utils/log.h"
 #include "utils/msg.h"
+#include "utils/sockets.h"
 
 Test(km_stick_watchdog, starts_and_stops_cleanly_with_no_sticks_connected)
 {

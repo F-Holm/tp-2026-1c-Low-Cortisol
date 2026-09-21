@@ -1,18 +1,23 @@
 #include "kernel_memory/scheduler_listener.h"
 
 #include <criterion/criterion.h>
+#include <stdatomic.h>
+#include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 #include "kernel_memory/cleanup.h"
-#include "kernel_memory/holes.h"
 #include "kernel_memory/initializer.h"
-#include "kernel_memory/segments.h"
 #include "kernel_memory/structs.h"
 #include "support.h"
 #include "utils/collections/list.h"
+#include "utils/log.h"
 #include "utils/msg.h"
 #include "utils/mutex.h"
+#include "utils/registers_cpu.h"
+#include "utils/sockets.h"
 #include "utils/syscalls.h"
 #include "utils/threads.h"
 

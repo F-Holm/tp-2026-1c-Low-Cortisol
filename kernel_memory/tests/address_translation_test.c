@@ -3,15 +3,16 @@
 #include <criterion/criterion.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 
 #include "kernel_memory/cleanup.h"
 #include "kernel_memory/initializer.h"
 #include "kernel_memory/structs.h"
 #include "support.h"
 #include "utils/collections/list.h"
+#include "utils/log.h"
 #include "utils/msg.h"
 #include "utils/mutex.h"
+#include "utils/sockets.h"
 
 /* ── translate_logical_address ─────────────────────────────────────────── */
 

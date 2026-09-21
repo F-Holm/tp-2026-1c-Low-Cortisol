@@ -3,7 +3,9 @@
 #include <criterion/criterion.h>
 
 #include "support.h"
+#include "utils/log.h"
 #include "utils/msg.h"
+#include "utils/sockets.h"
 
 Test(km_error, send_handshake_error_destroys_the_socket)
 {

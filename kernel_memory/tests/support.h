@@ -1,6 +1,11 @@
 #pragma once
 
+#include <stdint.h>
+
 #include "kernel_memory/structs.h"
+#include "utils/log.h"
+#include "utils/registers_cpu.h"
+#include "utils/sockets.h"
 
 /**
  * @file

@@ -1,12 +1,17 @@
 #include "kernel_memory/server.h"
 
 #include <criterion/criterion.h>
-#include <stdlib.h>
-#include <unistd.h>
+#include <stdatomic.h>
+#include <stdbool.h>
 
 #include "kernel_memory/cleanup.h"
+#include "kernel_memory/initializer.h"
+#include "kernel_memory/structs.h"
 #include "support.h"
+#include "utils/collections/list.h"
+#include "utils/log.h"
 #include "utils/msg.h"
+#include "utils/sockets.h"
 #include "utils/swap_km.h"
 
 static t_kernel_memory_data* km_stub_kernel_data(t_log* logger)

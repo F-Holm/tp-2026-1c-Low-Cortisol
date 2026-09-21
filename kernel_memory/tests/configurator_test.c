@@ -3,9 +3,12 @@
 #include <criterion/criterion.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
+#include "kernel_memory/structs.h"
 #include "utils/config.h"
+#include "utils/log.h"
 
 static char* write_config(void)
 {

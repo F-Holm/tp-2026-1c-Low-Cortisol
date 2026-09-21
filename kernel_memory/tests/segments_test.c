@@ -8,7 +8,9 @@
 #include "kernel_memory/structs.h"
 #include "support.h"
 #include "utils/collections/list.h"
+#include "utils/log.h"
 #include "utils/msg.h"
+#include "utils/registers_cpu.h"
 
 Test(km_segments, hole_adjacency_checks)
 {
