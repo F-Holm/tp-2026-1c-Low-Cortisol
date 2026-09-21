@@ -79,6 +79,15 @@ bool socket_receive(t_socket* socket, void* data, int size);
  * SOCKET_PORT_EPHEMERAL). @return The port, or -1 on failure. */
 int socket_get_local_port(t_socket* socket);
 
+/**
+ * @brief Writes the IPv4 address of the peer @p socket is connected to, as a
+ *        dotted string, into @p ip.
+ * @param size  Capacity of @p ip; 16 always fits an IPv4 address.
+ * @return false if @p socket is NULL/closed, not connected, or @p ip is too
+ *         small.
+ */
+bool socket_get_peer_ip(t_socket* socket, char* ip, int size);
+
 /** @brief Shuts down @p socket's handle for further read/write/both, without
  * closing it. No-op if @p socket is NULL. */
 void socket_shutdown(t_socket* socket, t_socket_shutdown_mode mode);

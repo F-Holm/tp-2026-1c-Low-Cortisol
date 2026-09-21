@@ -46,6 +46,19 @@ bool socket_receive(t_socket* socket, void* data, int size)
   return recv(socket->handle, data, size, MSG_WAITALL) > 0;
 }
 
+bool socket_get_peer_ip(t_socket* socket, char* ip, int size)
+{
+  if (socket == NULL || !socket_handle_is_valid(socket->handle))
+    return false;
+
+  struct sockaddr_in address;
+  socklen_t length = sizeof(address);
+  if (getpeername(socket->handle, (struct sockaddr*)&address, &length) != 0)
+    return false;
+
+  return inet_ntop(AF_INET, &address.sin_addr, ip, size) != NULL;
+}
+
 int socket_get_local_port(t_socket* socket)
 {
   if (socket == NULL || !socket_handle_is_valid(socket->handle))

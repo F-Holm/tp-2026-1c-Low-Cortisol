@@ -165,3 +165,34 @@ Test(sockets, shutdown_both_prevents_further_sends_from_that_side)
   socket_destroy(client);
   socket_destroy(server);
 }
+
+Test(sockets, get_peer_ip_returns_the_address_of_the_connected_peer)
+{
+  t_socket* server;
+  t_socket* client = connected_pair(&server, false);
+
+  char ip[16];
+  cr_assert(socket_get_peer_ip(server, ip, sizeof(ip)));
+  cr_assert_str_eq(ip, "127.0.0.1");
+  cr_assert(socket_get_peer_ip(client, ip, sizeof(ip)));
+  cr_assert_str_eq(ip, "127.0.0.1");
+
+  socket_destroy(client);
+  socket_destroy(server);
+}
+
+Test(sockets, get_peer_ip_fails_on_a_null_or_too_small_buffer_or_closed_socket)
+{
+  t_socket* server;
+  t_socket* client = connected_pair(&server, false);
+
+  char ip[16];
+  char tiny[4];
+  cr_assert_not(socket_get_peer_ip(NULL, ip, sizeof(ip)));
+  cr_assert_not(socket_get_peer_ip(client, tiny, sizeof(tiny)));
+  socket_close(client);
+  cr_assert_not(socket_get_peer_ip(client, ip, sizeof(ip)));
+
+  socket_destroy(client);
+  socket_destroy(server);
+}
