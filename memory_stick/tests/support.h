@@ -1,6 +1,8 @@
 #pragma once
 
 #include "memory_stick/memory_stick.h"
+#include "utils/log.h"
+#include "utils/sockets.h"
 
 /**
  * @file

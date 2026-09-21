@@ -1,13 +1,19 @@
 #include "memory_stick/cpu.h"
 
 #include <criterion/criterion.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 
+#include "memory_stick/memory_stick.h"
 #include "support.h"
+#include "utils/collections/list.h"
+#include "utils/log.h"
 #include "utils/msg.h"
 #include "utils/mutex.h"
+#include "utils/sockets.h"
 #include "utils/threads.h"
 
 /* Several of these spin up a peer thread -- cap every test so a stalled

@@ -1,11 +1,14 @@
 #include "memory_stick/kernel_memory.h"
 
 #include <criterion/criterion.h>
+#include <stdbool.h>
+#include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 
 #include "support.h"
+#include "utils/log.h"
 #include "utils/msg.h"
+#include "utils/sockets.h"
 #include "utils/threads.h"
 
 /* Sockets everywhere -- keep a hard ceiling so a protocol mistake fails fast.
