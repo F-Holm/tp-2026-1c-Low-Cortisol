@@ -1,19 +1,20 @@
 #include <criterion/criterion.h>
 #include <criterion/redirect.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <pthread.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/socket.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
 #include "support.h"
 #include "swap/swap.h"
+#include "utils/config.h"
+#include "utils/log.h"
 #include "utils/msg.h"
+#include "utils/sockets.h"
 #include "utils/swap_km.h"
+#include "utils/threads.h"
 
 /* ── init_config ───────────────────────────────────────────────────────── */
 
@@ -39,7 +40,6 @@ Test(swap_init_config, loads_the_config_and_prepares_the_swap_file)
   cr_assert_not_null(config);
 
   t_swap swap = {0};
-  swap.socket_swap = -1;
   cr_assert(init_config(&swap, config));
 
   cr_assert_str_eq(swap.ip, "127.0.0.1");
@@ -83,7 +83,6 @@ Test(swap_init_config, fails_and_frees_the_config_when_the_log_file_cannot_open)
   cr_assert_not_null(config);
 
   t_swap swap = {0};
-  swap.socket_swap = -1;
   cr_assert_not(init_config(&swap, config)); /* init_config destroys config */
 
   cr_assert_eq(chdir("/"), 0);
@@ -108,7 +107,6 @@ Test(swap_init_config, fails_cleanly_when_the_swap_file_cannot_be_created,
   cr_assert_not_null(config);
 
   t_swap swap = {0};
-  swap.socket_swap = -1;
   /* close_swap runs here with no socket and no swap file open; it must not
    * crash and init_config must report the failure. */
   cr_assert_not(init_config(&swap, config));
@@ -124,7 +122,7 @@ Test(swap_init_config, fails_cleanly_when_the_swap_file_cannot_be_created,
 
 struct km_stub
 {
-  int listen_fd;
+  t_socket* listener;
   int swap_module_id; /* module id the stub received from swap */
   int announce_as;    /* module id the stub sends back */
   bool got_info;      /* whether the stub received OP_INFO_SWAP */
@@ -134,8 +132,8 @@ struct km_stub
 static void* km_stub_thread(void* arg)
 {
   struct km_stub* stub = arg;
-  int client = accept(stub->listen_fd, NULL, NULL);
-  if (client < 0)
+  t_socket* client = socket_accept(stub->listener, false);
+  if (client == NULL)
   {
     return NULL;
   }
@@ -152,25 +150,24 @@ static void* km_stub_thread(void* arg)
       free(received);
     }
   }
-  close(client);
+  socket_destroy(client);
   return NULL;
 }
 
 Test(swap_connect, completes_the_handshake_and_reports_its_sizes)
 {
   char port[16];
-  int listen_fd = swap_listen_ephemeral(port, sizeof(port));
+  t_socket* listener = swap_listen_ephemeral(port, sizeof(port));
 
   struct km_stub stub = {
-      .listen_fd = listen_fd,
+      .listener = listener,
       .swap_module_id = -1,
       .announce_as = MID_KERNEL_MEMORY,
   };
-  pthread_t thread;
-  pthread_create(&thread, NULL, km_stub_thread, &stub);
+  thrd_t thread;
+  thrd_create(&thread, km_stub_thread, &stub);
 
   t_swap swap = {0};
-  swap.socket_swap = -1;
   swap.logger = swap_quiet_logger();
   swap.ip = "127.0.0.1";
   swap.port = port;
@@ -180,32 +177,31 @@ Test(swap_connect, completes_the_handshake_and_reports_its_sizes)
   cr_assert(
       connect_to_kernel_memory(&swap, NULL)); /* config unused on success */
 
-  pthread_join(thread, NULL);
+  thrd_join(thread, NULL);
   cr_assert_eq(stub.swap_module_id, MID_SWAP);
   cr_assert(stub.got_info);
   cr_assert_eq(stub.info.swap_size, 8192);
   cr_assert_eq(stub.info.block_size, 128);
 
-  close(swap.socket_swap);
-  close(listen_fd);
+  socket_destroy(swap.socket_swap);
+  socket_destroy(listener);
   log_destroy(swap.logger);
 }
 
 Test(swap_connect, fails_when_the_peer_is_not_kernel_memory)
 {
   char port[16];
-  int listen_fd = swap_listen_ephemeral(port, sizeof(port));
+  t_socket* listener = swap_listen_ephemeral(port, sizeof(port));
 
   struct km_stub stub = {
-      .listen_fd = listen_fd,
+      .listener = listener,
       .swap_module_id = -1,
       .announce_as = MID_CPU, /* wrong */
   };
-  pthread_t thread;
-  pthread_create(&thread, NULL, km_stub_thread, &stub);
+  thrd_t thread;
+  thrd_create(&thread, km_stub_thread, &stub);
 
   t_swap swap = {0};
-  swap.socket_swap = -1;
   swap.swap_file = swap_sized_tmpfile(64); /* close_swap will fclose it */
   swap.logger = swap_quiet_logger();
   swap.ip = "127.0.0.1";
@@ -214,20 +210,19 @@ Test(swap_connect, fails_when_the_peer_is_not_kernel_memory)
   t_config* config = config_create((char*)"/dev/null");
   cr_assert_not(connect_to_kernel_memory(&swap, config)); /* close_swap runs */
 
-  pthread_join(thread, NULL);
+  thrd_join(thread, NULL);
   cr_assert_eq(stub.swap_module_id, MID_SWAP);
 
-  close(listen_fd);
+  socket_destroy(listener);
 }
 
 Test(swap_connect, fails_when_kernel_memory_is_unreachable)
 {
   char port[16];
-  int listen_fd = swap_listen_ephemeral(port, sizeof(port));
-  close(listen_fd);
+  t_socket* listener = swap_listen_ephemeral(port, sizeof(port));
+  socket_destroy(listener);
 
   t_swap swap = {0};
-  swap.socket_swap = -1;
   swap.swap_file = swap_sized_tmpfile(64);
   swap.logger = swap_quiet_logger();
   swap.ip = "127.0.0.1";
@@ -245,20 +240,20 @@ Test(swap_lifecycle, close_swap_closes_the_socket_and_releases_the_resources)
   t_config* config = config_create(config_path);
   cr_assert_not_null(config);
 
-  int fds[2];
-  cr_assert_eq(pipe(fds), 0);
+  t_socket* peer;
+  t_socket* socket = swap_connected_pair(&peer);
 
   t_swap swap = {0};
-  swap.socket_swap = fds[0];
+  swap.socket_swap = socket;
   swap.swap_file = tmpfile();
   swap.logger = swap_quiet_logger();
 
   close_swap(&swap, config);
 
-  cr_assert_eq(fcntl(fds[0], F_GETFD), -1, "socket fd should be closed");
-  cr_assert_eq(errno, EBADF);
+  cr_assert_eq(receive_op_code(peer), OP_CODE_ERROR,
+               "the peer should see the socket closed");
 
-  close(fds[1]);
+  socket_destroy(peer);
   unlink(config_path);
   free(config_path);
 }

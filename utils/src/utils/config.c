@@ -4,6 +4,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "utils/collections/dictionary.h"
+#include "utils/file.h"
 #include "utils/string.h"
 
 static void config_load_line(t_config* self, char* line);
@@ -20,14 +22,13 @@ t_config* config_create(char* path)
   self->path = string_duplicate(path);
   self->properties = dictionary_create();
 
-  char* line = NULL;
-  size_t capacity = 0;
-  while (getline(&line, &capacity, file) != -1)
+  char* line;
+  while ((line = file_read_line(file)) != NULL)
   {
     config_load_line(self, line);
+    free(line);
   }
 
-  free(line);
   fclose(file);
   return self;
 }

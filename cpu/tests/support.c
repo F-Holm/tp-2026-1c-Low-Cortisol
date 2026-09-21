@@ -1,14 +1,18 @@
 #include "support.h"
 
-#include <arpa/inet.h>
 #include <criterion/criterion.h>
-#include <netinet/in.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
-#include <sys/socket.h>
-#include <unistd.h>
+#include <string.h>
 
+#include "cpu/cpu.h"
+#include "cpu/registers.h"
 #include "utils/collections/list.h"
-#include "utils/msg.h"
+#include "utils/log.h"
+#include "utils/registers_cpu.h"
+#include "utils/sockets.h"
 
 t_log* cpu_quiet_logger(void)
 {
@@ -17,26 +21,45 @@ t_log* cpu_quiet_logger(void)
   return logger;
 }
 
-int cpu_connected_pair(int* server_out)
+t_socket* cpu_listen_ephemeral(char* port_out, int port_len)
 {
-  int listen_fd = start_server("0");
-  cr_assert_geq(listen_fd, 0, "start_server failed");
+  t_socket* listener =
+      socket_create(SOCKET_KIND_SERVER, NULL, SOCKET_PORT_EPHEMERAL, false);
+  cr_assert_not_null(listener, "socket_create(SERVER) failed");
 
-  struct sockaddr_in address;
-  socklen_t length = sizeof(address);
-  cr_assert_eq(getsockname(listen_fd, (struct sockaddr*)&address, &length), 0);
+  snprintf(port_out, port_len, "%d", socket_get_local_port(listener));
+
+  return listener;
+}
+
+t_socket* cpu_connected_pair(t_socket** server_out)
+{
   char port[16];
-  snprintf(port, sizeof(port), "%d", ntohs(address.sin_port));
+  t_socket* listener = cpu_listen_ephemeral(port, sizeof(port));
 
-  int client_fd = create_connection("127.0.0.1", port);
-  cr_assert_geq(client_fd, 0, "create_connection failed");
+  t_socket* client =
+      socket_create(SOCKET_KIND_CLIENT, "127.0.0.1", port, false);
+  cr_assert_not_null(client, "socket_create(CLIENT) failed");
 
-  int server_fd = accept(listen_fd, NULL, NULL);
-  cr_assert_geq(server_fd, 0, "accept failed");
+  t_socket* server = socket_accept(listener, false);
+  cr_assert_not_null(server, "socket_accept failed");
 
-  close(listen_fd);
-  *server_out = server_fd;
-  return client_fd;
+  socket_destroy(listener);
+  *server_out = server;
+  return client;
+}
+
+char* cpu_write_temp_config(const char* contents)
+{
+  char path[] = "/tmp/cpu_test_config_XXXXXX";
+  int fd = mkstemp(path);
+  cr_assert_neq(fd, -1, "could not create a temp config file");
+
+  FILE* file = fdopen(fd, "w");
+  fputs(contents, file);
+  fclose(file);
+
+  return strdup(path);
 }
 
 t_context* cpu_make_context(void)

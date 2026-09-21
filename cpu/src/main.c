@@ -1,11 +1,11 @@
-#include <stdio.h>
 #include <stdlib.h>
 
 #include "cpu/cleanup.h"
 #include "cpu/connections.h"
 #include "cpu/cpu.h"
 #include "cpu/initializer.h"
-#include "utils/config.h"
+#include "cpu/kernel_memory_protocol.h"
+#include "utils/collections/dictionary.h"
 #include "utils/log.h"
 #include "utils/msg.h"
 
@@ -60,8 +60,6 @@ int main(int argc, char* argv[])
     close_module(cpu);
     return EXIT_FAILURE;
   }
-  log_trace(cpu->logger, "Kernel Memory socket fd: %d",
-            cpu->socket_kernel_memory);
   if (!receive_max_segment_size(cpu))
   {
     close_module(cpu);

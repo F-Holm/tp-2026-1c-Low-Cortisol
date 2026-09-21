@@ -1,14 +1,15 @@
-#include <pthread.h>
+#include <stdbool.h>
 #include <stdlib.h>
 
 #include "kernel_memory/cleanup.h"
 #include "kernel_memory/configurator.h"
 #include "kernel_memory/initializer.h"
 #include "kernel_memory/server.h"
-#include "utils/collections/list.h"
+#include "kernel_memory/stick_watchdog.h"
+#include "kernel_memory/structs.h"
 #include "utils/config.h"
 #include "utils/log.h"
-#include "utils/msg.h"
+#include "utils/sockets.h"
 
 int main(int argc, char* argv[])
 {
@@ -18,8 +19,9 @@ int main(int argc, char* argv[])
 
   t_config* config = init_config(config_path);
   t_log* logger = init_logger(config);
-  int socket_kernel_memory =
-      start_server(config_get_string_value(config, "KERNEL_MEMORY_PORT"));
+  t_socket* socket_kernel_memory = socket_create(
+      SOCKET_KIND_SERVER, NULL,
+      config_get_string_value(config, "KERNEL_MEMORY_PORT"), false);
   char* scripts_basepath = get_scripts_basepath(config);
   int instruction_delay = get_instruction_delay(config);
   int compaction_delay = get_compaction_delay(config);
@@ -30,6 +32,8 @@ int main(int argc, char* argv[])
       socket_kernel_memory, scripts_basepath, instruction_delay,
       compaction_delay, segment_max_size, allocation_strategy, logger);
 
+  t_stick_watchdog* stick_watchdog = start_stick_watchdog(kernel_data);
+
   log_info(logger, "Kernel Memory started");
   bool connection_alive = true;
   while (connection_alive)
@@ -37,6 +41,7 @@ int main(int argc, char* argv[])
     connection_alive = accept_client(kernel_data);
   }
 
+  destroy_stick_watchdog(stick_watchdog);
   free_kernel_memory_data(kernel_data);
   config_destroy(config);
   log_destroy(logger);

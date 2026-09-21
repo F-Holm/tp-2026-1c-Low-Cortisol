@@ -1,12 +1,21 @@
 #include "memory_stick/memory_stick.h"
 
+#include <stdbool.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "memory_stick/cpu.h"
 #include "memory_stick/kernel_memory.h"
+#include "utils/config.h"
+#include "utils/log.h"
 #include "utils/msg.h"
+#include "utils/mutex.h"
+#include "utils/sockets.h"
+#include "utils/threads.h"
+#include "utils/time.h"
 
-bool send_cpu_server_port(int socket_km, int socket_server_cpu, t_log* logger)
+bool send_cpu_server_port(t_socket* socket_km, t_socket* socket_server_cpu,
+                          t_log* logger)
 {
   if (!send_cpu_server_port_to_km(socket_km, get_cpu_port(socket_server_cpu)))
   {
@@ -18,7 +27,7 @@ bool send_cpu_server_port(int socket_km, int socket_server_cpu, t_log* logger)
 }
 
 bool init_module(t_ms* ms, char* config_path, char* size,
-                 pthread_t* cpu_server_thread)
+                 thrd_t* cpu_server_thread)
 {
   t_config_vars config_vars;
 
@@ -34,11 +43,11 @@ bool init_module(t_ms* ms, char* config_path, char* size,
 
   ms->socket_km = connect_to_kernel_memory(
       config_vars.km_ip, config_vars.km_port, size, ms->logger);
-  if (ms->socket_km <= 0)
+  if (ms->socket_km == NULL)
     return false;
 
   ms->socket_server_cpu = create_server_cpu(ms->logger);
-  if (ms->socket_server_cpu <= 0)
+  if (ms->socket_server_cpu == NULL)
     return false;
 
   if (!send_cpu_server_port(ms->socket_km, ms->socket_server_cpu, ms->logger))
@@ -46,8 +55,8 @@ bool init_module(t_ms* ms, char* config_path, char* size,
 
   // Reserve the amount of memory given in the config file.
   ms->memory = calloc(atoi(size), sizeof(char));
-  ms->memory_mutex = malloc(sizeof(pthread_mutex_t));
-  pthread_mutex_init(ms->memory_mutex, NULL);
+  ms->memory_mutex = malloc(sizeof(mtx_t));
+  mtx_init(ms->memory_mutex);
 
   // Thread that listens for new CPU connections.
   return start_cpu_server(cpu_server_thread, ms->socket_server_cpu, ms->logger,
@@ -77,10 +86,8 @@ void read_config(t_config* config, t_config_vars* config_vars)
 
 void close_module_on_error(t_ms* ms)
 {
-  if (ms->socket_server_cpu > 0)
-    close(ms->socket_server_cpu);
-  if (ms->socket_km > 0)
-    close(ms->socket_km);
+  socket_destroy(ms->socket_server_cpu);
+  socket_destroy(ms->socket_km);
   if (ms->logger != NULL)
     log_destroy(ms->logger);
   if (ms->config != NULL)
@@ -89,21 +96,21 @@ void close_module_on_error(t_ms* ms)
     free(ms->memory);
   if (ms->memory_mutex != NULL)
   {
-    pthread_mutex_destroy(ms->memory_mutex);
+    mtx_destroy(ms->memory_mutex);
     free(ms->memory_mutex);
   }
 }
 
-void close_module(t_ms* ms, pthread_t* cpu_server_thread)
+void close_module(t_ms* ms, thrd_t* cpu_server_thread)
 {
-  shutdown(ms->socket_server_cpu, SHUT_RDWR);
-  pthread_join(*cpu_server_thread, NULL);
-  close(ms->socket_km);
-  close(ms->socket_server_cpu);
+  socket_shutdown(ms->socket_server_cpu, SOCKET_SHUTDOWN_BOTH);
+  thrd_join(*cpu_server_thread, NULL);
+  socket_destroy(ms->socket_km);
+  socket_destroy(ms->socket_server_cpu);
   log_destroy(ms->logger);
   config_destroy(ms->config);
   free(ms->memory);
-  pthread_mutex_destroy(ms->memory_mutex);
+  mtx_destroy(ms->memory_mutex);
   free(ms->memory_mutex);
 }
 
@@ -118,15 +125,16 @@ bool get_args(int argc, char** argv, char** config_path, char** size_str,
   return *size > 0;
 }
 
-void read_memory(t_ms* ms, int start_position, int byte_count, int dest_socket)
+void read_memory(t_ms* ms, int start_position, int byte_count,
+                 t_socket* dest_socket)
 {
   log_trace(ms->logger, "Reading %d bytes from offset %d", byte_count,
             start_position);
   char* bytes_to_return = calloc(byte_count + 1, 1);
-  pthread_mutex_lock(ms->memory_mutex);
+  mtx_lock(ms->memory_mutex);
   memcpy(bytes_to_return, ms->memory + start_position, byte_count);
-  pthread_mutex_unlock(ms->memory_mutex);
-  usleep(ms->memory_delay * 1000);
+  mtx_unlock(ms->memory_mutex);
+  time_sleep_ms(ms->memory_delay);
   log_trace(ms->logger, "Read %d bytes", byte_count);
   send_buffer(OP_MEMORY_STICK_READ_DONE, bytes_to_return, byte_count,
               dest_socket);
@@ -134,12 +142,12 @@ void read_memory(t_ms* ms, int start_position, int byte_count, int dest_socket)
 }
 
 void write_memory(t_ms* ms, int start_position, char* bytes_to_write,
-                  int byte_count, int dest_socket)
+                  int byte_count, t_socket* dest_socket)
 {
-  pthread_mutex_lock(ms->memory_mutex);
+  mtx_lock(ms->memory_mutex);
   memcpy(ms->memory + start_position, bytes_to_write, byte_count);
-  pthread_mutex_unlock(ms->memory_mutex);
+  mtx_unlock(ms->memory_mutex);
   log_trace(ms->logger, "Wrote %d bytes", byte_count);
-  usleep(ms->memory_delay * 1000);
+  time_sleep_ms(ms->memory_delay);
   send_string(OP_MEMORY_STICK_WRITE_DONE, "Write successful", dest_socket);
 }

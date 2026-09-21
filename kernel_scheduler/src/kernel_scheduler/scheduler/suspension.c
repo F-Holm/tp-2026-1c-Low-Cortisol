@@ -1,0 +1,558 @@
+#include "kernel_scheduler/scheduler/suspension.h"
+
+#include <stdatomic.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdlib.h>
+
+#include "kernel_scheduler/common/time.h"
+#include "kernel_scheduler/domain/pcb.h"
+#include "kernel_scheduler/scheduler/blocking_list.h"
+#include "kernel_scheduler/scheduler/compaction.h"
+#include "kernel_scheduler/scheduler/kernel_memory_reply.h"
+#include "kernel_scheduler/scheduler/memory_query.h"
+#include "kernel_scheduler/scheduler/queue_types.h"
+#include "kernel_scheduler/scheduler/ready_queue.h"
+#include "kernel_scheduler/scheduler/scheduler_internal.h"
+#include "kernel_scheduler/shutdown.h"
+#include "utils/collections/list.h"
+#include "utils/log.h"
+#include "utils/msg.h"
+#include "utils/mutex.h"
+#include "utils/sockets.h"
+#include "utils/threads.h"
+#include "utils/time.h"
+
+static void* thread_suspender(void* data_void);
+static void* thread_resumer(void* data_void);
+static t_suspended_thread* init_data_thread_suspended(t_queues* queues);
+static void init_data_thread_suspender(t_queues* queues,
+                                       int suspension_timeout);
+static void init_data_thread_resumer(t_queues* queues);
+static void start_thread_suspender(t_queues* queues);
+static void start_thread_resumer(t_queues* queues);
+static void terminate_thread_suspended(t_suspended_thread* data,
+                                       t_blocking_list* list);
+static void wait_thread_suspended(t_suspended_thread* data);
+static void destroy_thread_suspended(t_suspended_thread* data);
+static void destroy_thread_suspender(t_suspender_thread* data);
+static void destroy_thread_resumer(t_resumer_thread* data);
+static void lock_thread_suspended(t_suspended_thread* data,
+                                  t_blocking_list* list);
+static void unlock_thread_suspended(t_suspended_thread* data);
+static void wait_unlock(t_suspended_thread* data);
+static t_pcb* get_process_blocked(t_queues* queues, t_suspender_thread* data);
+static void run_suspend_process(t_queues* queues, t_suspender_thread* data,
+                                t_pcb* process);
+static void wait_process_blocked(t_queues* queues, t_suspender_thread* data);
+static t_pcb* get_process_susp_ready(t_queues* queues, t_resumer_thread* data);
+static void resume_suspended_process(t_queues* queues, t_resumer_thread* data,
+                                     t_pcb* process);
+static void wait_process_susp_ready(t_queues* queues, t_resumer_thread* data);
+static bool receive_suspend_process_response(t_queues* queues);
+static bool notify_process_suspended(t_pcb* pcb, t_queues* queues);
+static bool notify_process_resume_suspended(t_pcb* pcb, t_queues* queues);
+static bool can_resume_suspended(t_pcb* pcb, t_queues* queues);
+
+/* ── thread-data lifecycle ──────────────────────────────────────────────── */
+
+static t_suspended_thread* init_data_thread_suspended(t_queues* queues)
+{
+  t_suspended_thread* data = malloc(sizeof(t_suspended_thread));
+  mtx_init(&(data->state_mutex));
+  data->state = TS_RUNNING;
+  cnd_init(&(data->unlock));
+  return data;
+}
+
+static void init_data_thread_suspender(t_queues* queues, int suspension_timeout)
+{
+  t_suspender_thread* data = malloc(sizeof(t_suspender_thread));
+  data->data = init_data_thread_suspended(queues);
+  data->data->wait_process = &(queues->block.new_process_cond);
+  data->suspension_timeout = suspension_timeout;
+  queues->routines.suspension_data->suspender_thread_data = data;
+}
+
+static void init_data_thread_resumer(t_queues* queues)
+{
+  t_resumer_thread* data = malloc(sizeof(t_resumer_thread));
+  data->data = init_data_thread_suspended(queues);
+  data->data->wait_process = &(queues->susp_ready.new_process_cond);
+  queues->routines.suspension_data->resumer_thread_data = data;
+}
+
+static void start_thread_suspender(t_queues* queues)
+{
+  if (thrd_create(&(queues->routines.suspension_data->suspender_thread_data
+                        ->data->thread),
+                  thread_suspender, queues) != 0)
+  {
+    log_error(queues->logger, "Error creating the suspender thread");
+  }
+  else
+  {
+    log_debug(queues->logger, "Thread suspender started successfully");
+  }
+}
+
+static void start_thread_resumer(t_queues* queues)
+{
+  if (thrd_create(&(queues->routines.suspension_data->resumer_thread_data->data
+                        ->thread),
+                  thread_resumer, queues) != 0)
+  {
+    log_error(queues->logger, "Error creating the resumer thread");
+  }
+  else
+  {
+    log_debug(queues->logger, "Thread resume started successfully");
+  }
+}
+
+void start_threads_suspended(t_queues* queues, int suspension_timeout)
+{
+  queues->routines.suspension_data = malloc(sizeof(t_suspension_data));
+  init_data_thread_suspender(queues, suspension_timeout);
+  init_data_thread_resumer(queues);
+  start_thread_suspender(queues);
+  start_thread_resumer(queues);
+}
+
+static void terminate_thread_suspended(t_suspended_thread* data,
+                                       t_blocking_list* list)
+{
+  mtx_lock(&(data->state_mutex));
+  mtx_lock(&(list->list_mutex));
+  cnd_signal(data->wait_process);
+  cnd_signal(&(data->unlock));
+  mtx_unlock(&(list->list_mutex));
+  data->state = TS_FINISHING;
+  mtx_unlock(&(data->state_mutex));
+}
+
+static void wait_thread_suspended(t_suspended_thread* data)
+{
+  thrd_join(data->thread, NULL);
+  data->state = TS_FINISHED;
+}
+
+static void destroy_thread_suspended(t_suspended_thread* data)
+{
+  mtx_destroy(&(data->state_mutex));
+  cnd_destroy(&(data->unlock));
+  free(data);
+}
+
+static void destroy_thread_suspender(t_suspender_thread* data)
+{
+  destroy_thread_suspended(data->data);
+  free(data);
+}
+
+static void destroy_thread_resumer(t_resumer_thread* data)
+{
+  destroy_thread_suspended(data->data);
+  free(data);
+}
+
+void terminate_threads_suspended(t_queues* queues)
+{
+  terminate_thread_suspended(
+      queues->routines.suspension_data->suspender_thread_data->data,
+      &(queues->block));
+  terminate_thread_suspended(
+      queues->routines.suspension_data->resumer_thread_data->data,
+      &(queues->susp_ready));
+  wait_thread_suspended(
+      queues->routines.suspension_data->suspender_thread_data->data);
+  wait_thread_suspended(
+      queues->routines.suspension_data->resumer_thread_data->data);
+}
+
+void destroy_threads_suspended(t_queues* queues)
+{
+  destroy_thread_suspender(
+      queues->routines.suspension_data->suspender_thread_data);
+  destroy_thread_resumer(queues->routines.suspension_data->resumer_thread_data);
+  free(queues->routines.suspension_data);
+}
+
+/* ── park / wake ────────────────────────────────────────────────────────── */
+
+static void lock_thread_suspended(t_suspended_thread* data,
+                                  t_blocking_list* list)
+{
+  mtx_lock(&(data->state_mutex));
+  switch (data->state)
+  {
+    case TS_RUNNING:
+      data->state = TS_BLOCKED;
+      break;
+    case TS_WAITING_PROCESS:
+      mtx_lock(&(list->list_mutex));
+      data->state = TS_BLOCKED;
+      cnd_signal(data->wait_process);
+      mtx_unlock(&(list->list_mutex));
+      break;
+  }
+  mtx_unlock(&(data->state_mutex));
+}
+
+static void unlock_thread_suspended(t_suspended_thread* data)
+{
+  mtx_lock(&(data->state_mutex));
+  if (data->state == TS_BLOCKED)
+  {
+    cnd_signal(&(data->unlock));
+    data->state = TS_RUNNING;
+  }
+  mtx_unlock(&(data->state_mutex));
+}
+
+static void wait_unlock(t_suspended_thread* data)
+{
+  while (data->state == TS_BLOCKED)
+  {
+    cnd_wait(&(data->unlock), &(data->state_mutex));
+  }
+}
+
+void lock_threads_suspended(t_queues* queues)
+{
+  lock_thread_suspended(
+      queues->routines.suspension_data->suspender_thread_data->data,
+      &(queues->block));
+  lock_thread_suspended(
+      queues->routines.suspension_data->resumer_thread_data->data,
+      &(queues->susp_ready));
+  log_trace(queues->logger, "Suspended threads locked");
+}
+
+void unlock_threads_suspended(t_queues* queues)
+{
+  unlock_thread_suspended(
+      queues->routines.suspension_data->suspender_thread_data->data);
+  unlock_thread_suspended(
+      queues->routines.suspension_data->resumer_thread_data->data);
+  log_trace(queues->logger, "Suspended threads unlocked");
+}
+
+/* ── Kernel Memory notifications ────────────────────────────────────────── */
+
+static bool receive_suspend_process_response(t_queues* queues)
+{
+  int op_code =
+      RECEIVE_KM_OPCODE(queues, OP_SUSPENSION_OK, OP_SUSPENSION_FAILED);
+  if (op_code == OP_CODE_ERROR)
+    return false;
+
+  free(receive_string(queues->km_socket));
+  return op_code == OP_SUSPENSION_OK;
+}
+
+static bool notify_process_suspended(t_pcb* pcb, t_queues* queues)
+{
+  socket_mutex_lock(queues->km_socket);
+  if (!send_buffer(OP_SUSPEND_PROCESS, &(pcb->pid), sizeof(uint32_t),
+                   queues->km_socket))
+  {
+    close_kernel_scheduler(SR_KERNEL_MEMORY_SEND_ERROR);
+    socket_mutex_unlock(queues->km_socket);
+    return false;
+  }
+
+  bool ret = receive_suspend_process_response(queues);
+  socket_mutex_unlock(queues->km_socket);
+  return ret;
+}
+
+static bool notify_process_resume_suspended(t_pcb* pcb, t_queues* queues)
+{
+  socket_mutex_lock(queues->km_socket);
+
+  if (!(send_buffer(OP_RESUME_SUSPENDED_PROCESS, &(pcb->pid), sizeof(uint32_t),
+                    queues->km_socket)))
+  {
+    close_kernel_scheduler(SR_KERNEL_MEMORY_SEND_ERROR);
+    socket_mutex_unlock(queues->km_socket);
+    return false;
+  }
+
+  bool ret = fits_process(queues, pcb);
+
+  socket_mutex_unlock(queues->km_socket);
+
+  return ret;
+}
+
+static bool can_resume_suspended(t_pcb* pcb, t_queues* queues)
+{
+  return space_available(queues, pcb->pid) >= process_size(queues, pcb->pid);
+}
+
+/* ── state transitions ─────────────────────────────────────────────────── */
+
+void transition_block_susp_block_no_mutex(t_pcb* pcb, t_queues* queues)
+{
+  if (pcb->state != PS_BLOCK)
+  {
+    log_invalid_state(queues->logger, pcb->pid, pcb->state, PS_BLOCK,
+                      PS_SUSP_BLOCK);
+    return;
+  }
+
+  if (!notify_process_suspended(pcb, queues))
+  {
+    log_debug(queues->logger, "Could not suspend process %u", pcb->pid);
+    return;
+  }
+
+  log_transition_state(queues->logger, pcb->pid, PS_BLOCK, PS_SUSP_BLOCK);
+  pcb->state = PS_SUSP_BLOCK;
+
+  transition_take_block(pcb, &(queues->block));
+  transition_to_susp_block(pcb, &(queues->susp_block));
+
+  if (!atomic_load(&(queues->routines.compaction_active)) &&
+      !atomic_load(&(queues->routines.resume_active)))
+  {
+    unlock_thread_suspended(
+        queues->routines.suspension_data->resumer_thread_data->data);
+  }
+}
+
+void transition_susp_block_susp_ready_no_mutex(t_pcb* pcb, t_queues* queues)
+{
+  if (manage_state_pcb(queues->logger, pcb, PS_SUSP_BLOCK, PS_SUSP_READY))
+  {
+    transition_take_susp_block(pcb, &(queues->susp_block));
+    transition_to_susp_ready(pcb, &(queues->susp_ready));
+  }
+}
+
+bool transition_susp_ready_no_mutex(t_pcb* pcb, t_queues* queues)
+{
+  if (pcb->state != PS_SUSP_READY)
+  {
+    log_invalid_state(queues->logger, pcb->pid, pcb->state, PS_SUSP_READY,
+                      PS_READY);
+    return false;
+  }
+
+  if (!can_resume_suspended(pcb, queues))
+  {
+    log_debug(queues->logger, "Not enough space to resume process %u",
+              pcb->pid);
+    return false;
+  }
+
+  if (!notify_process_resume_suspended(pcb, queues))
+  {
+    log_debug(queues->logger, "Cannot resume process %u", pcb->pid);
+    return false;
+  }
+
+  log_transition_state(queues->logger, pcb->pid, PS_SUSP_READY, PS_READY);
+  pcb->state = PS_READY;
+  transition_take_susp_ready(pcb, &(queues->susp_ready));
+  transition_to_ready(pcb, &(queues->ready));
+  return true;
+}
+
+/* ── worker threads ────────────────────────────────────────────────────── */
+
+static t_pcb* get_process_blocked(t_queues* queues, t_suspender_thread* data)
+{
+  mtx_lock(&(queues->block.list_mutex));
+  t_pcb* process = NULL;
+  int size_in_memory = -1;
+  t_list_iterator* iterator = list_iterator_create(queues->block.list);
+  while (list_iterator_has_next(iterator))
+  {
+    process = list_iterator_next(iterator);
+    size_in_memory = process_size_no_logger(queues, process->pid);
+    if (size_in_memory > 0)
+    {
+      increment_active_instances(process);
+      break;
+    }
+    else
+    {
+      process = NULL;
+    }
+  }
+  if (process == NULL)
+  {
+    queues->block.new_process = false;
+    data->data->state = TS_WAITING_PROCESS;
+  }
+  mtx_unlock(&(queues->block.list_mutex));
+  list_iterator_destroy(iterator);
+  return process;
+}
+
+static void run_suspend_process(t_queues* queues, t_suspender_thread* data,
+                                t_pcb* process)
+{
+  mtx_unlock(&(data->data->state_mutex));
+  mtx_lock(&(process->state_mutex));
+  unsigned long sleep_time = millis() - process->blocked_time;
+  bool must_suspend = sleep_time >= data->suspension_timeout;
+  if (must_suspend && process->state == PS_BLOCK)
+  {
+    transition_block_susp_block_no_mutex(process, queues);
+  }
+
+  mtx_unlock(&(process->state_mutex));
+  decrement_active_instances(process);
+
+  if (!must_suspend)
+  {
+    time_sleep_ms(sleep_time > 500 ? 500 : sleep_time);
+  }
+
+  mtx_lock(&(data->data->state_mutex));
+}
+
+static void wait_process_blocked(t_queues* queues, t_suspender_thread* data)
+{
+  mtx_unlock(&(data->data->state_mutex));
+  mtx_lock(&(queues->block.list_mutex));
+  if (!queues->block.new_process)
+  {
+    cnd_wait(data->data->wait_process, &(queues->block.list_mutex));
+  }
+  bool list_empty = list_is_empty(queues->block.list);
+  mtx_unlock(&(queues->block.list_mutex));
+  mtx_lock(&(data->data->state_mutex));
+  if (!list_empty && data->data->state == TS_WAITING_PROCESS)
+  {
+    data->data->state = TS_RUNNING;
+  }
+}
+
+static t_pcb* get_process_susp_ready(t_queues* queues, t_resumer_thread* data)
+{
+  mtx_lock(&(queues->susp_ready.list_mutex));
+  t_pcb* process = NULL;
+  if (!list_is_empty(queues->susp_ready.list))
+  {
+    process = list_get(queues->susp_ready.list, 0);
+    increment_active_instances(process);
+  }
+  mtx_unlock(&(queues->susp_ready.list_mutex));
+  if (process == NULL)
+  {
+    data->data->state = TS_WAITING_PROCESS;
+  }
+  return process;
+}
+
+static void resume_suspended_process(t_queues* queues, t_resumer_thread* data,
+                                     t_pcb* process)
+{
+  mtx_unlock(&(data->data->state_mutex));
+  mtx_lock(&(process->state_mutex));
+
+  bool succeeded = false;
+  if (process->state == PS_SUSP_READY)
+  {
+    succeeded = transition_susp_ready_no_mutex(process, queues);
+  }
+
+  mtx_unlock(&(process->state_mutex));
+  decrement_active_instances(process);
+
+  if (!succeeded)
+  {
+    lock_thread_suspended(data->data, &(queues->susp_ready));
+  }
+
+  mtx_lock(&(data->data->state_mutex));
+}
+
+static void wait_process_susp_ready(t_queues* queues, t_resumer_thread* data)
+{
+  mtx_unlock(&(data->data->state_mutex));
+  mtx_lock(&(queues->susp_ready.list_mutex));
+  if (list_is_empty(queues->susp_ready.list))
+  {
+    cnd_wait(data->data->wait_process, &(queues->susp_ready.list_mutex));
+  }
+  bool list_empty = list_is_empty(queues->susp_ready.list);
+  mtx_unlock(&(queues->susp_ready.list_mutex));
+  mtx_lock(&(data->data->state_mutex));
+  if (!list_empty && data->data->state == TS_WAITING_PROCESS)
+  {
+    data->data->state = TS_RUNNING;
+  }
+}
+
+static void* thread_suspender(void* data_void)
+{
+  t_queues* queues = (t_queues*)data_void;
+  t_suspender_thread* data =
+      queues->routines.suspension_data->suspender_thread_data;
+  bool keep_running = true;
+
+  while (keep_running)
+  {
+    mtx_lock(&(data->data->state_mutex));
+    switch (data->data->state)
+    {
+      case TS_RUNNING:
+        t_pcb* process = get_process_blocked(queues, data);
+        if (process != NULL)
+        {
+          run_suspend_process(queues, data, process);
+        }
+        break;
+      case TS_WAITING_PROCESS:
+        wait_process_blocked(queues, data);
+        break;
+      case TS_BLOCKED:
+        wait_unlock(data->data);
+        break;
+      case TS_FINISHING:
+        keep_running = false;
+        break;
+    }
+    mtx_unlock(&(data->data->state_mutex));
+  }
+  return NULL;
+}
+
+static void* thread_resumer(void* data_void)
+{
+  t_queues* queues = (t_queues*)data_void;
+  t_resumer_thread* data =
+      queues->routines.suspension_data->resumer_thread_data;
+  bool keep_running = true;
+
+  while (keep_running)
+  {
+    mtx_lock(&(data->data->state_mutex));
+    switch (data->data->state)
+    {
+      case TS_RUNNING:
+        t_pcb* process = get_process_susp_ready(queues, data);
+        if (process != NULL)
+        {
+          resume_suspended_process(queues, data, process);
+        }
+        break;
+      case TS_WAITING_PROCESS:
+        wait_process_susp_ready(queues, data);
+        break;
+      case TS_BLOCKED:
+        wait_unlock(data->data);
+        break;
+      case TS_FINISHING:
+        keep_running = false;
+        break;
+    }
+    mtx_unlock(&(data->data->state_mutex));
+  }
+  return NULL;
+}

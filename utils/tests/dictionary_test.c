@@ -2,7 +2,6 @@
 
 #include <criterion/criterion.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
 Test(dictionary, put_then_get)

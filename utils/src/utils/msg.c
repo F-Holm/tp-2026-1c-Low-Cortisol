@@ -1,74 +1,22 @@
 #include "utils/msg.h"
 
+#include <stdbool.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "utils/collections/list.h"
+#include "utils/sockets.h"
+
 const char* const HANDSHAKE_MSG[] = {"kernel_scheduler", "kernel_memory", "cpu",
                                      "memory_stick",     "swap",          "io"};
 
 static void create_buffer(t_packet* packet);
 static void* serialize_packet(t_packet* packet, int bytes);
 
-int create_connection(char* ip, char* port)
-{
-  struct addrinfo hints;
-  struct addrinfo* server_info;
-
-  memset(&hints, 0, sizeof(hints));
-  hints.ai_family = AF_INET;
-  hints.ai_socktype = SOCK_STREAM;
-  hints.ai_flags = AI_PASSIVE;
-
-  if (getaddrinfo(ip, port, &hints, &server_info) != 0)
-    return -1;
-
-  int fd_socket = socket(server_info->ai_family, server_info->ai_socktype,
-                         server_info->ai_protocol);
-  if (fd_socket == -1)
-  {
-    freeaddrinfo(server_info);
-    return -1;
-  }
-
-  if (connect(fd_socket, server_info->ai_addr, server_info->ai_addrlen) == -1)
-  {
-    freeaddrinfo(server_info);
-    close(fd_socket);
-    return -1;
-  }
-
-  freeaddrinfo(server_info);
-
-  return fd_socket;
-}
-
-int start_server(char* port)
-{
-  struct addrinfo hints, *servinfo;
-
-  memset(&hints, 0, sizeof(hints));
-  hints.ai_family = AF_INET;
-  hints.ai_socktype = SOCK_STREAM;
-  hints.ai_flags = AI_PASSIVE;
-
-  getaddrinfo(NULL, port, &hints, &servinfo);
-
-  int server_socket =
-      socket(hints.ai_family, hints.ai_socktype, hints.ai_protocol);
-
-  // Make the socket reusable; remove if it causes issues.
-  int opt = 1;
-  setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
-
-  bind(server_socket, servinfo->ai_addr, servinfo->ai_addrlen);
-  listen(server_socket, SOMAXCONN);
-
-  freeaddrinfo(servinfo);
-
-  return server_socket;
-}
-
-int receive_op_code(int socket_fd)
+int receive_op_code(t_socket* socket)
 {
   int op_code;
-  if (recv(socket_fd, &op_code, sizeof(int), MSG_WAITALL) > 0)
+  if (socket_receive(socket, &op_code, sizeof(int)))
     return op_code;
   else
   {
@@ -76,21 +24,25 @@ int receive_op_code(int socket_fd)
   }
 }
 
-void* receive_buffer(int* size, int socket_fd)
+void* receive_buffer(int* size, t_socket* socket)
 {
-  recv(socket_fd, size, sizeof(int), MSG_WAITALL);
+  if (!socket_receive(socket, size, sizeof(int)))
+  {
+    *size = 0;
+    return NULL;
+  }
   if (*size == 0)
   {
     return NULL;
   }
 
   void* buffer = malloc(*size);
-  recv(socket_fd, buffer, *size, MSG_WAITALL);
+  socket_receive(socket, buffer, *size);
 
   return buffer;
 }
 
-bool send_buffer(int op_code, void* buffer, int size, int socket_fd)
+bool send_buffer(int op_code, void* buffer, int size, t_socket* socket)
 {
   t_packet* packet = malloc(sizeof(t_packet));
 
@@ -104,7 +56,7 @@ bool send_buffer(int op_code, void* buffer, int size, int socket_fd)
 
   void* to_send = serialize_packet(packet, bytes);
 
-  bool ret = send(socket_fd, to_send, bytes, MSG_NOSIGNAL) > 0;
+  bool ret = socket_send(socket, to_send, bytes);
 
   free(to_send);
   destroy_packet(packet);
@@ -112,7 +64,7 @@ bool send_buffer(int op_code, void* buffer, int size, int socket_fd)
   return ret;
 }
 
-bool send_string(int op_code, char* message, int socket_fd)
+bool send_string(int op_code, char* message, t_socket* socket)
 {
   t_packet* packet = malloc(sizeof(t_packet));
 
@@ -126,7 +78,7 @@ bool send_string(int op_code, char* message, int socket_fd)
 
   void* to_send = serialize_packet(packet, bytes);
 
-  bool ret = send(socket_fd, to_send, bytes, MSG_NOSIGNAL) > 0;
+  bool ret = socket_send(socket, to_send, bytes);
 
   free(to_send);
   destroy_packet(packet);
@@ -134,10 +86,10 @@ bool send_string(int op_code, char* message, int socket_fd)
   return ret;
 }
 
-char* receive_string(int socket_fd)
+char* receive_string(t_socket* socket)
 {
   int size;
-  return receive_buffer(&size, socket_fd);
+  return receive_buffer(&size, socket);
 }
 
 int handshake_msg_to_module_id(char* handshake_msg)
@@ -150,16 +102,16 @@ int handshake_msg_to_module_id(char* handshake_msg)
   return MID_MODULE_ID_ERROR;
 }
 
-bool send_handshake(int module_id, int socket_fd)
+bool send_handshake(int module_id, t_socket* socket)
 {
-  return send_string(OP_HANDSHAKE, (char*)HANDSHAKE_MSG[module_id], socket_fd);
+  return send_string(OP_HANDSHAKE, (char*)HANDSHAKE_MSG[module_id], socket);
 }
 
-int receive_handshake(int socket_fd)
+int receive_handshake(t_socket* socket)
 {
-  if (receive_op_code(socket_fd) != OP_HANDSHAKE)
+  if (receive_op_code(socket) != OP_HANDSHAKE)
     return MID_MODULE_ID_ERROR;
-  char* msg = receive_string(socket_fd);
+  char* msg = receive_string(socket);
   int module_id = handshake_msg_to_module_id(msg);
   free(msg);
   return module_id;
@@ -190,19 +142,19 @@ void packet_append_string(t_packet* packet, char* value)
   packet_append(packet, value, strlen(value) + 1);
 }
 
-bool send_packet(t_packet* packet, int socket_fd)
+bool send_packet(t_packet* packet, t_socket* socket)
 {
   int bytes = packet->buffer->size + 2 * sizeof(int);
   void* to_send = serialize_packet(packet, bytes);
 
-  bool ret = send(socket_fd, to_send, bytes, MSG_NOSIGNAL) > 0;
+  bool ret = socket_send(socket, to_send, bytes);
 
   free(to_send);
 
   return ret;
 }
 
-t_list* receive_packet(int socket_fd)
+t_list* receive_packet(t_socket* socket)
 {
   int size;
   int offset = 0;
@@ -210,7 +162,7 @@ t_list* receive_packet(int socket_fd)
   t_list* values = list_create();
   int element_size;
 
-  buffer = receive_buffer(&size, socket_fd);
+  buffer = receive_buffer(&size, socket);
   while (offset < size)
   {
     memcpy(&element_size, buffer + offset, sizeof(int));

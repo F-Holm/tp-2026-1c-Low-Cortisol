@@ -1,7 +1,12 @@
 #pragma once
 
+#include <stdint.h>
+
 #include "cpu/cpu.h"
 #include "cpu/registers.h"
+#include "utils/log.h"
+#include "utils/registers_cpu.h"
+#include "utils/sockets.h"
 
 /**
  * @file
@@ -13,10 +18,27 @@ t_log* cpu_quiet_logger(void);
 
 /**
  * @brief Opens a loopback TCP connection on a kernel-assigned port.
- * @param server_out Set to the accepted server-side fd.
- * @return The client-side fd. Both fds must be closed by the caller.
+ * @param server_out Set to the accepted server-side socket.
+ * @return The client-side socket. Both sockets must be destroyed by the
+ * caller.
  */
-int cpu_connected_pair(int* server_out);
+t_socket* cpu_connected_pair(t_socket** server_out);
+
+/**
+ * @brief Creates a listening socket on a kernel-assigned ephemeral port.
+ * @param port_out Buffer that receives the decimal port as a string.
+ * @param port_len Size of @p port_out.
+ * @return The listening socket, to be passed to `socket_accept()` and
+ * destroyed by the caller.
+ */
+t_socket* cpu_listen_ephemeral(char* port_out, int port_len);
+
+/**
+ * @brief Writes a throwaway config file under /tmp with the given contents.
+ * @return Its path (heap-allocated); the caller unlinks the file and frees
+ * this.
+ */
+char* cpu_write_temp_config(const char* contents);
 
 /** @brief A zeroed execution context with an empty segment table. */
 t_context* cpu_make_context(void);

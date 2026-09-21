@@ -5,8 +5,13 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "memory_stick/cpu.h"
 #include "support.h"
+#include "utils/config.h"
+#include "utils/log.h"
 #include "utils/msg.h"
+#include "utils/sockets.h"
+#include "utils/threads.h"
 
 /* ── get_args ──────────────────────────────────────────────────────────── */
 
@@ -76,8 +81,8 @@ Test(ms_config, init_config_returns_null_for_a_missing_file)
 
 Test(ms_memory, write_memory_stores_the_bytes_and_confirms)
 {
-  int km_fd;
-  int stick_fd = ms_connected_pair(&km_fd);
+  t_socket* km_fd;
+  t_socket* stick_fd = ms_connected_pair(&km_fd);
 
   t_ms* ms = ms_make(64);
   write_memory(ms, 8, "abcd", 4, stick_fd);
@@ -90,14 +95,14 @@ Test(ms_memory, write_memory_stores_the_bytes_and_confirms)
   free(confirmation);
 
   ms_destroy(ms);
-  close(stick_fd);
-  close(km_fd);
+  socket_destroy(stick_fd);
+  socket_destroy(km_fd);
 }
 
 Test(ms_memory, read_memory_returns_the_stored_bytes)
 {
-  int km_fd;
-  int stick_fd = ms_connected_pair(&km_fd);
+  t_socket* km_fd;
+  t_socket* stick_fd = ms_connected_pair(&km_fd);
 
   t_ms* ms = ms_make(64);
   memcpy(ms->memory + 16, "wxyz", 4);
@@ -112,8 +117,8 @@ Test(ms_memory, read_memory_returns_the_stored_bytes)
   free(bytes);
 
   ms_destroy(ms);
-  close(stick_fd);
-  close(km_fd);
+  socket_destroy(stick_fd);
+  socket_destroy(km_fd);
 }
 
 /* ── close_module_on_error ─────────────────────────────────────────────── */
@@ -122,8 +127,64 @@ Test(ms_cleanup, close_module_on_error_releases_only_what_was_acquired)
 {
   t_ms ms = {0};
   ms.logger = ms_quiet_logger();
-  ms.socket_km = -1;
-  ms.socket_server_cpu = -1;
   /* no config, no memory, no mutex */
   close_module_on_error(&ms); /* must not crash */
+}
+
+Test(ms_cleanup, close_module_joins_the_cpu_thread_and_releases_everything)
+{
+  t_ms* ms = ms_make(16);
+  ms->socket_server_cpu = create_server_cpu(ms->logger);
+  cr_assert_not_null(ms->socket_server_cpu);
+
+  thrd_t thread;
+  cr_assert(start_cpu_server(&thread, ms->socket_server_cpu, ms->logger, ms));
+
+  t_socket* km_fd;
+  ms->socket_km = ms_connected_pair(&km_fd);
+
+  char* config_path = ms_write_temp_config();
+  ms->config = config_create(config_path);
+  cr_assert_not_null(ms->config);
+
+  close_module(ms, &thread); /* must not crash; joins the thread itself */
+
+  socket_destroy(km_fd);
+  unlink(config_path);
+  free(config_path);
+  free(ms);
+}
+
+/* ── init_logger ────────────────────────────────────────────────────────── */
+
+Test(ms_init, init_logger_builds_a_working_logger)
+{
+  t_log* logger = init_logger(LOG_LEVEL_INFO);
+  cr_assert_not_null(logger);
+  log_destroy(logger);
+  unlink("memory_stick.log"); /* init_logger hardcodes this filename */
+}
+
+/* ── send_cpu_server_port ──────────────────────────────────────────────── */
+
+Test(ms_init, send_cpu_server_port_reports_the_listening_port)
+{
+  t_log* logger = ms_quiet_logger();
+  t_socket* km_fd;
+  t_socket* stick_fd = ms_connected_pair(&km_fd);
+
+  t_socket* listen_socket = create_server_cpu(logger);
+  cr_assert_not_null(listen_socket);
+
+  cr_assert(send_cpu_server_port(stick_fd, listen_socket, logger));
+
+  cr_assert_eq(receive_op_code(km_fd), OP_PORT);
+  char* port = receive_string(km_fd);
+  cr_assert_gt(atoi(port), 0);
+  free(port);
+
+  socket_destroy(listen_socket);
+  socket_destroy(stick_fd);
+  socket_destroy(km_fd);
+  log_destroy(logger);
 }

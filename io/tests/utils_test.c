@@ -1,16 +1,18 @@
 #include "io/utils.h"
 
 #include <criterion/criterion.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <pthread.h>
+#include <stdbool.h>
 #include <stdlib.h>
-#include <sys/socket.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
 #include "support.h"
+#include "utils/config.h"
+#include "utils/io.h"
+#include "utils/log.h"
 #include "utils/msg.h"
+#include "utils/sockets.h"
+#include "utils/threads.h"
 
 /* ── parse_args ─────────────────────────────────────────────────────────── */
 
@@ -32,9 +34,9 @@ Test(io_parse_args, recognises_every_interface_type)
     char* name;
     int type;
   } cases[] = {
-      {"STDIN", E_STDIN},
-      {"STDOUT", E_STDOUT},
-      {"SLEEP", E_SLEEP},
+      {"STDIN", IO_STDIN},
+      {"STDOUT", IO_STDOUT},
+      {"SLEEP", IO_SLEEP},
   };
 
   for (int i = 0; i < 3; i++)
@@ -120,7 +122,7 @@ Test(io_load_config, fails_and_frees_the_config_when_the_log_file_cannot_open)
 
 struct scheduler_stub
 {
-  int listen_fd;
+  t_socket* listener;
   int io_module_id;  /* module id the stub received from io */
   char* io_type;     /* IO type string io announced, strdup'd */
   int announce_as;   /* module id the stub sends back */
@@ -130,8 +132,8 @@ struct scheduler_stub
 static void* scheduler_stub_thread(void* arg)
 {
   struct scheduler_stub* stub = arg;
-  int client = accept(stub->listen_fd, NULL, NULL);
-  if (client < 0)
+  t_socket* client = socket_accept(stub->listener, false);
+  if (client == NULL)
   {
     return NULL;
   }
@@ -142,82 +144,82 @@ static void* scheduler_stub_thread(void* arg)
     stub->io_type = receive_string(client);
     stub->reached_type = true;
   }
-  close(client);
+  socket_destroy(client);
   return NULL;
 }
 
 Test(io_connect, completes_the_handshake_and_announces_its_type)
 {
   char port[16];
-  int listen_fd = io_listen_ephemeral(port, sizeof(port));
+  t_socket* listener = io_listen_ephemeral(port, sizeof(port));
 
   struct scheduler_stub stub = {
-      .listen_fd = listen_fd,
+      .listener = listener,
       .io_module_id = -1,
       .announce_as = MID_KERNEL_SCHEDULER,
   };
-  pthread_t thread;
-  pthread_create(&thread, NULL, scheduler_stub_thread, &stub);
+  thrd_t thread;
+  thrd_create(&thread, scheduler_stub_thread, &stub);
 
   t_io io = {0};
   io.logger = io_quiet_logger();
   io.ip = "127.0.0.1";
   io.port = port;
-  io.io_type = E_STDOUT;
+  io.io_type = IO_STDOUT;
 
   cr_assert(connect_to_scheduler(&io));
 
-  pthread_join(thread, NULL);
+  thrd_join(thread, NULL);
   cr_assert_eq(stub.io_module_id, MID_IO);
   cr_assert(stub.reached_type);
   cr_assert_str_eq(stub.io_type, "STDOUT");
 
   free(stub.io_type);
-  close(io.socket_io);
-  close(listen_fd);
+  socket_destroy(io.socket_io);
+  socket_destroy(listener);
   log_destroy(io.logger);
 }
 
 Test(io_connect, fails_when_the_peer_is_not_the_kernel_scheduler)
 {
   char port[16];
-  int listen_fd = io_listen_ephemeral(port, sizeof(port));
+  t_socket* listener = io_listen_ephemeral(port, sizeof(port));
 
   struct scheduler_stub stub = {
-      .listen_fd = listen_fd,
+      .listener = listener,
       .io_module_id = -1,
       .announce_as = MID_CPU, /* wrong: io wants MID_KERNEL_SCHEDULER */
   };
-  pthread_t thread;
-  pthread_create(&thread, NULL, scheduler_stub_thread, &stub);
+  thrd_t thread;
+  thrd_create(&thread, scheduler_stub_thread, &stub);
 
   t_io io = {0};
   io.config = config_create((char*)"/dev/null"); /* non-NULL for close_io */
   io.logger = io_quiet_logger();
   io.ip = "127.0.0.1";
   io.port = port;
-  io.io_type = E_SLEEP;
+  io.io_type = IO_SLEEP;
 
   cr_assert_not(connect_to_scheduler(&io)); /* close_io runs on this path */
 
-  pthread_join(thread, NULL);
+  thrd_join(thread, NULL);
   cr_assert_eq(stub.io_module_id, MID_IO);
 
-  close(listen_fd);
+  socket_destroy(listener);
 }
 
 Test(io_connect, fails_when_the_scheduler_is_unreachable)
 {
   char port[16];
-  int listen_fd = io_listen_ephemeral(port, sizeof(port));
-  close(listen_fd); /* nothing is listening on this port any more */
+  t_socket* listener = io_listen_ephemeral(port, sizeof(port));
+  socket_destroy(listener); /* nothing is listening on this port any more */
 
   t_io io = {0};
   io.config = config_create((char*)"/dev/null");
   io.logger = io_quiet_logger();
   io.ip = "127.0.0.1";
   io.port = port;
-  io.io_type = E_STDIN;
+  io.io_type = IO_STDIN;
 
   cr_assert_not(connect_to_scheduler(&io));
 }
@@ -228,20 +230,20 @@ Test(io_utils, close_io_closes_the_socket_and_releases_the_resources)
 {
   char* config = io_write_temp_config();
 
-  int fds[2];
-  cr_assert_eq(pipe(fds), 0);
+  t_socket* peer;
+  t_socket* socket = io_connected_pair(&peer);
 
   t_io io = {0};
   io.config = config_create(config);
   io.logger = io_quiet_logger();
-  io.socket_io = fds[0];
+  io.socket_io = socket;
 
   close_io(&io);
 
-  cr_assert_eq(fcntl(fds[0], F_GETFD), -1, "socket fd should be closed");
-  cr_assert_eq(errno, EBADF);
+  cr_assert_eq(receive_op_code(peer), OP_CODE_ERROR,
+               "the peer should see the socket closed");
 
-  close(fds[1]);
+  socket_destroy(peer);
   unlink(config);
   free(config);
 }

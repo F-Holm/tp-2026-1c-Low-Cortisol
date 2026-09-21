@@ -1,9 +1,9 @@
 #include "cpu/registers.h"
 
-#include <stdio.h>
+#include <stdint.h>
 #include <string.h>
 
-#include "cpu/cpu.h"
+#include "utils/registers_cpu.h"
 
 uint32_t get_register(t_registers* registers, char* register_name)
 {

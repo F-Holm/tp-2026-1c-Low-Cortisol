@@ -1,24 +1,10 @@
 #pragma once
 
-#include <assert.h>
-#include <netdb.h>
-#include <signal.h>
-#include <stdbool.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/socket.h>
-#include <unistd.h>
-
-#include "utils/collections/list.h"
-#include "utils/log.h"
-
 typedef enum
 {
-  E_STDIN,
-  E_STDOUT,
-  E_SLEEP
+  IO_STDIN,
+  IO_STDOUT,
+  IO_SLEEP
 
 } t_io_type;
 

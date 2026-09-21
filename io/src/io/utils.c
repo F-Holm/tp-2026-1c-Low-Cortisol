@@ -1,8 +1,17 @@
 #include "io/utils.h"
 
+#include <stdbool.h>
+#include <string.h>
+
+#include "utils/config.h"
+#include "utils/io.h"
+#include "utils/log.h"
+#include "utils/msg.h"
+#include "utils/sockets.h"
+
 void close_io(t_io* io)
 {
-  close(io->socket_io);
+  socket_destroy(io->socket_io);
   log_destroy(io->logger);
   config_destroy(io->config);
 }
@@ -27,9 +36,9 @@ bool load_config(t_io* io)
 
 bool connect_to_scheduler(t_io* io)
 {
-  io->socket_io = create_connection(io->ip, io->port);
+  io->socket_io = socket_create(SOCKET_KIND_CLIENT, io->ip, io->port, false);
 
-  if (io->socket_io == -1)
+  if (io->socket_io == NULL)
   {
     log_error(io->logger, "Connection error with Kernel Scheduler");
     close_io(io);
@@ -75,17 +84,17 @@ bool parse_args(int argc, char** argv, t_io* io)
   char* config_path = argv[1];
   io->config = config_create(config_path);
   // Check that the received IO operation exists.
-  if (strcmp(IO_TYPE_NAMES[E_STDIN], argv[2]) == 0)
+  if (strcmp(IO_TYPE_NAMES[IO_STDIN], argv[2]) == 0)
   {
-    io->io_type = E_STDIN;
+    io->io_type = IO_STDIN;
   }
-  else if (strcmp(IO_TYPE_NAMES[E_STDOUT], argv[2]) == 0)
+  else if (strcmp(IO_TYPE_NAMES[IO_STDOUT], argv[2]) == 0)
   {
-    io->io_type = E_STDOUT;
+    io->io_type = IO_STDOUT;
   }
-  else if (strcmp(IO_TYPE_NAMES[E_SLEEP], argv[2]) == 0)
+  else if (strcmp(IO_TYPE_NAMES[IO_SLEEP], argv[2]) == 0)
   {
-    io->io_type = E_SLEEP;
+    io->io_type = IO_SLEEP;
   }
   else
   {

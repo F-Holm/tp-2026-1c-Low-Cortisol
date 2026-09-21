@@ -1,5 +1,13 @@
 #include "kernel_memory/configurator.h"
 
+#include <stdbool.h>
+#include <string.h>
+
+#include "kernel_memory/structs.h"
+#include "utils/config.h"
+#include "utils/log.h"
+#include "utils/sockets.h"
+
 t_log* init_logger(t_config* config)
 {
   return log_create(
@@ -13,9 +21,9 @@ t_config* init_config(char* path)
   return config_create(path);
 }
 
-void close_communication(int client_socket)
+void close_communication(t_socket* client_socket)
 {
-  close(client_socket);
+  socket_close(client_socket);
 }
 
 char* get_scripts_basepath(t_config* config)
@@ -47,9 +55,9 @@ t_allocation_strategy get_allocation_strategy(t_config* config)
 t_allocation_strategy allocation_from_string(char* strategy)
 {
   if (strcmp(strategy, "BEST") == 0)
-    return BEST;
+    return AS_BEST;
   else if (strcmp(strategy, "WORST") == 0)
-    return WORST;
+    return AS_WORST;
   else
     return -1;
 }

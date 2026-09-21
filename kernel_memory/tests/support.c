@@ -1,9 +1,15 @@
 #include "support.h"
 
 #include <criterion/criterion.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 
+#include "kernel_memory/structs.h"
 #include "utils/log.h"
+#include "utils/registers_cpu.h"
+#include "utils/sockets.h"
 
 t_log* km_quiet_logger(void)
 {
@@ -35,4 +41,32 @@ t_stick_data* km_make_stick(int size)
   t_stick_data* stick = calloc(1, sizeof(t_stick_data));
   stick->stick_size = size;
   return stick;
+}
+
+t_socket* km_listen_ephemeral(char* port_out, int port_len)
+{
+  t_socket* listener =
+      socket_create(SOCKET_KIND_SERVER, NULL, SOCKET_PORT_EPHEMERAL, false);
+  cr_assert_not_null(listener, "socket_create(SERVER) failed");
+
+  snprintf(port_out, port_len, "%d", socket_get_local_port(listener));
+
+  return listener;
+}
+
+t_socket* km_connected_pair(t_socket** server_out)
+{
+  char port[16];
+  t_socket* listener = km_listen_ephemeral(port, sizeof(port));
+
+  t_socket* client =
+      socket_create(SOCKET_KIND_CLIENT, "127.0.0.1", port, false);
+  cr_assert_not_null(client, "socket_create(CLIENT) failed");
+
+  t_socket* server = socket_accept(listener, false);
+  cr_assert_not_null(server, "socket_accept failed");
+
+  socket_destroy(listener);
+  *server_out = server;
+  return client;
 }

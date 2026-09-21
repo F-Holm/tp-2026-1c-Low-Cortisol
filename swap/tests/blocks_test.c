@@ -1,7 +1,6 @@
 #include <criterion/criterion.h>
 #include <stdio.h>
 #include <string.h>
-#include <unistd.h>
 
 #include "support.h"
 #include "swap/swap.h"

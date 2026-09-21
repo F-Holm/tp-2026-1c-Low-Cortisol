@@ -13,7 +13,11 @@
 
 # Log files
 *.log
+*.pid
 output/
+
+# Python
+__pycache__/
 
 # Prerequisites
 *.d

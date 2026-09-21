@@ -1,10 +1,14 @@
 #include "memory_stick/kernel_memory.h"
 
+#include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 
+#include "utils/log.h"
 #include "utils/msg.h"
+#include "utils/sockets.h"
 
-bool handshake_km(int socket_km, t_log* logger)
+bool handshake_km(t_socket* socket_km, t_log* logger)
 {
   if (!send_handshake(MID_MEMORY_STICK, socket_km))
   {
@@ -20,7 +24,7 @@ bool handshake_km(int socket_km, t_log* logger)
   return true;
 }
 
-bool send_size(int socket_km, char* size, t_log* logger)
+bool send_size(t_socket* socket_km, char* size, t_log* logger)
 {
   if (!send_string(OP_MEMORY_SIZE, size, socket_km))
   {
@@ -31,34 +35,35 @@ bool send_size(int socket_km, char* size, t_log* logger)
   return true;
 }
 
-int connect_to_kernel_memory(char* ip, char* port, char* size, t_log* logger)
+t_socket* connect_to_kernel_memory(char* ip, char* port, char* size,
+                                   t_log* logger)
 {
-  int socket_km = connect_km(ip, port, logger);
-  if (socket_km <= 0)
-    return -1;
+  t_socket* socket_km = connect_km(ip, port, logger);
+  if (socket_km == NULL)
+    return NULL;
 
-  if (!handshake_km(socket_km, logger))
-    return -1;
-
-  if (!send_size(socket_km, size, logger))
-    return -1;
+  if (!handshake_km(socket_km, logger) || !send_size(socket_km, size, logger))
+  {
+    socket_destroy(socket_km);
+    return NULL;
+  }
 
   return socket_km;
 }
 
-int connect_km(char* ip, char* port, t_log* logger)
+t_socket* connect_km(char* ip, char* port, t_log* logger)
 {
-  int socket_km = create_connection(ip, port);
-  if (socket_km <= 0)
+  t_socket* socket_km = socket_create(SOCKET_KIND_CLIENT, ip, port, false);
+  if (socket_km == NULL)
   {
     log_error(logger, "Connection error with Kernel Memory");
-    return -1;
+    return NULL;
   }
   log_info(logger, "Connected to Kernel Memory");
   return socket_km;
 }
 
-bool send_cpu_server_port_to_km(int socket, uint16_t port)
+bool send_cpu_server_port_to_km(t_socket* socket, uint16_t port)
 {
   char buffer[6];
   snprintf(buffer, sizeof(buffer), "%u", port);

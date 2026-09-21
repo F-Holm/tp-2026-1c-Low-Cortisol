@@ -1,14 +1,17 @@
 #include "cpu/cleanup.h"
 
-#include <stdio.h>
+#include <stdlib.h>
 
 #include "cpu/cpu.h"
+#include "utils/collections/dictionary.h"
+#include "utils/collections/list.h"
+#include "utils/config.h"
 #include "utils/log.h"
+#include "utils/sockets.h"
 
 void iterator_close_socket(void* value)
 {
-  close(*((int*)value));
-  free(value);
+  socket_destroy((t_socket*)value);
 }
 
 void destroy_instruction(t_instruction* instruction)
@@ -22,8 +25,7 @@ void destroy_instruction(t_instruction* instruction)
 void destroy_memory_stick(void* value)
 {
   t_memory_stick_info* stick = (t_memory_stick_info*)value;
-  if (stick->socket_ms > 0)
-    close(stick->socket_ms);
+  socket_destroy(stick->socket_ms);
   free(stick);
 }
 
@@ -32,11 +34,8 @@ void close_module(t_cpu* cpu)
   if (cpu->memory_sticks != NULL)
     list_destroy_and_destroy_elements(cpu->memory_sticks, destroy_memory_stick);
 
-  if (cpu->socket_kernel_memory > 0)
-    close(cpu->socket_kernel_memory);
-
-  if (cpu->socket_kernel_scheduler > 0)
-    close(cpu->socket_kernel_scheduler);
+  socket_destroy(cpu->socket_kernel_memory);
+  socket_destroy(cpu->socket_kernel_scheduler);
 
   if (cpu->config != NULL)
     config_destroy(cpu->config);

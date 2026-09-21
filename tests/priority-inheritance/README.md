@@ -12,7 +12,7 @@ Temporary priority changes when a low-priority process holds a mutex a higher-pr
 
 ## Key configuration
 
-SCHEDULING_ALGORITHM=CMN, QUEUE_ALGORITHMS=[FIFO x6], SUSPENSION_TIMEOUT=1000000; SEGMENT_MAX_SIZE=128; 2 memory sticks (16, 16 B); 1 CPU.
+SCHEDULING_ALGORITHM=MULTILEVEL, QUEUE_ALGORITHMS=[FIFO x6], SUSPENSION_TIMEOUT=1000000; SEGMENT_MAX_SIZE=128; 2 memory sticks (16, 16 B); 1 CPU.
 
 ## Expected result
 
