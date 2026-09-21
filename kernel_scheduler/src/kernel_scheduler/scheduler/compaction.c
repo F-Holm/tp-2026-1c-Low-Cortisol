@@ -7,6 +7,7 @@
 #include "kernel_scheduler/domain/pcb.h"
 #include "kernel_scheduler/scheduler/blocking_list.h"
 #include "kernel_scheduler/scheduler/exec_list.h"
+#include "kernel_scheduler/scheduler/kernel_memory_reply.h"
 #include "kernel_scheduler/scheduler/queues.h"
 #include "kernel_scheduler/scheduler/ready_queue.h"
 #include "kernel_scheduler/scheduler/scheduler_internal.h"
@@ -105,29 +106,13 @@ static void lock_all(t_queues* queues)
 
 bool fits_process(t_queues* queues, t_pcb* process)
 {
-  int op_code = receive_op_code(queues->km_socket);
+  int op_code = RECEIVE_KM_OPCODE(queues, OP_RESUME_SUSPENSION_OK,
+                                  OP_RESUME_SUSPENSION_FAILED);
+  if (op_code == OP_CODE_ERROR)
+    return false;
 
-  switch (op_code)
-  {
-    case OP_RESUME_SUSPENSION_FAILED:
-      free(receive_string(queues->km_socket));
-      return false;
-    case OP_NEW_MEMORY_STICK:
-      free(receive_string(queues->km_socket));
-      create_resumption_routine_thread(queues);
-      return fits_process(queues, process);
-    case OP_MEMORY_CORRUPTED:
-      free(receive_string(queues->km_socket));
-      close_kernel_scheduler(SR_CORRUPTED_MEMORY);
-      return false;
-    case OP_RESUME_SUSPENSION_OK:
-      free(receive_string(queues->km_socket));
-      return true;
-    default:
-      free(receive_string(queues->km_socket));
-      close_kernel_scheduler(SR_KERNEL_MEMORY_CONNECTION_FAILURE);
-      return false;
-  }
+  free(receive_string(queues->km_socket));
+  return op_code == OP_RESUME_SUSPENSION_OK;
 }
 
 static bool remove_of_the_list(t_queues* queues)
@@ -245,26 +230,11 @@ static void create_thread_unlock_queue_ready(t_queues* queues)
 
 static bool compaction_finished(t_queues* queues)
 {
-  int op_code = -1;
-  op_code = receive_op_code(queues->km_socket);
-  switch (op_code)
-  {
-    case OP_NEW_MEMORY_STICK:
-      free(receive_string(queues->km_socket));
-      create_resumption_routine_thread(queues);
-      return compaction_finished(queues);
-    case OP_COMPACTION_DONE:
-      free(receive_string(queues->km_socket));
-      return true;
-    case OP_MEMORY_CORRUPTED:
-      free(receive_string(queues->km_socket));
-      close_kernel_scheduler(SR_CORRUPTED_MEMORY);
-      return false;
-    default:
-      free(receive_string(queues->km_socket));
-      close_kernel_scheduler(SR_KERNEL_MEMORY_CONNECTION_FAILURE);
-      return false;
-  }
+  if (RECEIVE_KM_OPCODE(queues, OP_COMPACTION_DONE) == OP_CODE_ERROR)
+    return false;
+
+  free(receive_string(queues->km_socket));
+  return true;
 }
 
 static void compaction(t_queues* queues)
