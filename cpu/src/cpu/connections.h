@@ -27,9 +27,9 @@ uint32_t compute_offset(t_list* sticks);
 
 /**
  * @brief Handshakes with a Memory Stick over @p new_socket.
- * @return false on failure (also closes @p new_socket).
+ * @return false on failure (also destroys @p new_socket).
  */
-bool handshake_memory_stick(t_cpu* cpu, int new_socket);
+bool handshake_memory_stick(t_cpu* cpu, t_socket* new_socket);
 
 /** @brief Notifies Kernel Memory that a Memory Stick disconnected. */
 void notify_bsod(t_cpu* cpu);

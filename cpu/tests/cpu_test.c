@@ -44,8 +44,8 @@ Test(cpu_decode, keeps_up_to_three_parameters)
 
 Test(cpu_cpu, receive_pid_returns_the_pid_on_resume_process)
 {
-  int peer_fd;
-  int client_fd = cpu_connected_pair(&peer_fd);
+  t_socket* peer_fd;
+  t_socket* client_fd = cpu_connected_pair(&peer_fd);
   uint32_t pid = 42;
   cr_assert(send_buffer(OP_RESUME_PROCESS, &pid, sizeof(pid), peer_fd));
 
@@ -54,30 +54,30 @@ Test(cpu_cpu, receive_pid_returns_the_pid_on_resume_process)
 
   cr_assert_eq(receive_pid(&cpu), 42);
 
-  close(client_fd);
-  close(peer_fd);
+  socket_destroy(client_fd);
+  socket_destroy(peer_fd);
   log_destroy(cpu.logger);
 }
 
 Test(cpu_cpu, receive_pid_returns_max_when_the_scheduler_disconnects)
 {
-  int peer_fd;
-  int client_fd = cpu_connected_pair(&peer_fd);
-  close(peer_fd);
+  t_socket* peer_fd;
+  t_socket* client_fd = cpu_connected_pair(&peer_fd);
+  socket_destroy(peer_fd);
 
   t_cpu cpu = {.socket_kernel_scheduler = client_fd};
   cpu.logger = cpu_quiet_logger();
 
   cr_assert_eq(receive_pid(&cpu), UINT32_MAX);
 
-  close(client_fd);
+  socket_destroy(client_fd);
   log_destroy(cpu.logger);
 }
 
 Test(cpu_cpu, receive_pid_returns_max_on_an_unexpected_op_code)
 {
-  int peer_fd;
-  int client_fd = cpu_connected_pair(&peer_fd);
+  t_socket* peer_fd;
+  t_socket* client_fd = cpu_connected_pair(&peer_fd);
   cr_assert(send_string(OP_ID_CPU, "unexpected", peer_fd));
 
   t_cpu cpu = {.socket_kernel_scheduler = client_fd};
@@ -85,8 +85,8 @@ Test(cpu_cpu, receive_pid_returns_max_on_an_unexpected_op_code)
 
   cr_assert_eq(receive_pid(&cpu), UINT32_MAX);
 
-  close(client_fd);
-  close(peer_fd);
+  socket_destroy(client_fd);
+  socket_destroy(peer_fd);
   log_destroy(cpu.logger);
 }
 
@@ -94,8 +94,8 @@ Test(cpu_cpu, receive_pid_returns_max_on_an_unexpected_op_code)
 
 Test(cpu_cpu, request_context_sends_the_pid_to_kernel_memory)
 {
-  int peer_fd;
-  int client_fd = cpu_connected_pair(&peer_fd);
+  t_socket* peer_fd;
+  t_socket* client_fd = cpu_connected_pair(&peer_fd);
 
   t_cpu cpu = {.socket_kernel_memory = client_fd};
   cpu.logger = cpu_quiet_logger();
@@ -108,8 +108,8 @@ Test(cpu_cpu, request_context_sends_the_pid_to_kernel_memory)
   cr_assert_eq(*(uint32_t*)buffer, 7);
   free(buffer);
 
-  close(client_fd);
-  close(peer_fd);
+  socket_destroy(client_fd);
+  socket_destroy(peer_fd);
   log_destroy(cpu.logger);
 }
 
@@ -117,8 +117,8 @@ Test(cpu_cpu, request_context_sends_the_pid_to_kernel_memory)
 
 Test(cpu_cpu, receive_context_copies_the_registers_off_the_wire)
 {
-  int peer_fd;
-  int client_fd = cpu_connected_pair(&peer_fd);
+  t_socket* peer_fd;
+  t_socket* client_fd = cpu_connected_pair(&peer_fd);
 
   t_context* sent = cpu_make_context();
   sent->registers->PC = 5;
@@ -138,8 +138,8 @@ Test(cpu_cpu, receive_context_copies_the_registers_off_the_wire)
 
   free(received);
   cpu_destroy_context(sent);
-  close(client_fd);
-  close(peer_fd);
+  socket_destroy(client_fd);
+  socket_destroy(peer_fd);
   log_destroy(cpu.logger);
 }
 
@@ -147,8 +147,8 @@ Test(cpu_cpu, receive_context_copies_the_registers_off_the_wire)
 
 Test(cpu_cpu, receive_segment_table_reads_the_segments_off_the_wire)
 {
-  int peer_fd;
-  int client_fd = cpu_connected_pair(&peer_fd);
+  t_socket* peer_fd;
+  t_socket* client_fd = cpu_connected_pair(&peer_fd);
 
   t_packet* packet = create_packet(OP_SEGMENT_TABLE);
   t_segment* seg0 = cpu_make_segment(0, 100, 64);
@@ -172,15 +172,15 @@ Test(cpu_cpu, receive_segment_table_reads_the_segments_off_the_wire)
   cr_assert_eq(((t_segment*)list_get(context->segment_table, 1))->base, 200);
 
   cpu_destroy_context(context);
-  close(client_fd);
-  close(peer_fd);
+  socket_destroy(client_fd);
+  socket_destroy(peer_fd);
   log_destroy(cpu.logger);
 }
 
 Test(cpu_cpu, receive_segment_table_frees_the_previous_table_first)
 {
-  int peer_fd;
-  int client_fd = cpu_connected_pair(&peer_fd);
+  t_socket* peer_fd;
+  t_socket* client_fd = cpu_connected_pair(&peer_fd);
 
   t_packet* packet = create_packet(OP_SEGMENT_TABLE); /* an empty table */
   cr_assert(send_packet(packet, peer_fd));
@@ -197,8 +197,8 @@ Test(cpu_cpu, receive_segment_table_frees_the_previous_table_first)
   cr_assert_eq(list_size(context->segment_table), 0);
 
   cpu_destroy_context(context);
-  close(client_fd);
-  close(peer_fd);
+  socket_destroy(client_fd);
+  socket_destroy(peer_fd);
   log_destroy(cpu.logger);
 }
 
@@ -206,8 +206,8 @@ Test(cpu_cpu, receive_segment_table_frees_the_previous_table_first)
 
 Test(cpu_cpu, request_instruction_sends_the_pid_and_program_counter)
 {
-  int peer_fd;
-  int client_fd = cpu_connected_pair(&peer_fd);
+  t_socket* peer_fd;
+  t_socket* client_fd = cpu_connected_pair(&peer_fd);
 
   t_cpu cpu = {.socket_kernel_memory = client_fd};
   cpu.logger = cpu_quiet_logger();
@@ -221,8 +221,8 @@ Test(cpu_cpu, request_instruction_sends_the_pid_and_program_counter)
   cr_assert_eq(*(uint32_t*)list_get(fields, 1), 12);
 
   list_destroy_and_destroy_elements(fields, free);
-  close(client_fd);
-  close(peer_fd);
+  socket_destroy(client_fd);
+  socket_destroy(peer_fd);
   log_destroy(cpu.logger);
 }
 
@@ -230,8 +230,8 @@ Test(cpu_cpu, request_instruction_sends_the_pid_and_program_counter)
 
 Test(cpu_cpu, receive_instruction_reads_the_raw_instruction_string)
 {
-  int peer_fd;
-  int client_fd = cpu_connected_pair(&peer_fd);
+  t_socket* peer_fd;
+  t_socket* client_fd = cpu_connected_pair(&peer_fd);
   cr_assert(send_string(OP_SEND_INSTRUCTION, "SET EAX 5", peer_fd));
 
   t_cpu cpu = {.socket_kernel_memory = client_fd};
@@ -242,8 +242,8 @@ Test(cpu_cpu, receive_instruction_reads_the_raw_instruction_string)
   cr_assert_str_eq(instruction, "SET EAX 5");
 
   free(instruction);
-  close(client_fd);
-  close(peer_fd);
+  socket_destroy(client_fd);
+  socket_destroy(peer_fd);
   log_destroy(cpu.logger);
 }
 
@@ -251,8 +251,8 @@ Test(cpu_cpu, receive_instruction_reads_the_raw_instruction_string)
 
 Test(cpu_cpu, fetch_stage_requests_and_returns_the_instruction)
 {
-  int peer_fd;
-  int client_fd = cpu_connected_pair(&peer_fd);
+  t_socket* peer_fd;
+  t_socket* client_fd = cpu_connected_pair(&peer_fd);
   cr_assert(send_string(OP_SEND_INSTRUCTION, "NOOP", peer_fd));
 
   t_cpu cpu = {.socket_kernel_memory = client_fd};
@@ -268,23 +268,23 @@ Test(cpu_cpu, fetch_stage_requests_and_returns_the_instruction)
   list_destroy_and_destroy_elements(fields, free);
 
   free(instruction);
-  close(client_fd);
-  close(peer_fd);
+  socket_destroy(client_fd);
+  socket_destroy(peer_fd);
   log_destroy(cpu.logger);
 }
 
 Test(cpu_cpu, fetch_stage_fails_when_kernel_memory_disconnects)
 {
-  int peer_fd;
-  int client_fd = cpu_connected_pair(&peer_fd);
-  close(peer_fd);
+  t_socket* peer_fd;
+  t_socket* client_fd = cpu_connected_pair(&peer_fd);
+  socket_destroy(peer_fd);
 
   t_cpu cpu = {.socket_kernel_memory = client_fd};
   cpu.logger = cpu_quiet_logger();
 
   cr_assert_null(fetch_stage(&cpu, 1, 0));
 
-  close(client_fd);
+  socket_destroy(client_fd);
   log_destroy(cpu.logger);
 }
 
@@ -327,8 +327,8 @@ Test(cpu_cpu, execute_stage_calls_through_to_the_registered_handler)
 
 Test(cpu_cpu, check_interrupt_reports_no_table_when_memory_ran_out)
 {
-  int peer_fd;
-  int client_fd = cpu_connected_pair(&peer_fd);
+  t_socket* peer_fd;
+  t_socket* client_fd = cpu_connected_pair(&peer_fd);
   cr_assert(send_string(OP_INTERRUPT,
                         "there is not enough memory for this instruction",
                         peer_fd));
@@ -338,15 +338,15 @@ Test(cpu_cpu, check_interrupt_reports_no_table_when_memory_ran_out)
 
   cr_assert_eq(check_interrupt(&cpu, 1), EB_NO_TABLE);
 
-  close(client_fd);
-  close(peer_fd);
+  socket_destroy(client_fd);
+  socket_destroy(peer_fd);
   log_destroy(cpu.logger);
 }
 
 Test(cpu_cpu, check_interrupt_reports_false_for_any_other_interrupt_reason)
 {
-  int peer_fd;
-  int client_fd = cpu_connected_pair(&peer_fd);
+  t_socket* peer_fd;
+  t_socket* client_fd = cpu_connected_pair(&peer_fd);
   cr_assert(send_string(OP_INTERRUPT, "quantum expired", peer_fd));
 
   t_cpu cpu = {.socket_kernel_scheduler = client_fd};
@@ -354,15 +354,15 @@ Test(cpu_cpu, check_interrupt_reports_false_for_any_other_interrupt_reason)
 
   cr_assert_eq(check_interrupt(&cpu, 1), EB_FALSE);
 
-  close(client_fd);
-  close(peer_fd);
+  socket_destroy(client_fd);
+  socket_destroy(peer_fd);
   log_destroy(cpu.logger);
 }
 
 Test(cpu_cpu, check_interrupt_reports_true_when_there_is_no_interrupt)
 {
-  int peer_fd;
-  int client_fd = cpu_connected_pair(&peer_fd);
+  t_socket* peer_fd;
+  t_socket* client_fd = cpu_connected_pair(&peer_fd);
   cr_assert(send_string(OP_NO_INTERRUPT, "keep going", peer_fd));
 
   t_cpu cpu = {.socket_kernel_scheduler = client_fd};
@@ -370,15 +370,15 @@ Test(cpu_cpu, check_interrupt_reports_true_when_there_is_no_interrupt)
 
   cr_assert_eq(check_interrupt(&cpu, 1), EB_TRUE);
 
-  close(client_fd);
-  close(peer_fd);
+  socket_destroy(client_fd);
+  socket_destroy(peer_fd);
   log_destroy(cpu.logger);
 }
 
 Test(cpu_cpu, check_interrupt_reports_error_on_an_explicit_code_error)
 {
-  int peer_fd;
-  int client_fd = cpu_connected_pair(&peer_fd);
+  t_socket* peer_fd;
+  t_socket* client_fd = cpu_connected_pair(&peer_fd);
   /* OP_CODE_ERROR is 0; send it explicitly (rather than really closing the
    * socket) so the follow-up receive_string() in production code would still
    * have well-defined data to read if it were ever called on this path. */
@@ -389,15 +389,15 @@ Test(cpu_cpu, check_interrupt_reports_error_on_an_explicit_code_error)
 
   cr_assert_eq(check_interrupt(&cpu, 1), EB_ERROR);
 
-  close(client_fd);
-  close(peer_fd);
+  socket_destroy(client_fd);
+  socket_destroy(peer_fd);
   log_destroy(cpu.logger);
 }
 
 Test(cpu_cpu, check_interrupt_reports_error_on_an_unrecognized_op_code)
 {
-  int peer_fd;
-  int client_fd = cpu_connected_pair(&peer_fd);
+  t_socket* peer_fd;
+  t_socket* client_fd = cpu_connected_pair(&peer_fd);
   cr_assert(send_string(OP_ID_CPU, "garbage", peer_fd));
 
   t_cpu cpu = {.socket_kernel_scheduler = client_fd};
@@ -405,8 +405,8 @@ Test(cpu_cpu, check_interrupt_reports_error_on_an_unrecognized_op_code)
 
   cr_assert_eq(check_interrupt(&cpu, 1), EB_ERROR);
 
-  close(client_fd);
-  close(peer_fd);
+  socket_destroy(client_fd);
+  socket_destroy(peer_fd);
   log_destroy(cpu.logger);
 }
 
@@ -414,8 +414,8 @@ Test(cpu_cpu, check_interrupt_reports_error_on_an_unrecognized_op_code)
 
 Test(cpu_cpu, send_updated_context_sends_the_pid_and_registers)
 {
-  int peer_fd;
-  int client_fd = cpu_connected_pair(&peer_fd);
+  t_socket* peer_fd;
+  t_socket* client_fd = cpu_connected_pair(&peer_fd);
 
   t_cpu cpu = {.socket_kernel_memory = client_fd};
   cpu.logger = cpu_quiet_logger();
@@ -434,8 +434,8 @@ Test(cpu_cpu, send_updated_context_sends_the_pid_and_registers)
   cr_assert_eq(received->EAX, 55);
 
   list_destroy_and_destroy_elements(fields, free);
-  close(client_fd);
-  close(peer_fd);
+  socket_destroy(client_fd);
+  socket_destroy(peer_fd);
   log_destroy(cpu.logger);
 }
 
@@ -443,8 +443,8 @@ Test(cpu_cpu, send_updated_context_sends_the_pid_and_registers)
 
 Test(cpu_cpu, update_segment_table_requests_and_stores_the_refreshed_table)
 {
-  int peer_fd;
-  int client_fd = cpu_connected_pair(&peer_fd);
+  t_socket* peer_fd;
+  t_socket* client_fd = cpu_connected_pair(&peer_fd);
 
   /* update_segment_table sends its request first and only then listens for
    * the reply, so the reply must already be queued before we call it. */
@@ -468,8 +468,8 @@ Test(cpu_cpu, update_segment_table_requests_and_stores_the_refreshed_table)
   free(buffer);
 
   cpu_destroy_context(context);
-  close(client_fd);
-  close(peer_fd);
+  socket_destroy(client_fd);
+  socket_destroy(peer_fd);
   log_destroy(cpu.logger);
 }
 
@@ -477,9 +477,9 @@ Test(cpu_cpu, update_segment_table_requests_and_stores_the_refreshed_table)
 
 Test(cpu_cpu, run_instruction_cycle_runs_one_noop_and_reports_back)
 {
-  int km_peer, sched_peer;
-  int km_client = cpu_connected_pair(&km_peer);
-  int sched_client = cpu_connected_pair(&sched_peer);
+  t_socket *km_peer, *sched_peer;
+  t_socket* km_client = cpu_connected_pair(&km_peer);
+  t_socket* sched_client = cpu_connected_pair(&sched_peer);
 
   /* This test drives the whole function from a single thread: every reply
    * the two peers give must already be sitting on the wire before the call
@@ -523,10 +523,10 @@ Test(cpu_cpu, run_instruction_cycle_runs_one_noop_and_reports_back)
 
   dictionary_destroy(cpu.handlers);
   cpu_destroy_context(context);
-  close(km_client);
-  close(km_peer);
-  close(sched_client);
-  close(sched_peer);
+  socket_destroy(km_client);
+  socket_destroy(km_peer);
+  socket_destroy(sched_client);
+  socket_destroy(sched_peer);
   log_destroy(cpu.logger);
 }
 
@@ -534,9 +534,9 @@ Test(cpu_cpu, run_instruction_cycle_runs_one_noop_and_reports_back)
 
 Test(cpu_cpu, run_instruction_loop_runs_one_cycle_then_stops_on_disconnect)
 {
-  int km_peer, sched_peer;
-  int km_client = cpu_connected_pair(&km_peer);
-  int sched_client = cpu_connected_pair(&sched_peer);
+  t_socket *km_peer, *sched_peer;
+  t_socket* km_client = cpu_connected_pair(&km_peer);
+  t_socket* sched_client = cpu_connected_pair(&sched_peer);
 
   uint32_t pid = 6;
   t_registers registers = {0};
@@ -547,7 +547,7 @@ Test(cpu_cpu, run_instruction_loop_runs_one_cycle_then_stops_on_disconnect)
    * this up front and closing right away is safe and deterministic. */
   cr_assert(send_buffer(OP_RESUME_PROCESS, &pid, sizeof(pid), sched_peer));
   cr_assert(send_string(OP_INTERRUPT, "quantum expired", sched_peer));
-  close(sched_peer);
+  socket_destroy(sched_peer);
 
   /* Kernel Memory script: hand back a context, an empty segment table, and
    * one instruction. */
@@ -581,8 +581,8 @@ Test(cpu_cpu, run_instruction_loop_runs_one_cycle_then_stops_on_disconnect)
   list_destroy_and_destroy_elements(context_fields, free);
 
   dictionary_destroy(cpu.handlers);
-  close(km_client);
-  close(km_peer);
-  close(sched_client);
+  socket_destroy(km_client);
+  socket_destroy(km_peer);
+  socket_destroy(sched_client);
   log_destroy(cpu.logger);
 }

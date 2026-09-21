@@ -1,7 +1,6 @@
 #include "cpu/connections.h"
 
 #include <criterion/criterion.h>
-#include <pthread.h>
 #include <stdlib.h>
 #include <unistd.h>
 
@@ -10,6 +9,7 @@
 #include "utils/collections/list.h"
 #include "utils/config.h"
 #include "utils/msg.h"
+#include "utils/threads.h"
 
 Test(cpu_connections, compute_offset_sums_every_stick_size)
 {
@@ -29,7 +29,7 @@ Test(cpu_connections, compute_offset_sums_every_stick_size)
 
 struct handshake_stub_args
 {
-  int socket_fd;
+  t_socket* socket_fd;
   int announce_as;
 };
 
@@ -43,40 +43,40 @@ static void* handshake_stub_thread(void* arg)
 
 Test(cpu_connections, handshake_memory_stick_succeeds_when_the_peer_agrees)
 {
-  int server_fd;
-  int client_fd = cpu_connected_pair(&server_fd);
+  t_socket* server_fd;
+  t_socket* client_fd = cpu_connected_pair(&server_fd);
 
   t_cpu cpu = {0};
   cpu.logger = cpu_quiet_logger();
 
   struct handshake_stub_args args = {server_fd, MID_MEMORY_STICK};
-  pthread_t stub;
-  pthread_create(&stub, NULL, handshake_stub_thread, &args);
+  thrd_t stub;
+  thrd_create(&stub, handshake_stub_thread, &args);
 
   cr_assert(handshake_memory_stick(&cpu, client_fd));
 
-  pthread_join(stub, NULL);
-  close(client_fd);
-  close(server_fd);
+  thrd_join(stub, NULL);
+  socket_destroy(client_fd);
+  socket_destroy(server_fd);
   log_destroy(cpu.logger);
 }
 
 Test(cpu_connections, handshake_memory_stick_fails_when_the_peer_is_not_a_stick)
 {
-  int server_fd;
-  int client_fd = cpu_connected_pair(&server_fd);
+  t_socket* server_fd;
+  t_socket* client_fd = cpu_connected_pair(&server_fd);
 
   t_cpu cpu = {0};
   cpu.logger = cpu_quiet_logger();
 
   struct handshake_stub_args args = {server_fd, MID_CPU};
-  pthread_t stub;
-  pthread_create(&stub, NULL, handshake_stub_thread, &args);
+  thrd_t stub;
+  thrd_create(&stub, handshake_stub_thread, &args);
 
   cr_assert_not(handshake_memory_stick(&cpu, client_fd));
 
-  pthread_join(stub, NULL);
-  close(server_fd);
+  thrd_join(stub, NULL);
+  socket_destroy(server_fd);
   log_destroy(cpu.logger);
 }
 
@@ -84,8 +84,8 @@ Test(cpu_connections, handshake_memory_stick_fails_when_the_peer_is_not_a_stick)
 
 Test(cpu_connections, notify_bsod_tells_kernel_memory_the_stick_disconnected)
 {
-  int server_fd;
-  int client_fd = cpu_connected_pair(&server_fd);
+  t_socket* server_fd;
+  t_socket* client_fd = cpu_connected_pair(&server_fd);
 
   t_cpu cpu = {.socket_kernel_memory = client_fd};
   cpu.logger = cpu_quiet_logger();
@@ -95,8 +95,8 @@ Test(cpu_connections, notify_bsod_tells_kernel_memory_the_stick_disconnected)
   cr_assert_eq(receive_op_code(server_fd), OP_STICK_DISCONNECTED);
   free(receive_string(server_fd));
 
-  close(client_fd);
-  close(server_fd);
+  socket_destroy(client_fd);
+  socket_destroy(server_fd);
   log_destroy(cpu.logger);
 }
 
@@ -104,15 +104,15 @@ Test(cpu_connections, notify_bsod_tells_kernel_memory_the_stick_disconnected)
 
 struct accept_and_handshake_args
 {
-  int listen_fd;
+  t_socket* listen_fd;
   int announce_as;
-  int accepted_fd;
+  t_socket* accepted_fd;
 };
 
 static void* accept_and_handshake_thread(void* arg)
 {
   struct accept_and_handshake_args* args = arg;
-  args->accepted_fd = accept(args->listen_fd, NULL, NULL);
+  args->accepted_fd = socket_accept(args->listen_fd, false);
   struct handshake_stub_args handshake_args = {args->accepted_fd,
                                                args->announce_as};
   handshake_stub_thread(&handshake_args);
@@ -122,7 +122,7 @@ static void* accept_and_handshake_thread(void* arg)
 Test(cpu_connections, connect_to_kernel_scheduler_succeeds_when_the_peer_agrees)
 {
   char port[16];
-  int listen_fd = cpu_listen_ephemeral(port, sizeof(port));
+  t_socket* listen_fd = cpu_listen_ephemeral(port, sizeof(port));
 
   char config_body[256];
   snprintf(config_body, sizeof(config_body),
@@ -133,17 +133,18 @@ Test(cpu_connections, connect_to_kernel_scheduler_succeeds_when_the_peer_agrees)
   cpu.logger = cpu_quiet_logger();
   cpu.config = config_create(config_path);
 
-  struct accept_and_handshake_args args = {listen_fd, MID_KERNEL_SCHEDULER, -1};
-  pthread_t stub;
-  pthread_create(&stub, NULL, accept_and_handshake_thread, &args);
+  struct accept_and_handshake_args args = {listen_fd, MID_KERNEL_SCHEDULER,
+                                           NULL};
+  thrd_t stub;
+  thrd_create(&stub, accept_and_handshake_thread, &args);
 
   cr_assert(connect_to_kernel_scheduler(&cpu));
-  cr_assert_geq(cpu.socket_kernel_scheduler, 0);
+  cr_assert_not_null(cpu.socket_kernel_scheduler);
 
-  pthread_join(stub, NULL);
-  close(cpu.socket_kernel_scheduler);
-  close(args.accepted_fd);
-  close(listen_fd);
+  thrd_join(stub, NULL);
+  socket_destroy(cpu.socket_kernel_scheduler);
+  socket_destroy(args.accepted_fd);
+  socket_destroy(listen_fd);
   config_destroy(cpu.config);
   unlink(config_path);
   free(config_path);
@@ -154,7 +155,7 @@ Test(cpu_connections,
      connect_to_kernel_scheduler_fails_when_the_peer_is_not_the_scheduler)
 {
   char port[16];
-  int listen_fd = cpu_listen_ephemeral(port, sizeof(port));
+  t_socket* listen_fd = cpu_listen_ephemeral(port, sizeof(port));
 
   char config_body[256];
   snprintf(config_body, sizeof(config_body),
@@ -165,15 +166,15 @@ Test(cpu_connections,
   cpu.logger = cpu_quiet_logger();
   cpu.config = config_create(config_path);
 
-  struct accept_and_handshake_args args = {listen_fd, MID_CPU, -1};
-  pthread_t stub;
-  pthread_create(&stub, NULL, accept_and_handshake_thread, &args);
+  struct accept_and_handshake_args args = {listen_fd, MID_CPU, NULL};
+  thrd_t stub;
+  thrd_create(&stub, accept_and_handshake_thread, &args);
 
   cr_assert_not(connect_to_kernel_scheduler(&cpu));
 
-  pthread_join(stub, NULL);
-  close(args.accepted_fd);
-  close(listen_fd);
+  thrd_join(stub, NULL);
+  socket_destroy(args.accepted_fd);
+  socket_destroy(listen_fd);
   config_destroy(cpu.config);
   unlink(config_path);
   free(config_path);
@@ -183,7 +184,7 @@ Test(cpu_connections,
 Test(cpu_connections, connect_to_kernel_memory_succeeds_when_the_peer_agrees)
 {
   char port[16];
-  int listen_fd = cpu_listen_ephemeral(port, sizeof(port));
+  t_socket* listen_fd = cpu_listen_ephemeral(port, sizeof(port));
 
   char config_body[256];
   snprintf(config_body, sizeof(config_body),
@@ -194,17 +195,17 @@ Test(cpu_connections, connect_to_kernel_memory_succeeds_when_the_peer_agrees)
   cpu.logger = cpu_quiet_logger();
   cpu.config = config_create(config_path);
 
-  struct accept_and_handshake_args args = {listen_fd, MID_KERNEL_MEMORY, -1};
-  pthread_t stub;
-  pthread_create(&stub, NULL, accept_and_handshake_thread, &args);
+  struct accept_and_handshake_args args = {listen_fd, MID_KERNEL_MEMORY, NULL};
+  thrd_t stub;
+  thrd_create(&stub, accept_and_handshake_thread, &args);
 
   cr_assert(connect_to_kernel_memory(&cpu));
-  cr_assert_geq(cpu.socket_kernel_memory, 0);
+  cr_assert_not_null(cpu.socket_kernel_memory);
 
-  pthread_join(stub, NULL);
-  close(cpu.socket_kernel_memory);
-  close(args.accepted_fd);
-  close(listen_fd);
+  thrd_join(stub, NULL);
+  socket_destroy(cpu.socket_kernel_memory);
+  socket_destroy(args.accepted_fd);
+  socket_destroy(listen_fd);
   config_destroy(cpu.config);
   unlink(config_path);
   free(config_path);
@@ -215,14 +216,14 @@ Test(cpu_connections, connect_to_kernel_memory_succeeds_when_the_peer_agrees)
 
 struct stick_stub_args
 {
-  int listen_fd;
-  int accepted_fd;
+  t_socket* listen_fd;
+  t_socket* accepted_fd;
 };
 
 static void* stick_stub_thread(void* arg)
 {
   struct stick_stub_args* args = arg;
-  args->accepted_fd = accept(args->listen_fd, NULL, NULL);
+  args->accepted_fd = socket_accept(args->listen_fd, false);
   receive_handshake(args->accepted_fd);
   send_handshake(MID_MEMORY_STICK, args->accepted_fd);
   free(
@@ -234,11 +235,12 @@ Test(cpu_connections, connect_memory_stick_registers_the_new_stick)
 {
   /* cpu->socket_kernel_memory: a fake "Kernel Memory" that hands the CPU a
    * (ip, port, size) packet pointing at a fake Memory Stick. */
-  int km_server_fd;
-  int km_client_fd = cpu_connected_pair(&km_server_fd);
+  t_socket* km_server_fd;
+  t_socket* km_client_fd = cpu_connected_pair(&km_server_fd);
 
   char stick_port[16];
-  int stick_listen_fd = cpu_listen_ephemeral(stick_port, sizeof(stick_port));
+  t_socket* stick_listen_fd =
+      cpu_listen_ephemeral(stick_port, sizeof(stick_port));
 
   t_packet* packet = create_packet(OP_PACKET);
   packet_append_string(packet, "127.0.0.1");
@@ -252,9 +254,9 @@ Test(cpu_connections, connect_memory_stick_registers_the_new_stick)
   cpu.logger = cpu_quiet_logger();
   cpu.memory_sticks = list_create();
 
-  struct stick_stub_args args = {stick_listen_fd, -1};
-  pthread_t stub;
-  pthread_create(&stub, NULL, stick_stub_thread, &args);
+  struct stick_stub_args args = {stick_listen_fd, NULL};
+  thrd_t stub;
+  thrd_create(&stub, stick_stub_thread, &args);
 
   /* connect_memory_stick is normally invoked by listen_kernel_memory right
    * after it reads the OP_PACKET op code that announces this packet; do the
@@ -266,12 +268,12 @@ Test(cpu_connections, connect_memory_stick_registers_the_new_stick)
   cr_assert_eq(stick->size, 1024);
   cr_assert_eq(stick->offset, 0);
 
-  pthread_join(stub, NULL);
-  close(stick->socket_ms);
-  close(args.accepted_fd);
-  close(stick_listen_fd);
-  close(km_client_fd);
-  close(km_server_fd);
+  thrd_join(stub, NULL);
+  socket_destroy(stick->socket_ms);
+  socket_destroy(args.accepted_fd);
+  socket_destroy(stick_listen_fd);
+  socket_destroy(km_client_fd);
+  socket_destroy(km_server_fd);
   list_destroy_and_destroy_elements(cpu.memory_sticks, free);
   log_destroy(cpu.logger);
 }

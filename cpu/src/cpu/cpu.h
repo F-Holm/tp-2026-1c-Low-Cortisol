@@ -1,6 +1,5 @@
 #pragma once
 
-#include <pthread.h>
 #include <stdio.h>
 
 #include "cpu/registers.h"
@@ -12,8 +11,8 @@
 typedef struct
 {
   char* id;
-  int socket_kernel_memory;
-  int socket_kernel_scheduler;
+  t_socket* socket_kernel_memory;
+  t_socket* socket_kernel_scheduler;
   uint32_t max_segment_size;
 
   t_list* memory_sticks;
@@ -31,7 +30,7 @@ typedef struct
 
 typedef struct
 {
-  int socket_ms;
+  t_socket* socket_ms;
   uint32_t size;
   uint32_t offset;
 } t_memory_stick_info;

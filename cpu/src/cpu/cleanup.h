@@ -16,6 +16,6 @@ void destroy_instruction(t_instruction* instruction);
  */
 void destroy_memory_stick(void* value);
 
-/** @brief Closes the socket fd pointed to by @p value and frees it. Element
+/** @brief Destroys the t_socket pointed to by @p value. Element
  * destroyer for t_list. */
 void iterator_close_socket(void* value);

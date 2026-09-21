@@ -58,8 +58,8 @@ Test(cpu_parse_stick_packet, rejects_a_packet_without_three_fields)
 
 Test(cpu_receive_max_segment_size, parses_the_announced_size)
 {
-  int server_fd;
-  int client_fd = cpu_connected_pair(&server_fd);
+  t_socket* server_fd;
+  t_socket* client_fd = cpu_connected_pair(&server_fd);
   int size = 4096;
   cr_assert(send_buffer(OP_MAX_SEGMENT_SIZE, &size, sizeof(size), server_fd));
 
@@ -69,15 +69,15 @@ Test(cpu_receive_max_segment_size, parses_the_announced_size)
   cr_assert(receive_max_segment_size(&cpu));
   cr_assert_eq(cpu.max_segment_size, 4096);
 
-  close(client_fd);
-  close(server_fd);
+  socket_destroy(client_fd);
+  socket_destroy(server_fd);
   log_destroy(cpu.logger);
 }
 
 Test(cpu_receive_max_segment_size, fails_on_a_wrong_op_code)
 {
-  int server_fd;
-  int client_fd = cpu_connected_pair(&server_fd);
+  t_socket* server_fd;
+  t_socket* client_fd = cpu_connected_pair(&server_fd);
   int bogus = 0;
   cr_assert(send_buffer(OP_ID_CPU, &bogus, sizeof(bogus), server_fd));
 
@@ -86,8 +86,8 @@ Test(cpu_receive_max_segment_size, fails_on_a_wrong_op_code)
 
   cr_assert_not(receive_max_segment_size(&cpu));
 
-  close(client_fd);
-  close(server_fd);
+  socket_destroy(client_fd);
+  socket_destroy(server_fd);
   log_destroy(cpu.logger);
 }
 
@@ -95,24 +95,24 @@ Test(cpu_receive_max_segment_size, fails_on_a_wrong_op_code)
 
 Test(cpu_listen_kernel_memory, stops_and_reports_failure_on_a_dead_socket)
 {
-  int server_fd;
-  int client_fd = cpu_connected_pair(&server_fd);
-  close(server_fd); /* the next read now sees OP_CODE_ERROR */
+  t_socket* server_fd;
+  t_socket* client_fd = cpu_connected_pair(&server_fd);
+  socket_destroy(server_fd); /* the next read now sees OP_CODE_ERROR */
 
   t_cpu cpu = {.socket_kernel_memory = client_fd};
   cpu.logger = cpu_quiet_logger();
 
   cr_assert_not(listen_kernel_memory(&cpu));
 
-  close(client_fd);
+  socket_destroy(client_fd);
   log_destroy(cpu.logger);
 }
 
 Test(cpu_listen_kernel_memory,
      stops_and_reports_failure_on_an_unrecognized_op_code)
 {
-  int server_fd;
-  int client_fd = cpu_connected_pair(&server_fd);
+  t_socket* server_fd;
+  t_socket* client_fd = cpu_connected_pair(&server_fd);
   cr_assert(send_string(OP_ID_CPU, "not expected here", server_fd));
 
   t_cpu cpu = {.socket_kernel_memory = client_fd};
@@ -120,16 +120,16 @@ Test(cpu_listen_kernel_memory,
 
   cr_assert_not(listen_kernel_memory(&cpu));
 
-  close(client_fd);
-  close(server_fd);
+  socket_destroy(client_fd);
+  socket_destroy(server_fd);
   log_destroy(cpu.logger);
 }
 
 Test(cpu_listen_kernel_memory,
      stops_and_reports_success_once_an_instruction_arrives)
 {
-  int server_fd;
-  int client_fd = cpu_connected_pair(&server_fd);
+  t_socket* server_fd;
+  t_socket* client_fd = cpu_connected_pair(&server_fd);
   cr_assert(send_string(OP_SEND_INSTRUCTION, "SET AX 5", server_fd));
 
   t_cpu cpu = {.socket_kernel_memory = client_fd};
@@ -141,7 +141,7 @@ Test(cpu_listen_kernel_memory,
    * leaves the payload for the caller to read. */
   free(receive_string(client_fd));
 
-  close(client_fd);
-  close(server_fd);
+  socket_destroy(client_fd);
+  socket_destroy(server_fd);
   log_destroy(cpu.logger);
 }

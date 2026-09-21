@@ -15,8 +15,8 @@ bool connect_to_kernel_scheduler(t_cpu* cpu)
   char* kernel_scheduler_port =
       config_get_string_value(cpu->config, "KERNEL_SCHEDULER_PORT");
 
-  cpu->socket_kernel_scheduler =
-      create_connection(kernel_scheduler_ip, kernel_scheduler_port);
+  cpu->socket_kernel_scheduler = socket_create(
+      SOCKET_KIND_CLIENT, kernel_scheduler_ip, kernel_scheduler_port, false);
 
   if (send_handshake(MID_CPU, cpu->socket_kernel_scheduler))
   {
@@ -33,7 +33,7 @@ bool connect_to_kernel_scheduler(t_cpu* cpu)
   {
     log_error(cpu->logger,
               "Could not receive the handshake from the Kernel Scheduler");
-    close(cpu->socket_kernel_scheduler);
+    socket_close(cpu->socket_kernel_scheduler);
     return false;
   }
   log_debug(cpu->logger, "Handshake received from the Kernel Scheduler");
@@ -49,8 +49,8 @@ bool connect_to_kernel_memory(t_cpu* cpu)
   char* kernel_memory_port =
       config_get_string_value(cpu->config, "KERNEL_MEMORY_PORT");
 
-  cpu->socket_kernel_memory =
-      create_connection(kernel_memory_ip, kernel_memory_port);
+  cpu->socket_kernel_memory = socket_create(
+      SOCKET_KIND_CLIENT, kernel_memory_ip, kernel_memory_port, false);
 
   if (send_handshake(MID_CPU, cpu->socket_kernel_memory))
   {
@@ -66,7 +66,7 @@ bool connect_to_kernel_memory(t_cpu* cpu)
   {
     log_error(cpu->logger,
               "Could not receive the handshake from Kernel Memory");
-    close(cpu->socket_kernel_memory);
+    socket_close(cpu->socket_kernel_memory);
     return false;
   }
   log_debug(cpu->logger, "Handshake received from Kernel Memory");
@@ -81,15 +81,15 @@ bool connect_memory_stick(t_cpu* cpu)
 
   char stick_ip[16];
   char stick_port[6];
-  int new_socket;
+  t_socket* new_socket;
   uint32_t received_size;
 
   if (!parse_stick_packet(cpu, packet, stick_ip, stick_port, &received_size))
     return false;
 
-  new_socket = create_connection(stick_ip, stick_port);
+  new_socket = socket_create(SOCKET_KIND_CLIENT, stick_ip, stick_port, false);
 
-  if (new_socket <= 0)
+  if (new_socket == NULL)
   {
     log_warning(cpu->logger, "Could not connect to the Memory Stick");
     return false;
@@ -107,7 +107,7 @@ bool connect_memory_stick(t_cpu* cpu)
   if (!send_string(OP_ID_CPU, cpu->id, new_socket))
   {
     log_warning(cpu->logger, "Could not send the ID to the Memory Stick");
-    close(new_socket);
+    socket_destroy(new_socket);
     return false;
   }
 
@@ -132,18 +132,18 @@ uint32_t compute_offset(t_list* sticks)
   return offset;
 }
 
-bool handshake_memory_stick(t_cpu* cpu, int new_socket)
+bool handshake_memory_stick(t_cpu* cpu, t_socket* new_socket)
 {
   if (!send_handshake(MID_CPU, new_socket))
   {
-    close(new_socket);
+    socket_destroy(new_socket);
     return false;
   }
 
   int module_id = receive_handshake(new_socket);
   if (module_id != MID_MEMORY_STICK)
   {
-    close(new_socket);
+    socket_destroy(new_socket);
     return false;
   }
   log_debug(cpu->logger, "Handshake successful with the Memory Stick");

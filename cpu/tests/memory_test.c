@@ -77,8 +77,8 @@ Test(cpu_mmu, reports_a_missing_segment_as_an_error)
 
 Test(cpu_mmu, a_read_past_the_segment_end_raises_a_segmentation_fault)
 {
-  int scheduler_fd;
-  int cpu_fd = cpu_connected_pair(&scheduler_fd);
+  t_socket* scheduler_fd;
+  t_socket* cpu_fd = cpu_connected_pair(&scheduler_fd);
 
   t_cpu cpu = {0};
   cpu.logger = cpu_quiet_logger();
@@ -97,8 +97,8 @@ Test(cpu_mmu, a_read_past_the_segment_end_raises_a_segmentation_fault)
   free(reason);
 
   cpu_destroy_context(context);
-  close(cpu_fd);
-  close(scheduler_fd);
+  socket_destroy(cpu_fd);
+  socket_destroy(scheduler_fd);
   log_destroy(cpu.logger);
 }
 
@@ -106,8 +106,8 @@ Test(cpu_mmu, a_read_past_the_segment_end_raises_a_segmentation_fault)
 
 Test(cpu_memory, request_read_sends_the_offset_and_byte_count)
 {
-  int peer_fd;
-  int stick_fd = cpu_connected_pair(&peer_fd);
+  t_socket* peer_fd;
+  t_socket* stick_fd = cpu_connected_pair(&peer_fd);
   t_cpu cpu = {0};
   cpu.logger = cpu_quiet_logger();
   t_memory_stick_info* stick = cpu_make_stick(0, 100);
@@ -123,15 +123,15 @@ Test(cpu_memory, request_read_sends_the_offset_and_byte_count)
   list_destroy_and_destroy_elements(fields, free);
 
   free(stick);
-  close(stick_fd);
-  close(peer_fd);
+  socket_destroy(stick_fd);
+  socket_destroy(peer_fd);
   log_destroy(cpu.logger);
 }
 
 Test(cpu_memory, receive_read_response_returns_the_data_on_success)
 {
-  int peer_fd;
-  int stick_fd = cpu_connected_pair(&peer_fd);
+  t_socket* peer_fd;
+  t_socket* stick_fd = cpu_connected_pair(&peer_fd);
   t_cpu cpu = {0};
   cpu.logger = cpu_quiet_logger();
   t_memory_stick_info* stick = cpu_make_stick(0, 100);
@@ -145,17 +145,17 @@ Test(cpu_memory, receive_read_response_returns_the_data_on_success)
   free(data);
 
   free(stick);
-  close(stick_fd);
-  close(peer_fd);
+  socket_destroy(stick_fd);
+  socket_destroy(peer_fd);
   log_destroy(cpu.logger);
 }
 
 Test(cpu_memory, receive_read_response_fails_on_an_unexpected_op_code)
 {
-  int peer_fd;
-  int stick_fd = cpu_connected_pair(&peer_fd);
-  int km_fd;
-  int km_peer_fd = cpu_connected_pair(&km_fd);
+  t_socket* peer_fd;
+  t_socket* stick_fd = cpu_connected_pair(&peer_fd);
+  t_socket* km_fd;
+  t_socket* km_peer_fd = cpu_connected_pair(&km_fd);
   t_cpu cpu = {.socket_kernel_memory = km_fd};
   cpu.logger = cpu_quiet_logger();
   t_memory_stick_info* stick = cpu_make_stick(0, 100);
@@ -166,10 +166,10 @@ Test(cpu_memory, receive_read_response_fails_on_an_unexpected_op_code)
   cr_assert_null(receive_read_response(&cpu, stick));
 
   free(stick);
-  close(stick_fd);
-  close(peer_fd);
-  close(km_fd);
-  close(km_peer_fd);
+  socket_destroy(stick_fd);
+  socket_destroy(peer_fd);
+  socket_destroy(km_fd);
+  socket_destroy(km_peer_fd);
   log_destroy(cpu.logger);
 }
 
@@ -177,8 +177,8 @@ Test(cpu_memory, receive_read_response_fails_on_an_unexpected_op_code)
 
 Test(cpu_memory, read_memory_reads_from_a_single_stick)
 {
-  int peer_fd;
-  int stick_fd = cpu_connected_pair(&peer_fd);
+  t_socket* peer_fd;
+  t_socket* stick_fd = cpu_connected_pair(&peer_fd);
   t_cpu cpu = {0};
   cpu.logger = cpu_quiet_logger();
   cpu.memory_sticks = list_create();
@@ -197,17 +197,17 @@ Test(cpu_memory, read_memory_reads_from_a_single_stick)
   free(receive_packet(peer_fd)); /* drain the request, ignore its shape here */
 
   list_destroy_and_destroy_elements(cpu.memory_sticks, free);
-  close(stick_fd);
-  close(peer_fd);
+  socket_destroy(stick_fd);
+  socket_destroy(peer_fd);
   log_destroy(cpu.logger);
 }
 
 Test(cpu_memory, read_memory_spans_two_sticks)
 {
-  int peer_fd_a;
-  int stick_fd_a = cpu_connected_pair(&peer_fd_a);
-  int peer_fd_b;
-  int stick_fd_b = cpu_connected_pair(&peer_fd_b);
+  t_socket* peer_fd_a;
+  t_socket* stick_fd_a = cpu_connected_pair(&peer_fd_a);
+  t_socket* peer_fd_b;
+  t_socket* stick_fd_b = cpu_connected_pair(&peer_fd_b);
   t_cpu cpu = {0};
   cpu.logger = cpu_quiet_logger();
   cpu.memory_sticks = list_create();
@@ -229,10 +229,10 @@ Test(cpu_memory, read_memory_spans_two_sticks)
   free(result);
 
   list_destroy_and_destroy_elements(cpu.memory_sticks, free);
-  close(stick_fd_a);
-  close(peer_fd_a);
-  close(stick_fd_b);
-  close(peer_fd_b);
+  socket_destroy(stick_fd_a);
+  socket_destroy(peer_fd_a);
+  socket_destroy(stick_fd_b);
+  socket_destroy(peer_fd_b);
   log_destroy(cpu.logger);
 }
 
@@ -240,8 +240,8 @@ Test(cpu_memory, read_memory_spans_two_sticks)
 
 Test(cpu_memory, request_write_sends_the_offset_and_the_bytes)
 {
-  int peer_fd;
-  int stick_fd = cpu_connected_pair(&peer_fd);
+  t_socket* peer_fd;
+  t_socket* stick_fd = cpu_connected_pair(&peer_fd);
   t_cpu cpu = {0};
   cpu.logger = cpu_quiet_logger();
   t_memory_stick_info* stick = cpu_make_stick(0, 100);
@@ -259,15 +259,15 @@ Test(cpu_memory, request_write_sends_the_offset_and_the_bytes)
   list_destroy_and_destroy_elements(fields, free);
 
   free(stick);
-  close(stick_fd);
-  close(peer_fd);
+  socket_destroy(stick_fd);
+  socket_destroy(peer_fd);
   log_destroy(cpu.logger);
 }
 
 Test(cpu_memory, receive_write_response_succeeds_on_write_done)
 {
-  int peer_fd;
-  int stick_fd = cpu_connected_pair(&peer_fd);
+  t_socket* peer_fd;
+  t_socket* stick_fd = cpu_connected_pair(&peer_fd);
   t_cpu cpu = {0};
   cpu.logger = cpu_quiet_logger();
   t_memory_stick_info* stick = cpu_make_stick(0, 100);
@@ -277,17 +277,17 @@ Test(cpu_memory, receive_write_response_succeeds_on_write_done)
   cr_assert(receive_write_response(&cpu, stick));
 
   free(stick);
-  close(stick_fd);
-  close(peer_fd);
+  socket_destroy(stick_fd);
+  socket_destroy(peer_fd);
   log_destroy(cpu.logger);
 }
 
 Test(cpu_memory, receive_write_response_fails_when_the_stick_disconnected)
 {
-  int peer_fd;
-  int stick_fd = cpu_connected_pair(&peer_fd);
-  int km_fd;
-  int km_peer_fd = cpu_connected_pair(&km_fd);
+  t_socket* peer_fd;
+  t_socket* stick_fd = cpu_connected_pair(&peer_fd);
+  t_socket* km_fd;
+  t_socket* km_peer_fd = cpu_connected_pair(&km_fd);
   t_cpu cpu = {.socket_kernel_memory = km_fd};
   cpu.logger = cpu_quiet_logger();
   t_memory_stick_info* stick = cpu_make_stick(0, 100);
@@ -297,10 +297,10 @@ Test(cpu_memory, receive_write_response_fails_when_the_stick_disconnected)
   cr_assert_not(receive_write_response(&cpu, stick));
 
   free(stick);
-  close(stick_fd);
-  close(peer_fd);
-  close(km_fd);
-  close(km_peer_fd);
+  socket_destroy(stick_fd);
+  socket_destroy(peer_fd);
+  socket_destroy(km_fd);
+  socket_destroy(km_peer_fd);
   log_destroy(cpu.logger);
 }
 
@@ -308,8 +308,8 @@ Test(cpu_memory, receive_write_response_fails_when_the_stick_disconnected)
 
 Test(cpu_memory, write_memory_writes_to_a_single_stick)
 {
-  int peer_fd;
-  int stick_fd = cpu_connected_pair(&peer_fd);
+  t_socket* peer_fd;
+  t_socket* stick_fd = cpu_connected_pair(&peer_fd);
   t_cpu cpu = {0};
   cpu.logger = cpu_quiet_logger();
   cpu.memory_sticks = list_create();
@@ -329,7 +329,7 @@ Test(cpu_memory, write_memory_writes_to_a_single_stick)
   list_destroy_and_destroy_elements(fields, free);
 
   list_destroy_and_destroy_elements(cpu.memory_sticks, free);
-  close(stick_fd);
-  close(peer_fd);
+  socket_destroy(stick_fd);
+  socket_destroy(peer_fd);
   log_destroy(cpu.logger);
 }

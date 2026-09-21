@@ -116,8 +116,8 @@ Test(cpu_handlers, jnz_does_not_jump_when_the_register_is_zero)
 
 Test(cpu_handlers, mem_alloc_sends_the_syscall_and_marks_segment_changed)
 {
-  int peer_fd;
-  int client_fd = cpu_connected_pair(&peer_fd);
+  t_socket* peer_fd;
+  t_socket* client_fd = cpu_connected_pair(&peer_fd);
   t_cpu cpu = {.socket_kernel_scheduler = client_fd};
   cpu.logger = cpu_quiet_logger();
   t_context* context = cpu_make_context();
@@ -135,15 +135,15 @@ Test(cpu_handlers, mem_alloc_sends_the_syscall_and_marks_segment_changed)
   free(data);
 
   cpu_destroy_context(context);
-  close(client_fd);
-  close(peer_fd);
+  socket_destroy(client_fd);
+  socket_destroy(peer_fd);
   log_destroy(cpu.logger);
 }
 
 Test(cpu_handlers, mem_free_sends_the_syscall_with_a_zero_size)
 {
-  int peer_fd;
-  int client_fd = cpu_connected_pair(&peer_fd);
+  t_socket* peer_fd;
+  t_socket* client_fd = cpu_connected_pair(&peer_fd);
   t_cpu cpu = {.socket_kernel_scheduler = client_fd};
   cpu.logger = cpu_quiet_logger();
   t_context* context = cpu_make_context();
@@ -161,15 +161,15 @@ Test(cpu_handlers, mem_free_sends_the_syscall_with_a_zero_size)
   free(data);
 
   cpu_destroy_context(context);
-  close(client_fd);
-  close(peer_fd);
+  socket_destroy(client_fd);
+  socket_destroy(peer_fd);
   log_destroy(cpu.logger);
 }
 
 Test(cpu_handlers, sleep_sends_the_pid_and_the_blocked_time)
 {
-  int peer_fd;
-  int client_fd = cpu_connected_pair(&peer_fd);
+  t_socket* peer_fd;
+  t_socket* client_fd = cpu_connected_pair(&peer_fd);
   t_cpu cpu = {.socket_kernel_scheduler = client_fd};
   cpu.logger = cpu_quiet_logger();
   t_context* context = cpu_make_context();
@@ -185,15 +185,15 @@ Test(cpu_handlers, sleep_sends_the_pid_and_the_blocked_time)
   free(data);
 
   cpu_destroy_context(context);
-  close(client_fd);
-  close(peer_fd);
+  socket_destroy(client_fd);
+  socket_destroy(peer_fd);
   log_destroy(cpu.logger);
 }
 
 Test(cpu_handlers, stdout_sends_the_address_and_byte_count_from_registers)
 {
-  int peer_fd;
-  int client_fd = cpu_connected_pair(&peer_fd);
+  t_socket* peer_fd;
+  t_socket* client_fd = cpu_connected_pair(&peer_fd);
   t_cpu cpu = {.socket_kernel_scheduler = client_fd};
   cpu.logger = cpu_quiet_logger();
   t_context* context = cpu_make_context();
@@ -212,15 +212,15 @@ Test(cpu_handlers, stdout_sends_the_address_and_byte_count_from_registers)
   free(data);
 
   cpu_destroy_context(context);
-  close(client_fd);
-  close(peer_fd);
+  socket_destroy(client_fd);
+  socket_destroy(peer_fd);
   log_destroy(cpu.logger);
 }
 
 Test(cpu_handlers, stdin_sends_the_address_and_byte_count_from_registers)
 {
-  int peer_fd;
-  int client_fd = cpu_connected_pair(&peer_fd);
+  t_socket* peer_fd;
+  t_socket* client_fd = cpu_connected_pair(&peer_fd);
   t_cpu cpu = {.socket_kernel_scheduler = client_fd};
   cpu.logger = cpu_quiet_logger();
   t_context* context = cpu_make_context();
@@ -239,15 +239,15 @@ Test(cpu_handlers, stdin_sends_the_address_and_byte_count_from_registers)
   free(data);
 
   cpu_destroy_context(context);
-  close(client_fd);
-  close(peer_fd);
+  socket_destroy(client_fd);
+  socket_destroy(peer_fd);
   log_destroy(cpu.logger);
 }
 
 Test(cpu_handlers, mutex_create_sends_the_mutex_name)
 {
-  int peer_fd;
-  int client_fd = cpu_connected_pair(&peer_fd);
+  t_socket* peer_fd;
+  t_socket* client_fd = cpu_connected_pair(&peer_fd);
   t_cpu cpu = {.socket_kernel_scheduler = client_fd};
   cpu.logger = cpu_quiet_logger();
   t_context* context = cpu_make_context();
@@ -262,15 +262,15 @@ Test(cpu_handlers, mutex_create_sends_the_mutex_name)
   free(name);
 
   cpu_destroy_context(context);
-  close(client_fd);
-  close(peer_fd);
+  socket_destroy(client_fd);
+  socket_destroy(peer_fd);
   log_destroy(cpu.logger);
 }
 
 Test(cpu_handlers, mutex_lock_sends_the_mutex_name)
 {
-  int peer_fd;
-  int client_fd = cpu_connected_pair(&peer_fd);
+  t_socket* peer_fd;
+  t_socket* client_fd = cpu_connected_pair(&peer_fd);
   t_cpu cpu = {.socket_kernel_scheduler = client_fd};
   cpu.logger = cpu_quiet_logger();
   t_context* context = cpu_make_context();
@@ -284,15 +284,15 @@ Test(cpu_handlers, mutex_lock_sends_the_mutex_name)
   free(name);
 
   cpu_destroy_context(context);
-  close(client_fd);
-  close(peer_fd);
+  socket_destroy(client_fd);
+  socket_destroy(peer_fd);
   log_destroy(cpu.logger);
 }
 
 Test(cpu_handlers, mutex_unlock_sends_the_mutex_name)
 {
-  int peer_fd;
-  int client_fd = cpu_connected_pair(&peer_fd);
+  t_socket* peer_fd;
+  t_socket* client_fd = cpu_connected_pair(&peer_fd);
   t_cpu cpu = {.socket_kernel_scheduler = client_fd};
   cpu.logger = cpu_quiet_logger();
   t_context* context = cpu_make_context();
@@ -307,15 +307,15 @@ Test(cpu_handlers, mutex_unlock_sends_the_mutex_name)
   free(name);
 
   cpu_destroy_context(context);
-  close(client_fd);
-  close(peer_fd);
+  socket_destroy(client_fd);
+  socket_destroy(peer_fd);
   log_destroy(cpu.logger);
 }
 
 Test(cpu_handlers, init_proc_sends_the_script_path_and_priority)
 {
-  int peer_fd;
-  int client_fd = cpu_connected_pair(&peer_fd);
+  t_socket* peer_fd;
+  t_socket* client_fd = cpu_connected_pair(&peer_fd);
   t_cpu cpu = {.socket_kernel_scheduler = client_fd};
   cpu.logger = cpu_quiet_logger();
   t_context* context = cpu_make_context();
@@ -331,15 +331,15 @@ Test(cpu_handlers, init_proc_sends_the_script_path_and_priority)
   list_destroy_and_destroy_elements(fields, free);
 
   cpu_destroy_context(context);
-  close(client_fd);
-  close(peer_fd);
+  socket_destroy(client_fd);
+  socket_destroy(peer_fd);
   log_destroy(cpu.logger);
 }
 
 Test(cpu_handlers, exit_sends_the_process_finished_message)
 {
-  int peer_fd;
-  int client_fd = cpu_connected_pair(&peer_fd);
+  t_socket* peer_fd;
+  t_socket* client_fd = cpu_connected_pair(&peer_fd);
   t_cpu cpu = {.socket_kernel_scheduler = client_fd};
   cpu.logger = cpu_quiet_logger();
   t_context* context = cpu_make_context();
@@ -353,8 +353,8 @@ Test(cpu_handlers, exit_sends_the_process_finished_message)
   free(message);
 
   cpu_destroy_context(context);
-  close(client_fd);
-  close(peer_fd);
+  socket_destroy(client_fd);
+  socket_destroy(peer_fd);
   log_destroy(cpu.logger);
 }
 
@@ -362,14 +362,14 @@ Test(cpu_handlers, exit_sends_the_process_finished_message)
 
 Test(cpu_handlers, mov_in_reads_a_value_from_memory_into_a_register)
 {
-  int peer_fd;
-  int client_fd = cpu_connected_pair(&peer_fd);
+  t_socket* peer_fd;
+  t_socket* client_fd = cpu_connected_pair(&peer_fd);
   t_cpu cpu = {.socket_kernel_scheduler = client_fd};
   cpu.logger = cpu_quiet_logger();
   cpu.max_segment_size = 100;
   cpu.memory_sticks = list_create();
-  int stick_server_fd;
-  int stick_client_fd = cpu_connected_pair(&stick_server_fd);
+  t_socket* stick_server_fd;
+  t_socket* stick_client_fd = cpu_connected_pair(&stick_server_fd);
   t_memory_stick_info* stick = cpu_make_stick(0, 100);
   stick->socket_ms = stick_client_fd;
   list_add(cpu.memory_sticks, stick);
@@ -388,23 +388,23 @@ Test(cpu_handlers, mov_in_reads_a_value_from_memory_into_a_register)
 
   cpu_destroy_context(context);
   list_destroy_and_destroy_elements(cpu.memory_sticks, free);
-  close(client_fd);
-  close(peer_fd);
-  close(stick_client_fd);
-  close(stick_server_fd);
+  socket_destroy(client_fd);
+  socket_destroy(peer_fd);
+  socket_destroy(stick_client_fd);
+  socket_destroy(stick_server_fd);
   log_destroy(cpu.logger);
 }
 
 Test(cpu_handlers, mov_out_writes_a_register_value_to_memory)
 {
-  int peer_fd;
-  int client_fd = cpu_connected_pair(&peer_fd);
+  t_socket* peer_fd;
+  t_socket* client_fd = cpu_connected_pair(&peer_fd);
   t_cpu cpu = {.socket_kernel_scheduler = client_fd};
   cpu.logger = cpu_quiet_logger();
   cpu.max_segment_size = 100;
   cpu.memory_sticks = list_create();
-  int stick_server_fd;
-  int stick_client_fd = cpu_connected_pair(&stick_server_fd);
+  t_socket* stick_server_fd;
+  t_socket* stick_client_fd = cpu_connected_pair(&stick_server_fd);
   t_memory_stick_info* stick = cpu_make_stick(0, 100);
   stick->socket_ms = stick_client_fd;
   list_add(cpu.memory_sticks, stick);
@@ -429,17 +429,17 @@ Test(cpu_handlers, mov_out_writes_a_register_value_to_memory)
 
   cpu_destroy_context(context);
   list_destroy_and_destroy_elements(cpu.memory_sticks, free);
-  close(client_fd);
-  close(peer_fd);
-  close(stick_client_fd);
-  close(stick_server_fd);
+  socket_destroy(client_fd);
+  socket_destroy(peer_fd);
+  socket_destroy(stick_client_fd);
+  socket_destroy(stick_server_fd);
   log_destroy(cpu.logger);
 }
 
 Test(cpu_handlers, copy_mem_short_circuits_when_the_destination_faults)
 {
-  int peer_fd;
-  int client_fd = cpu_connected_pair(&peer_fd);
+  t_socket* peer_fd;
+  t_socket* client_fd = cpu_connected_pair(&peer_fd);
   t_cpu cpu = {.socket_kernel_scheduler = client_fd};
   cpu.logger = cpu_quiet_logger();
   cpu.max_segment_size = 100;
@@ -460,7 +460,7 @@ Test(cpu_handlers, copy_mem_short_circuits_when_the_destination_faults)
   free(receive_string(peer_fd));
 
   cpu_destroy_context(context);
-  close(client_fd);
-  close(peer_fd);
+  socket_destroy(client_fd);
+  socket_destroy(peer_fd);
   log_destroy(cpu.logger);
 }
