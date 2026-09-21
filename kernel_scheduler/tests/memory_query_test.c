@@ -2,6 +2,10 @@
 
 #include <criterion/criterion.h>
 #include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
 #include "kernel_scheduler/scheduler/queue_types.h"
 #include "support.h"
@@ -111,4 +115,91 @@ Test(ks_memory_query, process_size_no_logger_returns_the_reported_size)
   ks_destroy_stub_queues_full(queues);
   socket_destroy(server_fd);
   log_destroy(logger);
+}
+
+/* A trace-level logger that writes to a temp file, so a test can tell which
+ * messages the code under test logged. */
+typedef struct
+{
+  char path[64];
+  t_log* logger;
+} t_file_logger;
+
+static t_file_logger open_file_logger(void)
+{
+  t_file_logger file_logger = {.path = "/tmp/ks_memory_query_XXXXXX"};
+  int fd = mkstemp(file_logger.path);
+  cr_assert_neq(fd, -1);
+  close(fd);
+  file_logger.logger =
+      log_create(file_logger.path, "KS-test", false, LOG_LEVEL_TRACE, true);
+  cr_assert_not_null(file_logger.logger);
+  return file_logger;
+}
+
+static bool logged(t_file_logger* file_logger, const char* text)
+{
+  FILE* file = fopen(file_logger->path, "r");
+  cr_assert_not_null(file);
+  char line[512];
+  bool found = false;
+  while (fgets(line, sizeof(line), file) != NULL)
+  {
+    if (strstr(line, text) != NULL)
+      found = true;
+  }
+  fclose(file);
+  return found;
+}
+
+static void close_file_logger(t_file_logger* file_logger)
+{
+  log_destroy(file_logger->logger);
+  unlink(file_logger->path);
+}
+
+Test(ks_memory_query, process_size_retries_after_a_new_memory_stick)
+{
+  t_socket* server_fd;
+  t_socket* client_fd = ks_connected_pair(&server_fd);
+  cr_assert(send_string(OP_NEW_MEMORY_STICK, "a stick connected", server_fd));
+  int size = 300;
+  cr_assert(send_buffer(OP_PROCESS_SIZE, &size, sizeof(size), server_fd));
+
+  t_file_logger file_logger = open_file_logger();
+  t_queues* queues = ks_stub_queues_full(file_logger.logger);
+  queues->km_socket = client_fd;
+  queues->routines.terminate_routines = true;
+
+  cr_assert_eq(process_size(queues, 1), 300);
+  cr_assert(logged(&file_logger, "Process size: 300"));
+
+  ks_wait_thread_counter_zero(queues);
+  ks_destroy_stub_queues_full(queues);
+  socket_destroy(server_fd);
+  close_file_logger(&file_logger);
+}
+
+Test(ks_memory_query,
+     process_size_no_logger_stays_quiet_after_a_new_memory_stick)
+{
+  t_socket* server_fd;
+  t_socket* client_fd = ks_connected_pair(&server_fd);
+  cr_assert(send_string(OP_NEW_MEMORY_STICK, "a stick connected", server_fd));
+  int size = 400;
+  cr_assert(send_buffer(OP_PROCESS_SIZE, &size, sizeof(size), server_fd));
+
+  t_file_logger file_logger = open_file_logger();
+  t_queues* queues = ks_stub_queues_full(file_logger.logger);
+  queues->km_socket = client_fd;
+  queues->routines.terminate_routines = true;
+
+  cr_assert_eq(process_size_no_logger(queues, 1), 400);
+  cr_assert_not(logged(&file_logger, "Process size"),
+                "the no-logger variant must not log the size, even on a retry");
+
+  ks_wait_thread_counter_zero(queues);
+  ks_destroy_stub_queues_full(queues);
+  socket_destroy(server_fd);
+  close_file_logger(&file_logger);
 }
