@@ -1,15 +1,18 @@
 #pragma once
 
-#include <stdint.h>
+#include <stdbool.h>
 
-#include "kernel_scheduler/scheduler/blocking_list.h"
-#include "kernel_scheduler/scheduler/compaction.h"
-#include "kernel_scheduler/scheduler/counter.h"
-#include "kernel_scheduler/scheduler/exec_list.h"
-#include "kernel_scheduler/scheduler/memory_query.h"
-#include "kernel_scheduler/scheduler/queue_types.h"
-#include "kernel_scheduler/scheduler/ready_queue.h"
-#include "kernel_scheduler/scheduler/suspension.h"
+#include "kernel_scheduler/domain/pcb.h"
+#include "kernel_scheduler/scheduler/blocking_list.h"  // IWYU pragma: export
+#include "kernel_scheduler/scheduler/compaction.h"     // IWYU pragma: export
+#include "kernel_scheduler/scheduler/counter.h"        // IWYU pragma: export
+#include "kernel_scheduler/scheduler/exec_list.h"      // IWYU pragma: export
+#include "kernel_scheduler/scheduler/memory_query.h"   // IWYU pragma: export
+#include "kernel_scheduler/scheduler/queue_types.h"    // IWYU pragma: export
+#include "kernel_scheduler/scheduler/ready_queue.h"    // IWYU pragma: export
+#include "kernel_scheduler/scheduler/suspension.h"     // IWYU pragma: export
+#include "utils/collections/list.h"
+#include "utils/log.h"
 #include "utils/sockets.h"
 
 /**

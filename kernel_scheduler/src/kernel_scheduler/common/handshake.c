@@ -1,6 +1,10 @@
 #include "kernel_scheduler/common/handshake.h"
 
+#include <stdbool.h>
+
+#include "utils/log.h"
 #include "utils/msg.h"
+#include "utils/sockets.h"
 
 bool respond_handshake(t_socket* socket_fd, int id_module, t_log* logger)
 {

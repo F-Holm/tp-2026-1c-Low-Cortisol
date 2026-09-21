@@ -1,9 +1,6 @@
 #pragma once
 
 #include <stdbool.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
 
 #include "kernel_scheduler/connections/kernel_memory.h"
 #include "kernel_scheduler/scheduler/queues.h"
@@ -11,9 +8,7 @@
 #include "utils/collections/list.h"
 #include "utils/config.h"
 #include "utils/log.h"
-#include "utils/registers_cpu.h"
 #include "utils/sockets.h"
-#include "utils/syscalls.h"
 
 extern const char* const SCHEDULING_ALGORITHMS[3];
 

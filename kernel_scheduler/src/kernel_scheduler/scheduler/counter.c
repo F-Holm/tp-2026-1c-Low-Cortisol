@@ -2,6 +2,7 @@
 
 #include <stdlib.h>
 
+#include "kernel_scheduler/scheduler/queue_types.h"
 #include "utils/mutex.h"
 
 t_counter* create_counter(void)

@@ -1,8 +1,12 @@
 #include "kernel_scheduler/scheduler/ready_queue.h"
 
 #include <limits.h>
+#include <stdatomic.h>
+#include <stdbool.h>
 #include <stdlib.h>
 
+#include "kernel_scheduler/domain/pcb.h"
+#include "kernel_scheduler/scheduler/queue_types.h"
 #include "utils/collections/list.h"
 #include "utils/mutex.h"
 

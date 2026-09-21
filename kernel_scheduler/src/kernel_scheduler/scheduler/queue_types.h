@@ -2,9 +2,7 @@
 
 #include <stdatomic.h>
 #include <stdbool.h>
-#include <stdint.h>
 
-#include "kernel_scheduler/domain/pcb.h"
 #include "kernel_scheduler/scheduler/process_counter.h"
 #include "utils/collections/list.h"
 #include "utils/log.h"

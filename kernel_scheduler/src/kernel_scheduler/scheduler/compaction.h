@@ -2,6 +2,7 @@
 
 #include <stdbool.h>
 
+#include "kernel_scheduler/domain/pcb.h"
 #include "kernel_scheduler/scheduler/queue_types.h"
 
 // The memory-compaction and resumption routines. Both run on detached threads

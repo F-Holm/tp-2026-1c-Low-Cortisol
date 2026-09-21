@@ -4,7 +4,9 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
+#include "utils/log.h"
 #include "utils/msg.h"
+#include "utils/sockets.h"
 
 const char* const SHUTDOWN_REASONS[4] = {
     "Processes finished successfully", "BSOD: Corruption of memory detected",

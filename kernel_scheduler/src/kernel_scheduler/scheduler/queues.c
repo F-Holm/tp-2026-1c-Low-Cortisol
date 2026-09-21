@@ -1,15 +1,22 @@
 #include "kernel_scheduler/scheduler/queues.h"
 
-#include <limits.h>
+#include <stdatomic.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdlib.h>
 
-#include "kernel_scheduler/common/time.h"
 #include "kernel_scheduler/connections/kernel_memory.h"
+#include "kernel_scheduler/domain/pcb.h"
 #include "kernel_scheduler/scheduler/compaction.h"
+#include "kernel_scheduler/scheduler/process_counter.h"
 #include "kernel_scheduler/scheduler/scheduler_internal.h"
 #include "kernel_scheduler/scheduler/suspension.h"
 #include "kernel_scheduler/shutdown.h"
+#include "utils/collections/list.h"
+#include "utils/log.h"
 #include "utils/msg.h"
 #include "utils/mutex.h"
+#include "utils/sockets.h"
 
 const char* const PROCESS_END_REASONS[9] = {
     "invalid priority",

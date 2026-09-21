@@ -1,14 +1,21 @@
 #include "kernel_scheduler/connections/io.h"
 
+#include <stdatomic.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "kernel_scheduler/common/handshake.h"
+#include "kernel_scheduler/domain/pcb.h"
 #include "kernel_scheduler/scheduler/queues.h"
 #include "kernel_scheduler/shutdown.h"
+#include "utils/collections/list.h"
 #include "utils/io.h"
+#include "utils/log.h"
 #include "utils/msg.h"
 #include "utils/mutex.h"
-#include "utils/registers_cpu.h"
+#include "utils/sockets.h"
 #include "utils/syscalls.h"
 #include "utils/threads.h"
 

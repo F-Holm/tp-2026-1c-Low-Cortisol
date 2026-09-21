@@ -1,8 +1,10 @@
 #include "kernel_scheduler/domain/pcb.h"
 
 #include <stdatomic.h>
+#include <stdbool.h>
 #include <stdlib.h>
 
+#include "utils/collections/list.h"
 #include "utils/mutex.h"
 
 const char* const STATE_NAMES[7] = {

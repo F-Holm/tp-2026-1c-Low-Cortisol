@@ -1,6 +1,10 @@
 #include "kernel_scheduler/scheduler/exec_list.h"
 
+#include <stdbool.h>
+
 #include "kernel_scheduler/common/time.h"
+#include "kernel_scheduler/domain/pcb.h"
+#include "kernel_scheduler/scheduler/queue_types.h"
 #include "utils/collections/list.h"
 #include "utils/mutex.h"
 

@@ -2,10 +2,10 @@
 
 #include <stdbool.h>
 
+#include "kernel_scheduler/domain/pcb.h"
 #include "kernel_scheduler/scheduler/queues.h"
 #include "utils/collections/dictionary.h"
 #include "utils/collections/list.h"
-#include "utils/log.h"
 #include "utils/mutex.h"
 
 typedef struct

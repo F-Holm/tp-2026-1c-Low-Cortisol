@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "kernel_scheduler/domain/pcb.h"
 #include "kernel_scheduler/scheduler/queue_types.h"
 #include "utils/log.h"
 

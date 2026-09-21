@@ -1,7 +1,16 @@
 #include "kernel_scheduler/syscalls/memory.h"
 
+#include <stdbool.h>
+#include <stdlib.h>
+
+#include "kernel_scheduler/scheduler/compaction.h"
+#include "kernel_scheduler/scheduler/memory_query.h"
+#include "kernel_scheduler/scheduler/queue_types.h"
 #include "kernel_scheduler/shutdown.h"
+#include "utils/log.h"
 #include "utils/msg.h"
+#include "utils/sockets.h"
+#include "utils/syscalls.h"
 
 static bool response_km_mem_alloc(t_queues* queues);
 static bool has_space(t_syscall_memory* mem_alloc, t_queues* queues);

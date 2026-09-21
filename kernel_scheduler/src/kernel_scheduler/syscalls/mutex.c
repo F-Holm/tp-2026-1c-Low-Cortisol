@@ -1,10 +1,18 @@
 #include "kernel_scheduler/syscalls/mutex.h"
 
 #include <limits.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
+#include "kernel_scheduler/domain/pcb.h"
+#include "kernel_scheduler/scheduler/exec_list.h"
+#include "kernel_scheduler/scheduler/queue_types.h"
+#include "kernel_scheduler/scheduler/queues.h"
+#include "utils/collections/dictionary.h"
+#include "utils/collections/list.h"
+#include "utils/log.h"
 #include "utils/mutex.h"
 
 static void log_mutex_tomado(t_log* logger, uint32_t pid, char* id_mutex);

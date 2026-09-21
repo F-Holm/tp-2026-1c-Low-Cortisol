@@ -1,9 +1,14 @@
 #include "kernel_scheduler/connections/kernel_memory.h"
 
+#include <stdatomic.h>
 #include <stdbool.h>
+#include <stdint.h>
+#include <stdlib.h>
 
 #include "kernel_scheduler/shutdown.h"
+#include "utils/log.h"
 #include "utils/msg.h"
+#include "utils/sockets.h"
 #include "utils/threads.h"
 #include "utils/time.h"
 

@@ -1,8 +1,9 @@
 #pragma once
 
-#include <stdint.h>
+#include <stdbool.h>
 
 #include "kernel_scheduler/connections/io.h"
+#include "kernel_scheduler/domain/pcb.h"
 #include "kernel_scheduler/scheduler/queues.h"
 #include "kernel_scheduler/syscalls/mutex.h"
 #include "utils/collections/list.h"

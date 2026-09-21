@@ -1,10 +1,13 @@
 #include "kernel_scheduler/scheduler/memory_query.h"
 
+#include <stdint.h>
 #include <stdlib.h>
 
 #include "kernel_scheduler/scheduler/queues.h"
 #include "kernel_scheduler/shutdown.h"
+#include "utils/log.h"
 #include "utils/msg.h"
+#include "utils/sockets.h"
 
 static int receive_space(t_queues* queues);
 static int receive_size(t_queues* queues);

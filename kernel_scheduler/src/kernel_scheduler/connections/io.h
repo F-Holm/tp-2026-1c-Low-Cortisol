@@ -3,12 +3,13 @@
 #include <stdatomic.h>
 #include <stdbool.h>
 
-#include "kernel_scheduler/app/kernel_scheduler.h"
+#include "kernel_scheduler/domain/pcb.h"
+#include "kernel_scheduler/scheduler/queue_types.h"
 #include "utils/collections/list.h"
 #include "utils/log.h"
 #include "utils/mutex.h"
 #include "utils/sockets.h"
-#include "utils/string.h"
+#include "utils/syscalls.h"
 #include "utils/threads.h"
 
 /****************** IO FUNCTIONS ******************/

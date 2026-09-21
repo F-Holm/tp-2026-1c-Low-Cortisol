@@ -4,6 +4,7 @@
 
 #include "kernel_scheduler/domain/pcb.h"
 #include "kernel_scheduler/scheduler/queue_types.h"
+#include "utils/collections/list.h"
 
 /**
  * @brief Creates an empty ready queue. Pass @p multilevel_algorithms (one

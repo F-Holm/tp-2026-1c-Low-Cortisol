@@ -1,9 +1,11 @@
 #include "kernel_scheduler/scheduler/process_counter.h"
 
+#include <stdatomic.h>
 #include <stdbool.h>
 #include <stdlib.h>
 
 #include "kernel_scheduler/shutdown.h"
+#include "utils/sockets.h"
 
 t_process_counter* init_counter_processes(t_socket* km_socket)
 {

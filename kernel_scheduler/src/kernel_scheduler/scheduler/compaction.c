@@ -1,8 +1,10 @@
 #include "kernel_scheduler/scheduler/compaction.h"
 
 #include <stdatomic.h>
+#include <stdbool.h>
 #include <stdlib.h>
 
+#include "kernel_scheduler/domain/pcb.h"
 #include "kernel_scheduler/scheduler/blocking_list.h"
 #include "kernel_scheduler/scheduler/exec_list.h"
 #include "kernel_scheduler/scheduler/queues.h"
@@ -10,6 +12,8 @@
 #include "kernel_scheduler/scheduler/scheduler_internal.h"
 #include "kernel_scheduler/scheduler/suspension.h"
 #include "kernel_scheduler/shutdown.h"
+#include "utils/collections/list.h"
+#include "utils/log.h"
 #include "utils/msg.h"
 #include "utils/mutex.h"
 #include "utils/threads.h"

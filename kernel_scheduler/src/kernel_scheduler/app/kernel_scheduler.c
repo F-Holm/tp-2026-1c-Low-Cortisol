@@ -1,13 +1,19 @@
 #include "kernel_scheduler/app/kernel_scheduler.h"
 
+#include <stdbool.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "kernel_scheduler/connections/kernel_memory.h"
 #include "kernel_scheduler/connections/server.h"
+#include "kernel_scheduler/scheduler/queue_types.h"
+#include "kernel_scheduler/scheduler/queues.h"
 #include "kernel_scheduler/shutdown.h"
+#include "kernel_scheduler/syscalls/mutex.h"
+#include "utils/collections/list.h"
 #include "utils/config.h"
 #include "utils/log.h"
-#include "utils/msg.h"
+#include "utils/sockets.h"
 #include "utils/string.h"
 
 const char* const SCHEDULING_ALGORITHMS[] = {"FIFO", "RR", "MULTILEVEL"};

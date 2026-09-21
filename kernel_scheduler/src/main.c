@@ -1,17 +1,7 @@
-#include <stdbool.h>
-#include <stdio.h>
 #include <stdlib.h>
 
 #include "kernel_scheduler/app/kernel_scheduler.h"
-#include "kernel_scheduler/connections/io.h"
-#include "kernel_scheduler/connections/kernel_memory.h"
 #include "kernel_scheduler/connections/server.h"
-#include "kernel_scheduler/scheduler/queues.h"
-#include "kernel_scheduler/syscalls/mutex.h"
-#include "utils/collections/list.h"
-#include "utils/config.h"
-#include "utils/log.h"
-#include "utils/msg.h"
 
 int main(int argc, char* argv[])
 {
