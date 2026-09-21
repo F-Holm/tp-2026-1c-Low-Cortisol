@@ -1,5 +1,7 @@
 #pragma once
 
+#include <stdbool.h>
+
 #include "kernel_scheduler/scheduler/queues.h"
 #include "utils/log.h"
 #include "utils/sockets.h"
@@ -70,3 +72,19 @@ t_socket* ks_dead_socket_with_mutex(void);
  *        ks_stub_queues_full() whenever a test may have triggered one.
  */
 void ks_wait_thread_counter_zero(t_queues* queues);
+
+/** @brief A trace-level logger that writes to a temp file. */
+typedef struct
+{
+  char path[64];
+  t_log* logger;
+} t_ks_file_logger;
+
+/** @brief Opens a file logger; close it with ks_close_file_logger(). */
+t_ks_file_logger ks_open_file_logger(void);
+
+/** @brief Whether any line logged so far contains @p text. */
+bool ks_file_logger_contains(t_ks_file_logger* file_logger, const char* text);
+
+/** @brief Destroys the logger and deletes its file. */
+void ks_close_file_logger(t_ks_file_logger* file_logger);

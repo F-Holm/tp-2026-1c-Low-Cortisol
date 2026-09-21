@@ -5,6 +5,8 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
 #include "kernel_scheduler/scheduler/blocking_list.h"
 #include "kernel_scheduler/scheduler/counter.h"
@@ -162,4 +164,37 @@ void ks_wait_thread_counter_zero(t_queues* queues)
              &(queues->routines.thread_counter->counter_mutex));
   }
   mtx_unlock(&(queues->routines.thread_counter->counter_mutex));
+}
+
+t_ks_file_logger ks_open_file_logger(void)
+{
+  t_ks_file_logger file_logger = {.path = "/tmp/ks_file_logger_XXXXXX"};
+  int fd = mkstemp(file_logger.path);
+  cr_assert_neq(fd, -1);
+  close(fd);
+  file_logger.logger =
+      log_create(file_logger.path, "KS-test", false, LOG_LEVEL_TRACE, true);
+  cr_assert_not_null(file_logger.logger);
+  return file_logger;
+}
+
+bool ks_file_logger_contains(t_ks_file_logger* file_logger, const char* text)
+{
+  FILE* file = fopen(file_logger->path, "r");
+  cr_assert_not_null(file);
+  char line[512];
+  bool found = false;
+  while (fgets(line, sizeof(line), file) != NULL)
+  {
+    if (strstr(line, text) != NULL)
+      found = true;
+  }
+  fclose(file);
+  return found;
+}
+
+void ks_close_file_logger(t_ks_file_logger* file_logger)
+{
+  log_destroy(file_logger->logger);
+  unlink(file_logger->path);
 }
