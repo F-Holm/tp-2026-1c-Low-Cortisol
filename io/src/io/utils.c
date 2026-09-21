@@ -1,5 +1,14 @@
 #include "io/utils.h"
 
+#include <stdbool.h>
+#include <string.h>
+
+#include "utils/config.h"
+#include "utils/io.h"
+#include "utils/log.h"
+#include "utils/msg.h"
+#include "utils/sockets.h"
+
 void close_io(t_io* io)
 {
   socket_destroy(io->socket_io);

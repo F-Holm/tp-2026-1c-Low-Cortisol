@@ -1,21 +1,8 @@
 #pragma once
 
-#include <assert.h>
 #include <stdbool.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
 
 #include "utils.h"
-#include "utils/collections/list.h"
-#include "utils/config.h"
-#include "utils/io.h"
-#include "utils/log.h"
-#include "utils/msg.h"
-#include "utils/registers_cpu.h"
-#include "utils/syscalls.h"
 
 /** @brief Handles a STDIN request: reads a line from the terminal and replies
  * with it. @return false on failure. */

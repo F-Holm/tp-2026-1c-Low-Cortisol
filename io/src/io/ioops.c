@@ -1,6 +1,16 @@
 #include "ioops.h"
 
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "io/utils.h"
+#include "utils/collections/list.h"
 #include "utils/file.h"
+#include "utils/log.h"
+#include "utils/msg.h"
+#include "utils/syscalls.h"
 #include "utils/time.h"
 
 bool run_stdin(t_io* io)

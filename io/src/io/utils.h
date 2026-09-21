@@ -1,17 +1,10 @@
 #pragma once
 
-#include <assert.h>
 #include <stdbool.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
-#include "utils/collections/list.h"
 #include "utils/config.h"
-#include "utils/io.h"
 #include "utils/log.h"
-#include "utils/msg.h"
+#include "utils/sockets.h"
 
 typedef struct
 {
