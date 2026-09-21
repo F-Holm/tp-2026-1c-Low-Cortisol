@@ -26,7 +26,11 @@ int receive_op_code(t_socket* socket)
 
 void* receive_buffer(int* size, t_socket* socket)
 {
-  socket_receive(socket, size, sizeof(int));
+  if (!socket_receive(socket, size, sizeof(int)))
+  {
+    *size = 0;
+    return NULL;
+  }
   if (*size == 0)
   {
     return NULL;
