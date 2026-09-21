@@ -1,8 +1,6 @@
 #include "memory_stick/kernel_memory.h"
 
-#include <arpa/inet.h>
 #include <criterion/criterion.h>
-#include <netinet/in.h>
 #include <stdlib.h>
 #include <unistd.h>
 
