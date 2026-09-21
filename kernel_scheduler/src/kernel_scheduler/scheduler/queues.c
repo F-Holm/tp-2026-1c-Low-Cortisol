@@ -8,6 +8,7 @@
 #include "kernel_scheduler/connections/kernel_memory.h"
 #include "kernel_scheduler/domain/pcb.h"
 #include "kernel_scheduler/scheduler/compaction.h"
+#include "kernel_scheduler/scheduler/kernel_memory_reply.h"
 #include "kernel_scheduler/scheduler/process_counter.h"
 #include "kernel_scheduler/scheduler/scheduler_internal.h"
 #include "kernel_scheduler/scheduler/suspension.h"
@@ -417,33 +418,10 @@ static bool notify_new_process(t_queues* queues, char* instructions_file,
   }
 
   ret = false;
-  bool keep_running = true;
-  while (keep_running)
+  if (RECEIVE_KM_OPCODE(queues, OP_PROCESS_STARTED) == OP_PROCESS_STARTED)
   {
-    int op_code = receive_op_code(queues->km_socket);
-    switch (op_code)
-    {
-      case OP_PROCESS_STARTED:
-        free(receive_string(queues->km_socket));
-        ret = true;
-        keep_running = false;
-        break;
-      case OP_MEMORY_CORRUPTED:
-        free(receive_string(queues->km_socket));
-        close_kernel_scheduler(SR_CORRUPTED_MEMORY);
-        keep_running = false;
-        break;
-      case OP_NEW_MEMORY_STICK:
-        free(receive_string(queues->km_socket));
-        create_resumption_routine_thread(queues);
-        keep_running = true;
-        break;
-      default:
-        free(receive_string(queues->km_socket));
-        close_kernel_scheduler(SR_KERNEL_MEMORY_CONNECTION_FAILURE);
-        keep_running = false;
-        break;
-    }
+    free(receive_string(queues->km_socket));
+    ret = true;
   }
 
   socket_mutex_unlock(queues->km_socket);
