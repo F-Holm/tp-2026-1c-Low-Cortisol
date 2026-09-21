@@ -8,6 +8,7 @@
 
 #include "kernel_scheduler/common/handshake.h"
 #include "kernel_scheduler/domain/pcb.h"
+#include "kernel_scheduler/scheduler/kernel_memory_reply.h"
 #include "kernel_scheduler/scheduler/queues.h"
 #include "kernel_scheduler/shutdown.h"
 #include "utils/collections/list.h"
@@ -324,26 +325,11 @@ static void close_thread_io(t_io* io)
 
 static bool chat_km_stdin(t_io* io_in)
 {
-  int cod_op = -1;
-  cod_op = receive_op_code(io_in->km_socket);
-  switch (cod_op)
-  {
-    case OP_MEMORY_CORRUPTED:
-      free(receive_string(io_in->km_socket));
-      close_kernel_scheduler(SR_CORRUPTED_MEMORY);
-      return false;
-    case OP_NEW_MEMORY_STICK:
-      free(receive_string(io_in->km_socket));
-      create_resumption_routine_thread(io_in->queues);
-      return chat_km_stdin(io_in);
-    case OP_STDIN_RESPONSE:
-      free(receive_string(io_in->km_socket));
-      return true;
-    default:
-      free(receive_string(io_in->km_socket));
-      close_kernel_scheduler(SR_KERNEL_MEMORY_CONNECTION_FAILURE);
-      return false;
-  }
+  if (RECEIVE_KM_OPCODE(io_in->queues, OP_STDIN_RESPONSE) == OP_CODE_ERROR)
+    return false;
+
+  free(receive_string(io_in->queues->km_socket));
+  return true;
 }
 
 static int io_stdin_f(t_stdin* request, t_io* io_in)
@@ -377,26 +363,7 @@ static int io_stdin_f(t_stdin* request, t_io* io_in)
 
 static bool receive_km_stdout(t_io* io_out)
 {
-  int op_code = -1;
-  op_code = receive_op_code(io_out->km_socket);
-
-  switch (op_code)
-  {
-    case OP_MEMORY_CORRUPTED:
-      free(receive_string(io_out->km_socket));
-      close_kernel_scheduler(SR_CORRUPTED_MEMORY);
-      return false;
-    case OP_NEW_MEMORY_STICK:
-      free(receive_string(io_out->km_socket));
-      create_resumption_routine_thread(io_out->queues);
-      return receive_km_stdout(io_out);
-    case OP_STDOUT_RESPONSE:
-      return true;
-    default:
-      free(receive_string(io_out->km_socket));
-      close_kernel_scheduler(SR_KERNEL_MEMORY_CONNECTION_FAILURE);
-      return false;
-  }
+  return RECEIVE_KM_OPCODE(io_out->queues, OP_STDOUT_RESPONSE) != OP_CODE_ERROR;
 }
 
 static bool io_stdout_f(t_stdout* request, t_io* io_out)
