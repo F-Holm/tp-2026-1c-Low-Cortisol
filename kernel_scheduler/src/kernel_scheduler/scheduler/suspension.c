@@ -9,6 +9,7 @@
 #include "kernel_scheduler/domain/pcb.h"
 #include "kernel_scheduler/scheduler/blocking_list.h"
 #include "kernel_scheduler/scheduler/compaction.h"
+#include "kernel_scheduler/scheduler/kernel_memory_reply.h"
 #include "kernel_scheduler/scheduler/memory_query.h"
 #include "kernel_scheduler/scheduler/queue_types.h"
 #include "kernel_scheduler/scheduler/ready_queue.h"
@@ -241,27 +242,13 @@ void unlock_threads_suspended(t_queues* queues)
 
 static bool receive_suspend_process_response(t_queues* queues)
 {
-  int op_code = receive_op_code(queues->km_socket);
-  switch (op_code)
-  {
-    case OP_SUSPENSION_OK:
-      free(receive_string(queues->km_socket));
-      return true;
-    case OP_SUSPENSION_FAILED:
-      break;
-    case OP_NEW_MEMORY_STICK:
-      free(receive_string(queues->km_socket));
-      create_resumption_routine_thread(queues);
-      return receive_suspend_process_response(queues);
-    case OP_MEMORY_CORRUPTED:
-      close_kernel_scheduler(SR_CORRUPTED_MEMORY);
-      break;
-    default:
-      close_kernel_scheduler(SR_KERNEL_MEMORY_CONNECTION_FAILURE);
-      break;
-  }
+  int op_code =
+      RECEIVE_KM_OPCODE(queues, OP_SUSPENSION_OK, OP_SUSPENSION_FAILED);
+  if (op_code == OP_CODE_ERROR)
+    return false;
+
   free(receive_string(queues->km_socket));
-  return false;
+  return op_code == OP_SUSPENSION_OK;
 }
 
 static bool notify_process_suspended(t_pcb* pcb, t_queues* queues)
