@@ -1,8 +1,12 @@
 #include "memory_stick/kernel_memory.h"
 
+#include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 
+#include "utils/log.h"
 #include "utils/msg.h"
+#include "utils/sockets.h"
 
 bool handshake_km(t_socket* socket_km, t_log* logger)
 {

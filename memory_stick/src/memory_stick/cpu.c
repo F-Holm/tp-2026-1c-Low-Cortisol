@@ -1,7 +1,15 @@
 #include "memory_stick/cpu.h"
 
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdlib.h>
+
+#include "memory_stick/memory_stick.h"
+#include "utils/collections/list.h"
+#include "utils/log.h"
 #include "utils/msg.h"
 #include "utils/mutex.h"
+#include "utils/sockets.h"
 #include "utils/threads.h"
 
 t_socket* create_server_cpu(t_log* logger)

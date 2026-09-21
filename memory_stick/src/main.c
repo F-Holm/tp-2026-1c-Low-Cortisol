@@ -1,12 +1,8 @@
 #include <stdbool.h>
-#include <stdio.h>
 #include <stdlib.h>
 
-#include "memory_stick/cpu.h"
-#include "memory_stick/kernel_memory.h"
 #include "memory_stick/memory_stick.h"
 #include "utils/collections/list.h"
-#include "utils/config.h"
 #include "utils/log.h"
 #include "utils/msg.h"
 #include "utils/threads.h"

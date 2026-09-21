@@ -2,12 +2,9 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
 
 #include "memory_stick/memory_stick.h"
 #include "utils/collections/list.h"
-#include "utils/config.h"
 #include "utils/log.h"
 #include "utils/mutex.h"
 #include "utils/sockets.h"

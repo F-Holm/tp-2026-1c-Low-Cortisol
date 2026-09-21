@@ -1,11 +1,16 @@
 #include "memory_stick/memory_stick.h"
 
+#include <stdbool.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "memory_stick/cpu.h"
 #include "memory_stick/kernel_memory.h"
+#include "utils/config.h"
+#include "utils/log.h"
 #include "utils/msg.h"
 #include "utils/mutex.h"
+#include "utils/sockets.h"
 #include "utils/threads.h"
 #include "utils/time.h"
 

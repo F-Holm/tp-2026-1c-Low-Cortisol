@@ -1,6 +1,6 @@
 #pragma once
 
-#include <stdio.h>
+#include <stdbool.h>
 
 #include "utils/config.h"
 #include "utils/log.h"
