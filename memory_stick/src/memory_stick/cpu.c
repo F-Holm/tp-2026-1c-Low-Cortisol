@@ -1,38 +1,35 @@
 #include "memory_stick/cpu.h"
 
-#include <bits/pthreadtypes.h>
-#include <pthread.h>
-
 #include "utils/msg.h"
+#include "utils/mutex.h"
+#include "utils/threads.h"
 
-int create_server_cpu(t_log* logger)
+t_socket* create_server_cpu(t_log* logger)
 {
-  int ret = start_server("0");
-  if (ret <= 0)
+  t_socket* ret =
+      socket_create(SOCKET_KIND_SERVER, NULL, SOCKET_PORT_EPHEMERAL, false);
+  if (ret == NULL)
   {
     log_error(logger, "Error creating the CPU server");
-    return -1;
+    return NULL;
   }
   log_debug(logger, "CPU server created successfully");
   return ret;
 }
 
-uint16_t get_cpu_port(int socket_server_cpu)
+uint16_t get_cpu_port(t_socket* socket_server_cpu)
 {
-  struct sockaddr_in addr;
-  socklen_t len = sizeof(addr);
-  getsockname(socket_server_cpu, (struct sockaddr*)&addr, &len);
-  return ntohs(addr.sin_port);
+  return socket_get_local_port(socket_server_cpu);
 }
 
 void iterator_shutdown(void* value)
 {
-  shutdown(*(int*)value, SHUT_RDWR);
+  socket_shutdown(*(t_socket**)value, SOCKET_SHUTDOWN_BOTH);
 }
 
-t_cpu_thread* create_cpu_thread_data(int socket_cpu, t_list* socket_list,
-                                     pthread_mutex_t* socket_list_mutex,
-                                     pthread_cond_t* listen_done_cond, t_ms* ms)
+t_cpu_thread* create_cpu_thread_data(t_socket* socket_cpu, t_list* socket_list,
+                                     mtx_t* socket_list_mutex,
+                                     cnd_t* listen_done_cond, t_ms* ms)
 {
   t_cpu_thread* data = malloc(sizeof(t_cpu_thread));
   data->socket_cpu = socket_cpu;
@@ -45,33 +42,32 @@ t_cpu_thread* create_cpu_thread_data(int socket_cpu, t_list* socket_list,
 
 bool spawn_cpu_thread(t_cpu_thread* cpu_thread, t_log* logger)
 {
-  pthread_t thread;
-  if (pthread_create(&thread, NULL, handle_cpu_client, cpu_thread) != 0)
+  thrd_t thread;
+  if (thrd_create(&thread, handle_cpu_client, cpu_thread) != 0)
   {
     log_error(logger, "Could not create the CPU thread");
     return false;
   }
-  pthread_detach(thread);
+  thrd_detach(thread);
   return true;
 }
 
-void close_listen_thread(t_list* socket_list,
-                         pthread_mutex_t* socket_list_mutex,
-                         pthread_cond_t* listen_done_cond,
+void close_listen_thread(t_list* socket_list, mtx_t* socket_list_mutex,
+                         cnd_t* listen_done_cond,
                          t_listen_thread* listen_thread)
 {
-  pthread_mutex_lock(socket_list_mutex);
+  mtx_lock(socket_list_mutex);
   list_iterate(socket_list, (void*)iterator_shutdown);
   while (!list_is_empty(socket_list))
-    pthread_cond_wait(listen_done_cond, socket_list_mutex);
-  pthread_mutex_unlock(socket_list_mutex);
+    cnd_wait(listen_done_cond, socket_list_mutex);
+  mtx_unlock(socket_list_mutex);
   list_destroy(socket_list);
-  pthread_cond_destroy(listen_done_cond);
-  pthread_mutex_destroy(socket_list_mutex);
+  cnd_destroy(listen_done_cond);
+  mtx_destroy(socket_list_mutex);
   free(listen_thread);
 }
 
-bool handshake_cpu(int socket_cpu, t_log* logger)
+bool handshake_cpu(t_socket* socket_cpu, t_log* logger)
 {
   if (receive_handshake(socket_cpu) != MID_CPU)
   {
@@ -87,7 +83,7 @@ bool handshake_cpu(int socket_cpu, t_log* logger)
   return true;
 }
 
-char* receive_cpu_id(int socket_cpu, t_log* logger)
+char* receive_cpu_id(t_socket* socket_cpu, t_log* logger)
 {
   if (receive_op_code(socket_cpu) != OP_ID_CPU)
   {
@@ -99,9 +95,9 @@ char* receive_cpu_id(int socket_cpu, t_log* logger)
   return cpu_id;
 }
 
-bool handle_new_cpu(t_listen_thread* listen_thread, int socket_cpu,
-                    t_list* socket_list, pthread_mutex_t* socket_list_mutex,
-                    pthread_cond_t* listen_done_cond, t_ms* ms)
+bool handle_new_cpu(t_listen_thread* listen_thread, t_socket* socket_cpu,
+                    t_list* socket_list, mtx_t* socket_list_mutex,
+                    cnd_t* listen_done_cond, t_ms* ms)
 {
   if (!handshake_cpu(socket_cpu, listen_thread->logger))
     return false;
@@ -114,15 +110,15 @@ bool handle_new_cpu(t_listen_thread* listen_thread, int socket_cpu,
   t_cpu_thread* cpu_thread = create_cpu_thread_data(
       socket_cpu, socket_list, socket_list_mutex, listen_done_cond, ms);
 
-  pthread_mutex_lock(socket_list_mutex);
+  mtx_lock(socket_list_mutex);
   list_add(socket_list, &(cpu_thread->socket_cpu));
-  pthread_mutex_unlock(socket_list_mutex);
+  mtx_unlock(socket_list_mutex);
 
   if (!spawn_cpu_thread(cpu_thread, listen_thread->logger))
   {
-    pthread_mutex_lock(socket_list_mutex);
+    mtx_lock(socket_list_mutex);
     list_remove_element(socket_list, &(cpu_thread->socket_cpu));
-    pthread_mutex_unlock(socket_list_mutex);
+    mtx_unlock(socket_list_mutex);
     free(cpu_thread);
     return false;
   }
@@ -134,16 +130,17 @@ void* cpu_listen_thread(void* listen_thread_void)
   t_listen_thread* listen_thread = (t_listen_thread*)listen_thread_void;
 
   t_list* socket_list = list_create();
-  pthread_mutex_t socket_list_mutex;
-  pthread_cond_t listen_done_cond;
+  mtx_t socket_list_mutex;
+  cnd_t listen_done_cond;
 
-  pthread_mutex_init(&socket_list_mutex, NULL);
-  pthread_cond_init(&listen_done_cond, NULL);
+  mtx_init(&socket_list_mutex);
+  cnd_init(&listen_done_cond);
 
   while (true)
   {
-    int socket_cpu = accept(listen_thread->cpu_listen_socket, NULL, NULL);
-    if (socket_cpu <= 0)
+    t_socket* socket_cpu =
+        socket_accept(listen_thread->cpu_listen_socket, false);
+    if (socket_cpu == NULL)
       break;
 
     log_debug(listen_thread->logger, "Connection established with a CPU");
@@ -151,7 +148,7 @@ void* cpu_listen_thread(void* listen_thread_void)
     if (!handle_new_cpu(listen_thread, socket_cpu, socket_list,
                         &socket_list_mutex, &listen_done_cond,
                         listen_thread->ms))
-      close(socket_cpu);
+      socket_destroy(socket_cpu);
   }
 
   log_debug(listen_thread->logger, "Closing the CPU server");
@@ -162,12 +159,14 @@ void* cpu_listen_thread(void* listen_thread_void)
 
 void close_cpu_thread(t_cpu_thread* cpu_thread)
 {
-  close(cpu_thread->socket_cpu);
-  pthread_mutex_lock(cpu_thread->socket_list_mutex);
+  // The socket must stay alive until it leaves the list: close_listen_thread()
+  // shuts down every listed socket while holding the same mutex.
+  mtx_lock(cpu_thread->socket_list_mutex);
   list_remove_element(cpu_thread->socket_list, &(cpu_thread->socket_cpu));
   if (list_is_empty(cpu_thread->socket_list))
-    pthread_cond_signal(cpu_thread->listen_done_cond);
-  pthread_mutex_unlock(cpu_thread->socket_list_mutex);
+    cnd_signal(cpu_thread->listen_done_cond);
+  mtx_unlock(cpu_thread->socket_list_mutex);
+  socket_destroy(cpu_thread->socket_cpu);
   free(cpu_thread);
 }
 
@@ -233,15 +232,14 @@ void* handle_cpu_client(void* cpu_thread_void)
   return NULL;
 }
 
-bool start_cpu_server(pthread_t* cpu_server_thread, int cpu_server_socket,
+bool start_cpu_server(thrd_t* cpu_server_thread, t_socket* cpu_server_socket,
                       t_log* logger, t_ms* ms)
 {
   t_listen_thread* listen_thread = malloc(sizeof(t_listen_thread));
   listen_thread->cpu_listen_socket = cpu_server_socket;
   listen_thread->logger = logger;
   listen_thread->ms = ms;
-  if (pthread_create(cpu_server_thread, NULL, cpu_listen_thread,
-                     listen_thread) != 0)
+  if (thrd_create(cpu_server_thread, cpu_listen_thread, listen_thread) != 0)
   {
     log_error(logger, "Could not create the CPU server thread");
     return false;

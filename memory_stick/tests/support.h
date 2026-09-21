@@ -12,10 +12,11 @@ t_log* ms_quiet_logger(void);
 
 /**
  * @brief Opens a loopback TCP connection on a kernel-assigned port.
- * @param server_out Set to the accepted server-side fd.
- * @return The client-side fd. Both fds must be closed by the caller.
+ * @param server_out Set to the accepted server-side socket.
+ * @return The client-side socket. Both sockets must be destroyed by the
+ * caller.
  */
-int ms_connected_pair(int* server_out);
+t_socket* ms_connected_pair(t_socket** server_out);
 
 /**
  * @brief A `t_ms` with a zeroed @p memory_size byte memory, an initialised

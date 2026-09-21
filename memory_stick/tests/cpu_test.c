@@ -2,13 +2,14 @@
 
 #include <criterion/criterion.h>
 #include <fcntl.h>
-#include <pthread.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
 #include "support.h"
 #include "utils/msg.h"
+#include "utils/mutex.h"
+#include "utils/threads.h"
 
 /* Several of these spin up a peer thread -- cap every test so a stalled
  * handshake fails instead of hanging the run. */
@@ -28,11 +29,11 @@ Test(ms_cpu_server, create_server_cpu_opens_a_listening_socket_with_a_port)
 {
   t_log* logger = ms_quiet_logger();
 
-  int server = create_server_cpu(logger);
+  t_socket* server = create_server_cpu(logger);
   cr_assert_gt(server, 0);
   cr_assert_gt(get_cpu_port(server), 0);
 
-  close(server);
+  socket_destroy(server);
   log_destroy(logger);
 }
 
@@ -41,12 +42,14 @@ Test(ms_cpu_server, create_server_cpu_opens_a_listening_socket_with_a_port)
 Test(ms_cpu_thread_data, keeps_every_field)
 {
   t_list list;
-  pthread_mutex_t mutex;
-  pthread_cond_t cond;
+  mtx_t mutex;
+  cnd_t cond;
   t_ms ms;
+  t_socket socket;
 
-  t_cpu_thread* data = create_cpu_thread_data(42, &list, &mutex, &cond, &ms);
-  cr_assert_eq(data->socket_cpu, 42);
+  t_cpu_thread* data =
+      create_cpu_thread_data(&socket, &list, &mutex, &cond, &ms);
+  cr_assert_eq(data->socket_cpu, &socket);
   cr_assert_eq(data->socket_list, &list);
   cr_assert_eq(data->socket_list_mutex, &mutex);
   cr_assert_eq(data->listen_done_cond, &cond);
@@ -58,23 +61,22 @@ Test(ms_cpu_thread_data, keeps_every_field)
 
 Test(ms_cpu_iterator, iterator_shutdown_stops_the_socket)
 {
-  int fds[2];
-  cr_assert_eq(socketpair(AF_UNIX, SOCK_STREAM, 0, fds), 0);
+  t_socket* peer;
+  t_socket* socket = ms_connected_pair(&peer);
 
-  iterator_shutdown(&fds[0]);
+  iterator_shutdown(&socket);
 
-  char byte;
-  cr_assert_eq(read(fds[0], &byte, 1), 0); /* shutdown -> EOF */
+  cr_assert_eq(receive_op_code(peer), OP_CODE_ERROR); /* shutdown -> EOF */
 
-  close(fds[0]);
-  close(fds[1]);
+  socket_destroy(socket);
+  socket_destroy(peer);
 }
 
 /* ── handshake_cpu ─────────────────────────────────────────────────────── */
 
 struct cpu_side
 {
-  int fd;
+  t_socket* fd;
   bool ok;
 };
 
@@ -88,35 +90,35 @@ static void* cpu_handshake_thread(void* arg)
 
 Test(ms_handshake_cpu, exchanges_the_handshake_with_a_cpu)
 {
-  int stick_fd;
-  int cpu_fd = ms_connected_pair(&stick_fd);
+  t_socket* stick_fd;
+  t_socket* cpu_fd = ms_connected_pair(&stick_fd);
   t_log* logger = ms_quiet_logger();
 
   struct cpu_side side = {.fd = cpu_fd};
-  pthread_t thread;
-  pthread_create(&thread, NULL, cpu_handshake_thread, &side);
+  thrd_t thread;
+  thrd_create(&thread, cpu_handshake_thread, &side);
 
   cr_assert(handshake_cpu(stick_fd, logger));
 
-  pthread_join(thread, NULL);
+  thrd_join(thread, NULL);
   cr_assert(side.ok);
 
-  close(cpu_fd);
-  close(stick_fd);
+  socket_destroy(cpu_fd);
+  socket_destroy(stick_fd);
   log_destroy(logger);
 }
 
 Test(ms_handshake_cpu, fails_when_the_peer_is_not_a_cpu)
 {
-  int stick_fd;
-  int cpu_fd = ms_connected_pair(&stick_fd);
+  t_socket* stick_fd;
+  t_socket* cpu_fd = ms_connected_pair(&stick_fd);
   t_log* logger = ms_quiet_logger();
 
   send_handshake(MID_KERNEL_SCHEDULER, cpu_fd); /* not MID_CPU */
   cr_assert_not(handshake_cpu(stick_fd, logger));
 
-  close(cpu_fd);
-  close(stick_fd);
+  socket_destroy(cpu_fd);
+  socket_destroy(stick_fd);
   log_destroy(logger);
 }
 
@@ -124,8 +126,8 @@ Test(ms_handshake_cpu, fails_when_the_peer_is_not_a_cpu)
 
 Test(ms_receive_cpu_id, reads_the_id_after_the_op_code)
 {
-  int stick_fd;
-  int cpu_fd = ms_connected_pair(&stick_fd);
+  t_socket* stick_fd;
+  t_socket* cpu_fd = ms_connected_pair(&stick_fd);
   t_log* logger = ms_quiet_logger();
 
   send_string(OP_ID_CPU, "CPU-3", cpu_fd);
@@ -135,22 +137,22 @@ Test(ms_receive_cpu_id, reads_the_id_after_the_op_code)
   cr_assert_str_eq(id, "CPU-3");
   free(id);
 
-  close(cpu_fd);
-  close(stick_fd);
+  socket_destroy(cpu_fd);
+  socket_destroy(stick_fd);
   log_destroy(logger);
 }
 
 Test(ms_receive_cpu_id, rejects_a_wrong_op_code)
 {
-  int stick_fd;
-  int cpu_fd = ms_connected_pair(&stick_fd);
+  t_socket* stick_fd;
+  t_socket* cpu_fd = ms_connected_pair(&stick_fd);
   t_log* logger = ms_quiet_logger();
 
   send_string(OP_HANDSHAKE, "CPU-3", cpu_fd);
   cr_assert_null(receive_cpu_id(stick_fd, logger));
 
-  close(cpu_fd);
-  close(stick_fd);
+  socket_destroy(cpu_fd);
+  socket_destroy(stick_fd);
   log_destroy(logger);
 }
 
@@ -158,19 +160,19 @@ Test(ms_receive_cpu_id, rejects_a_wrong_op_code)
 
 Test(ms_handle_new_cpu, accepts_a_cpu_and_spawns_its_client_thread)
 {
-  int stick_fd;
-  int cpu_fd = ms_connected_pair(&stick_fd);
+  t_socket* stick_fd;
+  t_socket* cpu_fd = ms_connected_pair(&stick_fd);
   t_log* logger = ms_quiet_logger();
   t_ms* ms = ms_make(64);
 
   t_listen_thread listen_thread = {
-      .cpu_listen_socket = -1, .logger = logger, .ms = ms};
+      .cpu_listen_socket = NULL, .logger = logger, .ms = ms};
 
   t_list* socket_list = list_create();
-  pthread_mutex_t socket_list_mutex;
-  pthread_cond_t listen_done_cond;
-  pthread_mutex_init(&socket_list_mutex, NULL);
-  pthread_cond_init(&listen_done_cond, NULL);
+  mtx_t socket_list_mutex;
+  cnd_t listen_done_cond;
+  mtx_init(&socket_list_mutex);
+  cnd_init(&listen_done_cond);
 
   /* The handshake + id are sent up front so they're already sitting in the
    * socket buffer by the time handle_new_cpu does its synchronous,
@@ -181,24 +183,24 @@ Test(ms_handle_new_cpu, accepts_a_cpu_and_spawns_its_client_thread)
   cr_assert(handle_new_cpu(&listen_thread, stick_fd, socket_list,
                            &socket_list_mutex, &listen_done_cond, ms));
   cr_assert_eq(list_size(socket_list), 1);
-  cr_assert_eq(*(int*)list_get(socket_list, 0), stick_fd);
+  cr_assert_eq(*(t_socket**)list_get(socket_list, 0), stick_fd);
 
   /* handle_new_cpu spawned a real, detached handle_cpu_client thread over
    * stick_fd. Shut its peer down so its next receive_op_code() fails,
    * driving it into close_cpu_thread(), which empties socket_list and
    * signals listen_done_cond -- wait for that deterministically before
    * cleaning up, exactly like close_listen_thread does. */
-  shutdown(cpu_fd, SHUT_RDWR);
+  socket_shutdown(cpu_fd, SOCKET_SHUTDOWN_BOTH);
 
-  pthread_mutex_lock(&socket_list_mutex);
+  mtx_lock(&socket_list_mutex);
   while (!list_is_empty(socket_list))
-    pthread_cond_wait(&listen_done_cond, &socket_list_mutex);
-  pthread_mutex_unlock(&socket_list_mutex);
+    cnd_wait(&listen_done_cond, &socket_list_mutex);
+  mtx_unlock(&socket_list_mutex);
 
-  close(cpu_fd);
+  socket_destroy(cpu_fd);
   list_destroy(socket_list);
-  pthread_cond_destroy(&listen_done_cond);
-  pthread_mutex_destroy(&socket_list_mutex);
+  cnd_destroy(&listen_done_cond);
+  mtx_destroy(&socket_list_mutex);
   ms_destroy(ms);
   log_destroy(logger);
 }
@@ -206,19 +208,19 @@ Test(ms_handle_new_cpu, accepts_a_cpu_and_spawns_its_client_thread)
 Test(ms_handle_new_cpu,
      returns_false_and_leaves_the_list_empty_when_the_handshake_fails)
 {
-  int stick_fd;
-  int cpu_fd = ms_connected_pair(&stick_fd);
+  t_socket* stick_fd;
+  t_socket* cpu_fd = ms_connected_pair(&stick_fd);
   t_log* logger = ms_quiet_logger();
   t_ms* ms = ms_make(64);
 
   t_listen_thread listen_thread = {
-      .cpu_listen_socket = -1, .logger = logger, .ms = ms};
+      .cpu_listen_socket = NULL, .logger = logger, .ms = ms};
 
   t_list* socket_list = list_create();
-  pthread_mutex_t socket_list_mutex;
-  pthread_cond_t listen_done_cond;
-  pthread_mutex_init(&socket_list_mutex, NULL);
-  pthread_cond_init(&listen_done_cond, NULL);
+  mtx_t socket_list_mutex;
+  cnd_t listen_done_cond;
+  mtx_init(&socket_list_mutex);
+  cnd_init(&listen_done_cond);
 
   send_handshake(MID_KERNEL_SCHEDULER, cpu_fd); /* not MID_CPU */
 
@@ -226,11 +228,11 @@ Test(ms_handle_new_cpu,
                                &socket_list_mutex, &listen_done_cond, ms));
   cr_assert(list_is_empty(socket_list));
 
-  close(cpu_fd);
-  close(stick_fd);
+  socket_destroy(cpu_fd);
+  socket_destroy(stick_fd);
   list_destroy(socket_list);
-  pthread_cond_destroy(&listen_done_cond);
-  pthread_mutex_destroy(&socket_list_mutex);
+  cnd_destroy(&listen_done_cond);
+  mtx_destroy(&socket_list_mutex);
   ms_destroy(ms);
   log_destroy(logger);
 }
@@ -239,21 +241,21 @@ Test(ms_handle_new_cpu,
 
 Test(ms_close_listen_thread, waits_for_the_client_thread_then_frees_everything)
 {
-  int stick_fd;
-  int cpu_fd = ms_connected_pair(&stick_fd);
+  t_socket* stick_fd;
+  t_socket* cpu_fd = ms_connected_pair(&stick_fd);
   t_log* logger = ms_quiet_logger();
   t_ms* ms = ms_make(64);
 
   t_listen_thread* listen_thread = malloc(sizeof(t_listen_thread));
-  listen_thread->cpu_listen_socket = -1;
+  listen_thread->cpu_listen_socket = NULL;
   listen_thread->logger = logger;
   listen_thread->ms = ms;
 
   t_list* socket_list = list_create();
-  pthread_mutex_t socket_list_mutex;
-  pthread_cond_t listen_done_cond;
-  pthread_mutex_init(&socket_list_mutex, NULL);
-  pthread_cond_init(&listen_done_cond, NULL);
+  mtx_t socket_list_mutex;
+  cnd_t listen_done_cond;
+  mtx_init(&socket_list_mutex);
+  cnd_init(&listen_done_cond);
 
   cr_assert(send_handshake(MID_CPU, cpu_fd));
   cr_assert(send_string(OP_ID_CPU, "CPU-2", cpu_fd));
@@ -272,7 +274,7 @@ Test(ms_close_listen_thread, waits_for_the_client_thread_then_frees_everything)
   close_listen_thread(socket_list, &socket_list_mutex, &listen_done_cond,
                       listen_thread);
 
-  close(cpu_fd);
+  socket_destroy(cpu_fd);
   ms_destroy(ms);
   log_destroy(logger);
 }
@@ -281,13 +283,13 @@ Test(ms_close_listen_thread, waits_for_the_client_thread_then_frees_everything)
 
 typedef struct
 {
-  int cpu_fd;   /* client side, driven by the test as the "CPU" peer */
-  int stick_fd; /* server side, owned by the spawned thread */
+  t_socket* cpu_fd;   /* client side, driven by the test as the "CPU" peer */
+  t_socket* stick_fd; /* server side, owned by the spawned thread */
   t_ms* ms;
   t_list* socket_list;
-  pthread_mutex_t socket_list_mutex;
-  pthread_cond_t listen_done_cond;
-  pthread_t thread;
+  mtx_t socket_list_mutex;
+  cnd_t listen_done_cond;
+  thrd_t thread;
 } t_handle_cpu_client_fixture;
 
 static void handle_cpu_client_fixture_start(t_handle_cpu_client_fixture* fx,
@@ -296,8 +298,8 @@ static void handle_cpu_client_fixture_start(t_handle_cpu_client_fixture* fx,
   fx->cpu_fd = ms_connected_pair(&fx->stick_fd);
   fx->ms = ms_make(memory_size);
   fx->socket_list = list_create();
-  pthread_mutex_init(&fx->socket_list_mutex, NULL);
-  pthread_cond_init(&fx->listen_done_cond, NULL);
+  mtx_init(&fx->socket_list_mutex);
+  cnd_init(&fx->listen_done_cond);
 
   /* Mirrors what handle_new_cpu does before spawning the thread: register
    * the fd in socket_list first. */
@@ -306,8 +308,7 @@ static void handle_cpu_client_fixture_start(t_handle_cpu_client_fixture* fx,
       &fx->listen_done_cond, fx->ms);
   list_add(fx->socket_list, &(cpu_thread->socket_cpu));
 
-  cr_assert_eq(pthread_create(&fx->thread, NULL, handle_cpu_client, cpu_thread),
-               0);
+  cr_assert_eq(thrd_create(&fx->thread, handle_cpu_client, cpu_thread), 0);
 }
 
 /* Sends an op code handle_cpu_client's switch doesn't know about, which
@@ -321,21 +322,21 @@ static void handle_cpu_client_fixture_terminate(t_handle_cpu_client_fixture* fx)
    * which turns the following close() into a TCP reset instead of a clean
    * FIN, breaking anything that expects a plain EOF from the other end. */
   int op_code = OP_HANDSHAKE;
-  cr_assert_eq(send(fx->cpu_fd, &op_code, sizeof(op_code), 0), sizeof(op_code));
+  cr_assert(socket_send(fx->cpu_fd, &op_code, sizeof(op_code)));
 
-  pthread_mutex_lock(&fx->socket_list_mutex);
+  mtx_lock(&fx->socket_list_mutex);
   while (!list_is_empty(fx->socket_list))
-    pthread_cond_wait(&fx->listen_done_cond, &fx->socket_list_mutex);
-  pthread_mutex_unlock(&fx->socket_list_mutex);
+    cnd_wait(&fx->listen_done_cond, &fx->socket_list_mutex);
+  mtx_unlock(&fx->socket_list_mutex);
 }
 
 static void handle_cpu_client_fixture_end(t_handle_cpu_client_fixture* fx)
 {
-  pthread_join(fx->thread, NULL);
-  close(fx->cpu_fd);
+  thrd_join(fx->thread, NULL);
+  socket_destroy(fx->cpu_fd);
   list_destroy(fx->socket_list);
-  pthread_cond_destroy(&fx->listen_done_cond);
-  pthread_mutex_destroy(&fx->socket_list_mutex);
+  cnd_destroy(&fx->listen_done_cond);
+  mtx_destroy(&fx->socket_list_mutex);
   ms_destroy(fx->ms);
 }
 
@@ -467,8 +468,7 @@ Test(ms_handle_cpu_client, exits_via_close_cpu_thread_on_an_unknown_op_code)
 
   /* close_cpu_thread() already closed stick_fd -- observable from the
    * client side as EOF. */
-  char byte;
-  cr_assert_eq(read(fx.cpu_fd, &byte, 1), 0);
+  cr_assert_eq(receive_op_code(fx.cpu_fd), OP_CODE_ERROR);
 
   handle_cpu_client_fixture_end(&fx);
 }
@@ -480,8 +480,8 @@ Test(ms_cpu_listen_thread, accepts_a_cpu_and_serves_a_request_end_to_end)
   t_log* logger = ms_quiet_logger();
   t_ms* ms = ms_make(16);
 
-  int listen_socket = create_server_cpu(logger);
-  cr_assert_gt(listen_socket, 0);
+  t_socket* listen_socket = create_server_cpu(logger);
+  cr_assert_not_null(listen_socket);
   uint16_t port = get_cpu_port(listen_socket);
 
   t_listen_thread* listen_thread = malloc(sizeof(t_listen_thread));
@@ -489,14 +489,14 @@ Test(ms_cpu_listen_thread, accepts_a_cpu_and_serves_a_request_end_to_end)
   listen_thread->logger = logger;
   listen_thread->ms = ms;
 
-  pthread_t thread;
-  cr_assert_eq(pthread_create(&thread, NULL, cpu_listen_thread, listen_thread),
-               0);
+  thrd_t thread;
+  cr_assert_eq(thrd_create(&thread, cpu_listen_thread, listen_thread), 0);
 
   char port_str[16];
   snprintf(port_str, sizeof(port_str), "%hu", port);
-  int cpu_fd = create_connection("127.0.0.1", port_str);
-  cr_assert_geq(cpu_fd, 0);
+  t_socket* cpu_fd =
+      socket_create(SOCKET_KIND_CLIENT, "127.0.0.1", port_str, false);
+  cr_assert_not_null(cpu_fd);
 
   cr_assert(send_handshake(MID_CPU, cpu_fd));
   cr_assert_eq(receive_handshake(cpu_fd), MID_MEMORY_STICK);
@@ -523,12 +523,12 @@ Test(ms_cpu_listen_thread, accepts_a_cpu_and_serves_a_request_end_to_end)
    * thread, then shutting the listening socket down unblocks accept(),
    * which breaks cpu_listen_thread out of its loop and into
    * close_listen_thread(). */
-  close(cpu_fd);
-  shutdown(listen_socket, SHUT_RDWR);
+  socket_destroy(cpu_fd);
+  socket_shutdown(listen_socket, SOCKET_SHUTDOWN_BOTH);
 
-  pthread_join(thread, NULL);
+  thrd_join(thread, NULL);
 
-  close(listen_socket);
+  socket_destroy(listen_socket);
   ms_destroy(ms);
   log_destroy(logger);
 }
@@ -540,26 +540,27 @@ Test(ms_cpu_listen_thread, start_cpu_server_spawns_a_working_listener)
   t_log* logger = ms_quiet_logger();
   t_ms* ms = ms_make(16);
 
-  int listen_socket = create_server_cpu(logger);
-  cr_assert_gt(listen_socket, 0);
+  t_socket* listen_socket = create_server_cpu(logger);
+  cr_assert_not_null(listen_socket);
   uint16_t port = get_cpu_port(listen_socket);
 
-  pthread_t thread;
+  thrd_t thread;
   cr_assert(start_cpu_server(&thread, listen_socket, logger, ms));
 
   char port_str[16];
   snprintf(port_str, sizeof(port_str), "%hu", port);
-  int cpu_fd = create_connection("127.0.0.1", port_str);
-  cr_assert_geq(cpu_fd, 0);
+  t_socket* cpu_fd =
+      socket_create(SOCKET_KIND_CLIENT, "127.0.0.1", port_str, false);
+  cr_assert_not_null(cpu_fd);
 
   cr_assert(send_handshake(MID_CPU, cpu_fd));
   cr_assert_eq(receive_handshake(cpu_fd), MID_MEMORY_STICK);
 
-  close(cpu_fd);
-  shutdown(listen_socket, SHUT_RDWR);
-  pthread_join(thread, NULL);
+  socket_destroy(cpu_fd);
+  socket_shutdown(listen_socket, SOCKET_SHUTDOWN_BOTH);
+  thrd_join(thread, NULL);
 
-  close(listen_socket);
+  socket_destroy(listen_socket);
   ms_destroy(ms);
   log_destroy(logger);
 }

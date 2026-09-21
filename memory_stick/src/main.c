@@ -1,9 +1,6 @@
-#include <arpa/inet.h>
-#include <pthread.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 
 #include "memory_stick/cpu.h"
 #include "memory_stick/kernel_memory.h"
@@ -12,11 +9,12 @@
 #include "utils/config.h"
 #include "utils/log.h"
 #include "utils/msg.h"
+#include "utils/threads.h"
 
 int main(int argc, char* argv[])
 {
   t_ms ms = {0};
-  pthread_t cpu_server_thread;
+  thrd_t cpu_server_thread;
 
   char* config_path = NULL;
   char* size_str = NULL;

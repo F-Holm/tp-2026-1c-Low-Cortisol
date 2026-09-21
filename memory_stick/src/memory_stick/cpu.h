@@ -1,46 +1,44 @@
 #pragma once
 
-#include <arpa/inet.h>
-#include <netinet/in.h>
-#include <pthread.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/socket.h>
-#include <unistd.h>
 
 #include "memory_stick/memory_stick.h"
 #include "utils/collections/list.h"
 #include "utils/config.h"
 #include "utils/log.h"
+#include "utils/mutex.h"
+#include "utils/sockets.h"
+#include "utils/threads.h"
 
 typedef struct
 {
-  int cpu_listen_socket;
+  t_socket* cpu_listen_socket;
   t_log* logger;
   t_ms* ms;
 } t_listen_thread;
 
 typedef struct
 {
-  int socket_cpu;
+  t_socket* socket_cpu;
   t_list* socket_list;
-  pthread_mutex_t* socket_list_mutex;
-  pthread_cond_t* listen_done_cond;
+  mtx_t* socket_list_mutex;
+  cnd_t* listen_done_cond;
   t_ms* ms;
 } t_cpu_thread;
 
 /**
  * @brief Creates the listening TCP socket CPUs connect to.
- * @return The listening socket fd, or -1 on failure.
+ * @return The listening socket, or NULL on failure.
  */
-int create_server_cpu(t_log* logger);
+t_socket* create_server_cpu(t_log* logger);
 
 /** @brief Returns the port the CPU server socket is bound to. */
-uint16_t get_cpu_port(int socket_server_cpu);
+uint16_t get_cpu_port(t_socket* socket_server_cpu);
 
-/** @brief list_iterate() closure: shuts down the socket fd at @p value. */
+/** @brief list_iterate() closure: shuts down the t_socket* at @p value. */
 void iterator_shutdown(void* value);
 
 /**
@@ -48,10 +46,9 @@ void iterator_shutdown(void* value);
  * @note Freed by close_cpu_thread(); free it directly if the thread is
  *       never spawned.
  */
-t_cpu_thread* create_cpu_thread_data(int socket_cpu, t_list* socket_list,
-                                     pthread_mutex_t* socket_list_mutex,
-                                     pthread_cond_t* listen_done_cond,
-                                     t_ms* ms);
+t_cpu_thread* create_cpu_thread_data(t_socket* socket_cpu, t_list* socket_list,
+                                     mtx_t* socket_list_mutex,
+                                     cnd_t* listen_done_cond, t_ms* ms);
 
 /**
  * @brief Spawns a detached thread running handle_cpu_client() for
@@ -65,31 +62,30 @@ bool spawn_cpu_thread(t_cpu_thread* cpu_thread, t_log* logger);
  *        state.
  * @note Blocks until every CPU client thread has exited.
  */
-void close_listen_thread(t_list* socket_list,
-                         pthread_mutex_t* socket_list_mutex,
-                         pthread_cond_t* listen_done_cond,
+void close_listen_thread(t_list* socket_list, mtx_t* socket_list_mutex,
+                         cnd_t* listen_done_cond,
                          t_listen_thread* listen_thread);
 
 /**
  * @brief Performs the handshake with a newly connected CPU.
  * @return false if the handshake failed.
  */
-bool handshake_cpu(int socket_cpu, t_log* logger);
+bool handshake_cpu(t_socket* socket_cpu, t_log* logger);
 
 /**
  * @brief Receives the connecting CPU's id string.
  * @return The id (caller must free), or NULL on error.
  */
-char* receive_cpu_id(int socket_cpu, t_log* logger);
+char* receive_cpu_id(t_socket* socket_cpu, t_log* logger);
 
 /**
  * @brief Handshakes a new CPU connection, registers its socket and spawns
  *        its handling thread.
  * @return false if any step failed; the caller should close the socket.
  */
-bool handle_new_cpu(t_listen_thread* listen_thread, int socket_cpu,
-                    t_list* socket_list, pthread_mutex_t* socket_list_mutex,
-                    pthread_cond_t* listen_done_cond, t_ms* ms);
+bool handle_new_cpu(t_listen_thread* listen_thread, t_socket* socket_cpu,
+                    t_list* socket_list, mtx_t* socket_list_mutex,
+                    cnd_t* listen_done_cond, t_ms* ms);
 
 /**
  * @brief Thread entry point: accepts CPU connections until the server
@@ -115,5 +111,5 @@ void close_cpu_thread(t_cpu_thread* cpu_thread);
  * @brief Starts the CPU server thread (cpu_listen_thread()).
  * @return false if the thread could not be created.
  */
-bool start_cpu_server(pthread_t* cpu_server_thread, int cpu_server_socket,
+bool start_cpu_server(thrd_t* cpu_server_thread, t_socket* cpu_server_socket,
                       t_log* logger, t_ms* ms);
