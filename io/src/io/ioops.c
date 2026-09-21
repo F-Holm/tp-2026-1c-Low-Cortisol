@@ -1,5 +1,8 @@
 #include "ioops.h"
 
+#include "utils/file.h"
+#include "utils/time.h"
+
 bool run_stdin(t_io* io)
 {
   int request_size;
@@ -11,26 +14,21 @@ bool run_stdin(t_io* io)
   log_info(io->logger, "PID %d - Requesting %d characters", request->pid,
            request->bytes_to_read);
 
-  char* buffer = NULL;
-  size_t buffer_size = 0;
-
   printf("> ");
   fflush(stdout);
 
-  if (getline(&buffer, &buffer_size, stdin) == -1)
+  char* buffer = file_read_line(stdin);
+  if (buffer == NULL)
   {
     log_warning(io->logger, "Could not read user input (end of input?)");
     free(request);
-    free(buffer);
     return false;
   }
 
-  if (buffer_size >= request->bytes_to_read)
+  if (request->bytes_to_read > 0 && strlen(buffer) >= request->bytes_to_read)
   {
     buffer[request->bytes_to_read - 1] = '\0';
   }
-
-  buffer[strcspn(buffer, "\n")] = '\0';
 
   bool sent_ok = send_string(OP_STDIN_RESPONSE, buffer, io->socket_io);
   if (!sent_ok)
@@ -93,7 +91,7 @@ bool run_sleep(t_io* io)
   // Simulate the sleep.
   log_info(io->logger, "PID: %d - Sleeping for %d seconds", request->pid,
            request->blocked_time_ms / 1000);
-  usleep(request->blocked_time_ms * 1000);  // convert to microseconds
+  time_sleep_ms(request->blocked_time_ms);
 
   // Reply OK to the scheduler so it knows the IO is done.
   bool sent_ok = send_string(OP_SLEEP_RESPONSE, "OK", io->socket_io);
