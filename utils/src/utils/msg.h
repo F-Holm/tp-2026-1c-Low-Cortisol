@@ -1,18 +1,15 @@
 #pragma once
 
 #include <assert.h>
-#include <netdb.h>
-#include <signal.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/socket.h>
-#include <unistd.h>
 
 #include "utils/collections/list.h"
 #include "utils/log.h"
+#include "utils/sockets.h"
 
 // Wire operation codes. Serialized as a plain int; every module is built from
 // this header, so the numeric values are an internal detail. Grouped by the
@@ -169,47 +166,35 @@ typedef enum
 extern const char* const HANDSHAKE_MSG[6];
 
 /**
- * @brief Opens a TCP connection to @p ip : @p port.
- * @return The connected socket fd, or -1 on failure.
- */
-int create_connection(char* ip, char* port);
-
-/**
- * @brief Creates a listening TCP socket bound to @p port (INADDR_ANY).
- * @return The listening socket fd.
- */
-int start_server(char* port);
-
-/**
  * @brief Receives the operation code.
  * @note Always call this before any receive/read from the buffer.
  */
-int receive_op_code(int socket_fd);
+int receive_op_code(t_socket* socket);
 
 /**
  * @brief Receives raw data from the buffer.
  * @param size  Out-param: number of bytes read.
  * @note Call after receive_op_code(). Free the returned buffer.
  */
-void* receive_buffer(int* size, int socket_fd);
+void* receive_buffer(int* size, t_socket* socket);
 
 /**
  * @brief Sends a void* payload with the given operation code.
  * @return false if nothing was sent or the peer disconnected.
  */
-bool send_buffer(int op_code, void* buffer, int size, int socket_fd);
+bool send_buffer(int op_code, void* buffer, int size, t_socket* socket);
 
 /**
  * @brief Sends a char* payload with the given operation code.
  * @return false if nothing was sent or the peer disconnected.
  */
-bool send_string(int op_code, char* message, int socket_fd);
+bool send_string(int op_code, char* message, t_socket* socket);
 
 /**
  * @brief Receives a char*.
  * @note Call after receive_op_code(). Free the returned string.
  */
-char* receive_string(int socket_fd);
+char* receive_string(t_socket* socket);
 
 /**
  * @brief Maps a HANDSHAKE_MSG[] string to its t_module_id.
@@ -221,10 +206,10 @@ int handshake_msg_to_module_id(char* handshake_msg);
  * @brief Sends a handshake for @p module_id.
  * @return false if nothing was sent or the peer disconnected.
  */
-bool send_handshake(int module_id, int socket_fd);
+bool send_handshake(int module_id, t_socket* socket);
 
 /** @brief Receives a handshake and returns the sender's t_module_id. */
-int receive_handshake(int socket_fd);
+int receive_handshake(t_socket* socket);
 
 /**
  * @brief Creates a packet with the given operation code.
@@ -248,14 +233,14 @@ void packet_append_string(t_packet* packet, char* value);
  * @brief Sends the packet.
  * @return false if nothing was sent or the peer disconnected.
  */
-bool send_packet(t_packet* packet, int socket_fd);
+bool send_packet(t_packet* packet, t_socket* socket);
 
 /**
  * @brief Receives a packet as a list of void* elements.
  * @note Free the list and every element after use. Strings added with
  *       packet_append_string() are already '\0'-terminated.
  */
-t_list* receive_packet(int socket_fd);
+t_list* receive_packet(t_socket* socket);
 
 /** @brief Destroys the packet. */
 void destroy_packet(t_packet* packet);
