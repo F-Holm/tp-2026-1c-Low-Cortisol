@@ -4,6 +4,7 @@
 #include <stdlib.h>
 
 #include "kernel_scheduler/scheduler/compaction.h"
+#include "kernel_scheduler/scheduler/kernel_memory_reply.h"
 #include "kernel_scheduler/scheduler/memory_query.h"
 #include "kernel_scheduler/scheduler/queue_types.h"
 #include "kernel_scheduler/shutdown.h"
@@ -67,15 +68,14 @@ bool free_memory(t_syscall_memory* mem_free, t_queues* queues)
 
 static bool response_km_mem_alloc(t_queues* queues)
 {
-  int cod_op = -1;
+  int op_code =
+      RECEIVE_KM_OPCODE(queues, OP_MEMORY_ALLOCATED, OP_SEGMENT_SIZE_EXCEEDED,
+                        OP_NOT_ENOUGH_MEMORY, OP_COMPACTION_NEEDED);
 
-  cod_op = receive_op_code(queues->km_socket);
-
-  switch (cod_op)
+  switch (op_code)
   {
-    case OP_MEMORY_CORRUPTED:
+    case OP_MEMORY_ALLOCATED:
       free(receive_string(queues->km_socket));
-      close_kernel_scheduler(SR_CORRUPTED_MEMORY);
       return true;
     case OP_SEGMENT_SIZE_EXCEEDED:
       free(receive_string(queues->km_socket));
@@ -84,20 +84,12 @@ static bool response_km_mem_alloc(t_queues* queues)
       free(receive_string(queues->km_socket));
       log_debug(queues->logger, "Not enough space");
       return false;
-    case OP_MEMORY_ALLOCATED:
-      free(receive_string(queues->km_socket));
-      return true;
     case OP_COMPACTION_NEEDED:
       free(receive_string(queues->km_socket));
       routine_compaction(queues);
       return response_km_mem_alloc(queues);
-    case OP_NEW_MEMORY_STICK:
-      free(receive_string(queues->km_socket));
-      create_resumption_routine_thread(queues);
-      return response_km_mem_alloc(queues);
     default:
-      free(receive_string(queues->km_socket));
-      close_kernel_scheduler(SR_KERNEL_MEMORY_CONNECTION_FAILURE);
+      // The scheduler is already shutting down: do not fail the allocation too.
       return true;
   }
 }
@@ -110,26 +102,9 @@ static bool has_space(t_syscall_memory* mem_alloc, t_queues* queues)
 
 static bool response_km_mem_free(t_queues* queues)
 {
-  int cod_op = -1;
+  if (RECEIVE_KM_OPCODE(queues, OP_MEMORY_FREED) == OP_CODE_ERROR)
+    return false;
 
-  cod_op = receive_op_code(queues->km_socket);
-
-  switch (cod_op)
-  {
-    case OP_MEMORY_CORRUPTED:
-      free(receive_string(queues->km_socket));
-      close_kernel_scheduler(SR_CORRUPTED_MEMORY);
-      return false;
-    case OP_MEMORY_FREED:
-      free(receive_string(queues->km_socket));
-      return true;
-    case OP_NEW_MEMORY_STICK:
-      free(receive_string(queues->km_socket));
-      create_resumption_routine_thread(queues);
-      return response_km_mem_free(queues);
-    default:
-      free(receive_string(queues->km_socket));
-      close_kernel_scheduler(SR_KERNEL_MEMORY_CONNECTION_FAILURE);
-      return false;
-  }
+  free(receive_string(queues->km_socket));
+  return true;
 }
