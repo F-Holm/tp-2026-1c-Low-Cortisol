@@ -13,6 +13,7 @@ scenarios.
 | `time_test.c` | `common/time`: `time_diff`, `millis` |
 | `handshake_test.c` | `common/handshake`: `respond_handshake` over a live socket / a dead fd |
 | `counter_test.c` | `scheduler/counter`: `create_counter`, `counter_increment`, `destroy_counter` |
+| `kernel_memory_reply_test.c` | `scheduler/kernel_memory_reply`: `receive_km_opcode` / `RECEIVE_KM_OPCODE` with one, two and several expected op codes, any number of `OP_NEW_MEMORY_STICK`, and the shutdown cases (memory corruption, unexpected op code, closed connection) |
 | `process_counter_test.c` | `scheduler/process_counter`: increment / non-final decrement |
 | `ready_queue_test.c` | `scheduler/ready_queue`: FIFO and MULTILEVEL init, the preempt / terminate gates, `check_priority_valid`, put/take ordering, multilevel priority, blocking take |
 | `blocking_list_test.c` | `scheduler/blocking_list`: FIFO `BLOCK`, priority-sorted `SUSP. BLOCK` / `SUSP. READY`, blocked-time stamping, take-specific / take-next / empty |
