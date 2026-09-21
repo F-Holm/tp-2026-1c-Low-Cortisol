@@ -1,15 +1,11 @@
 #pragma once
 
 #include <assert.h>
-#include <netdb.h>
-#include <signal.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/socket.h>
-#include <unistd.h>
 
 #include "utils/collections/list.h"
 #include "utils/config.h"
@@ -22,7 +18,7 @@ typedef struct
   t_log* logger;
   char* ip;
   char* port;
-  int socket_swap;
+  t_socket* socket_swap;
   int swap_size;
   int block_size;
   char* swap_file_path;

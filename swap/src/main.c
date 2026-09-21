@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/socket.h>
 
 #include "swap/swap.h"
 #include "utils/config.h"

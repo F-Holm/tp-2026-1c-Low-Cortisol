@@ -1,5 +1,7 @@
 #include "swap/swap.h"
 
+#include "utils/file.h"
+
 static bool init_swap_file(t_swap* swap);
 static void seek_block(FILE* swap_file, int block_number, int block_size);
 
@@ -8,8 +10,7 @@ void close_swap(t_swap* swap, t_config* config)
   // close_swap runs on every early-exit path, including ones reached before the
   // socket or the SWAP file were set, so each resource is released only if it
   // was actually acquired.
-  if (swap->socket_swap > 0)
-    close(swap->socket_swap);
+  socket_destroy(swap->socket_swap);
   if (swap->swap_file != NULL)
     fclose(swap->swap_file);
   if (swap->logger != NULL)
@@ -50,9 +51,10 @@ bool init_config(t_swap* swap, t_config* config)
 
 bool connect_to_kernel_memory(t_swap* swap, t_config* config)
 {
-  swap->socket_swap = create_connection(swap->ip, swap->port);
+  swap->socket_swap =
+      socket_create(SOCKET_KIND_CLIENT, swap->ip, swap->port, false);
 
-  if (swap->socket_swap == -1)
+  if (swap->socket_swap == NULL)
   {
     log_error(swap->logger, "Connection error with Kernel Memory");
     close_swap(swap, config);
@@ -120,8 +122,7 @@ static bool init_swap_file(t_swap* swap)
     return false;
 
   // Set the file size and fill it with zeros.
-  int file_descriptor = fileno(swap_file);
-  if (ftruncate(file_descriptor, swap->swap_size) == -1)
+  if (!file_resize(swap_file, swap->swap_size))
   {
     fclose(swap_file);
     return false;
