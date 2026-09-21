@@ -1,9 +1,14 @@
 #include "kernel_scheduler/syscalls/mutex.h"
 
 #include <criterion/criterion.h>
+#include <stdbool.h>
 #include <stdlib.h>
 
+#include "kernel_scheduler/domain/pcb.h"
+#include "kernel_scheduler/scheduler/queue_types.h"
+#include "kernel_scheduler/scheduler/ready_queue.h"
 #include "support.h"
+#include "utils/log.h"
 
 Test(ks_mutex, create_and_add_mutex_reports_duplicates)
 {

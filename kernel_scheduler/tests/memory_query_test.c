@@ -1,10 +1,13 @@
 #include "kernel_scheduler/scheduler/memory_query.h"
 
 #include <criterion/criterion.h>
-#include <unistd.h>
+#include <stdbool.h>
 
+#include "kernel_scheduler/scheduler/queue_types.h"
 #include "support.h"
+#include "utils/log.h"
 #include "utils/msg.h"
+#include "utils/sockets.h"
 
 /* ── space_available ───────────────────────────────────────────────────── */
 

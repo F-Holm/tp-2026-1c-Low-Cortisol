@@ -1,11 +1,14 @@
 #include <criterion/criterion.h>
+#include <stdbool.h>
+#include <stdint.h>
 #include <stdlib.h>
-#include <unistd.h>
 
 #include "kernel_scheduler/connections/kernel_memory.h"
 #include "kernel_scheduler/shutdown.h"
 #include "support.h"
+#include "utils/log.h"
 #include "utils/msg.h"
+#include "utils/sockets.h"
 #include "utils/threads.h"
 
 /* ── start_connection_kernel_memory ───────────────────────────────────── */

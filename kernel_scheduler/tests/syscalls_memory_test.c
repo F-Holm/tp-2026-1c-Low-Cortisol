@@ -1,9 +1,14 @@
 #include <criterion/criterion.h>
-#include <unistd.h>
+#include <stdbool.h>
 
+#include "kernel_scheduler/scheduler/queue_types.h"
+#include "kernel_scheduler/scheduler/suspension.h"
 #include "kernel_scheduler/syscalls/memory.h"
 #include "support.h"
+#include "utils/log.h"
 #include "utils/msg.h"
+#include "utils/sockets.h"
+#include "utils/syscalls.h"
 
 /* ── allocate_memory ───────────────────────────────────────────────────── */
 

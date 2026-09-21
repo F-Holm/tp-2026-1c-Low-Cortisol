@@ -2,9 +2,9 @@
 
 #include <criterion/criterion.h>
 #include <stdlib.h>
-#include <unistd.h>
 
 #include "kernel_scheduler/domain/pcb.h"
+#include "kernel_scheduler/scheduler/queue_types.h"
 #include "utils/collections/list.h"
 #include "utils/threads.h"
 #include "utils/time.h"

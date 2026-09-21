@@ -1,13 +1,16 @@
 #include "kernel_scheduler/scheduler/queues.h"
 
 #include <criterion/criterion.h>
+#include <stdatomic.h>
+#include <stdbool.h>
 #include <stdlib.h>
-#include <unistd.h>
 
 #include "kernel_scheduler/domain/pcb.h"
 #include "support.h"
 #include "utils/collections/list.h"
+#include "utils/log.h"
 #include "utils/msg.h"
+#include "utils/sockets.h"
 
 static t_list* levels(int count, int algo)
 {

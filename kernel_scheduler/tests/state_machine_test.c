@@ -1,8 +1,12 @@
 #include <criterion/criterion.h>
+#include <stdatomic.h>
 
 #include "kernel_scheduler/domain/pcb.h"
+#include "kernel_scheduler/scheduler/process_counter.h"
 #include "kernel_scheduler/scheduler/queues.h"
 #include "support.h"
+#include "utils/collections/list.h"
+#include "utils/log.h"
 
 static t_queues* q;
 

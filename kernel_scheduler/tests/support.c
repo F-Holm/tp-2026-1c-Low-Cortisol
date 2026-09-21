@@ -1,14 +1,22 @@
 #include "support.h"
 
 #include <criterion/criterion.h>
+#include <stdatomic.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 
+#include "kernel_scheduler/scheduler/blocking_list.h"
+#include "kernel_scheduler/scheduler/counter.h"
+#include "kernel_scheduler/scheduler/exec_list.h"
+#include "kernel_scheduler/scheduler/process_counter.h"
+#include "kernel_scheduler/scheduler/queue_types.h"
+#include "kernel_scheduler/scheduler/ready_queue.h"
 #include "kernel_scheduler/shutdown.h"
+#include "utils/collections/list.h"
 #include "utils/log.h"
-#include "utils/msg.h"
 #include "utils/mutex.h"
+#include "utils/sockets.h"
 
 t_log* ks_quiet_logger(void)
 {

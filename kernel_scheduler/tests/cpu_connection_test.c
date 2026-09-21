@@ -1,17 +1,21 @@
 #include <criterion/criterion.h>
-#include <unistd.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdlib.h>
 
 #include "kernel_scheduler/connections/cpu.h"
 #include "kernel_scheduler/connections/io.h"
 #include "kernel_scheduler/domain/pcb.h"
 #include "kernel_scheduler/scheduler/exec_list.h"
+#include "kernel_scheduler/scheduler/queue_types.h"
 #include "kernel_scheduler/scheduler/ready_queue.h"
 #include "kernel_scheduler/syscalls/mutex.h"
 #include "support.h"
 #include "utils/collections/list.h"
-#include "utils/io.h"
+#include "utils/log.h"
 #include "utils/msg.h"
 #include "utils/mutex.h"
+#include "utils/sockets.h"
 #include "utils/syscalls.h"
 
 TestSuite(ks_cpu_connection, .timeout = 10.0);

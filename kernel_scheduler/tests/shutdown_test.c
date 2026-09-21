@@ -4,7 +4,9 @@
 #include <stdlib.h>
 
 #include "support.h"
+#include "utils/log.h"
 #include "utils/msg.h"
+#include "utils/sockets.h"
 
 Test(ks_shutdown, notifies_kernel_memory_when_there_are_no_more_processes)
 {

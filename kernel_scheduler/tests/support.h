@@ -1,6 +1,8 @@
 #pragma once
 
 #include "kernel_scheduler/scheduler/queues.h"
+#include "utils/log.h"
+#include "utils/sockets.h"
 
 /**
  * @file

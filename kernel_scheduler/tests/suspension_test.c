@@ -2,15 +2,18 @@
 
 #include <criterion/criterion.h>
 #include <stdatomic.h>
-#include <unistd.h>
+#include <stdbool.h>
 
 #include "kernel_scheduler/domain/pcb.h"
 #include "kernel_scheduler/scheduler/blocking_list.h"
+#include "kernel_scheduler/scheduler/queue_types.h"
 #include "kernel_scheduler/scheduler/ready_queue.h"
 #include "support.h"
 #include "utils/collections/list.h"
+#include "utils/log.h"
 #include "utils/msg.h"
 #include "utils/mutex.h"
+#include "utils/sockets.h"
 #include "utils/time.h"
 
 /* ── thread lifecycle ──────────────────────────────────────────────────── */

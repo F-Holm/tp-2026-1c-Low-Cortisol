@@ -1,7 +1,6 @@
 #include "kernel_scheduler/domain/pcb.h"
 
 #include <criterion/criterion.h>
-#include <unistd.h>
 
 #include "utils/collections/list.h"
 #include "utils/threads.h"

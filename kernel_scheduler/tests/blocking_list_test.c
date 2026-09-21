@@ -3,7 +3,7 @@
 #include <criterion/criterion.h>
 
 #include "kernel_scheduler/domain/pcb.h"
-#include "utils/collections/list.h"
+#include "kernel_scheduler/scheduler/queue_types.h"
 
 Test(ks_blocking_list, starts_empty)
 {

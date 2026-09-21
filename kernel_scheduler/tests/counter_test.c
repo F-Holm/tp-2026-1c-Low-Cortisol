@@ -2,6 +2,8 @@
 
 #include <criterion/criterion.h>
 
+#include "kernel_scheduler/scheduler/queue_types.h"
+
 Test(ks_counter, starts_at_zero)
 {
   t_counter* c = create_counter();

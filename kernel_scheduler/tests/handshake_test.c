@@ -3,7 +3,9 @@
 #include <criterion/criterion.h>
 
 #include "support.h"
+#include "utils/log.h"
 #include "utils/msg.h"
+#include "utils/sockets.h"
 
 Test(ks_handshake, sends_the_module_id_over_a_live_socket)
 {

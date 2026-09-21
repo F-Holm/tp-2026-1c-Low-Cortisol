@@ -1,9 +1,11 @@
 #include "kernel_scheduler/scheduler/exec_list.h"
 
 #include <criterion/criterion.h>
+#include <stdbool.h>
 
 #include "kernel_scheduler/domain/pcb.h"
 #include "kernel_scheduler/scheduler/counter.h"
+#include "kernel_scheduler/scheduler/queue_types.h"
 #include "utils/collections/list.h"
 
 Test(ks_exec_list, init_records_quantum_and_preemption)

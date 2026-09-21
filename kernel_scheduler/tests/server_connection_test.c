@@ -1,9 +1,13 @@
 #include <criterion/criterion.h>
-#include <unistd.h>
+#include <stdbool.h>
 
 #include "kernel_scheduler/connections/server.h"
+#include "kernel_scheduler/scheduler/queue_types.h"
+#include "kernel_scheduler/syscalls/mutex.h"
 #include "support.h"
+#include "utils/log.h"
 #include "utils/msg.h"
+#include "utils/sockets.h"
 #include "utils/threads.h"
 
 static void* server_listen_thread(void* arg)

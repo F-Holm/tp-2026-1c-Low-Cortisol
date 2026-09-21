@@ -1,8 +1,10 @@
 #include "kernel_scheduler/scheduler/process_counter.h"
 
 #include <criterion/criterion.h>
+#include <stdatomic.h>
 
 #include "support.h"
+#include "utils/sockets.h"
 
 Test(ks_process_counter, starts_at_zero)
 {

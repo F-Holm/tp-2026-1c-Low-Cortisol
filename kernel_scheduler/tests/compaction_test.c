@@ -2,11 +2,15 @@
 
 #include <criterion/criterion.h>
 #include <stdatomic.h>
-#include <unistd.h>
+#include <stdbool.h>
 
 #include "kernel_scheduler/domain/pcb.h"
+#include "kernel_scheduler/scheduler/queue_types.h"
+#include "kernel_scheduler/scheduler/suspension.h"
 #include "support.h"
+#include "utils/log.h"
 #include "utils/msg.h"
+#include "utils/sockets.h"
 
 /* ── is_compacting / is_resuming / terminate_routines ─────────────────── */
 
