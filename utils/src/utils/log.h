@@ -1,9 +1,9 @@
 #pragma once
 
-#include <pthread.h>
 #include <stdbool.h>
 #include <stdio.h>
-#include <sys/types.h>
+
+#include "utils/mutex.h"
 
 /**
  * @file
@@ -34,8 +34,8 @@ typedef struct
   bool is_thread_safe;
   t_log_level detail;
   char* program_name;
-  pid_t pid;
-  pthread_mutex_t mutex;
+  int pid;
+  mtx_t mutex;
 } t_log;
 
 /**

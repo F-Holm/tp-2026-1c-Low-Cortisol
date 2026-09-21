@@ -1,14 +1,12 @@
 #include "utils/log.h"
 
-#include <pthread.h>
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/syscall.h>
-#include <time.h>
-#include <unistd.h>
 
+#include "utils/process.h"
 #include "utils/string.h"
+#include "utils/time.h"
 
 static const char* const LEVEL_NAMES[] = {"TRACE", "DEBUG", "INFO", "WARNING",
                                           "ERROR"};
@@ -16,7 +14,6 @@ static const char* const LEVEL_COLORS[] = {"\x1b[36m", "\x1b[32m", "",
                                            "\x1b[33m", "\x1b[31m"};
 static const char* const COLOR_RESET = "\x1b[0m";
 
-static long current_thread_id(void);
 static void format_timestamp(char* buffer, size_t size);
 static char* format_message(const char* template, va_list arguments);
 static bool is_level_enabled(t_log* logger, t_log_level level);
@@ -42,8 +39,8 @@ t_log* log_create(char* file, char* program_name, bool is_active_console,
   logger->is_thread_safe = is_thread_safe;
   logger->detail = detail;
   logger->program_name = string_duplicate(program_name);
-  logger->pid = getpid();
-  pthread_mutex_init(&logger->mutex, NULL);
+  logger->pid = process_get_id();
+  mtx_init(&logger->mutex);
   return logger;
 }
 
@@ -53,7 +50,7 @@ void log_destroy(t_log* logger)
   {
     fclose(logger->file);
   }
-  pthread_mutex_destroy(&logger->mutex);
+  mtx_destroy(&logger->mutex);
   free(logger->program_name);
   free(logger);
 }
@@ -94,22 +91,11 @@ DEFINE_LOG_LEVEL(error, LOG_LEVEL_ERROR)
 
 #undef DEFINE_LOG_LEVEL
 
-static long current_thread_id(void)
-{
-  return syscall(SYS_gettid);
-}
-
 static void format_timestamp(char* buffer, size_t size)
 {
-  struct timespec now;
-  clock_gettime(CLOCK_REALTIME, &now);
-
-  struct tm local_time;
-  localtime_r(&now.tv_sec, &local_time);
-
-  char time_part[16];
-  strftime(time_part, sizeof(time_part), "%H:%M:%S", &local_time);
-  snprintf(buffer, size, "%s:%03ld", time_part, now.tv_nsec / 1000000);
+  t_local_time now = time_local_now();
+  snprintf(buffer, size, "%02d:%02d:%02d:%03d", now.hour, now.minute,
+           now.second, now.millisecond);
 }
 
 static char* format_message(const char* template, va_list arguments)
@@ -143,14 +129,14 @@ static void log_write(t_log* logger, t_log_level level, const char* template,
 
   if (logger->is_thread_safe)
   {
-    pthread_mutex_lock(&logger->mutex);
+    mtx_lock(&logger->mutex);
   }
 
   if (logger->file != NULL)
   {
     fprintf(logger->file, "[%s] %s %s/(%d:%ld): %s\n",
             log_level_as_string(level), timestamp, logger->program_name,
-            logger->pid, current_thread_id(), message);
+            logger->pid, process_get_thread_id(), message);
     fflush(logger->file);
   }
 
@@ -158,12 +144,12 @@ static void log_write(t_log* logger, t_log_level level, const char* template,
   {
     printf("%s[%s] %s %s/(%d:%ld): %s%s\n", LEVEL_COLORS[level],
            log_level_as_string(level), timestamp, logger->program_name,
-           logger->pid, current_thread_id(), message, COLOR_RESET);
+           logger->pid, process_get_thread_id(), message, COLOR_RESET);
   }
 
   if (logger->is_thread_safe)
   {
-    pthread_mutex_unlock(&logger->mutex);
+    mtx_unlock(&logger->mutex);
   }
 
   free(message);
