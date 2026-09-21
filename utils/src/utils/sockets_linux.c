@@ -1,25 +1,118 @@
-#include "utils/sockets_linux.h"
-
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <netinet/in.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
 #include <unistd.h>
 
+#include "utils/sockets.h"
+
 static const t_socket_handle INVALID_HANDLE = -1;
 
-t_socket_handle socket_handle_invalid(void)
+static bool socket_handle_is_valid(t_socket_handle handle);
+static t_socket* wrap_handle(t_socket_handle handle, bool with_mutex);
+static t_socket* create_client(char* ip, char* port, bool with_mutex);
+static t_socket* create_server(char* port, bool with_mutex);
+
+t_socket* socket_create(t_socket_kind kind, char* ip, char* port,
+                        bool with_mutex)
 {
-  return INVALID_HANDLE;
+  if (kind == SOCKET_KIND_CLIENT)
+    return create_client(ip, port, with_mutex);
+  return create_server(port, with_mutex);
 }
 
-bool socket_handle_is_valid(t_socket_handle handle)
+t_socket* socket_accept(t_socket* listener, bool with_mutex)
+{
+  return wrap_handle(accept(listener->handle, NULL, NULL), with_mutex);
+}
+
+bool socket_send(t_socket* socket, const void* data, int size)
+{
+  if (socket == NULL || !socket_handle_is_valid(socket->handle))
+    return false;
+  return send(socket->handle, data, size, MSG_NOSIGNAL) > 0;
+}
+
+bool socket_receive(t_socket* socket, void* data, int size)
+{
+  if (socket == NULL || !socket_handle_is_valid(socket->handle))
+    return false;
+  return recv(socket->handle, data, size, MSG_WAITALL) > 0;
+}
+
+int socket_get_local_port(t_socket* socket)
+{
+  if (socket == NULL || !socket_handle_is_valid(socket->handle))
+    return -1;
+
+  struct sockaddr_in address;
+  socklen_t length = sizeof(address);
+  if (getsockname(socket->handle, (struct sockaddr*)&address, &length) != 0)
+    return -1;
+
+  return ntohs(address.sin_port);
+}
+
+void socket_shutdown(t_socket* socket, t_socket_shutdown_mode mode)
+{
+  if (socket == NULL || !socket_handle_is_valid(socket->handle))
+    return;
+
+  static const int HOW[] = {SHUT_RD, SHUT_WR, SHUT_RDWR};
+  shutdown(socket->handle, HOW[mode]);
+}
+
+void socket_close(t_socket* socket)
+{
+  if (socket == NULL || !socket_handle_is_valid(socket->handle))
+    return;
+  close(socket->handle);
+  socket->handle = INVALID_HANDLE;
+}
+
+void socket_destroy(t_socket* socket)
+{
+  if (socket == NULL)
+    return;
+  socket_close(socket);
+  mtx_destroy(&socket->mutex);
+  free(socket);
+}
+
+void socket_mutex_lock(t_socket* socket)
+{
+  if (socket == NULL || !socket->has_mutex)
+    return;
+  mtx_lock(&socket->mutex);
+}
+
+void socket_mutex_unlock(t_socket* socket)
+{
+  if (socket == NULL || !socket->has_mutex)
+    return;
+  mtx_unlock(&socket->mutex);
+}
+
+static bool socket_handle_is_valid(t_socket_handle handle)
 {
   return handle != INVALID_HANDLE;
 }
 
-t_socket_handle socket_handle_connect(char* ip, char* port)
+static t_socket* wrap_handle(t_socket_handle handle, bool with_mutex)
+{
+  if (!socket_handle_is_valid(handle))
+    return NULL;
+
+  t_socket* socket = malloc(sizeof(t_socket));
+  socket->handle = handle;
+  socket->has_mutex = with_mutex;
+  mtx_init(&socket->mutex);
+  return socket;
+}
+
+static t_socket* create_client(char* ip, char* port, bool with_mutex)
 {
   struct addrinfo hints;
   struct addrinfo* server_info;
@@ -30,7 +123,7 @@ t_socket_handle socket_handle_connect(char* ip, char* port)
   hints.ai_flags = AI_PASSIVE;
 
   if (getaddrinfo(ip, port, &hints, &server_info) != 0)
-    return INVALID_HANDLE;
+    return NULL;
 
   t_socket_handle handle =
       socket(server_info->ai_family, server_info->ai_socktype,
@@ -38,21 +131,21 @@ t_socket_handle socket_handle_connect(char* ip, char* port)
   if (!socket_handle_is_valid(handle))
   {
     freeaddrinfo(server_info);
-    return INVALID_HANDLE;
+    return NULL;
   }
 
   if (connect(handle, server_info->ai_addr, server_info->ai_addrlen) == -1)
   {
     freeaddrinfo(server_info);
     close(handle);
-    return INVALID_HANDLE;
+    return NULL;
   }
 
   freeaddrinfo(server_info);
-  return handle;
+  return wrap_handle(handle, with_mutex);
 }
 
-t_socket_handle socket_handle_listen(char* port)
+static t_socket* create_server(char* port, bool with_mutex)
 {
   struct addrinfo hints, *servinfo;
 
@@ -74,46 +167,5 @@ t_socket_handle socket_handle_listen(char* port)
   listen(handle, SOMAXCONN);
 
   freeaddrinfo(servinfo);
-  return handle;
-}
-
-t_socket_handle socket_handle_accept(t_socket_handle listener)
-{
-  return accept(listener, NULL, NULL);
-}
-
-bool socket_handle_send(t_socket_handle handle, const void* data, int size)
-{
-  return send(handle, data, size, MSG_NOSIGNAL) > 0;
-}
-
-bool socket_handle_receive(t_socket_handle handle, void* data, int size)
-{
-  return recv(handle, data, size, MSG_WAITALL) > 0;
-}
-
-int socket_handle_get_local_port(t_socket_handle handle)
-{
-  struct sockaddr_in address;
-  socklen_t length = sizeof(address);
-  if (getsockname(handle, (struct sockaddr*)&address, &length) != 0)
-    return -1;
-
-  return ntohs(address.sin_port);
-}
-
-void socket_handle_shutdown(t_socket_handle handle, bool disable_read,
-                            bool disable_write)
-{
-  if (disable_read && disable_write)
-    shutdown(handle, SHUT_RDWR);
-  else if (disable_read)
-    shutdown(handle, SHUT_RD);
-  else if (disable_write)
-    shutdown(handle, SHUT_WR);
-}
-
-void socket_handle_close(t_socket_handle handle)
-{
-  close(handle);
+  return wrap_handle(handle, with_mutex);
 }
