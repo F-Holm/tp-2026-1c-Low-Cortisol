@@ -2,7 +2,6 @@
 
 #include <criterion/criterion.h>
 #include <stdatomic.h>
-#include <sys/socket.h>
 #include <unistd.h>
 
 #include "kernel_scheduler/domain/pcb.h"
@@ -11,6 +10,8 @@
 #include "support.h"
 #include "utils/collections/list.h"
 #include "utils/msg.h"
+#include "utils/mutex.h"
+#include "utils/time.h"
 
 /* ── thread lifecycle ──────────────────────────────────────────────────── */
 
@@ -53,16 +54,16 @@ Test(ks_suspension, lock_threads_suspended_parks_both_worker_threads)
   bool resumer_blocked = false;
   for (int i = 0; i < 500 && !(suspender_blocked && resumer_blocked); i++)
   {
-    pthread_mutex_lock(&(suspender_data->state_mutex));
+    mtx_lock(&(suspender_data->state_mutex));
     suspender_blocked = suspender_data->state == TS_BLOCKED;
-    pthread_mutex_unlock(&(suspender_data->state_mutex));
+    mtx_unlock(&(suspender_data->state_mutex));
 
-    pthread_mutex_lock(&(resumer_data->state_mutex));
+    mtx_lock(&(resumer_data->state_mutex));
     resumer_blocked = resumer_data->state == TS_BLOCKED;
-    pthread_mutex_unlock(&(resumer_data->state_mutex));
+    mtx_unlock(&(resumer_data->state_mutex));
 
     if (!(suspender_blocked && resumer_blocked))
-      usleep(1000);
+      time_sleep_ms(1);
   }
   cr_assert(suspender_blocked, "suspender thread never parked");
   cr_assert(resumer_blocked, "resumer thread never parked");
@@ -83,9 +84,9 @@ Test(ks_suspension, transition_block_susp_block_rejects_a_pcb_not_in_block)
   t_queues* queues = ks_stub_queues_full(logger);
   t_pcb* pcb = create_pcb(PS_READY, 0);
 
-  pthread_mutex_lock(&(pcb->state_mutex));
+  mtx_lock(&(pcb->state_mutex));
   transition_block_susp_block_no_mutex(pcb, queues);
-  pthread_mutex_unlock(&(pcb->state_mutex));
+  mtx_unlock(&(pcb->state_mutex));
 
   cr_assert_eq(pcb->state, PS_READY);
 
@@ -96,21 +97,21 @@ Test(ks_suspension, transition_block_susp_block_rejects_a_pcb_not_in_block)
 
 Test(ks_suspension, transition_block_susp_block_gives_up_on_a_notify_failure)
 {
-  int server_fd;
-  int client_fd = ks_connected_pair(&server_fd);
+  t_socket* server_fd;
+  t_socket* client_fd = ks_connected_pair(&server_fd);
   /* shutdown(SHUT_WR), not close(): a single small send() on a loopback
    * socket after the peer merely closes often still succeeds silently. */
-  shutdown(client_fd, SHUT_WR);
-  close(server_fd);
+  socket_shutdown(client_fd, SOCKET_SHUTDOWN_WRITE);
+  socket_destroy(server_fd);
 
   t_log* logger = ks_quiet_logger();
   t_queues* queues = ks_stub_queues_full(logger);
-  queues->km_socket->km_socket = client_fd;
+  queues->km_socket = client_fd;
   t_pcb* pcb = create_pcb(PS_BLOCK, 0);
 
-  pthread_mutex_lock(&(pcb->state_mutex));
+  mtx_lock(&(pcb->state_mutex));
   transition_block_susp_block_no_mutex(pcb, queues);
-  pthread_mutex_unlock(&(pcb->state_mutex));
+  mtx_unlock(&(pcb->state_mutex));
 
   cr_assert_eq(pcb->state, PS_BLOCK);
 
@@ -122,13 +123,13 @@ Test(ks_suspension, transition_block_susp_block_gives_up_on_a_notify_failure)
 Test(ks_suspension,
      transition_block_susp_block_moves_the_pcb_when_kernel_memory_agrees)
 {
-  int server_fd;
-  int client_fd = ks_connected_pair(&server_fd);
+  t_socket* server_fd;
+  t_socket* client_fd = ks_connected_pair(&server_fd);
   cr_assert(send_string(OP_SUSPENSION_OK, "suspended", server_fd));
 
   t_log* logger = ks_quiet_logger();
   t_queues* queues = ks_stub_queues_full(logger);
-  queues->km_socket->km_socket = client_fd;
+  queues->km_socket = client_fd;
   /* Skip the resumer-thread wakeup at the end -- that's the suspension
    * subsystem's own concern, already covered by the thread-lifecycle
    * tests above. */
@@ -137,9 +138,9 @@ Test(ks_suspension,
   t_pcb* pcb = create_pcb(PS_BLOCK, 0);
   transition_to_block(pcb, &(queues->block));
 
-  pthread_mutex_lock(&(pcb->state_mutex));
+  mtx_lock(&(pcb->state_mutex));
   transition_block_susp_block_no_mutex(pcb, queues);
-  pthread_mutex_unlock(&(pcb->state_mutex));
+  mtx_unlock(&(pcb->state_mutex));
 
   cr_assert_eq(pcb->state, PS_SUSP_BLOCK);
   cr_assert_eq(list_size(queues->block.list), 0);
@@ -148,7 +149,7 @@ Test(ks_suspension,
   transition_take_susp_block(pcb, &(queues->susp_block));
   destroy_pcb(pcb);
   ks_destroy_stub_queues_full(queues);
-  close(server_fd);
+  socket_destroy(server_fd);
   log_destroy(logger);
 }
 
@@ -161,9 +162,9 @@ Test(ks_suspension,
   t_queues* queues = ks_stub_queues_full(logger);
   t_pcb* pcb = create_pcb(PS_READY, 0);
 
-  pthread_mutex_lock(&(pcb->state_mutex));
+  mtx_lock(&(pcb->state_mutex));
   transition_susp_block_susp_ready_no_mutex(pcb, queues);
-  pthread_mutex_unlock(&(pcb->state_mutex));
+  mtx_unlock(&(pcb->state_mutex));
 
   cr_assert_eq(pcb->state, PS_READY);
 
@@ -179,9 +180,9 @@ Test(ks_suspension, transition_susp_block_susp_ready_moves_the_pcb)
   t_pcb* pcb = create_pcb(PS_SUSP_BLOCK, 0);
   transition_to_susp_block(pcb, &(queues->susp_block));
 
-  pthread_mutex_lock(&(pcb->state_mutex));
+  mtx_lock(&(pcb->state_mutex));
   transition_susp_block_susp_ready_no_mutex(pcb, queues);
-  pthread_mutex_unlock(&(pcb->state_mutex));
+  mtx_unlock(&(pcb->state_mutex));
 
   cr_assert_eq(pcb->state, PS_SUSP_READY);
   cr_assert_eq(list_size(queues->susp_block.list), 0);
@@ -201,9 +202,9 @@ Test(ks_suspension, transition_susp_ready_rejects_a_pcb_not_in_susp_ready)
   t_queues* queues = ks_stub_queues_full(logger);
   t_pcb* pcb = create_pcb(PS_READY, 0);
 
-  pthread_mutex_lock(&(pcb->state_mutex));
+  mtx_lock(&(pcb->state_mutex));
   cr_assert_not(transition_susp_ready_no_mutex(pcb, queues));
-  pthread_mutex_unlock(&(pcb->state_mutex));
+  mtx_unlock(&(pcb->state_mutex));
 
   destroy_pcb(pcb);
   ks_destroy_stub_queues_full(queues);
@@ -213,8 +214,8 @@ Test(ks_suspension, transition_susp_ready_rejects_a_pcb_not_in_susp_ready)
 Test(ks_suspension,
      transition_susp_ready_declines_when_there_is_not_enough_space)
 {
-  int server_fd;
-  int client_fd = ks_connected_pair(&server_fd);
+  t_socket* server_fd;
+  t_socket* client_fd = ks_connected_pair(&server_fd);
   int space = 100;
   cr_assert(send_buffer(OP_FREE_MEMORY, &space, sizeof(space), server_fd));
   int size = 500;
@@ -222,26 +223,26 @@ Test(ks_suspension,
 
   t_log* logger = ks_quiet_logger();
   t_queues* queues = ks_stub_queues_full(logger);
-  queues->km_socket->km_socket = client_fd;
+  queues->km_socket = client_fd;
   t_pcb* pcb = create_pcb(PS_SUSP_READY, 0);
 
-  pthread_mutex_lock(&(pcb->state_mutex));
+  mtx_lock(&(pcb->state_mutex));
   cr_assert_not(transition_susp_ready_no_mutex(pcb, queues));
-  pthread_mutex_unlock(&(pcb->state_mutex));
+  mtx_unlock(&(pcb->state_mutex));
 
   cr_assert_eq(pcb->state, PS_SUSP_READY);
 
   destroy_pcb(pcb);
   ks_destroy_stub_queues_full(queues);
-  close(server_fd);
+  socket_destroy(server_fd);
   log_destroy(logger);
 }
 
 Test(ks_suspension,
      transition_susp_ready_fails_when_kernel_memory_rejects_the_resume)
 {
-  int server_fd;
-  int client_fd = ks_connected_pair(&server_fd);
+  t_socket* server_fd;
+  t_socket* client_fd = ks_connected_pair(&server_fd);
   int space = 1000;
   cr_assert(send_buffer(OP_FREE_MEMORY, &space, sizeof(space), server_fd));
   int size = 500;
@@ -250,25 +251,25 @@ Test(ks_suspension,
 
   t_log* logger = ks_quiet_logger();
   t_queues* queues = ks_stub_queues_full(logger);
-  queues->km_socket->km_socket = client_fd;
+  queues->km_socket = client_fd;
   t_pcb* pcb = create_pcb(PS_SUSP_READY, 0);
 
-  pthread_mutex_lock(&(pcb->state_mutex));
+  mtx_lock(&(pcb->state_mutex));
   cr_assert_not(transition_susp_ready_no_mutex(pcb, queues));
-  pthread_mutex_unlock(&(pcb->state_mutex));
+  mtx_unlock(&(pcb->state_mutex));
 
   cr_assert_eq(pcb->state, PS_SUSP_READY);
 
   destroy_pcb(pcb);
   ks_destroy_stub_queues_full(queues);
-  close(server_fd);
+  socket_destroy(server_fd);
   log_destroy(logger);
 }
 
 Test(ks_suspension, transition_susp_ready_moves_the_pcb_back_to_ready)
 {
-  int server_fd;
-  int client_fd = ks_connected_pair(&server_fd);
+  t_socket* server_fd;
+  t_socket* client_fd = ks_connected_pair(&server_fd);
   int space = 1000;
   cr_assert(send_buffer(OP_FREE_MEMORY, &space, sizeof(space), server_fd));
   int size = 500;
@@ -277,13 +278,13 @@ Test(ks_suspension, transition_susp_ready_moves_the_pcb_back_to_ready)
 
   t_log* logger = ks_quiet_logger();
   t_queues* queues = ks_stub_queues_full(logger);
-  queues->km_socket->km_socket = client_fd;
+  queues->km_socket = client_fd;
   t_pcb* pcb = create_pcb(PS_SUSP_READY, 0);
   transition_to_susp_ready(pcb, &(queues->susp_ready));
 
-  pthread_mutex_lock(&(pcb->state_mutex));
+  mtx_lock(&(pcb->state_mutex));
   cr_assert(transition_susp_ready_no_mutex(pcb, queues));
-  pthread_mutex_unlock(&(pcb->state_mutex));
+  mtx_unlock(&(pcb->state_mutex));
 
   cr_assert_eq(pcb->state, PS_READY);
   cr_assert_eq(list_size(queues->susp_ready.list), 0);
@@ -291,6 +292,6 @@ Test(ks_suspension, transition_susp_ready_moves_the_pcb_back_to_ready)
 
   destroy_pcb(pcb);
   ks_destroy_stub_queues_full(queues);
-  close(server_fd);
+  socket_destroy(server_fd);
   log_destroy(logger);
 }

@@ -41,7 +41,7 @@ void ks_destroy_stub_queues_full(t_queues* queues);
  *        tests that need a real socket without a fixed port. Writes the port
  *        number (as a string) into `port_out`.
  */
-int ks_listen_ephemeral(char* port_out, int port_len);
+t_socket* ks_listen_ephemeral(char* port_out, int port_len);
 
 /**
  * @brief A connected loopback TCP pair: connects to a fresh ephemeral
@@ -49,7 +49,16 @@ int ks_listen_ephemeral(char* port_out, int port_len);
  *        sockets. Returns the client fd; writes the server-side fd into
  *        `server_out`.
  */
-int ks_connected_pair(int* server_out);
+t_socket* ks_connected_pair(t_socket** server_out);
+
+/** @brief Like ks_connected_pair(), but both sockets carry a mutex. */
+t_socket* ks_connected_pair_with_mutex(t_socket** server_out);
+
+/**
+ * @brief A socket that carries a mutex but is already closed, so every send and
+ *        receive on it fails. Destroy it with socket_destroy().
+ */
+t_socket* ks_dead_socket_with_mutex(void);
 
 /**
  * @brief Blocks until queues->routines.thread_counter drops to 0 -- the same

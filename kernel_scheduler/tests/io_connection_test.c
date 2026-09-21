@@ -1,6 +1,5 @@
 #include <criterion/criterion.h>
 #include <stdatomic.h>
-#include <sys/socket.h>
 #include <unistd.h>
 
 #include "kernel_scheduler/connections/io.h"
@@ -10,66 +9,69 @@
 #include "utils/collections/list.h"
 #include "utils/io.h"
 #include "utils/msg.h"
+#include "utils/mutex.h"
 #include "utils/syscalls.h"
+#include "utils/time.h"
 
 Test(ks_io_connection, succeeds_and_starts_a_worker_thread_for_a_valid_io_type)
 {
-  int fds[2];
-  cr_assert_eq(socketpair(AF_UNIX, SOCK_STREAM, 0, fds), 0);
-  cr_assert(send_string(OP_IO_TYPE, "STDIN", fds[1]));
+  t_socket* fds1;
+  t_socket* fds0 = ks_connected_pair(&fds1);
+  cr_assert(send_string(OP_IO_TYPE, "STDIN", fds1));
 
   t_log* logger = ks_quiet_logger();
   t_queues* queues = ks_stub_queues(logger);
   t_io* io = create_io_structures();
 
-  cr_assert(handle_new_io(io, fds[0], queues, false));
-  cr_assert_eq(receive_handshake(fds[1]), MID_KERNEL_SCHEDULER);
-  cr_assert_eq(io[IO_STDIN].socket_io, fds[0]);
+  cr_assert(handle_new_io(io, fds0, queues, false));
+  cr_assert_eq(receive_handshake(fds1), MID_KERNEL_SCHEDULER);
+  cr_assert_eq(io[IO_STDIN].socket_io, fds0);
 
   close_io(io);
-  close(fds[1]);
+  socket_destroy(fds1);
   free(queues);
   log_destroy(logger);
 }
 
 Test(ks_io_connection, fails_when_the_io_type_is_unknown)
 {
-  int fds[2];
-  cr_assert_eq(socketpair(AF_UNIX, SOCK_STREAM, 0, fds), 0);
-  cr_assert(send_string(OP_IO_TYPE, "NOT_A_TYPE", fds[1]));
+  t_socket* fds1;
+  t_socket* fds0 = ks_connected_pair(&fds1);
+  cr_assert(send_string(OP_IO_TYPE, "NOT_A_TYPE", fds1));
 
   t_log* logger = ks_quiet_logger();
   t_queues* queues = ks_stub_queues(logger);
   t_io* io = create_io_structures();
 
-  cr_assert_not(handle_new_io(io, fds[0], queues, false));
+  cr_assert_not(handle_new_io(io, fds0, queues, false));
 
   close_io(io);
-  close(fds[0]);
-  close(fds[1]);
+  socket_destroy(fds0);
+  socket_destroy(fds1);
   free(queues);
   log_destroy(logger);
 }
 
 Test(ks_io_connection, fails_when_the_io_type_is_a_duplicate)
 {
-  int fds[2];
-  cr_assert_eq(socketpair(AF_UNIX, SOCK_STREAM, 0, fds), 0);
-  cr_assert(send_string(OP_IO_TYPE, "STDIN", fds[1]));
-  int dup_fds[2];
-  cr_assert_eq(socketpair(AF_UNIX, SOCK_STREAM, 0, dup_fds), 0);
-  cr_assert(send_string(OP_IO_TYPE, "STDIN", dup_fds[1]));
+  t_socket* fds1;
+  t_socket* fds0 = ks_connected_pair(&fds1);
+  cr_assert(send_string(OP_IO_TYPE, "STDIN", fds1));
+  t_socket* dup_fds1;
+  t_socket* dup_fds0 = ks_connected_pair(&dup_fds1);
+  cr_assert(send_string(OP_IO_TYPE, "STDIN", dup_fds1));
 
   t_log* logger = ks_quiet_logger();
   t_queues* queues = ks_stub_queues(logger);
   t_io* io = create_io_structures();
 
-  cr_assert(handle_new_io(io, fds[0], queues, false));
-  cr_assert_not(handle_new_io(io, dup_fds[0], queues, false));
+  cr_assert(handle_new_io(io, fds0, queues, false));
+  cr_assert_not(handle_new_io(io, dup_fds0, queues, false));
 
   close_io(io);
-  close(fds[1]);
-  close(dup_fds[1]);
+  socket_destroy(fds1);
+  socket_destroy(dup_fds0);
+  socket_destroy(dup_fds1);
   free(queues);
   log_destroy(logger);
 }
@@ -80,7 +82,7 @@ Test(ks_io_connection, fails_gracefully_on_a_dead_socket)
   t_queues* queues = ks_stub_queues(logger);
   t_io* io = create_io_structures();
 
-  cr_assert_not(handle_new_io(io, -1, queues, false));
+  cr_assert_not(handle_new_io(io, NULL, queues, false));
 
   close_io(io);
   free(queues);
@@ -95,19 +97,19 @@ static t_io make_io_stub(int io_type, bool priority_active)
   io.io_type = io_type;
   io.priority_active = priority_active;
   atomic_init(&(io.close_thread), false);
-  pthread_cond_init(&(io.new_process), NULL);
+  cnd_init(&(io.new_process));
   io.io_list = malloc(sizeof(t_io_list));
   io.io_list->io_list = list_create();
-  pthread_mutex_init(&(io.io_list->io_list_mutex), NULL);
+  mtx_init(&(io.io_list->io_list_mutex));
   return io;
 }
 
 static void destroy_io_stub(t_io* io)
 {
   list_destroy_and_destroy_elements(io->io_list->io_list, free);
-  pthread_mutex_destroy(&(io->io_list->io_list_mutex));
+  mtx_destroy(&(io->io_list->io_list_mutex));
   free(io->io_list);
-  pthread_cond_destroy(&(io->new_process));
+  cnd_destroy(&(io->new_process));
 }
 
 Test(ks_io_connection, enqueue_io_request_is_rejected_after_close)
@@ -209,8 +211,8 @@ Test(ks_io_connection, enqueue_io_request_inserts_sleep_by_priority)
 
 Test(ks_io_connection, close_io_drains_and_unblocks_a_stuck_pending_request)
 {
-  int server_fd;
-  int client_fd = ks_connected_pair(&server_fd);
+  t_socket* server_fd;
+  t_socket* client_fd = ks_connected_pair(&server_fd);
   cr_assert(send_string(OP_IO_TYPE, "STDIN", server_fd));
 
   t_log* logger = ks_quiet_logger();
@@ -227,7 +229,7 @@ Test(ks_io_connection, close_io_drains_and_unblocks_a_stuck_pending_request)
 
   /* Give the worker thread a beat to pick it up and block on a reply that
    * will never come -- the fake "IO" peer above never answers. */
-  usleep(50000);
+  time_sleep_ms(50);
 
   /* close_io shuts the socket down, which unblocks the worker's stuck read;
    * it then drains the still-in-flight request through free_request(),
@@ -239,7 +241,7 @@ Test(ks_io_connection, close_io_drains_and_unblocks_a_stuck_pending_request)
 
   destroy_pcb(pcb);
   ks_destroy_stub_queues_full(queues);
-  close(server_fd);
+  socket_destroy(server_fd);
   log_destroy(logger);
 }
 
@@ -247,16 +249,16 @@ Test(ks_io_connection, close_io_drains_and_unblocks_a_stuck_pending_request)
 
 Test(ks_io_connection, stdin_round_trip_reads_and_unblocks_the_process)
 {
-  int server_fd;
-  int client_fd = ks_connected_pair(&server_fd);
+  t_socket* server_fd;
+  t_socket* client_fd = ks_connected_pair(&server_fd);
   cr_assert(send_string(OP_IO_TYPE, "STDIN", server_fd));
 
-  int km_server_fd;
-  int km_client_fd = ks_connected_pair(&km_server_fd);
+  t_socket* km_server_fd;
+  t_socket* km_client_fd = ks_connected_pair(&km_server_fd);
 
   t_log* logger = ks_quiet_logger();
   t_queues* queues = ks_stub_queues_full(logger);
-  queues->km_socket->km_socket = km_client_fd;
+  queues->km_socket = km_client_fd;
   t_io* io = create_io_structures();
 
   cr_assert(handle_new_io(io, client_fd, queues, false));
@@ -275,7 +277,7 @@ Test(ks_io_connection, stdin_round_trip_reads_and_unblocks_the_process)
   request->pid = pcb->pid;
   cr_assert(enqueue_io_request(request, &(io[IO_STDIN]), pcb));
 
-  usleep(50000);
+  time_sleep_ms(50);
 
   cr_assert_eq(pcb->state, PS_READY);
   cr_assert_eq(list_size(queues->block.list), 0);
@@ -284,15 +286,15 @@ Test(ks_io_connection, stdin_round_trip_reads_and_unblocks_the_process)
   destroy_pcb(pcb);
   close_io(io);
   ks_destroy_stub_queues_full(queues);
-  close(server_fd);
-  close(km_server_fd);
+  socket_destroy(server_fd);
+  socket_destroy(km_server_fd);
   log_destroy(logger);
 }
 
 Test(ks_io_connection, sleep_round_trip_unblocks_the_process)
 {
-  int server_fd;
-  int client_fd = ks_connected_pair(&server_fd);
+  t_socket* server_fd;
+  t_socket* client_fd = ks_connected_pair(&server_fd);
   cr_assert(send_string(OP_IO_TYPE, "SLEEP", server_fd));
 
   t_log* logger = ks_quiet_logger();
@@ -314,7 +316,7 @@ Test(ks_io_connection, sleep_round_trip_unblocks_the_process)
   request->pid = pcb->pid;
   cr_assert(enqueue_io_request(request, &(io[IO_SLEEP]), pcb));
 
-  usleep(50000); /* let the worker thread run the round-trip */
+  time_sleep_ms(50); /* let the worker thread run the round-trip */
 
   cr_assert_eq(pcb->state, PS_READY);
   cr_assert_eq(list_size(queues->block.list), 0);
@@ -323,22 +325,22 @@ Test(ks_io_connection, sleep_round_trip_unblocks_the_process)
   destroy_pcb(pcb);
   close_io(io);
   ks_destroy_stub_queues_full(queues);
-  close(server_fd);
+  socket_destroy(server_fd);
   log_destroy(logger);
 }
 
 Test(ks_io_connection, stdout_round_trip_prints_and_unblocks_the_process)
 {
-  int server_fd;
-  int client_fd = ks_connected_pair(&server_fd);
+  t_socket* server_fd;
+  t_socket* client_fd = ks_connected_pair(&server_fd);
   cr_assert(send_string(OP_IO_TYPE, "STDOUT", server_fd));
 
-  int km_server_fd;
-  int km_client_fd = ks_connected_pair(&km_server_fd);
+  t_socket* km_server_fd;
+  t_socket* km_client_fd = ks_connected_pair(&km_server_fd);
 
   t_log* logger = ks_quiet_logger();
   t_queues* queues = ks_stub_queues_full(logger);
-  queues->km_socket->km_socket = km_client_fd;
+  queues->km_socket = km_client_fd;
   t_io* io = create_io_structures();
 
   cr_assert(handle_new_io(io, client_fd, queues, false));
@@ -357,7 +359,7 @@ Test(ks_io_connection, stdout_round_trip_prints_and_unblocks_the_process)
   request->pid = pcb->pid;
   cr_assert(enqueue_io_request(request, &(io[IO_STDOUT]), pcb));
 
-  usleep(50000);
+  time_sleep_ms(50);
 
   cr_assert_eq(pcb->state, PS_READY);
   cr_assert_eq(list_size(queues->block.list), 0);
@@ -366,7 +368,7 @@ Test(ks_io_connection, stdout_round_trip_prints_and_unblocks_the_process)
   destroy_pcb(pcb);
   close_io(io);
   ks_destroy_stub_queues_full(queues);
-  close(server_fd);
-  close(km_server_fd);
+  socket_destroy(server_fd);
+  socket_destroy(km_server_fd);
   log_destroy(logger);
 }

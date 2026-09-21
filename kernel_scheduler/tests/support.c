@@ -1,22 +1,37 @@
 #include "support.h"
 
-#include <arpa/inet.h>
 #include <criterion/criterion.h>
-#include <netinet/in.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/socket.h>
 #include <unistd.h>
 
 #include "kernel_scheduler/shutdown.h"
 #include "utils/log.h"
 #include "utils/msg.h"
+#include "utils/mutex.h"
 
 t_log* ks_quiet_logger(void)
 {
   t_log* logger = log_create(NULL, "KS-test", false, LOG_LEVEL_ERROR, true);
   cr_assert_not_null(logger);
   return logger;
+}
+
+// A socket that already failed: it has its mutex but every send/receive on it
+// fails, which is what the stub queues need to exercise the error paths.
+t_socket* ks_dead_socket_with_mutex(void)
+{
+  t_socket* listener =
+      socket_create(SOCKET_KIND_SERVER, NULL, SOCKET_PORT_EPHEMERAL, false);
+  cr_assert_not_null(listener);
+  char port[16];
+  snprintf(port, sizeof(port), "%d", socket_get_local_port(listener));
+
+  t_socket* dead = socket_create(SOCKET_KIND_CLIENT, "127.0.0.1", port, true);
+  cr_assert_not_null(dead);
+  socket_destroy(listener);
+  socket_close(dead);
+  return dead;
 }
 
 t_queues* ks_stub_queues(t_log* logger)
@@ -33,8 +48,8 @@ t_queues* ks_stub_queues_blocking(t_log* logger)
   queues->exec.list = list_create();
   queues->block.list = list_create();
   queues->routines.syscall_counter = calloc(1, sizeof(t_counter));
-  pthread_mutex_init(&(queues->routines.syscall_counter->counter_mutex), NULL);
-  pthread_cond_init(&(queues->routines.syscall_counter->condition), NULL);
+  mtx_init(&(queues->routines.syscall_counter->counter_mutex));
+  cnd_init(&(queues->routines.syscall_counter->condition));
   // Single non-multilevel ready subqueue -- enough for a BLOCK->READY
   // transition (e.g. a process that unblocks once a mutex it was waiting on
   // is released) to have somewhere to land.
@@ -49,8 +64,8 @@ void ks_destroy_stub_queues_blocking(t_queues* queues)
   list_destroy(queues->block.list);
   list_destroy(queues->ready.queues->queue);
   free(queues->ready.queues);
-  pthread_mutex_destroy(&(queues->routines.syscall_counter->counter_mutex));
-  pthread_cond_destroy(&(queues->routines.syscall_counter->condition));
+  mtx_destroy(&(queues->routines.syscall_counter->counter_mutex));
+  cnd_destroy(&(queues->routines.syscall_counter->condition));
   free(queues->routines.syscall_counter);
   free(queues);
 }
@@ -66,13 +81,13 @@ t_queues* ks_stub_queues_full(t_log* logger)
   init_blocking_list(&(queues->susp_ready));
   queues->routines.thread_counter = create_counter();
   queues->routines.syscall_counter = create_counter();
-  queues->km_socket = init_socket_kernel_memory(-1);
+  queues->km_socket = ks_dead_socket_with_mutex();
   queues->process_counter = init_counter_processes(queues->km_socket);
-  init_shutdown(-1, logger, -1);
+  init_shutdown(NULL, logger, NULL);
   atomic_init(&(queues->routines.compaction_active), false);
   atomic_init(&(queues->routines.resume_active), false);
-  pthread_mutex_init(&(queues->routines.routine_mutex), NULL);
-  pthread_cond_init(&(queues->routines.routine_cond), NULL);
+  mtx_init(&(queues->routines.routine_mutex));
+  cnd_init(&(queues->routines.routine_cond));
   return queues;
 }
 
@@ -86,48 +101,57 @@ void ks_destroy_stub_queues_full(t_queues* queues)
   destroy_counter(queues->routines.thread_counter);
   destroy_counter(queues->routines.syscall_counter);
   destroy_counter_processes(queues->process_counter);
-  destroy_kernel_memory(queues->km_socket);
-  pthread_mutex_destroy(&(queues->routines.routine_mutex));
-  pthread_cond_destroy(&(queues->routines.routine_cond));
+  socket_destroy(queues->km_socket);
+  mtx_destroy(&(queues->routines.routine_mutex));
+  cnd_destroy(&(queues->routines.routine_cond));
   free(queues);
 }
 
-int ks_listen_ephemeral(char* port_out, int port_len)
+t_socket* ks_listen_ephemeral(char* port_out, int port_len)
 {
-  int listen_fd = start_server("0");
-  cr_assert_geq(listen_fd, 0, "start_server failed");
+  t_socket* listener =
+      socket_create(SOCKET_KIND_SERVER, NULL, SOCKET_PORT_EPHEMERAL, false);
+  cr_assert_not_null(listener, "socket_create(SERVER) failed");
 
-  struct sockaddr_in address;
-  socklen_t length = sizeof(address);
-  cr_assert_eq(getsockname(listen_fd, (struct sockaddr*)&address, &length), 0);
-  snprintf(port_out, port_len, "%d", ntohs(address.sin_port));
+  snprintf(port_out, port_len, "%d", socket_get_local_port(listener));
 
-  return listen_fd;
+  return listener;
 }
 
-int ks_connected_pair(int* server_out)
+static t_socket* connected_pair(t_socket** server_out, bool with_mutex)
 {
   char port[16];
-  int listen_fd = ks_listen_ephemeral(port, sizeof(port));
+  t_socket* listener = ks_listen_ephemeral(port, sizeof(port));
 
-  int client_fd = create_connection("127.0.0.1", port);
-  cr_assert_geq(client_fd, 0, "create_connection failed");
+  t_socket* client =
+      socket_create(SOCKET_KIND_CLIENT, "127.0.0.1", port, with_mutex);
+  cr_assert_not_null(client, "socket_create(CLIENT) failed");
 
-  int server_fd = accept(listen_fd, NULL, NULL);
-  cr_assert_geq(server_fd, 0, "accept failed");
+  t_socket* server = socket_accept(listener, with_mutex);
+  cr_assert_not_null(server, "socket_accept failed");
 
-  close(listen_fd);
-  *server_out = server_fd;
-  return client_fd;
+  socket_destroy(listener);
+  *server_out = server;
+  return client;
+}
+
+t_socket* ks_connected_pair(t_socket** server_out)
+{
+  return connected_pair(server_out, false);
+}
+
+t_socket* ks_connected_pair_with_mutex(t_socket** server_out)
+{
+  return connected_pair(server_out, true);
 }
 
 void ks_wait_thread_counter_zero(t_queues* queues)
 {
-  pthread_mutex_lock(&(queues->routines.thread_counter->counter_mutex));
+  mtx_lock(&(queues->routines.thread_counter->counter_mutex));
   while (queues->routines.thread_counter->count > 0)
   {
-    pthread_cond_wait(&(queues->routines.thread_counter->condition),
-                      &(queues->routines.thread_counter->counter_mutex));
+    cnd_wait(&(queues->routines.thread_counter->condition),
+             &(queues->routines.thread_counter->counter_mutex));
   }
-  pthread_mutex_unlock(&(queues->routines.thread_counter->counter_mutex));
+  mtx_unlock(&(queues->routines.thread_counter->counter_mutex));
 }

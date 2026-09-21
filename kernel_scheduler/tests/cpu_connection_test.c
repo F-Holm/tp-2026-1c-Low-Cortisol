@@ -1,6 +1,4 @@
 #include <criterion/criterion.h>
-#include <pthread.h>
-#include <sys/socket.h>
 #include <unistd.h>
 
 #include "kernel_scheduler/connections/cpu.h"
@@ -13,6 +11,7 @@
 #include "utils/collections/list.h"
 #include "utils/io.h"
 #include "utils/msg.h"
+#include "utils/mutex.h"
 #include "utils/syscalls.h"
 
 TestSuite(ks_cpu_connection, .timeout = 10.0);
@@ -38,7 +37,7 @@ static t_pcb* seed_ready_pcb(t_queues* queues, int priority)
 
 /** @brief Reads the OP_RESUME_PROCESS + pid the dispatch loop sends every
  *         time it hands a pcb to the CPU. */
-static uint32_t drain_resume_pid(int fd)
+static uint32_t drain_resume_pid(t_socket* fd)
 {
   cr_assert_eq(receive_op_code(fd), OP_RESUME_PROCESS);
   int size;
@@ -50,7 +49,7 @@ static uint32_t drain_resume_pid(int fd)
 
 /** @brief Reads the OP_INTERRUPT/OP_NO_INTERRUPT + reason send_preemption()
  *         sends after every handled syscall, and checks both. */
-static void expect_preemption(int fd, int expected_op_code,
+static void expect_preemption(t_socket* fd, int expected_op_code,
                               const char* expected_reason)
 {
   cr_assert_eq(receive_op_code(fd), expected_op_code);
@@ -74,20 +73,25 @@ static void reap_exec_leftover(t_queues* queues, t_pcb* expected)
  *         exit path skips the resumption-routine kick) -- enough for any
  *         syscall handler that ends in transition_exec_exit(). Returns the
  *         peer's fd (close it at the end of the test). */
-static int wire_km_for_exit(t_queues* queues)
+static t_socket* wire_km_for_exit(t_queues* queues)
 {
-  int km_server_fd;
-  int km_client_fd = ks_connected_pair(&km_server_fd);
+  t_socket* km_server_fd;
+  t_socket* km_client_fd = ks_connected_pair_with_mutex(&km_server_fd);
   int size = 0;
   cr_assert(send_buffer(OP_PROCESS_SIZE, &size, sizeof(size), km_server_fd));
-  queues->km_socket->km_socket = km_client_fd;
+  // Replace the stub's dead socket everywhere it was shared.
+  t_socket* stub_socket = queues->km_socket;
+  queues->km_socket = km_client_fd;
+  if (queues->process_counter != NULL)
+    queues->process_counter->km_socket = km_client_fd;
+  socket_destroy(stub_socket);
   return km_server_fd;
 }
 
 Test(ks_cpu_connection, succeeds_and_registers_a_worker_thread)
 {
-  int server_fd;
-  int client_fd = ks_connected_pair(&server_fd);
+  t_socket* server_fd;
+  t_socket* client_fd = ks_connected_pair(&server_fd);
   cr_assert(send_string(OP_ID_CPU, "cpu1", client_fd));
 
   t_log* logger = ks_quiet_logger();
@@ -95,10 +99,10 @@ Test(ks_cpu_connection, succeeds_and_registers_a_worker_thread)
   t_mutex_list* mutex_list = init_list_mutex();
   t_io* io = create_io_structures();
   t_list* list_sockets_cpu = list_create();
-  pthread_mutex_t mutex_list_sockets_cpu;
-  pthread_cond_t cpu_done_cond;
-  pthread_mutex_init(&mutex_list_sockets_cpu, NULL);
-  pthread_cond_init(&cpu_done_cond, NULL);
+  mtx_t mutex_list_sockets_cpu;
+  cnd_t cpu_done_cond;
+  mtx_init(&mutex_list_sockets_cpu);
+  cnd_init(&cpu_done_cond);
 
   cr_assert(handle_new_cpu(server_fd, list_sockets_cpu, &mutex_list_sockets_cpu,
                            &cpu_done_cond, logger, mutex_list, queues, io,
@@ -111,7 +115,7 @@ Test(ks_cpu_connection, succeeds_and_registers_a_worker_thread)
    * the list, exactly as happens during a real Kernel Scheduler shutdown. */
   close_cpu(list_sockets_cpu, &mutex_list_sockets_cpu, &cpu_done_cond, queues);
 
-  close(client_fd);
+  socket_destroy(client_fd);
   destroy_list_mutex(mutex_list);
   close_io(io);
   ks_destroy_stub_queues_full(queues);
@@ -120,8 +124,8 @@ Test(ks_cpu_connection, succeeds_and_registers_a_worker_thread)
 
 Test(ks_cpu_connection, fails_when_the_id_handshake_is_wrong)
 {
-  int server_fd;
-  int client_fd = ks_connected_pair(&server_fd);
+  t_socket* server_fd;
+  t_socket* client_fd = ks_connected_pair(&server_fd);
   cr_assert(send_string(OP_KERNEL_MEMORY_RUNNING, "not-an-id", client_fd));
 
   t_log* logger = ks_quiet_logger();
@@ -129,21 +133,21 @@ Test(ks_cpu_connection, fails_when_the_id_handshake_is_wrong)
   t_mutex_list* mutex_list = init_list_mutex();
   t_io* io = create_io_structures();
   t_list* list_sockets_cpu = list_create();
-  pthread_mutex_t mutex_list_sockets_cpu;
-  pthread_cond_t cpu_done_cond;
-  pthread_mutex_init(&mutex_list_sockets_cpu, NULL);
-  pthread_cond_init(&cpu_done_cond, NULL);
+  mtx_t mutex_list_sockets_cpu;
+  cnd_t cpu_done_cond;
+  mtx_init(&mutex_list_sockets_cpu);
+  cnd_init(&cpu_done_cond);
 
   cr_assert_not(handle_new_cpu(server_fd, list_sockets_cpu,
                                &mutex_list_sockets_cpu, &cpu_done_cond, logger,
                                mutex_list, queues, io, NULL));
   cr_assert(list_is_empty(list_sockets_cpu));
 
-  close(server_fd);
-  close(client_fd);
+  socket_destroy(server_fd);
+  socket_destroy(client_fd);
   list_destroy(list_sockets_cpu);
-  pthread_mutex_destroy(&mutex_list_sockets_cpu);
-  pthread_cond_destroy(&cpu_done_cond);
+  mtx_destroy(&mutex_list_sockets_cpu);
+  cnd_destroy(&cpu_done_cond);
   destroy_list_mutex(mutex_list);
   close_io(io);
   free(queues);
@@ -157,18 +161,18 @@ Test(ks_cpu_connection, fails_gracefully_on_a_dead_socket)
   t_mutex_list* mutex_list = init_list_mutex();
   t_io* io = create_io_structures();
   t_list* list_sockets_cpu = list_create();
-  pthread_mutex_t mutex_list_sockets_cpu;
-  pthread_cond_t cpu_done_cond;
-  pthread_mutex_init(&mutex_list_sockets_cpu, NULL);
-  pthread_cond_init(&cpu_done_cond, NULL);
+  mtx_t mutex_list_sockets_cpu;
+  cnd_t cpu_done_cond;
+  mtx_init(&mutex_list_sockets_cpu);
+  cnd_init(&cpu_done_cond);
 
-  cr_assert_not(handle_new_cpu(-1, list_sockets_cpu, &mutex_list_sockets_cpu,
+  cr_assert_not(handle_new_cpu(NULL, list_sockets_cpu, &mutex_list_sockets_cpu,
                                &cpu_done_cond, logger, mutex_list, queues, io,
                                NULL));
 
   list_destroy(list_sockets_cpu);
-  pthread_mutex_destroy(&mutex_list_sockets_cpu);
-  pthread_cond_destroy(&cpu_done_cond);
+  mtx_destroy(&mutex_list_sockets_cpu);
+  cnd_destroy(&cpu_done_cond);
   destroy_list_mutex(mutex_list);
   close_io(io);
   free(queues);
@@ -188,9 +192,9 @@ typedef struct
   t_mutex_list* mutex_list;
   t_io* io;
   t_list* list_sockets_cpu;
-  pthread_mutex_t mutex_list_sockets_cpu;
-  pthread_cond_t cpu_done_cond;
-  int client_fd;
+  mtx_t mutex_list_sockets_cpu;
+  cnd_t cpu_done_cond;
+  t_socket* client_fd;
   t_pcb* pcb;
 } t_dispatch_fixture;
 
@@ -201,11 +205,11 @@ static void dispatch_fixture_start(t_dispatch_fixture* fx)
   fx->mutex_list = init_list_mutex();
   fx->io = create_io_structures();
   fx->list_sockets_cpu = list_create();
-  pthread_mutex_init(&fx->mutex_list_sockets_cpu, NULL);
-  pthread_cond_init(&fx->cpu_done_cond, NULL);
+  mtx_init(&fx->mutex_list_sockets_cpu);
+  cnd_init(&fx->cpu_done_cond);
   fx->pcb = seed_ready_pcb(fx->queues, 5);
 
-  int server_fd;
+  t_socket* server_fd;
   fx->client_fd = ks_connected_pair(&server_fd);
   cr_assert(send_string(OP_ID_CPU, "cpu1", fx->client_fd));
 
@@ -222,10 +226,10 @@ static void dispatch_fixture_start(t_dispatch_fixture* fx)
  * is what drives it to close_cpu()'s default/invalid-syscall exit. */
 static void dispatch_fixture_end_no_preemption(t_dispatch_fixture* fx)
 {
-  shutdown(fx->client_fd, SHUT_RDWR);
+  socket_shutdown(fx->client_fd, SOCKET_SHUTDOWN_BOTH);
   close_cpu(fx->list_sockets_cpu, &fx->mutex_list_sockets_cpu,
             &fx->cpu_done_cond, fx->queues);
-  close(fx->client_fd);
+  socket_destroy(fx->client_fd);
   reap_exec_leftover(fx->queues, fx->pcb);
   destroy_list_mutex(fx->mutex_list);
   close_io(fx->io);
@@ -241,7 +245,7 @@ static void dispatch_fixture_end_after_preemption(t_dispatch_fixture* fx)
 {
   close_cpu(fx->list_sockets_cpu, &fx->mutex_list_sockets_cpu,
             &fx->cpu_done_cond, fx->queues);
-  close(fx->client_fd);
+  socket_destroy(fx->client_fd);
   destroy_list_mutex(fx->mutex_list);
   close_io(fx->io);
   ks_wait_thread_counter_zero(fx->queues);
@@ -303,9 +307,9 @@ Test(ks_cpu_connection, memory_allocation_succeeds_when_kernel_memory_allocates)
   t_dispatch_fixture fx;
   fx.logger = ks_quiet_logger();
   fx.queues = ks_stub_queues_full(fx.logger);
-  int km_server_fd;
-  int km_client_fd = ks_connected_pair(&km_server_fd);
-  fx.queues->km_socket->km_socket = km_client_fd;
+  t_socket* km_server_fd;
+  t_socket* km_client_fd = ks_connected_pair(&km_server_fd);
+  fx.queues->km_socket = km_client_fd;
   int space = 1000;
   cr_assert(send_buffer(OP_FREE_MEMORY, &space, sizeof(space), km_server_fd));
   cr_assert(send_string(OP_MEMORY_ALLOCATED, "allocated", km_server_fd));
@@ -313,11 +317,11 @@ Test(ks_cpu_connection, memory_allocation_succeeds_when_kernel_memory_allocates)
   fx.mutex_list = init_list_mutex();
   fx.io = create_io_structures();
   fx.list_sockets_cpu = list_create();
-  pthread_mutex_init(&fx.mutex_list_sockets_cpu, NULL);
-  pthread_cond_init(&fx.cpu_done_cond, NULL);
+  mtx_init(&fx.mutex_list_sockets_cpu);
+  cnd_init(&fx.cpu_done_cond);
   fx.pcb = seed_ready_pcb(fx.queues, 5);
 
-  int server_fd;
+  t_socket* server_fd;
   fx.client_fd = ks_connected_pair(&server_fd);
   cr_assert(send_string(OP_ID_CPU, "cpu1", fx.client_fd));
   cr_assert(handle_new_cpu(server_fd, fx.list_sockets_cpu,
@@ -333,7 +337,7 @@ Test(ks_cpu_connection, memory_allocation_succeeds_when_kernel_memory_allocates)
   expect_preemption(fx.client_fd, OP_NO_INTERRUPT, "no preemption occurred");
 
   dispatch_fixture_end_no_preemption(&fx);
-  close(km_server_fd);
+  socket_destroy(km_server_fd);
 }
 
 Test(ks_cpu_connection, memory_free_succeeds_when_kernel_memory_frees)
@@ -341,9 +345,9 @@ Test(ks_cpu_connection, memory_free_succeeds_when_kernel_memory_frees)
   t_dispatch_fixture fx;
   fx.logger = ks_quiet_logger();
   fx.queues = ks_stub_queues_full(fx.logger);
-  int km_server_fd;
-  int km_client_fd = ks_connected_pair(&km_server_fd);
-  fx.queues->km_socket->km_socket = km_client_fd;
+  t_socket* km_server_fd;
+  t_socket* km_client_fd = ks_connected_pair(&km_server_fd);
+  fx.queues->km_socket = km_client_fd;
   fx.queues->routines.terminate_routines =
       true; /* isolates the resumption kick */
   cr_assert(send_string(OP_MEMORY_FREED, "freed", km_server_fd));
@@ -351,11 +355,11 @@ Test(ks_cpu_connection, memory_free_succeeds_when_kernel_memory_frees)
   fx.mutex_list = init_list_mutex();
   fx.io = create_io_structures();
   fx.list_sockets_cpu = list_create();
-  pthread_mutex_init(&fx.mutex_list_sockets_cpu, NULL);
-  pthread_cond_init(&fx.cpu_done_cond, NULL);
+  mtx_init(&fx.mutex_list_sockets_cpu);
+  cnd_init(&fx.cpu_done_cond);
   fx.pcb = seed_ready_pcb(fx.queues, 5);
 
-  int server_fd;
+  t_socket* server_fd;
   fx.client_fd = ks_connected_pair(&server_fd);
   cr_assert(send_string(OP_ID_CPU, "cpu1", fx.client_fd));
   cr_assert(handle_new_cpu(server_fd, fx.list_sockets_cpu,
@@ -371,7 +375,7 @@ Test(ks_cpu_connection, memory_free_succeeds_when_kernel_memory_frees)
   expect_preemption(fx.client_fd, OP_NO_INTERRUPT, "no preemption occurred");
 
   dispatch_fixture_end_no_preemption(&fx);
-  close(km_server_fd);
+  socket_destroy(km_server_fd);
 }
 
 Test(ks_cpu_connection, start_process_creates_a_new_ready_pcb)
@@ -379,19 +383,19 @@ Test(ks_cpu_connection, start_process_creates_a_new_ready_pcb)
   t_dispatch_fixture fx;
   fx.logger = ks_quiet_logger();
   fx.queues = ks_stub_queues_full(fx.logger);
-  int km_server_fd;
-  int km_client_fd = ks_connected_pair(&km_server_fd);
-  fx.queues->km_socket->km_socket = km_client_fd;
+  t_socket* km_server_fd;
+  t_socket* km_client_fd = ks_connected_pair(&km_server_fd);
+  fx.queues->km_socket = km_client_fd;
   cr_assert(send_string(OP_PROCESS_STARTED, "started", km_server_fd));
 
   fx.mutex_list = init_list_mutex();
   fx.io = create_io_structures();
   fx.list_sockets_cpu = list_create();
-  pthread_mutex_init(&fx.mutex_list_sockets_cpu, NULL);
-  pthread_cond_init(&fx.cpu_done_cond, NULL);
+  mtx_init(&fx.mutex_list_sockets_cpu);
+  cnd_init(&fx.cpu_done_cond);
   fx.pcb = seed_ready_pcb(fx.queues, 5);
 
-  int server_fd;
+  t_socket* server_fd;
   fx.client_fd = ks_connected_pair(&server_fd);
   cr_assert(send_string(OP_ID_CPU, "cpu1", fx.client_fd));
   cr_assert(handle_new_cpu(server_fd, fx.list_sockets_cpu,
@@ -415,14 +419,14 @@ Test(ks_cpu_connection, start_process_creates_a_new_ready_pcb)
   destroy_pcb(spawned);
 
   dispatch_fixture_end_no_preemption(&fx);
-  close(km_server_fd);
+  socket_destroy(km_server_fd);
 }
 
 Test(ks_cpu_connection, exit_finishes_the_process)
 {
   t_dispatch_fixture fx;
   dispatch_fixture_start(&fx);
-  int km_peer_fd = wire_km_for_exit(fx.queues);
+  t_socket* km_peer_fd = wire_km_for_exit(fx.queues);
 
   cr_assert(send_string(OP_SYSCALL_EXIT, "PROCESS FINISHED", fx.client_fd));
   expect_preemption(fx.client_fd, OP_INTERRUPT, "process termination");
@@ -430,20 +434,20 @@ Test(ks_cpu_connection, exit_finishes_the_process)
   /* transition_to_exit() already destroyed the pcb -- nothing left to reap
    * from exec. */
   dispatch_fixture_end_after_preemption(&fx);
-  close(km_peer_fd);
+  socket_destroy(km_peer_fd);
 }
 
 Test(ks_cpu_connection, segmentation_fault_finishes_the_process)
 {
   t_dispatch_fixture fx;
   dispatch_fixture_start(&fx);
-  int km_peer_fd = wire_km_for_exit(fx.queues);
+  t_socket* km_peer_fd = wire_km_for_exit(fx.queues);
 
   cr_assert(send_string(OP_SEG_FAULT, "SEGMENTATION FAULT", fx.client_fd));
   expect_preemption(fx.client_fd, OP_INTERRUPT, "segmentation fault");
 
   dispatch_fixture_end_after_preemption(&fx);
-  close(km_peer_fd);
+  socket_destroy(km_peer_fd);
 }
 
 Test(ks_cpu_connection, io_sleep_syscall_blocks_the_process_for_io)
@@ -451,8 +455,8 @@ Test(ks_cpu_connection, io_sleep_syscall_blocks_the_process_for_io)
   t_dispatch_fixture fx;
   dispatch_fixture_start(&fx);
 
-  int io_server_fd;
-  int io_client_fd = ks_connected_pair(&io_server_fd);
+  t_socket* io_server_fd;
+  t_socket* io_client_fd = ks_connected_pair(&io_server_fd);
   cr_assert(send_string(OP_IO_TYPE, "SLEEP", io_client_fd));
   cr_assert(handle_new_io(fx.io, io_server_fd, fx.queues, false));
   cr_assert_eq(receive_handshake(io_client_fd), MID_KERNEL_SCHEDULER);
@@ -464,19 +468,19 @@ Test(ks_cpu_connection, io_sleep_syscall_blocks_the_process_for_io)
   expect_preemption(fx.client_fd, OP_INTERRUPT, "IO operation");
 
   dispatch_fixture_end_after_preemption(&fx);
-  close(io_client_fd);
+  socket_destroy(io_client_fd);
 }
 
 Test(ks_cpu_connection, io_stdout_syscall_blocks_the_process_for_io)
 {
   t_dispatch_fixture fx;
   dispatch_fixture_start(&fx);
-  int km_server_fd;
-  int km_client_fd = ks_connected_pair(&km_server_fd);
-  fx.queues->km_socket->km_socket = km_client_fd;
+  t_socket* km_server_fd;
+  t_socket* km_client_fd = ks_connected_pair(&km_server_fd);
+  fx.queues->km_socket = km_client_fd;
 
-  int io_server_fd;
-  int io_client_fd = ks_connected_pair(&io_server_fd);
+  t_socket* io_server_fd;
+  t_socket* io_client_fd = ks_connected_pair(&io_server_fd);
   cr_assert(send_string(OP_IO_TYPE, "STDOUT", io_client_fd));
   cr_assert(handle_new_io(fx.io, io_server_fd, fx.queues, false));
   cr_assert_eq(receive_handshake(io_client_fd), MID_KERNEL_SCHEDULER);
@@ -490,20 +494,20 @@ Test(ks_cpu_connection, io_stdout_syscall_blocks_the_process_for_io)
   expect_preemption(fx.client_fd, OP_INTERRUPT, "IO operation");
 
   dispatch_fixture_end_after_preemption(&fx);
-  close(io_client_fd);
-  close(km_server_fd);
+  socket_destroy(io_client_fd);
+  socket_destroy(km_server_fd);
 }
 
 Test(ks_cpu_connection, io_stdin_syscall_blocks_the_process_for_io)
 {
   t_dispatch_fixture fx;
   dispatch_fixture_start(&fx);
-  int km_server_fd;
-  int km_client_fd = ks_connected_pair(&km_server_fd);
-  fx.queues->km_socket->km_socket = km_client_fd;
+  t_socket* km_server_fd;
+  t_socket* km_client_fd = ks_connected_pair(&km_server_fd);
+  fx.queues->km_socket = km_client_fd;
 
-  int io_server_fd;
-  int io_client_fd = ks_connected_pair(&io_server_fd);
+  t_socket* io_server_fd;
+  t_socket* io_client_fd = ks_connected_pair(&io_server_fd);
   cr_assert(send_string(OP_IO_TYPE, "STDIN", io_client_fd));
   cr_assert(handle_new_io(fx.io, io_server_fd, fx.queues, false));
   cr_assert_eq(receive_handshake(io_client_fd), MID_KERNEL_SCHEDULER);
@@ -517,8 +521,8 @@ Test(ks_cpu_connection, io_stdin_syscall_blocks_the_process_for_io)
   expect_preemption(fx.client_fd, OP_INTERRUPT, "IO operation");
 
   dispatch_fixture_end_after_preemption(&fx);
-  close(io_client_fd);
-  close(km_server_fd);
+  socket_destroy(io_client_fd);
+  socket_destroy(km_server_fd);
 }
 
 Test(ks_cpu_connection, cycle_cpu_ok_reports_no_preemption)
@@ -543,7 +547,7 @@ Test(ks_cpu_connection, invalid_syscall_ends_the_thread)
 
   close_cpu(fx.list_sockets_cpu, &fx.mutex_list_sockets_cpu, &fx.cpu_done_cond,
             fx.queues);
-  close(fx.client_fd);
+  socket_destroy(fx.client_fd);
   reap_exec_leftover(fx.queues, fx.pcb);
   destroy_list_mutex(fx.mutex_list);
   close_io(fx.io);

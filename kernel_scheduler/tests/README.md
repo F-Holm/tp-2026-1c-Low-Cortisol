@@ -11,7 +11,6 @@ scenarios.
 | `names_test.c` | `STATE_NAMES`, `SCHEDULING_ALGORITHMS`, `SYSCALL_NAMES`, `PREEMPTION_REASONS` |
 | `pcb_test.c` | `domain/pcb`: `create_pcb`, `destroy_pcb`, `get_state_pcb`, `get_priority_pcb`, `increment_active_instances`, `decrement_active_instances`, `set_mutex_blocking`, `get_mutex_blocking`, `insert_pcb_sorted` |
 | `time_test.c` | `common/time`: `time_diff`, `millis` |
-| `kernel_memory_socket_test.c` | `domain/kernel_memory_socket`: `init_socket_kernel_memory`, `destroy_kernel_memory` |
 | `handshake_test.c` | `common/handshake`: `respond_handshake` over a live socket / a dead fd |
 | `counter_test.c` | `scheduler/counter`: `create_counter`, `counter_increment`, `destroy_counter` |
 | `process_counter_test.c` | `scheduler/process_counter`: increment / non-final decrement |

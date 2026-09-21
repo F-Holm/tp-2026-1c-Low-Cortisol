@@ -1,12 +1,13 @@
 #include "kernel_scheduler/scheduler/ready_queue.h"
 
 #include <criterion/criterion.h>
-#include <pthread.h>
 #include <stdlib.h>
 #include <unistd.h>
 
 #include "kernel_scheduler/domain/pcb.h"
 #include "utils/collections/list.h"
+#include "utils/threads.h"
+#include "utils/time.h"
 
 static t_list* levels(int count, int algo)
 {
@@ -190,13 +191,14 @@ Test(ks_ready_queue, blocking_take_waits_for_a_new_arrival)
   init_ready_queue(&ready, SA_FIFO, NULL);
   struct blocking_take_result r = {&ready, NULL};
 
-  pthread_t taker;
-  pthread_create(&taker, NULL, blocking_take_thread, &r);
-  usleep(50000); /* let the thread reach its blocking wait on an empty queue */
+  thrd_t taker;
+  thrd_create(&taker, blocking_take_thread, &r);
+  time_sleep_ms(
+      50); /* let the thread reach its blocking wait on an empty queue */
 
   t_pcb* pcb = create_pcb(PS_READY, 0);
   transition_to_ready(pcb, &ready);
-  pthread_join(taker, NULL);
+  thrd_join(taker, NULL);
 
   cr_assert_eq(r.result, pcb);
 
@@ -213,12 +215,12 @@ Test(ks_ready_queue, blocking_take_waits_out_a_preemption_lock)
   lock_queue_ready(&ready); /* preempt_all: even a ready pcb must wait */
 
   struct blocking_take_result r = {&ready, NULL};
-  pthread_t taker;
-  pthread_create(&taker, NULL, blocking_take_thread, &r);
-  usleep(50000); /* let the thread reach its wait on exit_unblocked */
+  thrd_t taker;
+  thrd_create(&taker, blocking_take_thread, &r);
+  time_sleep_ms(50); /* let the thread reach its wait on exit_unblocked */
 
   unlock_queue_ready(&ready);
-  pthread_join(taker, NULL);
+  thrd_join(taker, NULL);
 
   cr_assert_eq(r.result, pcb);
 

@@ -1,10 +1,11 @@
 #include "kernel_scheduler/domain/pcb.h"
 
 #include <criterion/criterion.h>
-#include <pthread.h>
 #include <unistd.h>
 
 #include "utils/collections/list.h"
+#include "utils/threads.h"
+#include "utils/time.h"
 
 Test(ks_pcb, create_pcb_sets_the_initial_state_and_priority)
 {
@@ -45,7 +46,7 @@ Test(ks_pcb, wait_zero_active_instances_returns_immediately_when_already_zero)
 static void* decrement_after_a_moment(void* arg)
 {
   t_pcb* pcb = arg;
-  usleep(50000);
+  time_sleep_ms(50);
   decrement_active_instances(pcb);
   return NULL;
 }
@@ -55,12 +56,12 @@ Test(ks_pcb, wait_zero_active_instances_blocks_until_the_last_decrement)
   t_pcb* pcb = create_pcb(PS_READY, 0);
   increment_active_instances(pcb);
 
-  pthread_t decrementer;
-  pthread_create(&decrementer, NULL, decrement_after_a_moment, pcb);
+  thrd_t decrementer;
+  thrd_create(&decrementer, decrement_after_a_moment, pcb);
 
   wait_zero_active_instances(pcb); /* blocks until the thread above wakes it */
 
-  pthread_join(decrementer, NULL);
+  thrd_join(decrementer, NULL);
   cr_assert_eq(pcb->active_instances, 0);
   destroy_pcb(pcb);
 }

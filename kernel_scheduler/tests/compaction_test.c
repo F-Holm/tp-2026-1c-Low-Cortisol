@@ -2,7 +2,6 @@
 
 #include <criterion/criterion.h>
 #include <stdatomic.h>
-#include <sys/socket.h>
 #include <unistd.h>
 
 #include "kernel_scheduler/domain/pcb.h"
@@ -109,52 +108,52 @@ Test(ks_compaction,
 
 Test(ks_compaction, fits_process_true_when_kernel_memory_approves)
 {
-  int server_fd;
-  int client_fd = ks_connected_pair(&server_fd);
+  t_socket* server_fd;
+  t_socket* client_fd = ks_connected_pair(&server_fd);
   cr_assert(send_string(OP_RESUME_SUSPENSION_OK, "fits", server_fd));
 
   t_log* logger = ks_quiet_logger();
   t_queues* queues = ks_stub_queues_full(logger);
-  queues->km_socket->km_socket = client_fd;
+  queues->km_socket = client_fd;
   t_pcb* pcb = create_pcb(PS_SUSP_READY, 0);
 
   cr_assert(fits_process(queues, pcb));
 
   destroy_pcb(pcb);
   ks_destroy_stub_queues_full(queues);
-  close(server_fd);
+  socket_destroy(server_fd);
   log_destroy(logger);
 }
 
 Test(ks_compaction, fits_process_false_when_kernel_memory_rejects)
 {
-  int server_fd;
-  int client_fd = ks_connected_pair(&server_fd);
+  t_socket* server_fd;
+  t_socket* client_fd = ks_connected_pair(&server_fd);
   cr_assert(send_string(OP_RESUME_SUSPENSION_FAILED, "no room", server_fd));
 
   t_log* logger = ks_quiet_logger();
   t_queues* queues = ks_stub_queues_full(logger);
-  queues->km_socket->km_socket = client_fd;
+  queues->km_socket = client_fd;
   t_pcb* pcb = create_pcb(PS_SUSP_READY, 0);
 
   cr_assert_not(fits_process(queues, pcb));
 
   destroy_pcb(pcb);
   ks_destroy_stub_queues_full(queues);
-  close(server_fd);
+  socket_destroy(server_fd);
   log_destroy(logger);
 }
 
 Test(ks_compaction, fits_process_retries_after_a_new_memory_stick)
 {
-  int server_fd;
-  int client_fd = ks_connected_pair(&server_fd);
+  t_socket* server_fd;
+  t_socket* client_fd = ks_connected_pair(&server_fd);
   cr_assert(send_string(OP_NEW_MEMORY_STICK, "a stick connected", server_fd));
   cr_assert(send_string(OP_RESUME_SUSPENSION_OK, "fits", server_fd));
 
   t_log* logger = ks_quiet_logger();
   t_queues* queues = ks_stub_queues_full(logger);
-  queues->km_socket->km_socket = client_fd;
+  queues->km_socket = client_fd;
   queues->routines.terminate_routines = true;
   t_pcb* pcb = create_pcb(PS_SUSP_READY, 0);
 
@@ -163,7 +162,7 @@ Test(ks_compaction, fits_process_retries_after_a_new_memory_stick)
   destroy_pcb(pcb);
   ks_wait_thread_counter_zero(queues);
   ks_destroy_stub_queues_full(queues);
-  close(server_fd);
+  socket_destroy(server_fd);
   log_destroy(logger);
 }
 
@@ -204,13 +203,13 @@ Test(ks_compaction,
 
 Test(ks_compaction, routine_compaction_completes_when_kernel_memory_finishes)
 {
-  int server_fd;
-  int client_fd = ks_connected_pair(&server_fd);
+  t_socket* server_fd;
+  t_socket* client_fd = ks_connected_pair(&server_fd);
   cr_assert(send_string(OP_COMPACTION_DONE, "done", server_fd));
 
   t_log* logger = ks_quiet_logger();
   t_queues* queues = ks_stub_queues_full(logger);
-  queues->km_socket->km_socket = client_fd;
+  queues->km_socket = client_fd;
   start_threads_suspended(queues, 60000);
 
   routine_compaction(queues);
@@ -221,20 +220,20 @@ Test(ks_compaction, routine_compaction_completes_when_kernel_memory_finishes)
   terminate_threads_suspended(queues);
   destroy_threads_suspended(queues);
   ks_destroy_stub_queues_full(queues);
-  close(server_fd);
+  socket_destroy(server_fd);
   log_destroy(logger);
 }
 
 Test(ks_compaction, routine_compaction_retries_after_a_new_memory_stick)
 {
-  int server_fd;
-  int client_fd = ks_connected_pair(&server_fd);
+  t_socket* server_fd;
+  t_socket* client_fd = ks_connected_pair(&server_fd);
   cr_assert(send_string(OP_NEW_MEMORY_STICK, "a stick connected", server_fd));
   cr_assert(send_string(OP_COMPACTION_DONE, "done", server_fd));
 
   t_log* logger = ks_quiet_logger();
   t_queues* queues = ks_stub_queues_full(logger);
-  queues->km_socket->km_socket = client_fd;
+  queues->km_socket = client_fd;
   start_threads_suspended(queues, 60000);
 
   routine_compaction(queues);
@@ -245,19 +244,19 @@ Test(ks_compaction, routine_compaction_retries_after_a_new_memory_stick)
   terminate_threads_suspended(queues);
   destroy_threads_suspended(queues);
   ks_destroy_stub_queues_full(queues);
-  close(server_fd);
+  socket_destroy(server_fd);
   log_destroy(logger);
 }
 
 Test(ks_compaction, routine_compaction_shuts_down_on_memory_corruption)
 {
-  int server_fd;
-  int client_fd = ks_connected_pair(&server_fd);
+  t_socket* server_fd;
+  t_socket* client_fd = ks_connected_pair(&server_fd);
   cr_assert(send_string(OP_MEMORY_CORRUPTED, "boom", server_fd));
 
   t_log* logger = ks_quiet_logger();
   t_queues* queues = ks_stub_queues_full(logger);
-  queues->km_socket->km_socket = client_fd;
+  queues->km_socket = client_fd;
   start_threads_suspended(queues, 60000);
 
   routine_compaction(queues);
@@ -268,19 +267,19 @@ Test(ks_compaction, routine_compaction_shuts_down_on_memory_corruption)
   terminate_threads_suspended(queues);
   destroy_threads_suspended(queues);
   ks_destroy_stub_queues_full(queues);
-  close(server_fd);
+  socket_destroy(server_fd);
   log_destroy(logger);
 }
 
 Test(ks_compaction, routine_compaction_shuts_down_on_an_unrecognized_reply)
 {
-  int server_fd;
-  int client_fd = ks_connected_pair(&server_fd);
+  t_socket* server_fd;
+  t_socket* client_fd = ks_connected_pair(&server_fd);
   cr_assert(send_string(OP_ID_CPU, "not expected here", server_fd));
 
   t_log* logger = ks_quiet_logger();
   t_queues* queues = ks_stub_queues_full(logger);
-  queues->km_socket->km_socket = client_fd;
+  queues->km_socket = client_fd;
   start_threads_suspended(queues, 60000);
 
   routine_compaction(queues);
@@ -291,22 +290,22 @@ Test(ks_compaction, routine_compaction_shuts_down_on_an_unrecognized_reply)
   terminate_threads_suspended(queues);
   destroy_threads_suspended(queues);
   ks_destroy_stub_queues_full(queues);
-  close(server_fd);
+  socket_destroy(server_fd);
   log_destroy(logger);
 }
 
 Test(ks_compaction, routine_compaction_recovers_from_a_send_failure)
 {
-  int server_fd;
-  int client_fd = ks_connected_pair(&server_fd);
+  t_socket* server_fd;
+  t_socket* client_fd = ks_connected_pair(&server_fd);
   /* shutdown(SHUT_WR), not close(): a single small send() on a loopback
    * socket after the peer merely closes often still succeeds silently. */
-  shutdown(client_fd, SHUT_WR);
-  close(server_fd);
+  socket_shutdown(client_fd, SOCKET_SHUTDOWN_WRITE);
+  socket_destroy(server_fd);
 
   t_log* logger = ks_quiet_logger();
   t_queues* queues = ks_stub_queues_full(logger);
-  queues->km_socket->km_socket = client_fd;
+  queues->km_socket = client_fd;
   start_threads_suspended(queues, 60000);
 
   routine_compaction(queues);
