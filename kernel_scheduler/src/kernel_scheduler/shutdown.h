@@ -1,6 +1,7 @@
 #pragma once
 
 #include "utils/log.h"
+#include "utils/sockets.h"
 
 typedef enum
 {
@@ -15,7 +16,7 @@ extern const char* const SHUTDOWN_REASONS[4];
 
 /** @brief Must be called once, before any thread can reach
  *         close_kernel_scheduler(). */
-void init_shutdown(int server_socket, t_log* logger, int km_socket);
+void init_shutdown(t_socket* server_socket, t_log* logger, t_socket* km_socket);
 
 /**
  * @brief Shuts the scheduler down for @p reason_shutdown: notifies Kernel

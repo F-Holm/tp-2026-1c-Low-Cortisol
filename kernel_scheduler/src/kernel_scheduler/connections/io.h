@@ -1,32 +1,34 @@
 #pragma once
 
-#include <pthread.h>
 #include <stdatomic.h>
 #include <stdbool.h>
 
 #include "kernel_scheduler/app/kernel_scheduler.h"
 #include "utils/collections/list.h"
 #include "utils/log.h"
+#include "utils/mutex.h"
+#include "utils/sockets.h"
 #include "utils/string.h"
+#include "utils/threads.h"
 
 /****************** IO FUNCTIONS ******************/
 
 typedef struct
 {
   t_list* io_list;
-  pthread_mutex_t io_list_mutex;
+  mtx_t io_list_mutex;
 } t_io_list;
 typedef struct
 {
-  int socket_io;
+  t_socket* socket_io;
   t_pcb* current_process;
   bool priority_active;
-  pthread_cond_t new_process;
+  cnd_t new_process;
   t_queues* queues;
   t_log* logger;
-  t_kernel_memory_socket* km_socket;
+  t_socket* km_socket;
   atomic_bool close_thread;
-  pthread_t io_thread;
+  thrd_t io_thread;
   t_io_list* io_list;
   int io_type;
 } t_io;
@@ -57,7 +59,7 @@ t_io* create_io_structures(void);
  *        @p io (by type) and spawns its serving thread.
  * @return false on handshake failure or a duplicate/invalid IO type.
  */
-bool handle_new_io(t_io io[3], int socket_fd, t_queues* queues,
+bool handle_new_io(t_io io[3], t_socket* socket_fd, t_queues* queues,
                    bool priority_active);
 
 /**

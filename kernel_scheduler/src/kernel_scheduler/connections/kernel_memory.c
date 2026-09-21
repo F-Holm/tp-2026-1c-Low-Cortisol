@@ -1,50 +1,53 @@
 #include "kernel_scheduler/connections/kernel_memory.h"
 
-#include <pthread.h>
 #include <stdbool.h>
 
 #include "kernel_scheduler/shutdown.h"
 #include "utils/msg.h"
+#include "utils/threads.h"
+#include "utils/time.h"
 
-static int connect_kernel_memory(char* ip, char* port, t_log* logger);
-static bool handshake_kernel_memory(int km_socket, t_log* logger);
+static t_socket* connect_kernel_memory(char* ip, char* port, t_log* logger);
+static bool handshake_kernel_memory(t_socket* km_socket, t_log* logger);
 static void* thread_check_connection_kernel_memory(void* args);
 
-int start_connection_kernel_memory(char* ip, char* port, t_log* logger)
+t_socket* start_connection_kernel_memory(char* ip, char* port, t_log* logger)
 {
-  int km_socket = connect_kernel_memory(ip, port, logger);
-  if (km_socket <= 0)
-    return -1;
+  t_socket* km_socket = connect_kernel_memory(ip, port, logger);
+  if (km_socket == NULL)
+    return NULL;
 
   if (!handshake_kernel_memory(km_socket, logger))
-    return -1;
+  {
+    socket_destroy(km_socket);
+    return NULL;
+  }
 
   return km_socket;
 }
 
-bool notify_terminate_process(t_kernel_memory_socket* km_socket, uint32_t pid)
+bool notify_terminate_process(t_socket* km_socket, uint32_t pid)
 {
-  pthread_mutex_lock(&(km_socket->socket_mutex));
-  bool ret =
-      send_buffer(OP_END_PROCESS, &pid, sizeof(uint32_t), km_socket->km_socket);
+  socket_mutex_lock(km_socket);
+  bool ret = send_buffer(OP_END_PROCESS, &pid, sizeof(uint32_t), km_socket);
   if (!ret)
   {
     close_kernel_scheduler(SR_KERNEL_MEMORY_SEND_ERROR);
   }
-  pthread_mutex_unlock(&(km_socket->socket_mutex));
+  socket_mutex_unlock(km_socket);
   return ret;
 }
 
 t_connection_check_thread* start_thread_check_connection_kernel_memory(
-    t_log* logger, t_kernel_memory_socket* km_socket)
+    t_log* logger, t_socket* km_socket)
 {
   t_connection_check_thread* data = malloc(sizeof(t_connection_check_thread));
   data->logger = logger;
   data->km_socket = km_socket;
   atomic_init(&(data->close), false);
 
-  if (pthread_create(&(data->thread), NULL,
-                     thread_check_connection_kernel_memory, data) != 0)
+  if (thrd_create(&(data->thread), thread_check_connection_kernel_memory,
+                  data) != 0)
   {
     log_error(logger,
               "Error creating the connection-check thread for the "
@@ -57,23 +60,23 @@ void destroy_thread_check_connection_kernel_memory(
     t_connection_check_thread* data)
 {
   atomic_store(&(data->close), true);
-  pthread_join(data->thread, NULL);
+  thrd_join(data->thread, NULL);
   free(data);
 }
 
-static int connect_kernel_memory(char* ip, char* port, t_log* logger)
+static t_socket* connect_kernel_memory(char* ip, char* port, t_log* logger)
 {
-  int km_socket = create_connection(ip, port);
-  if (km_socket <= 0)
+  t_socket* km_socket = socket_create(SOCKET_KIND_CLIENT, ip, port, true);
+  if (km_socket == NULL)
   {
     log_error(logger, "Connection error with Kernel Memory");
-    return -1;
+    return NULL;
   }
   log_info(logger, "Connected to Kernel Memory");
   return km_socket;
 }
 
-static bool handshake_kernel_memory(int km_socket, t_log* logger)
+static bool handshake_kernel_memory(t_socket* km_socket, t_log* logger)
 {
   if (!send_handshake(MID_KERNEL_SCHEDULER, km_socket))
   {
@@ -95,11 +98,11 @@ static void* thread_check_connection_kernel_memory(void* args)
   bool keep_running = true;
   while (keep_running)
   {
-    usleep(500000);
-    pthread_mutex_lock(&(data->km_socket->socket_mutex));
-    keep_running = send_string(OP_KERNEL_MEMORY_RUNNING,
-                               "Is Kernel Memory still connected?",
-                               data->km_socket->km_socket);
+    time_sleep_ms(500);
+    socket_mutex_lock(data->km_socket);
+    keep_running =
+        send_string(OP_KERNEL_MEMORY_RUNNING,
+                    "Is Kernel Memory still connected?", data->km_socket);
     if (!keep_running)
     {
       close_kernel_scheduler(SR_KERNEL_MEMORY_SEND_ERROR);
@@ -108,7 +111,7 @@ static void* thread_check_connection_kernel_memory(void* args)
     {
       keep_running = !atomic_load(&(data->close));
     }
-    pthread_mutex_unlock(&(data->km_socket->socket_mutex));
+    socket_mutex_unlock(data->km_socket);
   }
   return NULL;
 }

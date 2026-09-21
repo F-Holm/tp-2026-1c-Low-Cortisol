@@ -1,8 +1,6 @@
 #include "kernel_scheduler/connections/cpu.h"
 
 #include <stdlib.h>
-#include <sys/socket.h>
-#include <unistd.h>
 
 #include "kernel_scheduler/common/handshake.h"
 #include "kernel_scheduler/common/time.h"
@@ -10,7 +8,9 @@
 #include "utils/collections/list.h"
 #include "utils/io.h"
 #include "utils/msg.h"
+#include "utils/mutex.h"
 #include "utils/syscalls.h"
+#include "utils/threads.h"
 
 const char* const PREEMPTION_REASONS[13] = {
     "no preemption occurred",
@@ -60,18 +60,17 @@ static bool send_pid(t_cpu_thread* data);
 static void* handle_cpu_client(void* data_thread_cpu_void);
 static void iterator_shutdown(void* value);
 static t_cpu_thread* init_data_thread_cpu(
-    int socket_cpu, t_list* list_sockets_cpu,
-    pthread_mutex_t* mutex_list_sockets_cpu, pthread_cond_t* cpu_done_cond,
-    char* id_cpu, t_log* logger, t_mutex_list* mutex_list, t_queues* queues,
-    t_io* io, t_kernel_memory_socket* km_socket);
+    t_socket* socket_cpu, t_list* list_sockets_cpu,
+    mtx_t* mutex_list_sockets_cpu, cnd_t* cpu_done_cond, char* id_cpu,
+    t_log* logger, t_mutex_list* mutex_list, t_queues* queues, t_io* io,
+    t_socket* km_socket);
 static bool create_thread_cpu(t_cpu_thread* data);
-static char* get_id_cpu(int socket_cpu, t_log* logger);
+static char* get_id_cpu(t_socket* socket_cpu, t_log* logger);
 
-bool handle_new_cpu(int socket_cpu, t_list* list_sockets_cpu,
-                    pthread_mutex_t* mutex_list_sockets_cpu,
-                    pthread_cond_t* cpu_done_cond, t_log* logger,
-                    t_mutex_list* mutex_list, t_queues* queues, t_io* io,
-                    t_kernel_memory_socket* km_socket)
+bool handle_new_cpu(t_socket* socket_cpu, t_list* list_sockets_cpu,
+                    mtx_t* mutex_list_sockets_cpu, cnd_t* cpu_done_cond,
+                    t_log* logger, t_mutex_list* mutex_list, t_queues* queues,
+                    t_io* io, t_socket* km_socket)
 {
   // Handshake with CPU
   if (!respond_handshake(socket_cpu, MID_KERNEL_SCHEDULER, logger))
@@ -88,16 +87,16 @@ bool handle_new_cpu(int socket_cpu, t_list* list_sockets_cpu,
       id_cpu, logger, mutex_list, queues, io, km_socket);
 
   // Add socket to the list
-  pthread_mutex_lock(mutex_list_sockets_cpu);
+  mtx_lock(mutex_list_sockets_cpu);
   list_add(list_sockets_cpu, &(data_thread_cpu->socket_fd));
-  pthread_mutex_unlock(mutex_list_sockets_cpu);
+  mtx_unlock(mutex_list_sockets_cpu);
 
   // Create thread
   if (!create_thread_cpu(data_thread_cpu))
   {
-    pthread_mutex_lock(mutex_list_sockets_cpu);
+    mtx_lock(mutex_list_sockets_cpu);
     list_remove_element(list_sockets_cpu, &(data_thread_cpu->socket_fd));
-    pthread_mutex_unlock(mutex_list_sockets_cpu);
+    mtx_unlock(mutex_list_sockets_cpu);
     free(data_thread_cpu->id);
     free(data_thread_cpu);
     return false;
@@ -106,19 +105,18 @@ bool handle_new_cpu(int socket_cpu, t_list* list_sockets_cpu,
   return true;
 }
 
-void close_cpu(t_list* list_sockets_cpu,
-               pthread_mutex_t* mutex_list_sockets_cpu,
-               pthread_cond_t* cpu_done_cond, t_queues* queues)
+void close_cpu(t_list* list_sockets_cpu, mtx_t* mutex_list_sockets_cpu,
+               cnd_t* cpu_done_cond, t_queues* queues)
 {
   terminate_queue_ready(&(queues->ready));
-  pthread_mutex_lock(mutex_list_sockets_cpu);
+  mtx_lock(mutex_list_sockets_cpu);
   list_iterate(list_sockets_cpu, (void*)iterator_shutdown);
   while (!list_is_empty(list_sockets_cpu))
-    pthread_cond_wait(cpu_done_cond, mutex_list_sockets_cpu);
-  pthread_mutex_unlock(mutex_list_sockets_cpu);
+    cnd_wait(cpu_done_cond, mutex_list_sockets_cpu);
+  mtx_unlock(mutex_list_sockets_cpu);
   list_destroy(list_sockets_cpu);
-  pthread_cond_destroy(cpu_done_cond);
-  pthread_mutex_destroy(mutex_list_sockets_cpu);
+  cnd_destroy(cpu_done_cond);
+  mtx_destroy(mutex_list_sockets_cpu);
 }
 
 static void log_syscall(t_cpu_thread* data, int op_code)
@@ -132,12 +130,14 @@ static void log_syscall(t_cpu_thread* data, int op_code)
 
 static void close_thread_cpu(t_cpu_thread* data)
 {
-  close(data->socket_fd);
-  pthread_mutex_lock(data->socket_list_mutex);
+  // The socket must stay alive until it leaves the list: close_cpu() shuts
+  // down every listed socket while holding the same mutex.
+  mtx_lock(data->socket_list_mutex);
   list_remove_element(data->socket_list, &(data->socket_fd));
   if (list_is_empty(data->socket_list))
-    pthread_cond_signal(data->done_cond);
-  pthread_mutex_unlock(data->socket_list_mutex);
+    cnd_signal(data->done_cond);
+  mtx_unlock(data->socket_list_mutex);
+  socket_destroy(data->socket_fd);
   free(data->id);
   free(data);
 }
@@ -183,19 +183,19 @@ static void manage_preemption_priority(t_cpu_thread* data)
     return;
   }
 
-  pthread_mutex_lock(&(data->queues->ready.queue_mutex));
+  mtx_lock(&(data->queues->ready.queue_mutex));
   int priority_new = data->queues->ready.highest_priority;
 
   if (preempted_priority <= priority_new)
   {
-    pthread_mutex_unlock(&(data->queues->ready.queue_mutex));
+    mtx_unlock(&(data->queues->ready.queue_mutex));
     return;
   }
 
   log_debug(data->logger, "CPU %s: Preempting process due to queue priority",
             data->id);
   t_pcb* new_pcb = transition_take_ready_next_no_mutex(&(data->queues->ready));
-  pthread_mutex_unlock(&(data->queues->ready.queue_mutex));
+  mtx_unlock(&(data->queues->ready.queue_mutex));
 
   if (new_pcb == NULL)
   {
@@ -523,14 +523,14 @@ static void* handle_cpu_client(void* data_thread_cpu_void)
 
 static void iterator_shutdown(void* value)
 {
-  shutdown(*(int*)value, SHUT_RDWR);
+  socket_shutdown(*(t_socket**)value, SOCKET_SHUTDOWN_BOTH);
 }
 
 static t_cpu_thread* init_data_thread_cpu(
-    int socket_cpu, t_list* list_sockets_cpu,
-    pthread_mutex_t* mutex_list_sockets_cpu, pthread_cond_t* cpu_done_cond,
-    char* id_cpu, t_log* logger, t_mutex_list* mutex_list, t_queues* queues,
-    t_io* io, t_kernel_memory_socket* km_socket)
+    t_socket* socket_cpu, t_list* list_sockets_cpu,
+    mtx_t* mutex_list_sockets_cpu, cnd_t* cpu_done_cond, char* id_cpu,
+    t_log* logger, t_mutex_list* mutex_list, t_queues* queues, t_io* io,
+    t_socket* km_socket)
 {
   t_cpu_thread* data = malloc(sizeof(t_cpu_thread));
   data->socket_fd = socket_cpu;
@@ -552,17 +552,17 @@ static t_cpu_thread* init_data_thread_cpu(
 
 static bool create_thread_cpu(t_cpu_thread* data)
 {
-  pthread_t thread_cpu;
-  if (pthread_create(&thread_cpu, NULL, handle_cpu_client, data) != 0)
+  thrd_t thread_cpu;
+  if (thrd_create(&thread_cpu, handle_cpu_client, data) != 0)
   {
     log_error(data->logger, "Error creating the CPU thread");
     return false;
   }
-  pthread_detach(thread_cpu);
+  thrd_detach(thread_cpu);
   return true;
 }
 
-static char* get_id_cpu(int socket_cpu, t_log* logger)
+static char* get_id_cpu(t_socket* socket_cpu, t_log* logger)
 {
   if (receive_op_code(socket_cpu) != OP_ID_CPU)
   {

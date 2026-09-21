@@ -1,18 +1,18 @@
 #pragma once
 
-#include <pthread.h>
 #include <stdbool.h>
 
 #include "kernel_scheduler/scheduler/queues.h"
 #include "utils/collections/dictionary.h"
 #include "utils/collections/list.h"
 #include "utils/log.h"
+#include "utils/mutex.h"
 
 typedef struct
 {
   char* id;
   int next_priority;
-  pthread_mutex_t mutex;
+  mtx_t mutex;
   bool priority_active;
   t_list* list;
   t_pcb* current_process;
@@ -23,7 +23,7 @@ typedef struct
 typedef struct
 {
   t_dictionary* list;
-  pthread_mutex_t list_mutex;
+  mtx_t list_mutex;
 } t_mutex_list;
 
 typedef enum

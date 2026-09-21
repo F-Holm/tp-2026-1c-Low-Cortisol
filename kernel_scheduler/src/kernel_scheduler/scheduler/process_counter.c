@@ -5,7 +5,7 @@
 
 #include "kernel_scheduler/shutdown.h"
 
-t_process_counter* init_counter_processes(t_kernel_memory_socket* km_socket)
+t_process_counter* init_counter_processes(t_socket* km_socket)
 {
   t_process_counter* counter = malloc(sizeof(t_process_counter));
   atomic_init(&(counter->active_process_count), 0);
@@ -24,9 +24,9 @@ void decrement_process_count(t_process_counter* counter)
 
   if (is_last)
   {
-    pthread_mutex_lock(&(counter->km_socket->socket_mutex));
+    socket_mutex_lock(counter->km_socket);
     close_kernel_scheduler(SR_NO_PROCESSES);
-    pthread_mutex_unlock(&(counter->km_socket->socket_mutex));
+    socket_mutex_unlock(counter->km_socket);
   }
 }
 

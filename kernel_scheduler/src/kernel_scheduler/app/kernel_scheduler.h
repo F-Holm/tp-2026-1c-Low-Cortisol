@@ -1,6 +1,5 @@
 #pragma once
 
-#include <pthread.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -13,6 +12,7 @@
 #include "utils/config.h"
 #include "utils/log.h"
 #include "utils/registers_cpu.h"
+#include "utils/sockets.h"
 #include "utils/syscalls.h"
 
 extern const char* const SCHEDULING_ALGORITHMS[3];
@@ -32,14 +32,13 @@ typedef struct
 
 typedef struct
 {
-  int socket_kernel_memory;
-  int socket_server;
+  t_socket* socket_kernel_memory;
+  t_socket* socket_server;
   t_config* config;
   t_log* logger;
   t_config_vars config_vars;
   t_mutex_list* mutex_list;
   t_queues* queues;
-  t_kernel_memory_socket* km_socket_mutex;
   t_connection_check_thread* connection_check_thread_data;
 } t_kernel_scheduler;
 

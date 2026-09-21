@@ -1,6 +1,5 @@
 #include "kernel_scheduler/app/kernel_scheduler.h"
 
-#include <pthread.h>
 #include <string.h>
 
 #include "kernel_scheduler/connections/kernel_memory.h"
@@ -33,13 +32,13 @@ bool start_module(t_kernel_scheduler* resources, char* config_path)
   resources->socket_kernel_memory = start_connection_kernel_memory(
       resources->config_vars.kernel_memory_ip,
       resources->config_vars.kernel_memory_port, resources->logger);
-  if (resources->socket_kernel_memory <= 0)
+  if (resources->socket_kernel_memory == NULL)
     return false;
 
   // Create server socket
   resources->socket_server = create_socket_server(
       resources->config_vars.server_port, resources->logger);
-  if (resources->socket_server <= 0)
+  if (resources->socket_server == NULL)
     return false;
 
   init_shutdown(resources->socket_server, resources->logger,
@@ -49,30 +48,22 @@ bool start_module(t_kernel_scheduler* resources, char* config_path)
 
 void init_scheduler_resources(t_kernel_scheduler* resources)
 {
-  resources->km_socket_mutex =
-      init_socket_kernel_memory(resources->socket_kernel_memory);
   resources->connection_check_thread_data =
-      start_thread_check_connection_kernel_memory(resources->logger,
-                                                  resources->km_socket_mutex);
+      start_thread_check_connection_kernel_memory(
+          resources->logger, resources->socket_kernel_memory);
   resources->mutex_list = init_list_mutex();
-  resources->queues = init_queues(resources->config_vars.scheduling_algorithm,
-                                  resources->config_vars.multilevel_algorithms,
-                                  resources->config_vars.rr_quantum,
-                                  resources->config_vars.preemption,
-                                  resources->logger, resources->km_socket_mutex,
-                                  resources->config_vars.suspension_timeout);
+  resources->queues = init_queues(
+      resources->config_vars.scheduling_algorithm,
+      resources->config_vars.multilevel_algorithms,
+      resources->config_vars.rr_quantum, resources->config_vars.preemption,
+      resources->logger, resources->socket_kernel_memory,
+      resources->config_vars.suspension_timeout);
 }
 
 void close_module_error(t_kernel_scheduler* resources)
 {
-  if (resources->socket_server > 0)
-  {
-    close(resources->socket_server);
-  }
-  if (resources->socket_kernel_memory > 0)
-  {
-    close(resources->socket_kernel_memory);
-  }
+  socket_destroy(resources->socket_server);
+  socket_destroy(resources->socket_kernel_memory);
   if (resources->logger != NULL)
   {
     log_destroy(resources->logger);
@@ -90,9 +81,8 @@ void close_module(t_kernel_scheduler* resources)
   destroy_queues(resources->queues);
   destroy_thread_check_connection_kernel_memory(
       resources->connection_check_thread_data);
-  destroy_kernel_memory(resources->km_socket_mutex);
-  close(resources->socket_kernel_memory);
-  close(resources->socket_server);
+  socket_destroy(resources->socket_kernel_memory);
+  socket_destroy(resources->socket_server);
   log_destroy(resources->logger);
   close_config(&(resources->config_vars), resources->config);
 }

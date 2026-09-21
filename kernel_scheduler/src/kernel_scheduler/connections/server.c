@@ -1,33 +1,32 @@
 #include "kernel_scheduler/connections/server.h"
 
-#include <pthread.h>
-
 #include "kernel_scheduler/connections/cpu.h"
 #include "kernel_scheduler/connections/io.h"
 #include "utils/collections/list.h"
 #include "utils/msg.h"
+#include "utils/mutex.h"
 
 static void close_thread_listen(t_io* io, t_list* list_sockets_cpu,
-                                pthread_mutex_t* mutex_list_sockets_cpu,
-                                pthread_cond_t* cpu_done_cond,
+                                mtx_t* mutex_list_sockets_cpu,
+                                cnd_t* cpu_done_cond,
                                 t_listen_server_data* data);
 
-int create_socket_server(char* port, t_log* logger)
+t_socket* create_socket_server(char* port, t_log* logger)
 {
-  int ret = start_server(port);
-  if (ret <= 0)
+  t_socket* ret = socket_create(SOCKET_KIND_SERVER, NULL, port, false);
+  if (ret == NULL)
   {
     log_error(logger, "Error creating the server");
-    return -1;
+    return NULL;
   }
   log_debug(logger, "Server created successfully");
   return ret;
 }
 
-void init_data_server_listen(t_listen_server_data* data, int socket_server,
-                             t_log* logger, t_mutex_list* mutex_list,
-                             t_queues* queues,
-                             t_kernel_memory_socket* socket_kernel_memory,
+void init_data_server_listen(t_listen_server_data* data,
+                             t_socket* socket_server, t_log* logger,
+                             t_mutex_list* mutex_list, t_queues* queues,
+                             t_socket* socket_kernel_memory,
                              char* initial_process_path)
 {
   data->socket_server = socket_server;
@@ -42,18 +41,18 @@ void server_listen(t_listen_server_data* data)
 {
   t_io* io = create_io_structures();
   t_list* list_sockets_cpu = list_create();
-  pthread_mutex_t mutex_list_sockets_cpu;
-  pthread_cond_t cpu_done_cond;
+  mtx_t mutex_list_sockets_cpu;
+  cnd_t cpu_done_cond;
 
-  pthread_mutex_init(&mutex_list_sockets_cpu, NULL);
-  pthread_cond_init(&cpu_done_cond, NULL);
+  mtx_init(&mutex_list_sockets_cpu);
+  cnd_init(&cpu_done_cond);
 
   transition_new_ready(data->queues, data->initial_process_path, 0);
   while (true)
   {
     bool handled_ok = true;
-    int socket_fd = accept(data->socket_server, NULL, NULL);
-    if (socket_fd <= 0)
+    t_socket* socket_fd = socket_accept(data->socket_server, false);
+    if (socket_fd == NULL)
     {
       break;
     }
@@ -76,7 +75,7 @@ void server_listen(t_listen_server_data* data)
     }
     if (!handled_ok)
     {
-      close(socket_fd);
+      socket_destroy(socket_fd);
     }
   }
 
@@ -85,8 +84,8 @@ void server_listen(t_listen_server_data* data)
 }
 
 static void close_thread_listen(t_io* io, t_list* list_sockets_cpu,
-                                pthread_mutex_t* mutex_list_sockets_cpu,
-                                pthread_cond_t* cpu_done_cond,
+                                mtx_t* mutex_list_sockets_cpu,
+                                cnd_t* cpu_done_cond,
                                 t_listen_server_data* data)
 {
   log_debug(data->logger, "Closing server");

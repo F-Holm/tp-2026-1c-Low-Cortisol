@@ -10,6 +10,7 @@
 #include "kernel_scheduler/scheduler/queue_types.h"
 #include "kernel_scheduler/scheduler/ready_queue.h"
 #include "kernel_scheduler/scheduler/suspension.h"
+#include "utils/sockets.h"
 
 /**
  * @brief Creates every subqueue, counter and background thread the
@@ -19,8 +20,7 @@
  * @param quantum  0 unless @p algorithm is RR.
  */
 t_queues* init_queues(int algorithm, t_list* multilevel_algorithms, int quantum,
-                      bool preemption, t_log* logger,
-                      t_kernel_memory_socket* km_socket,
+                      bool preemption, t_log* logger, t_socket* km_socket,
                       int suspension_timeout);
 
 /** @brief Waits for every routine/worker thread to finish, then frees

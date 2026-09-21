@@ -3,7 +3,6 @@
 #include <stdatomic.h>
 #include <stdbool.h>
 #include <stdlib.h>
-#include <sys/socket.h>
 
 #include "utils/msg.h"
 
@@ -13,16 +12,16 @@ const char* const SHUTDOWN_REASONS[4] = {
 
 static struct
 {
-  int server_socket;
+  t_socket* server_socket;
   t_log* logger;
-  int km_socket;
+  t_socket* km_socket;
 } shutdown_ctx;
 
 static void log_shutdown(int reason_shutdown);
 static void check_reason_shutdown(int* reason_shutdown);
 static void notify_shutdown_kernel_memory(int reason_shutdown);
 
-void init_shutdown(int server_socket, t_log* logger, int km_socket)
+void init_shutdown(t_socket* server_socket, t_log* logger, t_socket* km_socket)
 {
   shutdown_ctx.server_socket = server_socket;
   shutdown_ctx.logger = logger;
@@ -37,7 +36,7 @@ void close_kernel_scheduler(int reason_shutdown)
     notify_shutdown_kernel_memory(reason_shutdown);
     check_reason_shutdown(&reason_shutdown);
     log_shutdown(reason_shutdown);
-    shutdown(shutdown_ctx.server_socket, SHUT_RDWR);
+    socket_shutdown(shutdown_ctx.server_socket, SOCKET_SHUTDOWN_BOTH);
   }
 }
 

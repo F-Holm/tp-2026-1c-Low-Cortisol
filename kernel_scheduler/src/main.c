@@ -1,9 +1,6 @@
-#include <arpa/inet.h>
-#include <pthread.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 
 #include "kernel_scheduler/app/kernel_scheduler.h"
 #include "kernel_scheduler/connections/io.h"
@@ -38,7 +35,7 @@ int main(int argc, char* argv[])
   t_listen_server_data data;
   init_data_server_listen(&data, resources.socket_server, resources.logger,
                           resources.mutex_list, resources.queues,
-                          resources.km_socket_mutex, initial_process_path);
+                          resources.socket_kernel_memory, initial_process_path);
 
   // Start listening on the server
   server_listen(&data);

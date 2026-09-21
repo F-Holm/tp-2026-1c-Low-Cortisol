@@ -1,15 +1,16 @@
 #pragma once
 
-#include <pthread.h>
 #include <stdatomic.h>
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "kernel_scheduler/domain/kernel_memory_socket.h"
 #include "kernel_scheduler/domain/pcb.h"
 #include "kernel_scheduler/scheduler/process_counter.h"
 #include "utils/collections/list.h"
 #include "utils/log.h"
+#include "utils/mutex.h"
+#include "utils/sockets.h"
+#include "utils/threads.h"
 
 typedef enum
 {
@@ -38,8 +39,8 @@ extern const char* const PROCESS_END_REASONS[9];
 typedef struct
 {
   int count;
-  pthread_mutex_t counter_mutex;
-  pthread_cond_t condition;
+  mtx_t counter_mutex;
+  cnd_t condition;
 } t_counter;
 
 // BLOCK, SUSP. BLOCK and SUSP. READY are each a plain list plus a
@@ -47,8 +48,8 @@ typedef struct
 typedef struct
 {
   t_list* list;
-  pthread_mutex_t list_mutex;
-  pthread_cond_t new_process_cond;
+  mtx_t list_mutex;
+  cnd_t new_process_cond;
   bool new_process;
 } t_blocking_list;
 
@@ -63,21 +64,21 @@ typedef struct
   int queue_count;
   t_ready_subqueue* queues;
   bool multilevel_queue;
-  pthread_mutex_t queue_mutex;
+  mtx_t queue_mutex;
   int ready_process_count;
-  pthread_cond_t new_process;
-  pthread_cond_t exit_unblocked;
+  cnd_t new_process;
+  cnd_t exit_unblocked;
   atomic_bool terminate_queue;
   atomic_bool preempt_all;
   int highest_priority;
-  pthread_cond_t queue_empty;
+  cnd_t queue_empty;
 } t_ready_queue;
 
 typedef struct
 {
   t_list* list;
-  pthread_mutex_t list_mutex;
-  pthread_cond_t queue_empty;
+  mtx_t list_mutex;
+  cnd_t queue_empty;
   int lowest_priority;
   int quantum;      // = 0 if not RR
   bool preemption;  // whether preemption is enabled
@@ -95,11 +96,11 @@ typedef enum
 
 typedef struct
 {
-  pthread_t thread;
-  pthread_mutex_t state_mutex;
+  thrd_t thread;
+  mtx_t state_mutex;
   int state;
-  pthread_cond_t* wait_process;
-  pthread_cond_t unlock;
+  cnd_t* wait_process;
+  cnd_t unlock;
 } t_suspended_thread;
 
 typedef struct
@@ -126,8 +127,8 @@ typedef struct
 {
   t_counter* thread_counter;
   t_counter* syscall_counter;
-  pthread_mutex_t routine_mutex;
-  pthread_cond_t routine_cond;
+  mtx_t routine_mutex;
+  cnd_t routine_cond;
   bool routine_active;
   bool terminate_routines;
   atomic_bool compaction_active;
@@ -146,6 +147,6 @@ typedef struct
   t_blocking_list susp_ready;
   t_process_counter* process_counter;
   t_log* logger;
-  t_kernel_memory_socket* km_socket;
+  t_socket* km_socket;
   t_routine_state routines;
 } t_queues;

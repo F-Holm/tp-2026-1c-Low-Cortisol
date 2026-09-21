@@ -4,6 +4,7 @@
 #include <stdlib.h>
 
 #include "utils/collections/list.h"
+#include "utils/mutex.h"
 
 static void update_highest_priority_ready_no_mutex(t_ready_queue* ready);
 
@@ -33,10 +34,10 @@ void init_ready_queue(t_ready_queue* queue, int algorithm,
     queue->queues->queue = list_create();
     queue->queues->algorithm = algorithm;
   }
-  pthread_mutex_init(&(queue->queue_mutex), NULL);
-  pthread_cond_init(&(queue->new_process), NULL);
-  pthread_cond_init(&(queue->exit_unblocked), NULL);
-  pthread_cond_init(&(queue->queue_empty), NULL);
+  mtx_init(&(queue->queue_mutex));
+  cnd_init(&(queue->new_process));
+  cnd_init(&(queue->exit_unblocked));
+  cnd_init(&(queue->queue_empty));
   atomic_init(&(queue->preempt_all), false);
   queue->ready_process_count = 0;
   queue->highest_priority = INT_MAX;
@@ -49,18 +50,18 @@ void destroy_ready_queue(t_ready_queue* queue)
   {
     list_destroy(queue->queues[i].queue);
   }
-  pthread_cond_destroy(&(queue->new_process));
-  pthread_cond_destroy(&(queue->exit_unblocked));
-  pthread_mutex_destroy(&(queue->queue_mutex));
-  pthread_cond_destroy(&(queue->queue_empty));
+  cnd_destroy(&(queue->new_process));
+  cnd_destroy(&(queue->exit_unblocked));
+  mtx_destroy(&(queue->queue_mutex));
+  cnd_destroy(&(queue->queue_empty));
   free(queue->queues);
 }
 
 bool is_queue_ready_empty(t_ready_queue* ready)
 {
-  pthread_mutex_lock(&(ready->queue_mutex));
+  mtx_lock(&(ready->queue_mutex));
   bool ret = ready->ready_process_count == 0;
-  pthread_mutex_unlock(&(ready->queue_mutex));
+  mtx_unlock(&(ready->queue_mutex));
   return ret;
 }
 
@@ -77,9 +78,9 @@ void lock_queue_ready(t_ready_queue* ready)
 void unlock_queue_ready(t_ready_queue* ready)
 {
   atomic_store(&(ready->preempt_all), false);
-  pthread_mutex_lock(&(ready->queue_mutex));
-  pthread_cond_broadcast(&(ready->exit_unblocked));
-  pthread_mutex_unlock(&(ready->queue_mutex));
+  mtx_lock(&(ready->queue_mutex));
+  cnd_broadcast(&(ready->exit_unblocked));
+  mtx_unlock(&(ready->queue_mutex));
 }
 
 bool queue_ready_terminated(t_ready_queue* ready)
@@ -90,10 +91,10 @@ bool queue_ready_terminated(t_ready_queue* ready)
 void terminate_queue_ready(t_ready_queue* ready)
 {
   atomic_store(&(ready->terminate_queue), true);
-  pthread_mutex_lock(&(ready->queue_mutex));
-  pthread_cond_broadcast(&(ready->new_process));
-  pthread_cond_broadcast(&(ready->exit_unblocked));
-  pthread_mutex_unlock(&(ready->queue_mutex));
+  mtx_lock(&(ready->queue_mutex));
+  cnd_broadcast(&(ready->new_process));
+  cnd_broadcast(&(ready->exit_unblocked));
+  mtx_unlock(&(ready->queue_mutex));
 }
 
 bool check_priority_valid(t_pcb* pcb, t_ready_queue* ready)
@@ -112,7 +113,7 @@ int get_algorithm_ready_queue(t_ready_queue* ready, int priority)
 
 void transition_to_ready(t_pcb* pcb, t_ready_queue* ready)
 {
-  pthread_mutex_lock(&(ready->queue_mutex));
+  mtx_lock(&(ready->queue_mutex));
   int priority = get_priority_pcb(pcb);
   if (ready->ready_process_count == 0 || ready->highest_priority > priority)
   {
@@ -121,7 +122,7 @@ void transition_to_ready(t_pcb* pcb, t_ready_queue* ready)
 
   if (ready->ready_process_count == 0)
   {
-    pthread_cond_signal(&(ready->new_process));
+    cnd_signal(&(ready->new_process));
   }
   ready->ready_process_count++;
 
@@ -133,7 +134,7 @@ void transition_to_ready(t_pcb* pcb, t_ready_queue* ready)
   {
     list_add(ready->queues->queue, pcb);
   }
-  pthread_mutex_unlock(&(ready->queue_mutex));
+  mtx_unlock(&(ready->queue_mutex));
 }
 
 static void update_highest_priority_ready_no_mutex(t_ready_queue* ready)
@@ -154,16 +155,16 @@ static void update_highest_priority_ready_no_mutex(t_ready_queue* ready)
 
 void transition_take_ready(t_pcb* pcb, t_ready_queue* ready)
 {
-  pthread_mutex_lock(&(ready->queue_mutex));
+  mtx_lock(&(ready->queue_mutex));
   int pos = ready->multilevel_queue ? get_priority_pcb(pcb) : 0;
   list_remove_element(ready->queues[pos].queue, pcb);
   update_highest_priority_ready_no_mutex(ready);
   ready->ready_process_count--;
   if (ready->ready_process_count == 0)
   {
-    pthread_cond_signal(&(ready->queue_empty));
+    cnd_signal(&(ready->queue_empty));
   }
-  pthread_mutex_unlock(&(ready->queue_mutex));
+  mtx_unlock(&(ready->queue_mutex));
 }
 
 t_pcb* transition_take_ready_next_no_mutex(t_ready_queue* ready)
@@ -180,7 +181,7 @@ t_pcb* transition_take_ready_next_no_mutex(t_ready_queue* ready)
       }
       if (ready->ready_process_count == 0)
       {
-        pthread_cond_signal(&(ready->queue_empty));
+        cnd_signal(&(ready->queue_empty));
       }
       return pcb;
     }
@@ -190,25 +191,25 @@ t_pcb* transition_take_ready_next_no_mutex(t_ready_queue* ready)
 
 t_pcb* transition_take_ready_next(t_ready_queue* ready)
 {
-  pthread_mutex_lock(&(ready->queue_mutex));
+  mtx_lock(&(ready->queue_mutex));
   t_pcb* pcb = transition_take_ready_next_no_mutex(ready);
-  pthread_mutex_unlock(&(ready->queue_mutex));
+  mtx_unlock(&(ready->queue_mutex));
   return pcb;
 }
 
 t_pcb* transition_take_ready_blocking(t_ready_queue* ready)
 {
-  pthread_mutex_lock(&(ready->queue_mutex));
+  mtx_lock(&(ready->queue_mutex));
   while (!queue_ready_terminated(ready) && (ready->ready_process_count == 0 ||
                                             atomic_load(&(ready->preempt_all))))
   {
     if (!queue_ready_terminated(ready) && ready->ready_process_count == 0)
     {
-      pthread_cond_wait(&(ready->new_process), &(ready->queue_mutex));
+      cnd_wait(&(ready->new_process), &(ready->queue_mutex));
     }
     if (!queue_ready_terminated(ready) && atomic_load(&(ready->preempt_all)))
     {
-      pthread_cond_wait(&(ready->exit_unblocked), &(ready->queue_mutex));
+      cnd_wait(&(ready->exit_unblocked), &(ready->queue_mutex));
     }
   }
 
@@ -221,6 +222,6 @@ t_pcb* transition_take_ready_blocking(t_ready_queue* ready)
   {
     pcb = transition_take_ready_next_no_mutex(ready);
   }
-  pthread_mutex_unlock(&(ready->queue_mutex));
+  mtx_unlock(&(ready->queue_mutex));
   return pcb;
 }

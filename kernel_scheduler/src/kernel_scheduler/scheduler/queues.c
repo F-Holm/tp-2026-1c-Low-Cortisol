@@ -1,7 +1,6 @@
 #include "kernel_scheduler/scheduler/queues.h"
 
 #include <limits.h>
-#include <unistd.h>
 
 #include "kernel_scheduler/common/time.h"
 #include "kernel_scheduler/connections/kernel_memory.h"
@@ -10,6 +9,7 @@
 #include "kernel_scheduler/scheduler/suspension.h"
 #include "kernel_scheduler/shutdown.h"
 #include "utils/msg.h"
+#include "utils/mutex.h"
 
 const char* const PROCESS_END_REASONS[9] = {
     "invalid priority",
@@ -35,8 +35,8 @@ static bool notify_new_process(t_queues* queues, char* instructions_file,
                                uint32_t pid);
 
 t_queues* init_queues(int algorithm, t_list* multilevel_algorithms, int quantum,
-                      bool preemption, t_log* logger,
-                      t_kernel_memory_socket* km_socket, int suspension_timeout)
+                      bool preemption, t_log* logger, t_socket* km_socket,
+                      int suspension_timeout)
 {
   t_queues* queues = malloc(sizeof(t_queues));
   init_ready_queue(&(queues->ready), algorithm, multilevel_algorithms);
@@ -47,8 +47,8 @@ t_queues* init_queues(int algorithm, t_list* multilevel_algorithms, int quantum,
   queues->process_counter = init_counter_processes(km_socket);
   queues->routines.thread_counter = create_counter();
   queues->routines.syscall_counter = create_counter();
-  pthread_mutex_init(&(queues->routines.routine_mutex), NULL);
-  pthread_cond_init(&(queues->routines.routine_cond), NULL);
+  mtx_init(&(queues->routines.routine_mutex));
+  cnd_init(&(queues->routines.routine_cond));
   queues->routines.routine_active = false;
   queues->routines.terminate_routines = false;
   queues->logger = logger;
@@ -73,8 +73,8 @@ void destroy_queues(t_queues* queues)
   destroy_blocking_list(&(queues->susp_block));
   destroy_blocking_list(&(queues->susp_ready));
   destroy_counter_processes(queues->process_counter);
-  pthread_mutex_destroy(&(queues->routines.routine_mutex));
-  pthread_cond_destroy(&(queues->routines.routine_cond));
+  mtx_destroy(&(queues->routines.routine_mutex));
+  cnd_destroy(&(queues->routines.routine_cond));
   free(queues);
 }
 
@@ -85,20 +85,20 @@ void update_priority(t_pcb* pcb, t_queues* queues)
     return;
   }
 
-  pthread_mutex_lock(&(pcb->state_mutex));
+  mtx_lock(&(pcb->state_mutex));
   if (pcb->state == PS_READY)
   {
     transition_take_ready(pcb, &(queues->ready));
     transition_to_ready(pcb, &(queues->ready));
   }
-  pthread_mutex_unlock(&(pcb->state_mutex));
+  mtx_unlock(&(pcb->state_mutex));
 }
 
 void transition_ready_exec(t_pcb* pcb, t_queues* queues)
 {
-  pthread_mutex_lock(&(pcb->state_mutex));
+  mtx_lock(&(pcb->state_mutex));
   manage_state_pcb(queues->logger, pcb, PS_READY, PS_EXEC);
-  pthread_mutex_unlock(&(pcb->state_mutex));
+  mtx_unlock(&(pcb->state_mutex));
 }
 
 void transition_new_ready(t_queues* queues, char* instructions_file,
@@ -125,87 +125,87 @@ void transition_new_ready(t_queues* queues, char* instructions_file,
 
 void transition_exec_ready(t_pcb* pcb, t_queues* queues)
 {
-  pthread_mutex_lock(&(pcb->state_mutex));
+  mtx_lock(&(pcb->state_mutex));
   if (manage_state_pcb(queues->logger, pcb, PS_EXEC, PS_READY))
   {
     transition_take_exec(pcb, &(queues->exec),
                          queues->routines.syscall_counter);
     transition_to_ready(pcb, &(queues->ready));
   }
-  pthread_mutex_unlock(&(pcb->state_mutex));
+  mtx_unlock(&(pcb->state_mutex));
 }
 
 void transition_exec_exit(t_pcb* pcb, t_queues* queues, int reason)
 {
-  pthread_mutex_lock(&(pcb->state_mutex));
+  mtx_lock(&(pcb->state_mutex));
   if (manage_state_pcb(queues->logger, pcb, PS_EXEC, PS_EXIT))
   {
     transition_take_exec(pcb, &(queues->exec),
                          queues->routines.syscall_counter);
-    pthread_mutex_unlock(&(pcb->state_mutex));
+    mtx_unlock(&(pcb->state_mutex));
     transition_to_exit(pcb, queues, reason);
   }
   else
   {
-    pthread_mutex_unlock(&(pcb->state_mutex));
+    mtx_unlock(&(pcb->state_mutex));
   }
 }
 
 void transition_exec_block(t_pcb* pcb, t_queues* queues)
 {
-  pthread_mutex_lock(&(pcb->state_mutex));
+  mtx_lock(&(pcb->state_mutex));
   if (manage_state_pcb(queues->logger, pcb, PS_EXEC, PS_BLOCK))
   {
     transition_take_exec(pcb, &(queues->exec),
                          queues->routines.syscall_counter);
     transition_to_block(pcb, &(queues->block));
   }
-  pthread_mutex_unlock(&(pcb->state_mutex));
+  mtx_unlock(&(pcb->state_mutex));
 }
 
 void transition_block_ready(t_pcb* pcb, t_queues* queues)
 {
-  pthread_mutex_lock(&(pcb->state_mutex));
+  mtx_lock(&(pcb->state_mutex));
   transition_block_ready_no_mutex(pcb, queues);
-  pthread_mutex_unlock(&(pcb->state_mutex));
+  mtx_unlock(&(pcb->state_mutex));
 }
 
 void transition_block_susp_block(t_pcb* pcb, t_queues* queues)
 {
-  pthread_mutex_lock(&(pcb->state_mutex));
+  mtx_lock(&(pcb->state_mutex));
   transition_block_susp_block_no_mutex(pcb, queues);
-  pthread_mutex_unlock(&(pcb->state_mutex));
+  mtx_unlock(&(pcb->state_mutex));
 }
 
 void transition_susp_block(t_pcb* pcb, t_queues* queues)
 {
-  pthread_mutex_lock(&(pcb->state_mutex));
+  mtx_lock(&(pcb->state_mutex));
   if (manage_state_pcb(queues->logger, pcb, PS_SUSP_BLOCK, PS_BLOCK))
   {
     transition_take_susp_block(pcb, &(queues->susp_block));
     transition_to_block(pcb, &(queues->block));
   }
-  pthread_mutex_unlock(&(pcb->state_mutex));
+  mtx_unlock(&(pcb->state_mutex));
 }
 
 void transition_susp_block_susp_ready(t_pcb* pcb, t_queues* queues)
 {
-  pthread_mutex_lock(&(pcb->state_mutex));
+  mtx_lock(&(pcb->state_mutex));
   transition_susp_block_susp_ready_no_mutex(pcb, queues);
-  pthread_mutex_unlock(&(pcb->state_mutex));
+  mtx_unlock(&(pcb->state_mutex));
 }
 
 bool transition_susp_ready(t_pcb* pcb, t_queues* queues)
 {
-  pthread_mutex_lock(&(pcb->state_mutex));
+  mtx_lock(&(pcb->state_mutex));
   bool ret = transition_susp_ready_no_mutex(pcb, queues);
-  pthread_mutex_unlock(&(pcb->state_mutex));
+  mtx_unlock(&(pcb->state_mutex));
   return ret;
 }
 
 void transition_unlock(t_pcb* pcb, t_queues* queues)
 {
-  pthread_mutex_lock(&(pcb->state_mutex));
+  mtx_lock(&(pcb->state_mutex));
   if (pcb->state == PS_BLOCK)
   {
     transition_block_ready_no_mutex(pcb, queues);
@@ -214,7 +214,7 @@ void transition_unlock(t_pcb* pcb, t_queues* queues)
   {
     transition_susp_block_susp_ready_no_mutex(pcb, queues);
   }
-  pthread_mutex_unlock(&(pcb->state_mutex));
+  mtx_unlock(&(pcb->state_mutex));
 }
 
 void clear_queues(t_queues* queues)
@@ -234,9 +234,9 @@ void increment_syscall_counter(t_queues* queues)
 
 void decrement_syscall_counter(t_queues* queues)
 {
-  pthread_mutex_lock(&(queues->routines.syscall_counter->counter_mutex));
+  mtx_lock(&(queues->routines.syscall_counter->counter_mutex));
   queues->routines.syscall_counter->count--;
-  pthread_mutex_unlock(&(queues->routines.syscall_counter->counter_mutex));
+  mtx_unlock(&(queues->routines.syscall_counter->counter_mutex));
 }
 
 void increment_thread_counter(t_queues* queues)
@@ -246,25 +246,25 @@ void increment_thread_counter(t_queues* queues)
 
 void decrement_thread_counter(t_queues* queues)
 {
-  pthread_mutex_lock(&(queues->routines.thread_counter->counter_mutex));
+  mtx_lock(&(queues->routines.thread_counter->counter_mutex));
   queues->routines.thread_counter->count--;
   if (queues->routines.thread_counter->count <= 0)
   {
-    pthread_cond_signal(&(queues->routines.thread_counter->condition));
+    cnd_signal(&(queues->routines.thread_counter->condition));
   }
-  pthread_mutex_unlock(&(queues->routines.thread_counter->counter_mutex));
+  mtx_unlock(&(queues->routines.thread_counter->counter_mutex));
 }
 
 static void wait_counter_threads(t_queues* queues)
 {
   log_debug(queues->logger, "Waiting for all threads to finish");
-  pthread_mutex_lock(&(queues->routines.thread_counter->counter_mutex));
+  mtx_lock(&(queues->routines.thread_counter->counter_mutex));
   while (queues->routines.thread_counter->count > 0)
   {
-    pthread_cond_wait(&(queues->routines.thread_counter->condition),
-                      &(queues->routines.thread_counter->counter_mutex));
+    cnd_wait(&(queues->routines.thread_counter->condition),
+             &(queues->routines.thread_counter->counter_mutex));
   }
-  pthread_mutex_unlock(&(queues->routines.thread_counter->counter_mutex));
+  mtx_unlock(&(queues->routines.thread_counter->counter_mutex));
   log_debug(queues->logger, "Threads finished");
 }
 
@@ -397,15 +397,15 @@ static bool notify_new_process(t_queues* queues, char* instructions_file,
   packet_append_string(packet, instructions_file);
   packet_append(packet, &pid, sizeof(uint32_t));
 
-  pthread_mutex_lock(&(queues->km_socket->socket_mutex));
-  bool ret = send_packet(packet, queues->km_socket->km_socket);
+  socket_mutex_lock(queues->km_socket);
+  bool ret = send_packet(packet, queues->km_socket);
 
   destroy_packet(packet);
 
   if (!ret)
   {
     close_kernel_scheduler(SR_KERNEL_MEMORY_SEND_ERROR);
-    pthread_mutex_unlock(&(queues->km_socket->socket_mutex));
+    socket_mutex_unlock(queues->km_socket);
     return false;
   }
 
@@ -413,32 +413,32 @@ static bool notify_new_process(t_queues* queues, char* instructions_file,
   bool keep_running = true;
   while (keep_running)
   {
-    int op_code = receive_op_code(queues->km_socket->km_socket);
+    int op_code = receive_op_code(queues->km_socket);
     switch (op_code)
     {
       case OP_PROCESS_STARTED:
-        free(receive_string(queues->km_socket->km_socket));
+        free(receive_string(queues->km_socket));
         ret = true;
         keep_running = false;
         break;
       case OP_MEMORY_CORRUPTED:
-        free(receive_string(queues->km_socket->km_socket));
+        free(receive_string(queues->km_socket));
         close_kernel_scheduler(SR_CORRUPTED_MEMORY);
         keep_running = false;
         break;
       case OP_NEW_MEMORY_STICK:
-        free(receive_string(queues->km_socket->km_socket));
+        free(receive_string(queues->km_socket));
         create_resumption_routine_thread(queues);
         keep_running = true;
         break;
       default:
-        free(receive_string(queues->km_socket->km_socket));
+        free(receive_string(queues->km_socket));
         close_kernel_scheduler(SR_KERNEL_MEMORY_CONNECTION_FAILURE);
         keep_running = false;
         break;
     }
   }
 
-  pthread_mutex_unlock(&(queues->km_socket->socket_mutex));
+  socket_mutex_unlock(queues->km_socket);
   return ret;
 }

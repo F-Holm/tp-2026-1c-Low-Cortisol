@@ -3,14 +3,15 @@
 #include "kernel_scheduler/scheduler/queues.h"
 #include "kernel_scheduler/syscalls/mutex.h"
 #include "utils/log.h"
+#include "utils/sockets.h"
 
 typedef struct
 {
-  int socket_server;
+  t_socket* socket_server;
   t_log* logger;
   t_mutex_list* mutex_list;
   t_queues* queues;
-  t_kernel_memory_socket* km_socket;
+  t_socket* km_socket;
   char* initial_process_path;
 } t_listen_server_data;
 
@@ -18,13 +19,13 @@ typedef struct
  * @brief Creates the listening server socket.
  * @return The socket fd, or -1 on failure.
  */
-int create_socket_server(char* port, t_log* logger);
+t_socket* create_socket_server(char* port, t_log* logger);
 
 /** @brief Fills in @p data with the resources server_listen() needs. */
-void init_data_server_listen(t_listen_server_data* data, int socket_server,
-                             t_log* logger, t_mutex_list* mutex_list,
-                             t_queues* queues,
-                             t_kernel_memory_socket* socket_kernel_memory,
+void init_data_server_listen(t_listen_server_data* data,
+                             t_socket* socket_server, t_log* logger,
+                             t_mutex_list* mutex_list, t_queues* queues,
+                             t_socket* socket_kernel_memory,
                              char* initial_process_path);
 
 /**

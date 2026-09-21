@@ -7,8 +7,10 @@
 #include "kernel_scheduler/shutdown.h"
 #include "utils/io.h"
 #include "utils/msg.h"
+#include "utils/mutex.h"
 #include "utils/registers_cpu.h"
 #include "utils/syscalls.h"
+#include "utils/threads.h"
 
 static bool send_stdout(t_io* io_out, t_stdout* request, char* buffer);
 static bool request_stdout_km(t_stdout* request, t_io* io_out);
@@ -29,7 +31,7 @@ static bool handle_stdout(t_io* io);
 static bool handle_sleep(t_io* io);
 static bool handle_io(t_io* io);
 static void* io_thread(void* io_thread);
-static int get_io_type(int socket_fd, t_log* logger);
+static int get_io_type(t_socket* socket_fd, t_log* logger);
 static bool compare_priority_stdin(void* syscall1, void* syscall2);
 static bool compare_priority_stdout(void* syscall1, void* syscall2);
 static bool compare_priority_sleep(void* syscall1, void* syscall2);
@@ -42,13 +44,13 @@ t_io* create_io_structures(void)
   t_io* io = malloc(sizeof(t_io) * 3);
   for (int i = 0; i < 3; i++)
   {
-    io[i].socket_io = -1;
-    pthread_cond_init(&(io[i].new_process), NULL);
+    io[i].socket_io = NULL;
+    cnd_init(&(io[i].new_process));
   }
   return io;
 }
 
-bool handle_new_io(t_io io[3], int socket_fd, t_queues* queues,
+bool handle_new_io(t_io io[3], t_socket* socket_fd, t_queues* queues,
                    bool priority_active)
 {
   if (!respond_handshake(socket_fd, MID_KERNEL_SCHEDULER, queues->logger))
@@ -58,11 +60,10 @@ bool handle_new_io(t_io io[3], int socket_fd, t_queues* queues,
   if (io_type == -1)
     return false;
 
-  if (io[io_type].socket_io != -1)
+  if (io[io_type].socket_io != NULL)
   {
     log_warning(queues->logger, "Duplicate IO type: %d. Closing connection",
                 io_type);
-    close(socket_fd);
     return false;
   }
   // Prepare the t_io to create the thread
@@ -75,14 +76,15 @@ bool handle_new_io(t_io io[3], int socket_fd, t_queues* queues,
   io[io_type].io_type = io_type;
   io[io_type].io_list = malloc(sizeof(t_io_list));
   io[io_type].io_list->io_list = list_create();
-  pthread_mutex_init(&(io[io_type].io_list->io_list_mutex), NULL);
+  mtx_init(&(io[io_type].io_list->io_list_mutex));
   atomic_init(&(io[io_type].close_thread), false);
 
-  if (pthread_create(&(io[io_type].io_thread), NULL, io_thread,
-                     (void*)(&(io[io_type]))))
+  if (thrd_create(&(io[io_type].io_thread), io_thread, (void*)(&(io[io_type]))))
   {
     log_error(queues->logger, "Error creating the thread for IO of type %s",
               IO_TYPE_NAMES[io_type]);
+    // The caller destroys the socket; do not leave a dangling reference.
+    io[io_type].socket_io = NULL;
     return false;
   }
   log_debug(queues->logger, "IO thread of type %s created",
@@ -97,7 +99,7 @@ bool enqueue_io_request(void* request, t_io* io, t_pcb* pcb)
     return false;
   }
   void* entry = transform_request(request, io->io_type, pcb);
-  pthread_mutex_lock(&(io->io_list->io_list_mutex));
+  mtx_lock(&(io->io_list->io_list_mutex));
   bool list_empty = list_is_empty(io->io_list->io_list);
   if (io->priority_active)
   {
@@ -109,9 +111,9 @@ bool enqueue_io_request(void* request, t_io* io, t_pcb* pcb)
   }
   if (list_empty)
   {
-    pthread_cond_signal(&(io->new_process));
+    cnd_signal(&(io->new_process));
   }
-  pthread_mutex_unlock(&(io->io_list->io_list_mutex));
+  mtx_unlock(&(io->io_list->io_list_mutex));
   return true;
 }
 
@@ -119,17 +121,16 @@ void close_io(t_io* io)
 {
   for (int i = 0; i < 3; i++)
   {
-    if (io[i].socket_io != -1)
+    if (io[i].socket_io != NULL)
     {
       if (!atomic_exchange(&(io[i].close_thread), true))
       {
-        pthread_mutex_lock(&(io[i].io_list->io_list_mutex));
-        pthread_cond_signal(&(io[i].new_process));
-        pthread_mutex_unlock(&(io[i].io_list->io_list_mutex));
+        mtx_lock(&(io[i].io_list->io_list_mutex));
+        cnd_signal(&(io[i].new_process));
+        mtx_unlock(&(io[i].io_list->io_list_mutex));
       }
-      shutdown(io[i].socket_io, SHUT_RDWR);
-      pthread_join(io[i].io_thread, NULL);
-      close(io[i].socket_io);
+      socket_shutdown(io[i].socket_io, SOCKET_SHUTDOWN_BOTH);
+      thrd_join(io[i].io_thread, NULL);
       destroy_io(&(io[i]));
     }
   }
@@ -157,7 +158,7 @@ static bool request_stdout_km(t_stdout* request, t_io* io_out)
 {
   int request_size = sizeof(t_stdout_request);
   bool send = send_buffer(OP_IO_STDOUT_REQUEST, request->request, request_size,
-                          io_out->km_socket->km_socket);
+                          io_out->km_socket);
   if (!send)
   {
     log_warning(io_out->logger, "Error communicating with Kernel Memory");
@@ -172,7 +173,7 @@ static bool send_stdin(t_stdin* request, t_io* io_in, char* buffer)
   t_packet* packet = create_packet(OP_IO_STDIN_REQUEST);
   packet_append(packet, request->request, request_size);
   packet_append_string(packet, buffer);
-  bool send = send_packet(packet, io_in->km_socket->km_socket);
+  bool send = send_packet(packet, io_in->km_socket);
   destroy_packet(packet);
   if (!send)
   {
@@ -245,14 +246,14 @@ static bool communication_io_sleep(t_sleep* request, t_io* io_sleep)
 // IO termination helper
 static void finalize_io(void* request, t_io* io, t_pcb* pcb)
 {
-  pthread_mutex_lock(&(io->io_list->io_list_mutex));
+  mtx_lock(&(io->io_list->io_list_mutex));
   if (list_remove_element(io->io_list->io_list, request) == 0)
   {
-    pthread_mutex_unlock(&(io->io_list->io_list_mutex));
+    mtx_unlock(&(io->io_list->io_list_mutex));
     log_error(io->logger, "Error removing the process from the IO list");
     return;
   }
-  pthread_mutex_unlock(&(io->io_list->io_list_mutex));
+  mtx_unlock(&(io->io_list->io_list_mutex));
   log_debug(io->logger, "PID %d - Removed from the IO list", pcb->pid);
 
   // Move to ready or susp ready depending on the blocked time
@@ -302,14 +303,14 @@ static void free_request(void* request, t_io* io)
 static void close_thread_io(t_io* io)
 {
   atomic_store(&(io->close_thread), true);
-  pthread_mutex_lock(&(io->io_list->io_list_mutex));
+  mtx_lock(&(io->io_list->io_list_mutex));
   while (!list_is_empty(io->io_list->io_list))
   {
     void* request = list_remove(io->io_list->io_list, 0);
     free_request(request, io);
   }
-  pthread_mutex_unlock(&(io->io_list->io_list_mutex));
-  pthread_mutex_destroy(&(io->io_list->io_list_mutex));
+  mtx_unlock(&(io->io_list->io_list_mutex));
+  mtx_destroy(&(io->io_list->io_list_mutex));
   list_destroy(io->io_list->io_list);
   free(io->io_list);
 }
@@ -317,22 +318,22 @@ static void close_thread_io(t_io* io)
 static bool chat_km_stdin(t_io* io_in)
 {
   int cod_op = -1;
-  cod_op = receive_op_code(io_in->km_socket->km_socket);
+  cod_op = receive_op_code(io_in->km_socket);
   switch (cod_op)
   {
     case OP_MEMORY_CORRUPTED:
-      free(receive_string(io_in->km_socket->km_socket));
+      free(receive_string(io_in->km_socket));
       close_kernel_scheduler(SR_CORRUPTED_MEMORY);
       return false;
     case OP_NEW_MEMORY_STICK:
-      free(receive_string(io_in->km_socket->km_socket));
+      free(receive_string(io_in->km_socket));
       create_resumption_routine_thread(io_in->queues);
       return chat_km_stdin(io_in);
     case OP_STDIN_RESPONSE:
-      free(receive_string(io_in->km_socket->km_socket));
+      free(receive_string(io_in->km_socket));
       return true;
     default:
-      free(receive_string(io_in->km_socket->km_socket));
+      free(receive_string(io_in->km_socket));
       close_kernel_scheduler(SR_KERNEL_MEMORY_CONNECTION_FAILURE);
       return false;
   }
@@ -348,21 +349,21 @@ static int io_stdin_f(t_stdin* request, t_io* io_in)
     return false;
   }
   // Send the packet to Kernel Memory so it writes to memory
-  pthread_mutex_lock(&(io_in->km_socket->socket_mutex));
+  socket_mutex_lock(io_in->km_socket);
   send = send_stdin(request, io_in, buffer);
   if (!send)
   {
     close_kernel_scheduler(SR_KERNEL_MEMORY_SEND_ERROR);
-    pthread_mutex_unlock(&(io_in->km_socket->socket_mutex));
+    socket_mutex_unlock(io_in->km_socket);
     free(buffer);
     return false;
   }
   if (!(chat_km_stdin(io_in)))
   {
-    pthread_mutex_unlock(&(io_in->km_socket->socket_mutex));
+    socket_mutex_unlock(io_in->km_socket);
     return false;
   }
-  pthread_mutex_unlock(&(io_in->km_socket->socket_mutex));
+  socket_mutex_unlock(io_in->km_socket);
   finalize_io(request, io_in, request->pcb);
   return true;
 }
@@ -370,22 +371,22 @@ static int io_stdin_f(t_stdin* request, t_io* io_in)
 static bool receive_km_stdout(t_io* io_out)
 {
   int op_code = -1;
-  op_code = receive_op_code(io_out->km_socket->km_socket);
+  op_code = receive_op_code(io_out->km_socket);
 
   switch (op_code)
   {
     case OP_MEMORY_CORRUPTED:
-      free(receive_string(io_out->km_socket->km_socket));
+      free(receive_string(io_out->km_socket));
       close_kernel_scheduler(SR_CORRUPTED_MEMORY);
       return false;
     case OP_NEW_MEMORY_STICK:
-      free(receive_string(io_out->km_socket->km_socket));
+      free(receive_string(io_out->km_socket));
       create_resumption_routine_thread(io_out->queues);
       return receive_km_stdout(io_out);
     case OP_STDOUT_RESPONSE:
       return true;
     default:
-      free(receive_string(io_out->km_socket->km_socket));
+      free(receive_string(io_out->km_socket));
       close_kernel_scheduler(SR_KERNEL_MEMORY_CONNECTION_FAILURE);
       return false;
   }
@@ -395,23 +396,23 @@ static bool io_stdout_f(t_stdout* request, t_io* io_out)
 {
   int cod_op = -1;
   // Send request to Kernel Memory so it reads from memory
-  pthread_mutex_lock(&(io_out->km_socket->socket_mutex));
+  socket_mutex_lock(io_out->km_socket);
   bool send = request_stdout_km(request, io_out);
   if (!send)
   {
     close_kernel_scheduler(SR_KERNEL_MEMORY_SEND_ERROR);
-    pthread_mutex_unlock(&(io_out->km_socket->socket_mutex));
+    socket_mutex_unlock(io_out->km_socket);
     return false;
   }
   // Receive the Kernel Memory response
   if (!(receive_km_stdout(io_out)))
   {
-    pthread_mutex_unlock(&(io_out->km_socket->socket_mutex));
+    socket_mutex_unlock(io_out->km_socket);
     return false;
   }
 
-  char* buffer = receive_string(io_out->km_socket->km_socket);
-  pthread_mutex_unlock(&(io_out->km_socket->socket_mutex));
+  char* buffer = receive_string(io_out->km_socket);
+  socket_mutex_unlock(io_out->km_socket);
   if (buffer == NULL)
   {
     log_warning(io_out->logger, "Error receiving the Kernel Memory response");
@@ -442,7 +443,7 @@ static bool io_stdout_f(t_stdout* request, t_io* io_out)
 static bool handle_stdin(t_io* io)
 {
   t_stdin* request = list_get(io->io_list->io_list, 0);
-  pthread_mutex_unlock(&(io->io_list->io_list_mutex));
+  mtx_unlock(&(io->io_list->io_list_mutex));
   if (request == NULL)
   {
     log_warning(io->logger, "The STDIN request queue was empty");
@@ -454,7 +455,7 @@ static bool handle_stdin(t_io* io)
 static bool handle_stdout(t_io* io)
 {
   t_stdout* request = list_get(io->io_list->io_list, 0);
-  pthread_mutex_unlock(&(io->io_list->io_list_mutex));
+  mtx_unlock(&(io->io_list->io_list_mutex));
   if (request == NULL)
   {
     log_warning(io->logger, "The STDOUT request queue was empty");
@@ -466,7 +467,7 @@ static bool handle_stdout(t_io* io)
 static bool handle_sleep(t_io* io)
 {
   t_sleep* request = list_get(io->io_list->io_list, 0);
-  pthread_mutex_unlock(&(io->io_list->io_list_mutex));
+  mtx_unlock(&(io->io_list->io_list_mutex));
   if (request == NULL)
   {
     log_warning(io->logger, "The SLEEP request queue was empty");
@@ -498,15 +499,15 @@ static void* io_thread(void* io_thread)
   bool seguir_atendiendo = true;
   while (seguir_atendiendo)
   {
-    pthread_mutex_lock(&(io->io_list->io_list_mutex));
+    mtx_lock(&(io->io_list->io_list_mutex));
     while (!atomic_load(&(io->close_thread)) &&
            list_is_empty(io->io_list->io_list))
     {
-      pthread_cond_wait(&(io->new_process), &(io->io_list->io_list_mutex));
+      cnd_wait(&(io->new_process), &(io->io_list->io_list_mutex));
     }
     if (atomic_load(&(io->close_thread)))
     {
-      pthread_mutex_unlock(&(io->io_list->io_list_mutex));
+      mtx_unlock(&(io->io_list->io_list_mutex));
       close_thread_io(io);
       return NULL;
     }
@@ -522,7 +523,7 @@ static void* io_thread(void* io_thread)
   return NULL;
 }
 
-static int get_io_type(int socket_fd, t_log* logger)
+static int get_io_type(t_socket* socket_fd, t_log* logger)
 {
   if (receive_op_code(socket_fd) != OP_IO_TYPE)
   {
@@ -617,6 +618,6 @@ static void add_ordered(void* entry, t_io* io)
 
 static void destroy_io(t_io* io)
 {
-  pthread_cond_destroy(&(io->new_process));
-  close(io->socket_io);
+  cnd_destroy(&(io->new_process));
+  socket_destroy(io->socket_io);
 }

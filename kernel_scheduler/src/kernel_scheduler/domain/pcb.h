@@ -1,10 +1,10 @@
 #pragma once
 
-#include <pthread.h>
 #include <stdbool.h>
 #include <stdint.h>
 
 #include "utils/collections/list.h"
+#include "utils/mutex.h"
 
 typedef enum
 {
@@ -24,13 +24,13 @@ typedef struct
   uint32_t pid;
   int priority;
   t_list* priority_list;
-  pthread_mutex_t priority_mutex;
+  mtx_t priority_mutex;
   unsigned long blocked_time;
   int state;
-  pthread_mutex_t state_mutex;
+  mtx_t state_mutex;
   int active_instances;
-  pthread_mutex_t active_instances_mutex;
-  pthread_cond_t no_active_instances;
+  mtx_t active_instances_mutex;
+  cnd_t no_active_instances;
   void* blocking_mutex;
 } t_pcb;
 

@@ -1,6 +1,5 @@
 #pragma once
 
-#include <pthread.h>
 #include <stdint.h>
 
 #include "kernel_scheduler/connections/io.h"
@@ -8,19 +7,21 @@
 #include "kernel_scheduler/syscalls/mutex.h"
 #include "utils/collections/list.h"
 #include "utils/log.h"
+#include "utils/mutex.h"
+#include "utils/sockets.h"
 
 typedef struct
 {
-  int socket_fd;
+  t_socket* socket_fd;
   t_list* socket_list;
-  pthread_mutex_t* socket_list_mutex;
-  pthread_cond_t* done_cond;
+  mtx_t* socket_list_mutex;
+  cnd_t* done_cond;
   char* id;
   t_log* logger;
   t_mutex_list* mutex_list;
   t_queues* queues;
   t_io* io;
-  t_kernel_memory_socket* km_socket;
+  t_socket* km_socket;
   // per-cycle state, reset by init_data_thread_cpu, mutated by
   // handle_cpu_client's own thread only
   t_pcb* pcb;
@@ -56,14 +57,12 @@ extern const char* const SYSCALL_NAMES[10];
  * @return false on handshake/registration failure (caller should close the
  *         socket).
  */
-bool handle_new_cpu(int socket_cpu, t_list* list_sockets_cpu,
-                    pthread_mutex_t* mutex_list_sockets_cpu,
-                    pthread_cond_t* cpu_done_cond, t_log* logger,
-                    t_mutex_list* mutex_list, t_queues* queues, t_io* io,
-                    t_kernel_memory_socket* km_socket);
+bool handle_new_cpu(t_socket* socket_cpu, t_list* list_sockets_cpu,
+                    mtx_t* mutex_list_sockets_cpu, cnd_t* cpu_done_cond,
+                    t_log* logger, t_mutex_list* mutex_list, t_queues* queues,
+                    t_io* io, t_socket* km_socket);
 
 /** @brief Terminates the ready queue and waits for every CPU thread to
  *         finish before returning. */
-void close_cpu(t_list* list_sockets_cpu,
-               pthread_mutex_t* mutex_list_sockets_cpu,
-               pthread_cond_t* cpu_done_cond, t_queues* queues);
+void close_cpu(t_list* list_sockets_cpu, mtx_t* mutex_list_sockets_cpu,
+               cnd_t* cpu_done_cond, t_queues* queues);
