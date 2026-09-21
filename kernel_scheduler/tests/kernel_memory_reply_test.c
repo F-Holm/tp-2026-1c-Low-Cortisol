@@ -1,6 +1,7 @@
 #include "kernel_scheduler/scheduler/kernel_memory_reply.h"
 
 #include <criterion/criterion.h>
+#include <stdbool.h>
 #include <stdlib.h>
 
 #include "kernel_scheduler/scheduler/queue_types.h"
