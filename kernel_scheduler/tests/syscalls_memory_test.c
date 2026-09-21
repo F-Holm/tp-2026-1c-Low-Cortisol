@@ -94,6 +94,31 @@ Test(ks_syscalls_memory, allocate_memory_fails_when_the_segment_is_too_large)
   log_destroy(logger);
 }
 
+Test(ks_syscalls_memory,
+     allocate_memory_fails_when_kernel_memory_reports_not_enough_memory)
+{
+  t_socket* server_fd;
+  t_socket* client_fd = ks_connected_pair(&server_fd);
+  int space = 1000;
+  cr_assert(send_buffer(OP_FREE_MEMORY, &space, sizeof(space), server_fd));
+  cr_assert(send_string(OP_NOT_ENOUGH_MEMORY, "the space changed", server_fd));
+  /* Whatever follows must still be readable: the failure reply's payload has
+   * to be consumed, not left on the wire. */
+  cr_assert(send_string(OP_MEMORY_FREED, "next message", server_fd));
+
+  t_log* logger = ks_quiet_logger();
+  t_queues* queues = ks_stub_queues_full(logger);
+  queues->km_socket = client_fd;
+  t_syscall_memory request = {.pid = 1, .segment_id = 0, .size = 100};
+
+  cr_assert_not(allocate_memory(&request, queues));
+  cr_assert_eq(receive_op_code(client_fd), OP_MEMORY_FREED);
+
+  ks_destroy_stub_queues_full(queues);
+  socket_destroy(server_fd);
+  log_destroy(logger);
+}
+
 Test(ks_syscalls_memory, allocate_memory_reports_memory_corruption)
 {
   t_socket* server_fd;
