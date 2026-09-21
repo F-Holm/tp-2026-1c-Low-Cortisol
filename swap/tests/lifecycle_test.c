@@ -1,5 +1,6 @@
 #include <criterion/criterion.h>
 #include <criterion/redirect.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -8,7 +9,10 @@
 
 #include "support.h"
 #include "swap/swap.h"
+#include "utils/config.h"
+#include "utils/log.h"
 #include "utils/msg.h"
+#include "utils/sockets.h"
 #include "utils/swap_km.h"
 #include "utils/threads.h"
 
