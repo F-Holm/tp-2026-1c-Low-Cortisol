@@ -1,12 +1,19 @@
 #include "kernel_memory/registry.h"
 
 #include <criterion/criterion.h>
-#include <pthread.h>
 
 #include "kernel_memory/structs.h"
 #include "utils/collections/list.h"
+#include "utils/mutex.h"
 
-static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+static mtx_t mutex;
+
+static void init_mutex(void)
+{
+  mtx_init(&mutex);
+}
+
+TestSuite(km_registry, .init = init_mutex);
 
 Test(km_registry, list_add_mtx_appends_under_the_lock)
 {

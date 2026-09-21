@@ -1,7 +1,6 @@
 #include "kernel_memory/cpu_listener.h"
 
 #include <criterion/criterion.h>
-#include <pthread.h>
 #include <stdlib.h>
 #include <unistd.h>
 
@@ -12,6 +11,8 @@
 #include "support.h"
 #include "utils/collections/list.h"
 #include "utils/msg.h"
+#include "utils/mutex.h"
+#include "utils/threads.h"
 
 /* listen_cpu's per-op handlers are static, so the only way to reach them is
  * through the real dispatch loop over a real socket, acting as the fake CPU
@@ -22,49 +23,49 @@
 typedef struct
 {
   t_log* logger;
-  int cpu_peer_fd;
-  int scheduler_peer_fd;
+  t_socket* cpu_peer_fd;
+  t_socket* scheduler_peer_fd;
+  t_socket* scheduler_server_socket; /* the CPU data's scheduler reference */
   t_list* processes;
-  pthread_mutex_t* processes_mutex;
+  mtx_t* processes_mutex;
   t_main_memory* memory;
   /* Heap-allocated, not an inline struct member: start_fixture returns
    * t_listener_fixture by value, so an inline int's address would point at
    * start_fixture's own stack frame, dangling the moment it returns. */
   int* active_threads;
-  pthread_mutex_t* active_threads_mutex;
-  pthread_cond_t* active_threads_cond;
+  mtx_t* active_threads_mutex;
+  cnd_t* active_threads_cond;
   t_cpu_data* cpu_data;
-  pthread_t thread;
+  thrd_t thread;
 } t_listener_fixture;
 
 static t_listener_fixture start_fixture(void)
 {
   t_listener_fixture f = {0};
   f.logger = km_quiet_logger();
-  int cpu_server_fd;
+  t_socket* cpu_server_fd;
   f.cpu_peer_fd = km_connected_pair(&cpu_server_fd);
-  int scheduler_server_fd;
-  f.scheduler_peer_fd = km_connected_pair(&scheduler_server_fd);
+  f.scheduler_peer_fd = km_connected_pair(&f.scheduler_server_socket);
 
   f.processes = list_create();
-  f.processes_mutex = malloc(sizeof(pthread_mutex_t));
-  pthread_mutex_init(f.processes_mutex, NULL);
+  f.processes_mutex = malloc(sizeof(mtx_t));
+  mtx_init(f.processes_mutex);
 
   f.memory = init_main_memory(4096, AS_BEST, 0);
 
   f.active_threads = malloc(sizeof(int));
   *f.active_threads = 1;
-  f.active_threads_mutex = malloc(sizeof(pthread_mutex_t));
-  pthread_mutex_init(f.active_threads_mutex, NULL);
-  f.active_threads_cond = malloc(sizeof(pthread_cond_t));
-  pthread_cond_init(f.active_threads_cond, NULL);
+  f.active_threads_mutex = malloc(sizeof(mtx_t));
+  mtx_init(f.active_threads_mutex);
+  f.active_threads_cond = malloc(sizeof(cnd_t));
+  cnd_init(f.active_threads_cond);
 
   f.cpu_data =
       init_cpu_data(cpu_server_fd, f.processes, f.processes_mutex, 0, f.memory,
                     f.logger, f.active_threads, f.active_threads_mutex,
-                    f.active_threads_cond, scheduler_server_fd);
+                    f.active_threads_cond, f.scheduler_server_socket);
 
-  pthread_create(&f.thread, NULL, listen_cpu, f.cpu_data);
+  thrd_create(&f.thread, listen_cpu, f.cpu_data);
   return f;
 }
 
@@ -73,17 +74,17 @@ static t_listener_fixture start_fixture(void)
 static void disconnect_stick_and_join(t_listener_fixture* f)
 {
   int op_code = OP_STICK_DISCONNECTED;
-  cr_assert_eq(send(f->cpu_peer_fd, &op_code, sizeof(op_code), 0),
-               sizeof(op_code));
+  cr_assert(socket_send(f->cpu_peer_fd, &op_code, sizeof(op_code)));
   cr_assert_eq(receive_op_code(f->scheduler_peer_fd), OP_MEMORY_CORRUPTED);
   free(receive_string(f->scheduler_peer_fd));
-  pthread_join(f->thread, NULL);
+  thrd_join(f->thread, NULL);
 }
 
 static void destroy_fixture(t_listener_fixture* f)
 {
-  close(f->cpu_peer_fd);
-  close(f->scheduler_peer_fd);
+  socket_destroy(f->cpu_peer_fd);
+  socket_destroy(f->scheduler_peer_fd);
+  socket_destroy(f->scheduler_server_socket);
   list_destroy_and_destroy_elements(f->processes,
                                     (void (*)(void*))free_process);
   free(f->processes_mutex);
@@ -91,7 +92,7 @@ static void destroy_fixture(t_listener_fixture* f)
   free(f->active_threads);
   free(f->active_threads_mutex);
   free(f->active_threads_cond);
-  free(f->cpu_data);
+  free_cpu_data(f->cpu_data);
   log_destroy(f->logger);
 }
 
@@ -123,9 +124,8 @@ Test(km_cpu_listener,
 Test(km_cpu_listener, closing_the_socket_ends_the_loop)
 {
   t_listener_fixture f = start_fixture();
-  close(f.cpu_peer_fd);
-  pthread_join(f.thread, NULL);
-  f.cpu_peer_fd = -1;
+  socket_close(f.cpu_peer_fd);
+  thrd_join(f.thread, NULL);
   destroy_fixture(&f);
 }
 
@@ -133,9 +133,8 @@ Test(km_cpu_listener, an_unrecognized_op_code_ends_the_loop)
 {
   t_listener_fixture f = start_fixture();
   int op_code = 99999;
-  cr_assert_eq(send(f.cpu_peer_fd, &op_code, sizeof(op_code), 0),
-               sizeof(op_code));
-  pthread_join(f.thread, NULL);
+  cr_assert(socket_send(f.cpu_peer_fd, &op_code, sizeof(op_code)));
+  thrd_join(f.thread, NULL);
   destroy_fixture(&f);
 }
 

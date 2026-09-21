@@ -1,7 +1,6 @@
 #include "kernel_memory/connections.h"
 
 #include <criterion/criterion.h>
-#include <pthread.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -9,8 +8,16 @@
 #include "support.h"
 #include "utils/collections/list.h"
 #include "utils/msg.h"
+#include "utils/mutex.h"
 
-static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+static mtx_t mutex;
+
+static void init_mutex(void)
+{
+  mtx_init(&mutex);
+}
+
+TestSuite(km_connections, .init = init_mutex);
 
 Test(km_connections, compute_total_memory_sums_the_stick_sizes)
 {
@@ -25,8 +32,8 @@ Test(km_connections, compute_total_memory_sums_the_stick_sizes)
 
 Test(km_connections, receive_cpu_id_parses_the_announced_id)
 {
-  int server_fd;
-  int client_fd = km_connected_pair(&server_fd);
+  t_socket* server_fd;
+  t_socket* client_fd = km_connected_pair(&server_fd);
   cr_assert(send_string(OP_ID_CPU, "7", server_fd));
 
   t_log* logger = km_quiet_logger();
@@ -35,16 +42,16 @@ Test(km_connections, receive_cpu_id_parses_the_announced_id)
   cr_assert(receive_cpu_id(&cpu_data));
   cr_assert_eq(cpu_data.id, 7);
 
-  close(client_fd);
-  close(server_fd);
+  socket_destroy(client_fd);
+  socket_destroy(server_fd);
   log_destroy(logger);
 }
 
 Test(km_connections,
      receive_cpu_id_fails_and_closes_the_socket_on_a_wrong_op_code)
 {
-  int server_fd;
-  int client_fd = km_connected_pair(&server_fd);
+  t_socket* server_fd;
+  t_socket* client_fd = km_connected_pair(&server_fd);
   cr_assert(send_string(OP_MEMORY_SIZE, "7", server_fd));
 
   t_log* logger = km_quiet_logger();
@@ -52,7 +59,7 @@ Test(km_connections,
 
   cr_assert_not(receive_cpu_id(&cpu_data));
 
-  close(server_fd);
+  socket_destroy(server_fd);
   log_destroy(logger);
 }
 
@@ -60,8 +67,8 @@ Test(km_connections,
 
 Test(km_connections, receive_stick_size_parses_the_announced_size)
 {
-  int server_fd;
-  int client_fd = km_connected_pair(&server_fd);
+  t_socket* server_fd;
+  t_socket* client_fd = km_connected_pair(&server_fd);
   cr_assert(send_string(OP_MEMORY_SIZE, "1024", server_fd));
 
   t_log* logger = km_quiet_logger();
@@ -70,15 +77,15 @@ Test(km_connections, receive_stick_size_parses_the_announced_size)
   cr_assert(receive_stick_size(&stick_data));
   cr_assert_eq(stick_data.stick_size, 1024);
 
-  close(client_fd);
-  close(server_fd);
+  socket_destroy(client_fd);
+  socket_destroy(server_fd);
   log_destroy(logger);
 }
 
 Test(km_connections, receive_stick_size_fails_on_a_wrong_op_code)
 {
-  int server_fd;
-  int client_fd = km_connected_pair(&server_fd);
+  t_socket* server_fd;
+  t_socket* client_fd = km_connected_pair(&server_fd);
   cr_assert(send_string(OP_ID_CPU, "1024", server_fd));
 
   t_log* logger = km_quiet_logger();
@@ -86,14 +93,14 @@ Test(km_connections, receive_stick_size_fails_on_a_wrong_op_code)
 
   cr_assert_not(receive_stick_size(&stick_data));
 
-  close(server_fd);
+  socket_destroy(server_fd);
   log_destroy(logger);
 }
 
 Test(km_connections, receive_stick_listen_port_parses_the_announced_port)
 {
-  int server_fd;
-  int client_fd = km_connected_pair(&server_fd);
+  t_socket* server_fd;
+  t_socket* client_fd = km_connected_pair(&server_fd);
   cr_assert(send_string(OP_PORT, "9090", server_fd));
 
   t_log* logger = km_quiet_logger();
@@ -102,15 +109,15 @@ Test(km_connections, receive_stick_listen_port_parses_the_announced_port)
   cr_assert(receive_stick_listen_port(&stick_data));
   cr_assert_eq(stick_data.stick_port, 9090);
 
-  close(client_fd);
-  close(server_fd);
+  socket_destroy(client_fd);
+  socket_destroy(server_fd);
   log_destroy(logger);
 }
 
 Test(km_connections, receive_stick_listen_port_fails_on_a_wrong_op_code)
 {
-  int server_fd;
-  int client_fd = km_connected_pair(&server_fd);
+  t_socket* server_fd;
+  t_socket* client_fd = km_connected_pair(&server_fd);
   cr_assert(send_string(OP_ID_CPU, "9090", server_fd));
 
   t_log* logger = km_quiet_logger();
@@ -118,7 +125,7 @@ Test(km_connections, receive_stick_listen_port_fails_on_a_wrong_op_code)
 
   cr_assert_not(receive_stick_listen_port(&stick_data));
 
-  close(server_fd);
+  socket_destroy(server_fd);
   log_destroy(logger);
 }
 
@@ -127,7 +134,8 @@ Test(km_connections, receive_stick_listen_port_fails_on_a_wrong_op_code)
 Test(km_connections, add_stick_connection_appends_to_the_list)
 {
   t_list* sticks = list_create();
-  pthread_mutex_t list_mutex = PTHREAD_MUTEX_INITIALIZER;
+  mtx_t list_mutex;
+  mtx_init(&list_mutex);
   t_kernel_memory_data kernel_data = {.connected_sticks = sticks,
                                       .socket_list_mutex = &list_mutex};
   t_stick_data* stick = km_make_stick(128);
@@ -143,7 +151,8 @@ Test(km_connections, add_stick_connection_appends_to_the_list)
 Test(km_connections, add_cpu_connection_appends_to_the_list)
 {
   t_list* cpus = list_create();
-  pthread_mutex_t list_mutex = PTHREAD_MUTEX_INITIALIZER;
+  mtx_t list_mutex;
+  mtx_init(&list_mutex);
   t_kernel_memory_data kernel_data = {.connected_cpus = cpus,
                                       .socket_list_mutex = &list_mutex};
   t_cpu_data cpu = {.id = 3};
@@ -160,15 +169,16 @@ Test(km_connections, add_cpu_connection_appends_to_the_list)
 
 Test(km_connections, send_connected_sticks_tells_the_cpu_about_every_stick)
 {
-  int server_fd;
-  int client_fd = km_connected_pair(&server_fd);
+  t_socket* server_fd;
+  t_socket* client_fd = km_connected_pair(&server_fd);
 
   t_list* sticks = list_create();
   t_stick_data* stick = km_make_stick(2048);
   stick->stick_port = 5000;
   strcpy(stick->ip_memory_stick, "127.0.0.1");
   list_add(sticks, stick);
-  pthread_mutex_t list_mutex = PTHREAD_MUTEX_INITIALIZER;
+  mtx_t list_mutex;
+  mtx_init(&list_mutex);
   t_cpu_data cpu_data = {.socket_cpu = client_fd};
 
   send_connected_sticks(sticks, &list_mutex, &cpu_data);
@@ -182,14 +192,14 @@ Test(km_connections, send_connected_sticks_tells_the_cpu_about_every_stick)
 
   list_destroy_and_destroy_elements(fields, free);
   list_destroy_and_destroy_elements(sticks, free);
-  close(client_fd);
-  close(server_fd);
+  socket_destroy(client_fd);
+  socket_destroy(server_fd);
 }
 
 Test(km_connections, send_cpu_connection_tells_every_cpu_about_the_new_stick)
 {
-  int server_fd;
-  int client_fd = km_connected_pair(&server_fd);
+  t_socket* server_fd;
+  t_socket* client_fd = km_connected_pair(&server_fd);
 
   t_list* cpus = list_create();
   t_cpu_data cpu_data = {.socket_cpu = client_fd};
@@ -210,8 +220,8 @@ Test(km_connections, send_cpu_connection_tells_every_cpu_about_the_new_stick)
   list_destroy_and_destroy_elements(fields, free);
   list_destroy(cpus);
   free(stick);
-  close(client_fd);
-  close(server_fd);
+  socket_destroy(client_fd);
+  socket_destroy(server_fd);
 }
 
 Test(km_connections, send_cpu_connection_is_a_no_op_with_no_cpus_connected)

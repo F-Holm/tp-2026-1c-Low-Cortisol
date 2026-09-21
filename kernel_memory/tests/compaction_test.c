@@ -42,8 +42,8 @@ Test(km_compaction, compact_segments_is_a_no_op_for_an_empty_list)
 
 Test(km_compaction, notify_compaction_asks_and_drains_the_reply)
 {
-  int server_fd;
-  int client_fd = km_connected_pair(&server_fd);
+  t_socket* server_fd;
+  t_socket* client_fd = km_connected_pair(&server_fd);
   cr_assert(send_string(OP_CAN_COMPACT, "go ahead", server_fd));
 
   notify_compaction(client_fd);
@@ -51,16 +51,16 @@ Test(km_compaction, notify_compaction_asks_and_drains_the_reply)
   cr_assert_eq(receive_op_code(server_fd), OP_COMPACTION_NEEDED);
   free(receive_string(server_fd));
 
-  close(client_fd);
-  close(server_fd);
+  socket_destroy(client_fd);
+  socket_destroy(server_fd);
 }
 
 /* ── compact_memory ────────────────────────────────────────────────────── */
 
 Test(km_compaction, compact_memory_compacts_and_notifies_the_scheduler)
 {
-  int server_fd;
-  int client_fd = km_connected_pair(&server_fd);
+  t_socket* server_fd;
+  t_socket* client_fd = km_connected_pair(&server_fd);
 
   t_main_memory* memory = init_main_memory(1000, AS_BEST, 0);
   memory->total_size = 1000;
@@ -85,8 +85,8 @@ Test(km_compaction, compact_memory_compacts_and_notifies_the_scheduler)
   free(receive_string(server_fd));
 
   free_main_memory(memory);
-  close(client_fd);
-  close(server_fd);
+  socket_destroy(client_fd);
+  socket_destroy(server_fd);
 }
 
 Test(km_compaction, compute_last_segment_end_is_base_plus_size_of_the_last)

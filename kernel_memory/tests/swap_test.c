@@ -1,7 +1,6 @@
 #include "kernel_memory/swap.h"
 
 #include <criterion/criterion.h>
-#include <pthread.h>
 #include <stdlib.h>
 #include <unistd.h>
 
@@ -11,6 +10,7 @@
 #include "support.h"
 #include "utils/collections/list.h"
 #include "utils/msg.h"
+#include "utils/mutex.h"
 #include "utils/swap_km.h"
 
 /* A full suspend_process/resume_process round-trip needs three independent
@@ -19,11 +19,11 @@
 typedef struct
 {
   t_log* logger;
-  int stick_client_fd, stick_server_fd;
-  int swap_client_fd, swap_server_fd;
-  int scheduler_client_fd, scheduler_server_fd;
+  t_socket *stick_client_fd, *stick_server_fd;
+  t_socket *swap_client_fd, *swap_server_fd;
+  t_socket *scheduler_client_fd, *scheduler_server_fd;
   t_list* sticks;
-  pthread_mutex_t* sticks_mutex;
+  mtx_t* sticks_mutex;
   t_swap_data* swap_data;
   /* init_scheduler_data now wants a live reference (see structs.h), not a
    * value snapshot -- this fixture's own swap_data field above stays a plain
@@ -48,8 +48,8 @@ static t_swap_fixture make_swap_fixture(int stick_size, int swap_size,
   stick->socket_stick = f.stick_client_fd;
   f.sticks = list_create();
   list_add(f.sticks, stick);
-  f.sticks_mutex = malloc(sizeof(pthread_mutex_t));
-  pthread_mutex_init(f.sticks_mutex, NULL);
+  f.sticks_mutex = malloc(sizeof(mtx_t));
+  mtx_init(f.sticks_mutex);
 
   f.swap_client_fd = km_connected_pair(&f.swap_server_fd);
   t_swap_config config = {.swap_size = swap_size, .block_size = block_size};
@@ -65,7 +65,7 @@ static t_swap_fixture make_swap_fixture(int stick_size, int swap_size,
   f.memory = init_main_memory(max_segment_size, AS_BEST, 0);
 
   f.scheduler_data = init_scheduler_data(
-      -1, f.scheduler_client_fd, NULL, NULL, NULL, f.memory, f.sticks,
+      NULL, f.scheduler_client_fd, NULL, NULL, NULL, f.memory, f.sticks,
       f.sticks_mutex, f.swap_data_slot, f.logger, NULL, NULL, NULL);
   return f;
 }
@@ -76,12 +76,13 @@ static void destroy_swap_fixture(t_swap_fixture* f)
   free_swap_data(f->swap_data); /* closes swap_client_fd */
   free(f->swap_data_slot);
   free_scheduler_data(f->scheduler_data); /* closes scheduler_client_fd */
+  socket_destroy(f->scheduler_client_fd);
   list_destroy_and_destroy_elements(f->sticks, free);
-  close(f->stick_client_fd);
-  close(f->stick_server_fd);
-  close(f->swap_server_fd);
-  close(f->scheduler_server_fd);
-  pthread_mutex_destroy(f->sticks_mutex);
+  socket_destroy(f->stick_client_fd);
+  socket_destroy(f->stick_server_fd);
+  socket_destroy(f->swap_server_fd);
+  socket_destroy(f->scheduler_server_fd);
+  mtx_destroy(f->sticks_mutex);
   free(f->sticks_mutex);
   log_destroy(f->logger);
 }

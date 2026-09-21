@@ -1,7 +1,6 @@
 #include "kernel_memory/address_translation.h"
 
 #include <criterion/criterion.h>
-#include <pthread.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -12,6 +11,7 @@
 #include "support.h"
 #include "utils/collections/list.h"
 #include "utils/msg.h"
+#include "utils/mutex.h"
 
 /* ── translate_logical_address ─────────────────────────────────────────── */
 
@@ -46,7 +46,8 @@ Test(km_address_translation,
 
 Test(km_address_translation, find_stick_locates_the_owning_stick)
 {
-  pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+  mtx_t mutex;
+  mtx_init(&mutex);
   t_list* sticks = list_create();
   list_add(sticks, km_make_stick(100)); /* [0, 100) */
   list_add(sticks, km_make_stick(50));  /* [100, 150) */
@@ -66,7 +67,8 @@ Test(km_address_translation, find_stick_locates_the_owning_stick)
 
 Test(km_address_translation, find_stick_reports_an_address_past_every_stick)
 {
-  pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+  mtx_t mutex;
+  mtx_init(&mutex);
   t_list* sticks = list_create();
   list_add(sticks, km_make_stick(100));
 
@@ -80,35 +82,36 @@ Test(km_address_translation, find_stick_reports_an_address_past_every_stick)
 
 Test(km_address_translation, read_from_sticks_reads_from_a_single_stick)
 {
-  int stick_server_fd;
-  int stick_client_fd = km_connected_pair(&stick_server_fd);
+  t_socket* stick_server_fd;
+  t_socket* stick_client_fd = km_connected_pair(&stick_server_fd);
   t_stick_data* stick = km_make_stick(1000);
   stick->socket_stick = stick_client_fd;
   t_list* sticks = list_create();
   list_add(sticks, stick);
-  pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+  mtx_t mutex;
+  mtx_init(&mutex);
 
   cr_assert(send_buffer(OP_MEMORY_STICK_READ_DONE, "abcd", 4, stick_server_fd));
 
   t_log* logger = km_quiet_logger();
-  char* result = read_from_sticks(10, 4, sticks, &mutex, logger, -1);
+  char* result = read_from_sticks(10, 4, sticks, &mutex, logger, NULL);
 
   cr_assert_not_null(result);
   cr_assert_eq(memcmp(result, "abcd", 4), 0);
 
   free(result);
   list_destroy_and_destroy_elements(sticks, free);
-  close(stick_client_fd);
-  close(stick_server_fd);
+  socket_destroy(stick_client_fd);
+  socket_destroy(stick_server_fd);
   log_destroy(logger);
 }
 
 Test(km_address_translation, read_from_sticks_spans_two_sticks)
 {
-  int first_server_fd;
-  int first_client_fd = km_connected_pair(&first_server_fd);
-  int second_server_fd;
-  int second_client_fd = km_connected_pair(&second_server_fd);
+  t_socket* first_server_fd;
+  t_socket* first_client_fd = km_connected_pair(&first_server_fd);
+  t_socket* second_server_fd;
+  t_socket* second_client_fd = km_connected_pair(&second_server_fd);
 
   t_stick_data* first = km_make_stick(4); /* [0, 4) */
   first->socket_stick = first_client_fd;
@@ -117,7 +120,8 @@ Test(km_address_translation, read_from_sticks_spans_two_sticks)
   t_list* sticks = list_create();
   list_add(sticks, first);
   list_add(sticks, second);
-  pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+  mtx_t mutex;
+  mtx_init(&mutex);
 
   /* physical_address 2, size 4 -> 2 bytes from the first stick, 2 from the
    * second */
@@ -125,27 +129,28 @@ Test(km_address_translation, read_from_sticks_spans_two_sticks)
   cr_assert(send_buffer(OP_MEMORY_STICK_READ_DONE, "cd", 2, second_server_fd));
 
   t_log* logger = km_quiet_logger();
-  char* result = read_from_sticks(2, 4, sticks, &mutex, logger, -1);
+  char* result = read_from_sticks(2, 4, sticks, &mutex, logger, NULL);
 
   cr_assert_not_null(result);
   cr_assert_eq(memcmp(result, "abcd", 4), 0);
 
   free(result);
   list_destroy_and_destroy_elements(sticks, free);
-  close(first_client_fd);
-  close(first_server_fd);
-  close(second_client_fd);
-  close(second_server_fd);
+  socket_destroy(first_client_fd);
+  socket_destroy(first_server_fd);
+  socket_destroy(second_client_fd);
+  socket_destroy(second_server_fd);
   log_destroy(logger);
 }
 
 Test(km_address_translation, read_from_sticks_reports_an_address_with_no_stick)
 {
   t_list* sticks = list_create();
-  pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+  mtx_t mutex;
+  mtx_init(&mutex);
   t_log* logger = km_quiet_logger();
 
-  cr_assert_null(read_from_sticks(0, 4, sticks, &mutex, logger, -1));
+  cr_assert_null(read_from_sticks(0, 4, sticks, &mutex, logger, NULL));
 
   list_destroy(sticks);
   log_destroy(logger);
@@ -153,22 +158,23 @@ Test(km_address_translation, read_from_sticks_reports_an_address_with_no_stick)
 
 Test(km_address_translation, read_from_sticks_reports_a_wrong_reply_opcode)
 {
-  int stick_server_fd;
-  int stick_client_fd = km_connected_pair(&stick_server_fd);
+  t_socket* stick_server_fd;
+  t_socket* stick_client_fd = km_connected_pair(&stick_server_fd);
   t_stick_data* stick = km_make_stick(1000);
   stick->socket_stick = stick_client_fd;
   t_list* sticks = list_create();
   list_add(sticks, stick);
-  pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+  mtx_t mutex;
+  mtx_init(&mutex);
 
   cr_assert(send_string(OP_ID_CPU, "not expected here", stick_server_fd));
 
   t_log* logger = km_quiet_logger();
-  cr_assert_null(read_from_sticks(10, 4, sticks, &mutex, logger, -1));
+  cr_assert_null(read_from_sticks(10, 4, sticks, &mutex, logger, NULL));
 
   list_destroy_and_destroy_elements(sticks, free);
-  close(stick_client_fd);
-  close(stick_server_fd);
+  socket_destroy(stick_client_fd);
+  socket_destroy(stick_server_fd);
   log_destroy(logger);
 }
 
@@ -176,18 +182,19 @@ Test(km_address_translation, read_from_sticks_reports_a_wrong_reply_opcode)
 
 Test(km_address_translation, write_to_sticks_writes_to_a_single_stick)
 {
-  int stick_server_fd;
-  int stick_client_fd = km_connected_pair(&stick_server_fd);
+  t_socket* stick_server_fd;
+  t_socket* stick_client_fd = km_connected_pair(&stick_server_fd);
   t_stick_data* stick = km_make_stick(1000);
   stick->socket_stick = stick_client_fd;
   t_list* sticks = list_create();
   list_add(sticks, stick);
-  pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+  mtx_t mutex;
+  mtx_init(&mutex);
 
   cr_assert(send_string(OP_MEMORY_STICK_WRITE_DONE, "ok", stick_server_fd));
 
   t_log* logger = km_quiet_logger();
-  cr_assert(write_to_sticks(1, 10, 4, "data", sticks, &mutex, logger, -1));
+  cr_assert(write_to_sticks(1, 10, 4, "data", sticks, &mutex, logger, NULL));
 
   cr_assert_eq(receive_op_code(stick_server_fd), OP_MEMORY_STICK_WRITE);
   t_list* fields = receive_packet(stick_server_fd);
@@ -196,17 +203,17 @@ Test(km_address_translation, write_to_sticks_writes_to_a_single_stick)
 
   list_destroy_and_destroy_elements(fields, free);
   list_destroy_and_destroy_elements(sticks, free);
-  close(stick_client_fd);
-  close(stick_server_fd);
+  socket_destroy(stick_client_fd);
+  socket_destroy(stick_server_fd);
   log_destroy(logger);
 }
 
 Test(km_address_translation, write_to_sticks_spans_two_sticks)
 {
-  int first_server_fd;
-  int first_client_fd = km_connected_pair(&first_server_fd);
-  int second_server_fd;
-  int second_client_fd = km_connected_pair(&second_server_fd);
+  t_socket* first_server_fd;
+  t_socket* first_client_fd = km_connected_pair(&first_server_fd);
+  t_socket* second_server_fd;
+  t_socket* second_client_fd = km_connected_pair(&second_server_fd);
 
   t_stick_data* first = km_make_stick(2); /* [0, 2) */
   first->socket_stick = first_client_fd;
@@ -215,13 +222,14 @@ Test(km_address_translation, write_to_sticks_spans_two_sticks)
   t_list* sticks = list_create();
   list_add(sticks, first);
   list_add(sticks, second);
-  pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+  mtx_t mutex;
+  mtx_init(&mutex);
 
   cr_assert(send_string(OP_MEMORY_STICK_WRITE_DONE, "ok", first_server_fd));
   cr_assert(send_string(OP_MEMORY_STICK_WRITE_DONE, "ok", second_server_fd));
 
   t_log* logger = km_quiet_logger();
-  cr_assert(write_to_sticks(1, 0, 4, "abcd", sticks, &mutex, logger, -1));
+  cr_assert(write_to_sticks(1, 0, 4, "abcd", sticks, &mutex, logger, NULL));
 
   cr_assert_eq(receive_op_code(first_server_fd), OP_MEMORY_STICK_WRITE);
   t_list* first_fields = receive_packet(first_server_fd);
@@ -233,25 +241,26 @@ Test(km_address_translation, write_to_sticks_spans_two_sticks)
   list_destroy_and_destroy_elements(first_fields, free);
   list_destroy_and_destroy_elements(second_fields, free);
   list_destroy_and_destroy_elements(sticks, free);
-  close(first_client_fd);
-  close(first_server_fd);
-  close(second_client_fd);
-  close(second_server_fd);
+  socket_destroy(first_client_fd);
+  socket_destroy(first_server_fd);
+  socket_destroy(second_client_fd);
+  socket_destroy(second_server_fd);
   log_destroy(logger);
 }
 
 Test(km_address_translation, write_to_sticks_reports_running_out_of_sticks)
 {
   t_stick_data* only = km_make_stick(2); /* [0, 2) */
-  int server_fd;
-  int client_fd = km_connected_pair(&server_fd);
+  t_socket* server_fd;
+  t_socket* client_fd = km_connected_pair(&server_fd);
   only->socket_stick = client_fd;
   t_list* sticks = list_create();
   list_add(sticks, only);
-  pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+  mtx_t mutex;
+  mtx_init(&mutex);
 
-  int scheduler_server_fd;
-  int scheduler_client_fd = km_connected_pair(&scheduler_server_fd);
+  t_socket* scheduler_server_fd;
+  t_socket* scheduler_client_fd = km_connected_pair(&scheduler_server_fd);
   cr_assert(send_string(OP_MEMORY_STICK_WRITE_DONE, "ok", server_fd));
 
   t_log* logger = km_quiet_logger();
@@ -263,9 +272,9 @@ Test(km_address_translation, write_to_sticks_reports_running_out_of_sticks)
   free(receive_string(scheduler_server_fd));
 
   list_destroy_and_destroy_elements(sticks, free);
-  close(client_fd);
-  close(server_fd);
-  close(scheduler_client_fd);
-  close(scheduler_server_fd);
+  socket_destroy(client_fd);
+  socket_destroy(server_fd);
+  socket_destroy(scheduler_client_fd);
+  socket_destroy(scheduler_server_fd);
   log_destroy(logger);
 }

@@ -11,13 +11,13 @@
 
 static t_kernel_memory_data* km_stub_kernel_data(t_log* logger)
 {
-  return init_kernel_memory_data(-1, NULL, 0, 0, 1024, AS_WORST, logger);
+  return init_kernel_memory_data(NULL, NULL, 0, 0, 1024, AS_WORST, logger);
 }
 
 Test(km_server, handshake_rejects_an_unrecognized_identifier)
 {
-  int server_fd;
-  int client_fd = km_connected_pair(&server_fd);
+  t_socket* server_fd;
+  t_socket* client_fd = km_connected_pair(&server_fd);
   cr_assert(send_handshake(MID_IO, client_fd));
 
   t_log* logger = km_quiet_logger();
@@ -25,16 +25,16 @@ Test(km_server, handshake_rejects_an_unrecognized_identifier)
 
   cr_assert_not(handshake(kernel_data, server_fd));
 
-  close(client_fd);
-  close(server_fd);
+  socket_destroy(client_fd);
+  socket_destroy(server_fd);
   free_kernel_memory_data(kernel_data);
   log_destroy(logger);
 }
 
 Test(km_server, handshake_registers_the_kernel_scheduler)
 {
-  int server_fd;
-  int client_fd = km_connected_pair(&server_fd);
+  t_socket* server_fd;
+  t_socket* client_fd = km_connected_pair(&server_fd);
   cr_assert(send_handshake(MID_KERNEL_SCHEDULER, client_fd));
 
   t_log* logger = km_quiet_logger();
@@ -47,15 +47,15 @@ Test(km_server, handshake_registers_the_kernel_scheduler)
   /* Closing our end of the peer socket makes the detached scheduler-listener
    * thread's next read fail, so it shuts itself down and decrements
    * active_threads; free_kernel_memory_data then waits for exactly that. */
-  close(client_fd);
+  socket_destroy(client_fd);
   free_kernel_memory_data(kernel_data);
   log_destroy(logger);
 }
 
 Test(km_server, handshake_rejects_a_cpu_before_the_scheduler_is_connected)
 {
-  int server_fd;
-  int client_fd = km_connected_pair(&server_fd);
+  t_socket* server_fd;
+  t_socket* client_fd = km_connected_pair(&server_fd);
   cr_assert(send_handshake(MID_CPU, client_fd));
 
   t_log* logger = km_quiet_logger();
@@ -64,19 +64,19 @@ Test(km_server, handshake_rejects_a_cpu_before_the_scheduler_is_connected)
   cr_assert(handshake(kernel_data, server_fd));
   cr_assert_eq(list_size(kernel_data->connected_cpus), 0);
 
-  close(client_fd);
+  socket_destroy(client_fd);
   free_kernel_memory_data(kernel_data);
   log_destroy(logger);
 }
 
 Test(km_server, handshake_registers_a_cpu_once_the_scheduler_is_connected)
 {
-  int scheduler_server_fd;
-  int scheduler_client_fd = km_connected_pair(&scheduler_server_fd);
+  t_socket* scheduler_server_fd;
+  t_socket* scheduler_client_fd = km_connected_pair(&scheduler_server_fd);
   cr_assert(send_handshake(MID_KERNEL_SCHEDULER, scheduler_client_fd));
 
-  int cpu_server_fd;
-  int cpu_client_fd = km_connected_pair(&cpu_server_fd);
+  t_socket* cpu_server_fd;
+  t_socket* cpu_client_fd = km_connected_pair(&cpu_server_fd);
   cr_assert(send_handshake(MID_CPU, cpu_client_fd));
   cr_assert(send_string(OP_ID_CPU, "9", cpu_client_fd));
 
@@ -93,16 +93,16 @@ Test(km_server, handshake_registers_a_cpu_once_the_scheduler_is_connected)
   t_cpu_data* cpu_data = list_get(kernel_data->connected_cpus, 0);
   cr_assert_eq(cpu_data->id, 9);
 
-  close(scheduler_client_fd);
-  close(cpu_client_fd);
+  socket_destroy(scheduler_client_fd);
+  socket_destroy(cpu_client_fd);
   free_kernel_memory_data(kernel_data);
   log_destroy(logger);
 }
 
 Test(km_server, handshake_registers_a_memory_stick)
 {
-  int server_fd;
-  int client_fd = km_connected_pair(&server_fd);
+  t_socket* server_fd;
+  t_socket* client_fd = km_connected_pair(&server_fd);
   cr_assert(send_handshake(MID_MEMORY_STICK, client_fd));
   cr_assert(send_string(OP_MEMORY_SIZE, "2048", client_fd));
   cr_assert(send_string(OP_PORT, "9091", client_fd));
@@ -119,15 +119,15 @@ Test(km_server, handshake_registers_a_memory_stick)
   cr_assert_str_eq(stick->ip_memory_stick, "127.0.0.1");
   cr_assert_eq(kernel_data->main_memory->total_size, 2048);
 
-  close(client_fd);
+  socket_destroy(client_fd);
   free_kernel_memory_data(kernel_data);
   log_destroy(logger);
 }
 
 Test(km_server, handshake_registers_swap)
 {
-  int server_fd;
-  int client_fd = km_connected_pair(&server_fd);
+  t_socket* server_fd;
+  t_socket* client_fd = km_connected_pair(&server_fd);
   cr_assert(send_handshake(MID_SWAP, client_fd));
   t_swap_config config = {.swap_size = 4096, .block_size = 64};
   cr_assert(send_buffer(OP_INFO_SWAP, &config, sizeof(config), client_fd));
@@ -142,7 +142,7 @@ Test(km_server, handshake_registers_swap)
   cr_assert_eq(swap_data->swap_size, 4096);
   cr_assert_eq(swap_data->block_size, 64);
 
-  close(client_fd);
+  socket_destroy(client_fd);
   free_kernel_memory_data(kernel_data);
   log_destroy(logger);
 }
@@ -150,8 +150,9 @@ Test(km_server, handshake_registers_swap)
 Test(km_server, accept_client_accepts_and_handshakes_one_connection)
 {
   char port[16];
-  int listen_fd = km_listen_ephemeral(port, sizeof(port));
-  int client_fd = create_connection("127.0.0.1", port);
+  t_socket* listen_fd = km_listen_ephemeral(port, sizeof(port));
+  t_socket* client_fd =
+      socket_create(SOCKET_KIND_CLIENT, "127.0.0.1", port, false);
   cr_assert_neq(client_fd, -1);
   cr_assert(send_handshake(MID_IO, client_fd)); /* unrecognized -> false */
 
@@ -161,7 +162,7 @@ Test(km_server, accept_client_accepts_and_handshakes_one_connection)
 
   cr_assert_not(accept_client(kernel_data));
 
-  close(client_fd);
+  socket_destroy(client_fd);
   free_kernel_memory_data(kernel_data);
   log_destroy(logger);
 }

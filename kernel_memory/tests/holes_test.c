@@ -1,7 +1,6 @@
 #include "kernel_memory/holes.h"
 
 #include <criterion/criterion.h>
-#include <pthread.h>
 #include <stdlib.h>
 #include <unistd.h>
 
@@ -11,8 +10,18 @@
 #include "support.h"
 #include "utils/collections/list.h"
 #include "utils/msg.h"
+#include "utils/mutex.h"
 
-static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+static mtx_t mutex;
+
+static void init_mutex(void)
+{
+  mtx_init(&mutex);
+}
+
+TestSuite(km_create_segment, .init = init_mutex);
+TestSuite(km_holes, .init = init_mutex);
+TestSuite(km_select_hole, .init = init_mutex);
 
 Test(km_holes, compute_free_space_sums_the_hole_sizes)
 {
@@ -144,8 +153,8 @@ Test(km_holes, update_segment_list_appends_a_new_segment)
 
 Test(km_create_segment, succeeds_when_a_hole_fits)
 {
-  int server_fd;
-  int client_fd = km_connected_pair(&server_fd);
+  t_socket* server_fd;
+  t_socket* client_fd = km_connected_pair(&server_fd);
   t_log* logger = km_quiet_logger();
   t_main_memory* memory = init_main_memory(4096, AS_BEST, 0);
   list_add(memory->holes, km_make_hole(0, 100));
@@ -157,15 +166,15 @@ Test(km_create_segment, succeeds_when_a_hole_fits)
   cr_assert_eq(list_size(memory->segments), 1);
 
   free_main_memory(memory);
-  close(client_fd);
-  close(server_fd);
+  socket_destroy(client_fd);
+  socket_destroy(server_fd);
   log_destroy(logger);
 }
 
 Test(km_create_segment, reports_not_enough_memory)
 {
-  int server_fd;
-  int client_fd = km_connected_pair(&server_fd);
+  t_socket* server_fd;
+  t_socket* client_fd = km_connected_pair(&server_fd);
   t_log* logger = km_quiet_logger();
   t_main_memory* memory = init_main_memory(4096, AS_BEST, 0);
   list_add(memory->holes, km_make_hole(0, 8));
@@ -177,15 +186,15 @@ Test(km_create_segment, reports_not_enough_memory)
   cr_assert_eq(list_size(memory->segments), 0);
 
   free_main_memory(memory);
-  close(client_fd);
-  close(server_fd);
+  socket_destroy(client_fd);
+  socket_destroy(server_fd);
   log_destroy(logger);
 }
 
 Test(km_create_segment, rejects_a_segment_larger_than_the_max_size)
 {
-  int server_fd;
-  int client_fd = km_connected_pair(&server_fd);
+  t_socket* server_fd;
+  t_socket* client_fd = km_connected_pair(&server_fd);
   t_log* logger = km_quiet_logger();
   t_main_memory* memory = init_main_memory(32, AS_BEST, 0);
   list_add(memory->holes, km_make_hole(0, 1000));
@@ -201,15 +210,15 @@ Test(km_create_segment, rejects_a_segment_larger_than_the_max_size)
   free(receive_string(server_fd));
 
   free_main_memory(memory);
-  close(client_fd);
-  close(server_fd);
+  socket_destroy(client_fd);
+  socket_destroy(server_fd);
   log_destroy(logger);
 }
 
 Test(km_create_segment, compacts_memory_when_no_single_hole_is_big_enough)
 {
-  int server_fd;
-  int client_fd = km_connected_pair(&server_fd);
+  t_socket* server_fd;
+  t_socket* client_fd = km_connected_pair(&server_fd);
   cr_assert(send_string(OP_CAN_COMPACT, "go ahead", server_fd));
 
   t_log* logger = km_quiet_logger();
@@ -230,7 +239,7 @@ Test(km_create_segment, compacts_memory_when_no_single_hole_is_big_enough)
   cr_assert_eq(list_size(memory->segments), 2);
 
   free_main_memory(memory);
-  close(client_fd);
-  close(server_fd);
+  socket_destroy(client_fd);
+  socket_destroy(server_fd);
   log_destroy(logger);
 }

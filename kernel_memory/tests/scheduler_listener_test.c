@@ -1,7 +1,6 @@
 #include "kernel_memory/scheduler_listener.h"
 
 #include <criterion/criterion.h>
-#include <pthread.h>
 #include <stdlib.h>
 #include <unistd.h>
 
@@ -13,7 +12,9 @@
 #include "support.h"
 #include "utils/collections/list.h"
 #include "utils/msg.h"
+#include "utils/mutex.h"
 #include "utils/syscalls.h"
+#include "utils/threads.h"
 
 /* listen_scheduler's per-op handlers are static, so the only way to reach
  * them is through the real dispatch loop over a real socket, acting as the
@@ -24,37 +25,37 @@
 typedef struct
 {
   t_log* logger;
-  int peer_fd;
+  t_socket* peer_fd;
+  t_socket* server_socket; /* the listener's end, owned by the fixture */
   t_list* processes;
-  pthread_mutex_t* processes_mutex;
+  mtx_t* processes_mutex;
   t_list* sticks;
-  pthread_mutex_t* sticks_mutex;
+  mtx_t* sticks_mutex;
   t_main_memory* memory;
   _Atomic(t_swap_data*)* swap_data_slot;
   /* Heap-allocated, not an inline struct member: start_fixture returns
    * t_listener_fixture by value, so an inline int's address would point at
    * start_fixture's own stack frame, dangling the moment it returns. */
   int* active_threads;
-  pthread_mutex_t* active_threads_mutex;
-  pthread_cond_t* active_threads_cond;
+  mtx_t* active_threads_mutex;
+  cnd_t* active_threads_cond;
   t_scheduler_data* scheduler_data;
-  pthread_t thread;
+  thrd_t thread;
 } t_listener_fixture;
 
 static t_listener_fixture start_fixture(char* scripts_basepath)
 {
   t_listener_fixture f = {0};
   f.logger = km_quiet_logger();
-  int server_fd;
-  f.peer_fd = km_connected_pair(&server_fd);
+  f.peer_fd = km_connected_pair(&f.server_socket);
 
   f.processes = list_create();
-  f.processes_mutex = malloc(sizeof(pthread_mutex_t));
-  pthread_mutex_init(f.processes_mutex, NULL);
+  f.processes_mutex = malloc(sizeof(mtx_t));
+  mtx_init(f.processes_mutex);
 
   f.sticks = list_create();
-  f.sticks_mutex = malloc(sizeof(pthread_mutex_t));
-  pthread_mutex_init(f.sticks_mutex, NULL);
+  f.sticks_mutex = malloc(sizeof(mtx_t));
+  mtx_init(f.sticks_mutex);
 
   f.memory = init_main_memory(4096, AS_BEST, 0);
 
@@ -63,17 +64,17 @@ static t_listener_fixture start_fixture(char* scripts_basepath)
 
   f.active_threads = malloc(sizeof(int));
   *f.active_threads = 1;
-  f.active_threads_mutex = malloc(sizeof(pthread_mutex_t));
-  pthread_mutex_init(f.active_threads_mutex, NULL);
-  f.active_threads_cond = malloc(sizeof(pthread_cond_t));
-  pthread_cond_init(f.active_threads_cond, NULL);
+  f.active_threads_mutex = malloc(sizeof(mtx_t));
+  mtx_init(f.active_threads_mutex);
+  f.active_threads_cond = malloc(sizeof(cnd_t));
+  cnd_init(f.active_threads_cond);
 
   f.scheduler_data = init_scheduler_data(
-      -1, server_fd, f.processes, scripts_basepath, f.processes_mutex, f.memory,
-      f.sticks, f.sticks_mutex, f.swap_data_slot, f.logger, f.active_threads,
-      f.active_threads_mutex, f.active_threads_cond);
+      NULL, f.server_socket, f.processes, scripts_basepath, f.processes_mutex,
+      f.memory, f.sticks, f.sticks_mutex, f.swap_data_slot, f.logger,
+      f.active_threads, f.active_threads_mutex, f.active_threads_cond);
 
-  pthread_create(&f.thread, NULL, listen_scheduler, f.scheduler_data);
+  thrd_create(&f.thread, listen_scheduler, f.scheduler_data);
   return f;
 }
 
@@ -82,16 +83,17 @@ static t_listener_fixture start_fixture(char* scripts_basepath)
 static void shutdown_and_join(t_listener_fixture* f)
 {
   int op_code = OP_KERNEL_SCHEDULER_SHUTDOWN;
-  cr_assert_eq(send(f->peer_fd, &op_code, sizeof(op_code), 0), sizeof(op_code));
-  pthread_join(f->thread, NULL);
+  cr_assert(socket_send(f->peer_fd, &op_code, sizeof(op_code)));
+  thrd_join(f->thread, NULL);
 }
 
 /* listen_scheduler already freed scheduler_data (and closed its socket) by
  * the time it returns -- only the fixture's own resources are ours to free
- * here. */
+ * here, including the closed scheduler socket itself. */
 static void destroy_fixture(t_listener_fixture* f)
 {
-  close(f->peer_fd);
+  socket_destroy(f->peer_fd);
+  socket_destroy(f->server_socket);
   list_destroy_and_destroy_elements(f->processes,
                                     (void (*)(void*))free_process);
   free(f->processes_mutex);
@@ -132,10 +134,8 @@ Test(km_scheduler_listener, shutdown_op_ends_the_loop)
 Test(km_scheduler_listener, closing_the_socket_ends_the_loop)
 {
   t_listener_fixture f = start_fixture("/tmp");
-  close(f.peer_fd);
-  pthread_join(f.thread, NULL);
-  f.peer_fd = -1; /* already closed above; destroy_fixture closing it again is
-                   * a harmless no-op (EBADF) */
+  socket_close(f.peer_fd);
+  thrd_join(f.thread, NULL);
   destroy_fixture(&f);
 }
 
@@ -143,8 +143,8 @@ Test(km_scheduler_listener, an_unrecognized_op_code_ends_the_loop)
 {
   t_listener_fixture f = start_fixture("/tmp");
   int op_code = 99999;
-  cr_assert_eq(send(f.peer_fd, &op_code, sizeof(op_code), 0), sizeof(op_code));
-  pthread_join(f.thread, NULL);
+  cr_assert(socket_send(f.peer_fd, &op_code, sizeof(op_code)));
+  thrd_join(f.thread, NULL);
   destroy_fixture(&f);
 }
 
@@ -385,8 +385,8 @@ Test(km_scheduler_listener, stdin_request_writes_to_the_stick_and_replies)
 {
   t_listener_fixture f = start_fixture("/tmp");
   list_add(f.memory->segments, km_make_segment(0, 1, 0, 100));
-  int stick_server;
-  int stick_client = km_connected_pair(&stick_server);
+  t_socket* stick_server;
+  t_socket* stick_client = km_connected_pair(&stick_server);
   t_stick_data* stick = km_make_stick(1000);
   stick->socket_stick = stick_client;
   list_add(f.sticks, stick);
@@ -409,7 +409,7 @@ Test(km_scheduler_listener, stdin_request_writes_to_the_stick_and_replies)
   free(reply);
 
   shutdown_and_join(&f);
-  close(stick_server);
+  socket_destroy(stick_server);
   destroy_fixture(&f);
 }
 
@@ -434,8 +434,8 @@ Test(km_scheduler_listener, stdout_request_reads_from_the_stick_and_replies)
 {
   t_listener_fixture f = start_fixture("/tmp");
   list_add(f.memory->segments, km_make_segment(0, 1, 0, 100));
-  int stick_server;
-  int stick_client = km_connected_pair(&stick_server);
+  t_socket* stick_server;
+  t_socket* stick_client = km_connected_pair(&stick_server);
   t_stick_data* stick = km_make_stick(1000);
   stick->socket_stick = stick_client;
   list_add(f.sticks, stick);
@@ -455,6 +455,6 @@ Test(km_scheduler_listener, stdout_request_reads_from_the_stick_and_replies)
   free(reply);
 
   shutdown_and_join(&f);
-  close(stick_server);
+  socket_destroy(stick_server);
   destroy_fixture(&f);
 }

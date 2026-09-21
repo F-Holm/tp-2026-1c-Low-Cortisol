@@ -1,7 +1,4 @@
 #include <criterion/criterion.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -12,6 +9,7 @@
 #include "kernel_memory/structs.h"
 #include "support.h"
 #include "utils/collections/list.h"
+#include "utils/mutex.h"
 
 /* ── init_main_memory ──────────────────────────────────────────────────── */
 
@@ -32,19 +30,20 @@ Test(km_init, init_main_memory_starts_empty)
 Test(km_init, init_cpu_data_keeps_every_field)
 {
   t_list processes;
-  pthread_mutex_t pm;
+  mtx_t pm;
   t_main_memory memory;
-  pthread_mutex_t am;
-  pthread_cond_t ac;
+  mtx_t am;
+  cnd_t ac;
   int active = 0;
+  t_socket cpu_socket, scheduler_socket;
 
-  t_cpu_data* data = init_cpu_data(11, &processes, &pm, 25, &memory, NULL,
-                                   &active, &am, &ac, 12);
-  cr_assert_eq(data->socket_cpu, 11);
+  t_cpu_data* data = init_cpu_data(&cpu_socket, &processes, &pm, 25, &memory,
+                                   NULL, &active, &am, &ac, &scheduler_socket);
+  cr_assert_eq(data->socket_cpu, &cpu_socket);
   cr_assert_eq(data->processes, &processes);
   cr_assert_eq(data->instruction_delay, 25);
   cr_assert_eq(data->main_memory, &memory);
-  cr_assert_eq(data->socket_scheduler, 12);
+  cr_assert_eq(data->socket_scheduler, &scheduler_socket);
   cr_assert_eq(data->id, -1);
   free(data);
 }
@@ -53,9 +52,10 @@ Test(km_init, init_cpu_data_keeps_every_field)
 
 Test(km_init, init_stick_data_defaults_size_and_port_to_minus_one)
 {
-  t_stick_data* data = init_stick_data(7, NULL, 8);
-  cr_assert_eq(data->socket_stick, 7);
-  cr_assert_eq(data->socket_scheduler, 8);
+  t_socket stick_socket, scheduler_socket;
+  t_stick_data* data = init_stick_data(&stick_socket, NULL, &scheduler_socket);
+  cr_assert_eq(data->socket_stick, &stick_socket);
+  cr_assert_eq(data->socket_scheduler, &scheduler_socket);
   cr_assert_eq(data->stick_size, -1);
   cr_assert_eq(data->stick_port, -1);
   free(data);
@@ -113,15 +113,14 @@ Test(km_cleanup, free_main_memory_releases_segments_and_holes)
 
 Test(km_cleanup, free_cpu_data_closes_the_socket_and_frees_the_struct)
 {
-  int fds[2];
-  cr_assert_eq(pipe(fds), 0);
+  t_socket* peer;
+  t_socket* socket = km_connected_pair(&peer);
 
   t_cpu_data* cpu = calloc(1, sizeof(t_cpu_data));
-  cpu->socket_cpu = fds[0];
+  cpu->socket_cpu = socket;
 
   free_cpu_data(cpu); /* leak-checked under valgrind */
 
-  cr_assert_eq(fcntl(fds[0], F_GETFD), -1);
-  cr_assert_eq(errno, EBADF);
-  close(fds[1]);
+  cr_assert_eq(receive_op_code(peer), OP_CODE_ERROR);
+  socket_destroy(peer);
 }
