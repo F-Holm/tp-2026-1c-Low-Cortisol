@@ -134,7 +134,7 @@ static int receive_size_no_logger(t_queues* queues)
     case OP_NEW_MEMORY_STICK:
       free(receive_string(queues->km_socket));
       create_resumption_routine_thread(queues);
-      return receive_size(queues);
+      return receive_size_no_logger(queues);
       break;
     case OP_MEMORY_CORRUPTED:
       close_kernel_scheduler(SR_CORRUPTED_MEMORY);
