@@ -206,3 +206,27 @@ Test(msg, receive_buffer_reports_a_zero_length_payload_as_null)
   socket_destroy(client);
   socket_destroy(server);
 }
+
+Test(msg, receive_buffer_on_a_closed_peer_reports_an_empty_payload)
+{
+  t_socket* server;
+  t_socket* client = connected_pair(&server);
+
+  socket_destroy(client);
+  int size = -1;
+  cr_assert_null(receive_buffer(&size, server));
+  cr_assert_eq(size, 0);
+
+  socket_destroy(server);
+}
+
+Test(msg, receive_string_on_a_closed_peer_is_null)
+{
+  t_socket* server;
+  t_socket* client = connected_pair(&server);
+
+  socket_destroy(client);
+  cr_assert_null(receive_string(server));
+
+  socket_destroy(server);
+}
