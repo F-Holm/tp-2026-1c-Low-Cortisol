@@ -4,9 +4,9 @@
 #include <stdlib.h>
 
 #include "kernel_scheduler/scheduler/compaction.h"
+#include "kernel_scheduler/scheduler/queue_types.h"
 #include "kernel_scheduler/shutdown.h"
 #include "utils/msg.h"
-#include "utils/sockets.h"
 
 static bool is_expected(int op_code, const int* expected, int count);
 
