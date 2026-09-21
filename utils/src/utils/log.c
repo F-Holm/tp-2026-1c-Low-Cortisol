@@ -1,9 +1,11 @@
 #include "utils/log.h"
 
 #include <stdarg.h>
+#include <stdbool.h>
+#include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 
+#include "utils/mutex.h"
 #include "utils/process.h"
 #include "utils/string.h"
 #include "utils/time.h"

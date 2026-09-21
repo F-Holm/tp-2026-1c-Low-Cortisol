@@ -1,5 +1,6 @@
 #include "utils/collections/list.h"
 
+#include <stdbool.h>
 #include <stdlib.h>
 
 static t_link_element* list_create_element(void* data);

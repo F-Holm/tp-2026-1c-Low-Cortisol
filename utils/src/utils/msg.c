@@ -1,5 +1,12 @@
 #include "utils/msg.h"
 
+#include <stdbool.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "utils/collections/list.h"
+#include "utils/sockets.h"
+
 const char* const HANDSHAKE_MSG[] = {"kernel_scheduler", "kernel_memory", "cpu",
                                      "memory_stick",     "swap",          "io"};
 

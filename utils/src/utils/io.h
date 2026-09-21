@@ -1,16 +1,5 @@
 #pragma once
 
-#include <assert.h>
-#include <stdbool.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-
-#include "utils/collections/list.h"
-#include "utils/log.h"
-
 typedef enum
 {
   IO_STDIN,

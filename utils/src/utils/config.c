@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "utils/collections/dictionary.h"
 #include "utils/file.h"
 #include "utils/string.h"
 
