@@ -1,6 +1,15 @@
 #include "swap/swap.h"
 
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+#include "utils/config.h"
 #include "utils/file.h"
+#include "utils/log.h"
+#include "utils/msg.h"
+#include "utils/sockets.h"
+#include "utils/swap_km.h"
 
 static bool init_swap_file(t_swap* swap);
 static void seek_block(FILE* swap_file, int block_number, int block_size);
