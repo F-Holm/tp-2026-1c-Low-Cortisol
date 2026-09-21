@@ -1,10 +1,15 @@
 #include "cpu/kernel_memory_protocol.h"
 
+#include <stdbool.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "cpu/connections.h"
+#include "cpu/cpu.h"
+#include "utils/collections/list.h"
 #include "utils/log.h"
+#include "utils/msg.h"
 
 bool receive_max_segment_size(t_cpu* cpu)
 {

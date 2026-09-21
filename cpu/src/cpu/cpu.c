@@ -1,14 +1,19 @@
 #include "cpu/cpu.h"
 
-#include <limits.h>
-#include <stdio.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "cpu/cleanup.h"
-#include "cpu/connections.h"
 #include "cpu/handlers.h"
 #include "cpu/kernel_memory_protocol.h"
 #include "cpu/registers.h"
+#include "utils/collections/dictionary.h"
+#include "utils/collections/list.h"
 #include "utils/log.h"
+#include "utils/msg.h"
+#include "utils/registers_cpu.h"
 #include "utils/string.h"
 
 void run_instruction_loop(t_cpu* cpu)

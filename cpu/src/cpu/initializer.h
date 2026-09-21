@@ -1,9 +1,9 @@
 #pragma once
 
+#include <stdbool.h>
+
 #include "cpu/cpu.h"
-#include "utils/config.h"
-#include "utils/log.h"
-#include "utils/registers_cpu.h"
+#include "utils/collections/dictionary.h"
 
 /**
  * @brief Loads @p cpu's config and logger from @p config_path and creates

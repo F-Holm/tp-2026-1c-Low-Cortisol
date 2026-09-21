@@ -1,12 +1,13 @@
 #include "cpu/handlers.h"
 
-#include <stdio.h>
+#include <stdint.h>
+#include <stdlib.h>
 
-#include "cpu/cleanup.h"
 #include "cpu/cpu.h"
 #include "cpu/memory.h"
 #include "cpu/registers.h"
 #include "utils/log.h"
+#include "utils/msg.h"
 #include "utils/syscalls.h"
 
 /*             BASIC INSTRUCTIONS HANDLED BY THE CPU           */

@@ -1,11 +1,16 @@
 #include "cpu/connections.h"
 
-#include <stdio.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdlib.h>
 
-#include "cpu/cleanup.h"
 #include "cpu/cpu.h"
 #include "cpu/kernel_memory_protocol.h"
+#include "utils/collections/list.h"
+#include "utils/config.h"
 #include "utils/log.h"
+#include "utils/msg.h"
+#include "utils/sockets.h"
 
 bool connect_to_kernel_scheduler(t_cpu* cpu)
 {

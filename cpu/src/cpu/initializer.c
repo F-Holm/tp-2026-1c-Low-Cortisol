@@ -1,9 +1,13 @@
 #include "cpu/initializer.h"
 
+#include <stdbool.h>
 #include <stdio.h>
 
 #include "cpu/cpu.h"
 #include "cpu/handlers.h"
+#include "utils/collections/dictionary.h"
+#include "utils/collections/list.h"
+#include "utils/config.h"
 #include "utils/log.h"
 
 bool check_arguments(int argc, char** argv)

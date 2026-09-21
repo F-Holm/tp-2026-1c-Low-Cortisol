@@ -1,6 +1,7 @@
 #pragma once
 
-#include <stdio.h>
+#include <stdbool.h>
+#include <stdint.h>
 
 #include "utils/collections/list.h"
 #include "utils/registers_cpu.h"

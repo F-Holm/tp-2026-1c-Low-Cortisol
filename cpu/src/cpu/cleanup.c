@@ -1,9 +1,13 @@
 #include "cpu/cleanup.h"
 
-#include <stdio.h>
+#include <stdlib.h>
 
 #include "cpu/cpu.h"
+#include "utils/collections/dictionary.h"
+#include "utils/collections/list.h"
+#include "utils/config.h"
 #include "utils/log.h"
+#include "utils/sockets.h"
 
 void iterator_close_socket(void* value)
 {

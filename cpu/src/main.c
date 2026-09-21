@@ -1,4 +1,3 @@
-#include <stdio.h>
 #include <stdlib.h>
 
 #include "cpu/cleanup.h"
@@ -6,7 +5,7 @@
 #include "cpu/cpu.h"
 #include "cpu/initializer.h"
 #include "cpu/kernel_memory_protocol.h"
-#include "utils/config.h"
+#include "utils/collections/dictionary.h"
 #include "utils/log.h"
 #include "utils/msg.h"
 

@@ -1,12 +1,15 @@
 #pragma once
 
-#include <stdio.h>
+#include <stdbool.h>
+#include <stdint.h>
 
 #include "cpu/registers.h"
+#include "utils/collections/dictionary.h"
 #include "utils/collections/list.h"
 #include "utils/config.h"
-#include "utils/msg.h"
+#include "utils/log.h"
 #include "utils/registers_cpu.h"
+#include "utils/sockets.h"
 
 typedef struct
 {

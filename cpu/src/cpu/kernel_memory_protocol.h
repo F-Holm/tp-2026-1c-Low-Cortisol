@@ -1,6 +1,10 @@
 #pragma once
 
+#include <stdbool.h>
+#include <stdint.h>
+
 #include "cpu/cpu.h"
+#include "utils/collections/list.h"
 
 // The control-plane exchanges with Kernel Memory: the startup handshake
 // (max segment size) and the in-band messages that can arrive between

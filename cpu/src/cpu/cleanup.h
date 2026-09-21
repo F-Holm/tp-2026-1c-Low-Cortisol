@@ -1,9 +1,6 @@
 #pragma once
 
 #include "cpu/cpu.h"
-#include "utils/config.h"
-#include "utils/log.h"
-#include "utils/registers_cpu.h"
 
 /** @brief Closes @p cpu's sockets, frees its resources and the struct itself.
  */

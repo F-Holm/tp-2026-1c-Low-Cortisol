@@ -1,8 +1,12 @@
 #pragma once
 
-#include <stdio.h>
+#include <stdbool.h>
+#include <stdint.h>
 
 #include "cpu/cpu.h"
+#include "cpu/registers.h"
+#include "utils/collections/list.h"
+#include "utils/registers_cpu.h"
 
 #define INVALID_ADDRESS UINT32_MAX
 
