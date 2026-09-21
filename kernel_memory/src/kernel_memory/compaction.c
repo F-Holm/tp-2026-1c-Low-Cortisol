@@ -1,17 +1,17 @@
 #include "kernel_memory/compaction.h"
 
 #include <stdlib.h>
-#include <unistd.h>
 
 #include "utils/msg.h"
+#include "utils/time.h"
 
-bool compact_memory(int socket_scheduler, t_main_memory* main_memory)
+bool compact_memory(t_socket* socket_scheduler, t_main_memory* main_memory)
 {
   compact_segments(main_memory->segments);
   list_destroy_and_destroy_elements(main_memory->holes, free);
   main_memory->holes = compact_holes(
       main_memory->total_size, compute_last_segment_end(main_memory->segments));
-  usleep(main_memory->compaction_delay * 1000);
+  time_sleep_ms(main_memory->compaction_delay);
   send_string(OP_COMPACTION_DONE, "Compaction finished", socket_scheduler);
   return true;
 }
@@ -53,7 +53,7 @@ t_list* compact_holes(int memory_total, int base_final_segment)
   return holes;
 }
 
-void notify_compaction(int socket_scheduler)
+void notify_compaction(t_socket* socket_scheduler)
 {
   send_string(OP_COMPACTION_NEEDED, "Memory needs to be compacted",
               socket_scheduler);

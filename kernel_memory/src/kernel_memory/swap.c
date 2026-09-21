@@ -1,5 +1,7 @@
 #include "kernel_memory/swap.h"
 
+#include "utils/mutex.h"
+
 static int find_free_block(t_swap_data* swap_data);
 static int add_block_to_swap(t_segment* segment, int counter,
                              t_swap_data* swap_data, t_log* logger);
@@ -9,8 +11,8 @@ static void remove_process_segments(t_list* segments_to_remove, uint32_t pid,
                                     t_scheduler_data* scheduler_data);
 static bool can_resume(uint32_t pid, t_scheduler_data* scheduler_data);
 static bool regenerate_segment(uint32_t id, uint32_t pid, int size,
-                               t_main_memory* main_memory, int socket_scheduler,
-                               t_log* logger);
+                               t_main_memory* main_memory,
+                               t_socket* socket_scheduler, t_log* logger);
 static char* read_block_from_swap(int block_number, t_swap_data* swap);
 static int remove_block_from_swap(int block_number, t_swap_data* swap_data,
                                   t_log* logger);
@@ -334,11 +336,11 @@ static bool can_resume(uint32_t pid, t_scheduler_data* scheduler_data)
       process_size += block->segment_size;
     }
   }
-  pthread_mutex_lock(scheduler_data->main_memory->main_memory_mutex);
+  mtx_lock(scheduler_data->main_memory->main_memory_mutex);
   int free_space = compute_free_space(
       scheduler_data->main_memory->holes,
       scheduler_data->main_memory->main_memory_mutex, scheduler_data->logger);
-  pthread_mutex_unlock(scheduler_data->main_memory->main_memory_mutex);
+  mtx_unlock(scheduler_data->main_memory->main_memory_mutex);
   log_trace(scheduler_data->logger,
             "PID %u: size required to resume %d, free space %d", pid,
             process_size, free_space);
@@ -346,18 +348,18 @@ static bool can_resume(uint32_t pid, t_scheduler_data* scheduler_data)
 }
 
 static bool regenerate_segment(uint32_t id, uint32_t pid, int size,
-                               t_main_memory* main_memory, int socket_scheduler,
-                               t_log* logger)
+                               t_main_memory* main_memory,
+                               t_socket* socket_scheduler, t_log* logger)
 {
   // Check available memory
-  pthread_mutex_lock(main_memory->main_memory_mutex);
+  mtx_lock(main_memory->main_memory_mutex);
   if (compute_free_space(main_memory->holes, main_memory->main_memory_mutex,
                          logger) < size)
   {
     log_debug(logger, "Not enough space to regenerate the segment");
     send_string(OP_RESUME_SUSPENSION_FAILED, "There are not memory enough",
                 socket_scheduler);
-    pthread_mutex_unlock(main_memory->main_memory_mutex);
+    mtx_unlock(main_memory->main_memory_mutex);
     return false;
   }
   else
@@ -372,11 +374,11 @@ static bool regenerate_segment(uint32_t id, uint32_t pid, int size,
       log_warning(logger, "Could not allocate any hole.");
       send_string(OP_RESUME_SUSPENSION_FAILED, "Could not allocate holes.",
                   socket_scheduler);
-      pthread_mutex_unlock(main_memory->main_memory_mutex);
+      mtx_unlock(main_memory->main_memory_mutex);
       return false;
     }
     update_segment_list(main_memory, chosen_hole, size, pid, id);
-    pthread_mutex_unlock(main_memory->main_memory_mutex);
+    mtx_unlock(main_memory->main_memory_mutex);
     log_info(logger, "PID: %u - Segment regenerated %u - Size: %d", pid, id,
              size);
     return true;

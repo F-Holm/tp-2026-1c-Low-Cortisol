@@ -5,6 +5,7 @@
 
 #include "kernel_memory/segments.h"
 #include "utils/msg.h"
+#include "utils/mutex.h"
 
 int translate_logical_address(uint32_t pid, uint32_t logical_address,
                               uint32_t size, t_main_memory* main_memory,
@@ -27,13 +28,13 @@ int translate_logical_address(uint32_t pid, uint32_t logical_address,
 }
 
 int find_stick(int physical_address, t_list* connected_sticks,
-               pthread_mutex_t* sticks_mutex, int* stick_offset)
+               mtx_t* sticks_mutex, int* stick_offset)
 {
   int accumulated_base = 0;
   int index = -1;
   int current_index = 0;
 
-  pthread_mutex_lock(sticks_mutex);
+  mtx_lock(sticks_mutex);
   t_list_iterator* iterator = list_iterator_create(connected_sticks);
   while (list_iterator_has_next(iterator))
   {
@@ -50,7 +51,7 @@ int find_stick(int physical_address, t_list* connected_sticks,
     accumulated_base += current_item->stick_size;
   }
   list_iterator_destroy(iterator);
-  pthread_mutex_unlock(sticks_mutex);
+  mtx_unlock(sticks_mutex);
   return index;
 }
 
@@ -60,7 +61,7 @@ int find_stick(int physical_address, t_list* connected_sticks,
 // enough (locking granularity, how they walk the stick list) that unifying
 // them further would risk changing that behavior under concurrency, so only
 // this much is shared.
-static void notify_stick_corrupted(t_log* logger, int socket_scheduler)
+static void notify_stick_corrupted(t_log* logger, t_socket* socket_scheduler)
 {
   send_string(OP_MEMORY_CORRUPTED, "Stick not available", socket_scheduler);
 }
@@ -72,8 +73,8 @@ static int stick_chunk_size(t_stick_data* stick, int offset, int remaining)
 }
 
 char* read_from_sticks(int physical_address, int size, t_list* connected_sticks,
-                       pthread_mutex_t* sticks_mutex, t_log* logger,
-                       int socket_scheduler)
+                       mtx_t* sticks_mutex, t_log* logger,
+                       t_socket* socket_scheduler)
 {
   char* result = malloc(size);
   int bytes_read = 0;
@@ -93,7 +94,7 @@ char* read_from_sticks(int physical_address, int size, t_list* connected_sticks,
       free(result);
       return NULL;
     }
-    pthread_mutex_lock(sticks_mutex);
+    mtx_lock(sticks_mutex);
     t_stick_data* stick = list_get(connected_sticks, index);
     int bytes_to_read_count =
         stick_chunk_size(stick, stick_offset, size - bytes_read);
@@ -106,14 +107,14 @@ char* read_from_sticks(int physical_address, int size, t_list* connected_sticks,
       log_warning(logger, "Error sending read packet to stick %d", index);
       notify_stick_corrupted(logger, socket_scheduler);
       free(result);
-      pthread_mutex_unlock(sticks_mutex);
+      mtx_unlock(sticks_mutex);
       return NULL;
     }
     destroy_packet(packet);
-    pthread_mutex_unlock(sticks_mutex);
+    mtx_unlock(sticks_mutex);
 
     // Receive the response
-    int stick_socket =
+    t_socket* stick_socket =
         ((t_stick_data*)list_get(connected_sticks, index))->socket_stick;
     int op = receive_op_code(stick_socket);
     if (op == 0)
@@ -144,14 +145,14 @@ char* read_from_sticks(int physical_address, int size, t_list* connected_sticks,
 
 bool write_to_sticks(int pid, int physical_address, int bytes_to_read,
                      char* write_buffer, t_list* connected_sticks,
-                     pthread_mutex_t* socket_list_mutex, t_log* logger,
-                     int socket_scheduler)
+                     mtx_t* socket_list_mutex, t_log* logger,
+                     t_socket* socket_scheduler)
 {
   int stick_offset = 0;
   int index = find_stick(physical_address, connected_sticks, socket_list_mutex,
                          &stick_offset);
 
-  pthread_mutex_lock(socket_list_mutex);
+  mtx_lock(socket_list_mutex);
 
   int remaining = bytes_to_read;
   char* buffer_pointer = write_buffer;
@@ -212,6 +213,6 @@ bool write_to_sticks(int pid, int physical_address, int bytes_to_read,
                           the start */
   }
 
-  pthread_mutex_unlock(socket_list_mutex);
+  mtx_unlock(socket_list_mutex);
   return ok;
 }

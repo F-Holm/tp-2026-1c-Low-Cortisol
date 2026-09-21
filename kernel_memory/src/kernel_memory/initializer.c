@@ -1,17 +1,19 @@
 #include "kernel_memory/initializer.h"
 
+#include "utils/mutex.h"
+
 static void init_block_list(t_swap_data* swap_data);
 static int count_instructions(FILE* f);
 
 t_kernel_memory_data* init_kernel_memory_data(
-    int socket_kernel_memory, char* scripts_basepath, int instruction_delay,
-    int compaction_delay, int segment_max_size,
+    t_socket* socket_kernel_memory, char* scripts_basepath,
+    int instruction_delay, int compaction_delay, int segment_max_size,
     t_allocation_strategy allocation_strategy, t_log* logger)
 {
   t_kernel_memory_data* kernel_data = malloc(sizeof(t_kernel_memory_data));
   kernel_data->socket_kernel_memory = socket_kernel_memory;
   kernel_data->logger = logger;
-  atomic_init(&(kernel_data->socket_scheduler), -1);
+  atomic_init(&(kernel_data->socket_scheduler), NULL);
   kernel_data->scripts_basepath = scripts_basepath;
   kernel_data->instruction_delay = instruction_delay;
   kernel_data->compaction_delay = compaction_delay;
@@ -23,25 +25,24 @@ t_kernel_memory_data* init_kernel_memory_data(
   kernel_data->main_memory =
       init_main_memory(segment_max_size, allocation_strategy, compaction_delay);
   atomic_init(&(kernel_data->swap_data), NULL);
-  kernel_data->processes_mutex = malloc(sizeof(pthread_mutex_t));
-  kernel_data->socket_list_mutex = malloc(sizeof(pthread_mutex_t));
-  pthread_mutex_init(kernel_data->processes_mutex, NULL);
-  pthread_mutex_init(kernel_data->socket_list_mutex, NULL);
+  kernel_data->processes_mutex = malloc(sizeof(mtx_t));
+  kernel_data->socket_list_mutex = malloc(sizeof(mtx_t));
+  mtx_init(kernel_data->processes_mutex);
+  mtx_init(kernel_data->socket_list_mutex);
   kernel_data->active_threads = 0;
-  kernel_data->active_threads_mutex = malloc(sizeof(pthread_mutex_t));
-  kernel_data->active_threads_cond = malloc(sizeof(pthread_cond_t));
-  pthread_mutex_init(kernel_data->active_threads_mutex, NULL);
-  pthread_cond_init(kernel_data->active_threads_cond, NULL);
+  kernel_data->active_threads_mutex = malloc(sizeof(mtx_t));
+  kernel_data->active_threads_cond = malloc(sizeof(cnd_t));
+  mtx_init(kernel_data->active_threads_mutex);
+  cnd_init(kernel_data->active_threads_cond);
   return kernel_data;
 }
 
 t_scheduler_data* init_scheduler_data(
-    int socket_kernel_memory, int socket_scheduler, t_list* processes,
-    char* scripts_basepath, pthread_mutex_t* processes_mutex,
-    t_main_memory* main_memory, t_list* connected_sticks,
-    pthread_mutex_t* sticks_mutex, _Atomic(t_swap_data*)* swap_data,
-    t_log* logger, int* active_threads, pthread_mutex_t* active_threads_mutex,
-    pthread_cond_t* active_threads_cond)
+    t_socket* socket_kernel_memory, t_socket* socket_scheduler,
+    t_list* processes, char* scripts_basepath, mtx_t* processes_mutex,
+    t_main_memory* main_memory, t_list* connected_sticks, mtx_t* sticks_mutex,
+    _Atomic(t_swap_data*)* swap_data, t_log* logger, int* active_threads,
+    mtx_t* active_threads_mutex, cnd_t* active_threads_cond)
 {
   t_scheduler_data* scheduler_data = malloc(sizeof(t_scheduler_data));
   scheduler_data->socket_kernel_memory = socket_kernel_memory;
@@ -60,13 +61,12 @@ t_scheduler_data* init_scheduler_data(
   return scheduler_data;
 }
 
-t_cpu_data* init_cpu_data(int socket_cpu, t_list* processes,
-                          pthread_mutex_t* processes_mutex,
-                          int instruction_delay, t_main_memory* main_memory,
-                          t_log* logger, int* active_threads,
-                          pthread_mutex_t* active_threads_mutex,
-                          pthread_cond_t* active_threads_cond,
-                          int socket_scheduler)
+t_cpu_data* init_cpu_data(t_socket* socket_cpu, t_list* processes,
+                          mtx_t* processes_mutex, int instruction_delay,
+                          t_main_memory* main_memory, t_log* logger,
+                          int* active_threads, mtx_t* active_threads_mutex,
+                          cnd_t* active_threads_cond,
+                          t_socket* socket_scheduler)
 {
   t_cpu_data* cpu_data = malloc(sizeof(t_cpu_data));
   cpu_data->socket_cpu = socket_cpu;
@@ -83,8 +83,8 @@ t_cpu_data* init_cpu_data(int socket_cpu, t_list* processes,
   return cpu_data;
 }
 
-t_stick_data* init_stick_data(int socket_stick, t_log* logger,
-                              int socket_scheduler)
+t_stick_data* init_stick_data(t_socket* socket_stick, t_log* logger,
+                              t_socket* socket_scheduler)
 {
   t_stick_data* stick_data = malloc(sizeof(t_stick_data));
   stick_data->socket_stick = socket_stick;
@@ -95,7 +95,7 @@ t_stick_data* init_stick_data(int socket_stick, t_log* logger,
   return stick_data;
 }
 
-t_swap_data* init_swap_data(int socket_swap, t_log* logger)
+t_swap_data* init_swap_data(t_socket* socket_swap, t_log* logger)
 {
   t_swap_data* swap_data = malloc(sizeof(t_swap_data));
   swap_data->socket_swap = socket_swap;
@@ -104,6 +104,7 @@ t_swap_data* init_swap_data(int socket_swap, t_log* logger)
   if (op != OP_INFO_SWAP)
   {
     log_error(logger, "Unexpected opcode while receiving swap info");
+    socket_destroy(socket_swap);
     free(swap_data);
     return NULL;
   }
@@ -152,21 +153,11 @@ t_process* init_process(u_int32_t pid, char* relative_path,
   return process;
 }
 
-bool resolve_stick_ip(t_stick_data* stick_data, int client_socket)
+bool resolve_stick_ip(t_stick_data* stick_data, t_socket* client_socket)
 {
-  struct sockaddr addr;
-  socklen_t addr_len = sizeof(addr);
-  char resolved_ip[16];
-  if (getpeername(client_socket, &addr, &addr_len) == 0)
-  {
-    // Cast to unsigned char to read the individual bytes
-    unsigned char* bytes = (unsigned char*)addr.sa_data;
-    // Write to the buffer in IP format
-    // bytes 2,3,4,5 are the IP in the generic sockaddr struct
-    sprintf(resolved_ip, "%d.%d.%d.%d", bytes[2], bytes[3], bytes[4], bytes[5]);
-    strcpy(stick_data->ip_memory_stick, resolved_ip);
+  if (socket_get_peer_ip(client_socket, stick_data->ip_memory_stick,
+                         sizeof(stick_data->ip_memory_stick)))
     return true;
-  }
   log_error(stick_data->logger, "Could not resolve the memory stick IP");
   return false;
 }
@@ -179,8 +170,8 @@ t_main_memory* init_main_memory(int max_segment_size,
   memory->total_size = 0;
   memory->max_segment_size = max_segment_size;
   memory->compaction_delay = compaction_delay;
-  memory->main_memory_mutex = malloc(sizeof(pthread_mutex_t));
-  pthread_mutex_init(memory->main_memory_mutex, NULL);
+  memory->main_memory_mutex = malloc(sizeof(mtx_t));
+  mtx_init(memory->main_memory_mutex);
   memory->segments = list_create();
   memory->allocation_strategy = allocation_strategy;
   memory->holes = list_create();

@@ -1,5 +1,9 @@
 #include "kernel_memory/cpu_listener.h"
 
+#include "utils/mutex.h"
+#include "utils/threads.h"
+#include "utils/time.h"
+
 // OP_REQUEST_CONTEXT and OP_UPDATED_SEGMENT_TABLE both need to hand the CPU
 // pid's current segment table -- the only difference is the log wording.
 static void send_segment_table(t_cpu_data* cpu_data, uint32_t pid)
@@ -26,7 +30,7 @@ static bool handle_next_instruction(t_cpu_data* cpu_data)
   char* instruction = process->instructions[pc];
   log_info(cpu_data->logger, "PID: %u - Get instruction: %u - Instruction: %s",
            pid, pc, instruction);
-  usleep(cpu_data->instruction_delay * 1000);
+  time_sleep_ms(cpu_data->instruction_delay);
   send_string(OP_SEND_INSTRUCTION, instruction, cpu_data->socket_cpu);
   list_destroy_and_destroy_elements(packet, free);
   return true;
@@ -47,7 +51,7 @@ static bool handle_request_context(t_cpu_data* cpu_data)
   log_trace(cpu_data->logger, "PID: %d - Get registers", *pid);
   log_trace(cpu_data->logger, "Instruction delay %d",
             cpu_data->instruction_delay);
-  usleep(cpu_data->instruction_delay * 1000);
+  time_sleep_ms(cpu_data->instruction_delay);
   send_buffer(OP_SEND_CONTEXT, &process->registers, sizeof(t_registers),
               cpu_data->socket_cpu);
   log_trace(cpu_data->logger, "Sending the segment table");
@@ -66,9 +70,9 @@ static bool handle_updated_context(t_cpu_data* cpu_data)
       find_process(cpu_data->processes, cpu_data->processes_mutex, pid);
   if (process != NULL)
   {
-    pthread_mutex_lock(cpu_data->processes_mutex);
+    mtx_lock(cpu_data->processes_mutex);
     process->registers = registers;
-    pthread_mutex_unlock(cpu_data->processes_mutex);
+    mtx_unlock(cpu_data->processes_mutex);
   }
   list_destroy_and_destroy_elements(packet, free);
   return true;
@@ -105,7 +109,7 @@ static bool handle_stick_disconnected(t_cpu_data* cpu_data)
     log_error(cpu_data->logger,
               "Could not send the BSOD to the Kernel Scheduler");
   }
-  shutdown(cpu_data->socket_scheduler, SHUT_RDWR);
+  socket_shutdown(cpu_data->socket_scheduler, SOCKET_SHUTDOWN_BOTH);
   return false;
 }
 
@@ -139,16 +143,16 @@ void* listen_cpu(void* ptr)
     }
   }
   close_cpu(cpu_data);
-  pthread_mutex_lock(cpu_data->active_threads_mutex);
+  mtx_lock(cpu_data->active_threads_mutex);
   (*cpu_data->active_threads)--;
-  pthread_cond_signal(cpu_data->active_threads_cond);
-  pthread_mutex_unlock(cpu_data->active_threads_mutex);
+  cnd_signal(cpu_data->active_threads_cond);
+  mtx_unlock(cpu_data->active_threads_mutex);
   return NULL;
 }
 
 void start_cpu_listener(t_cpu_data* cpu_data)
 {
-  pthread_t listener_thread;
-  pthread_create(&listener_thread, NULL, listen_cpu, cpu_data);
-  pthread_detach(listener_thread);
+  thrd_t listener_thread;
+  thrd_create(&listener_thread, listen_cpu, cpu_data);
+  thrd_detach(listener_thread);
 }

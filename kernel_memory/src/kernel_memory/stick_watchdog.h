@@ -1,10 +1,10 @@
 #pragma once
 
-#include <pthread.h>
 #include <stdatomic.h>
 #include <stdbool.h>
 
 #include "kernel_memory/structs.h"
+#include "utils/threads.h"
 
 // Periodically pings every connected memory stick so a disconnection is
 // noticed even if no process happens to be using that stick at the time
@@ -14,7 +14,7 @@
 typedef struct
 {
   t_kernel_memory_data* kernel_data;
-  pthread_t thread;
+  thrd_t thread;
   atomic_bool close;
   bool already_notified;
 } t_stick_watchdog;

@@ -1,10 +1,13 @@
 #include "kernel_memory/scheduler_listener.h"
 
+#include "utils/mutex.h"
+#include "utils/threads.h"
+
 // Several ops just want a single uint32_t pid off the wire (END_PROCESS,
 // REQUEST_PROCESS_SIZE, SUSPEND_PROCESS, RESUME_SUSPENDED_PROCESS): receive
 // it, read it, and free the buffer in one step instead of repeating that at
 // every call site.
-static uint32_t receive_pid(int socket)
+static uint32_t receive_pid(t_socket* socket)
 {
   int size;
   uint32_t* pid = (uint32_t*)receive_buffer(&size, socket);
@@ -172,9 +175,9 @@ static bool handle_end_process(t_scheduler_data* scheduler_data)
       pid, scheduler_data->main_memory, scheduler_data->logger);
   if (process_to_end != NULL)
   {
-    pthread_mutex_lock(scheduler_data->processes_mutex);
+    mtx_lock(scheduler_data->processes_mutex);
     list_remove_element(scheduler_data->processes, process_to_end);
-    pthread_mutex_unlock(scheduler_data->processes_mutex);
+    mtx_unlock(scheduler_data->processes_mutex);
     log_info(scheduler_data->logger, "Process with PID %u ended", pid);
     t_list_iterator* segment_iterator = list_iterator_create(segment_list);
     while (list_iterator_has_next(segment_iterator))
@@ -327,17 +330,17 @@ void* listen_scheduler(void* ptr)
   log_debug(scheduler_data->logger, "Scheduler listener shutting down");
   send_string(OP_MEMORY_CORRUPTED, "Kernel shutdown",
               scheduler_data->socket_scheduler);
-  pthread_mutex_lock(scheduler_data->active_threads_mutex);
+  mtx_lock(scheduler_data->active_threads_mutex);
   (*scheduler_data->active_threads)--;
-  pthread_cond_signal(scheduler_data->active_threads_cond);
-  pthread_mutex_unlock(scheduler_data->active_threads_mutex);
+  cnd_signal(scheduler_data->active_threads_cond);
+  mtx_unlock(scheduler_data->active_threads_mutex);
   free_scheduler_data(scheduler_data);
   return NULL;
 }
 
 void start_scheduler_listener(t_scheduler_data* scheduler_data)
 {
-  pthread_t listener_thread;
-  pthread_create(&listener_thread, NULL, listen_scheduler, scheduler_data);
-  pthread_detach(listener_thread);
+  thrd_t listener_thread;
+  thrd_create(&listener_thread, listen_scheduler, scheduler_data);
+  thrd_detach(listener_thread);
 }

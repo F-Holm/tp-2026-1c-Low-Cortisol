@@ -1,8 +1,6 @@
 #pragma once
 
-#include <pthread.h>
 #include <stdlib.h>
-#include <sys/socket.h>
 
 #include "kernel_memory/configurator.h"
 #include "kernel_memory/structs.h"

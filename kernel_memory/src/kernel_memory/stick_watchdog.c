@@ -1,10 +1,12 @@
 #include "kernel_memory/stick_watchdog.h"
 
 #include <stdlib.h>
-#include <unistd.h>
 
 #include "utils/collections/list.h"
 #include "utils/msg.h"
+#include "utils/mutex.h"
+#include "utils/threads.h"
+#include "utils/time.h"
 
 static void* watch_sticks(void* args);
 static bool any_stick_unreachable(t_kernel_memory_data* kernel_data);
@@ -18,7 +20,7 @@ t_stick_watchdog* start_stick_watchdog(t_kernel_memory_data* kernel_data)
   atomic_init(&(watchdog->close), false);
   watchdog->already_notified = false;
 
-  if (pthread_create(&(watchdog->thread), NULL, watch_sticks, watchdog) != 0)
+  if (thrd_create(&(watchdog->thread), watch_sticks, watchdog) != 0)
   {
     log_error(kernel_data->logger,
               "Error creating the memory stick connection-check thread");
@@ -29,7 +31,7 @@ t_stick_watchdog* start_stick_watchdog(t_kernel_memory_data* kernel_data)
 void destroy_stick_watchdog(t_stick_watchdog* watchdog)
 {
   atomic_store(&(watchdog->close), true);
-  pthread_join(watchdog->thread, NULL);
+  thrd_join(watchdog->thread, NULL);
   free(watchdog);
 }
 
@@ -40,7 +42,7 @@ static void* watch_sticks(void* args)
 
   while (keep_running)
   {
-    usleep(500000);
+    time_sleep_ms(500);
 
     if (any_stick_unreachable(watchdog->kernel_data))
     {
@@ -59,7 +61,7 @@ static void* watch_sticks(void* args)
 static bool any_stick_unreachable(t_kernel_memory_data* kernel_data)
 {
   bool unreachable = false;
-  pthread_mutex_lock(kernel_data->socket_list_mutex);
+  mtx_lock(kernel_data->socket_list_mutex);
   int stick_count = list_size(kernel_data->connected_sticks);
   for (int i = 0; i < stick_count && !unreachable; i++)
   {
@@ -70,15 +72,15 @@ static bool any_stick_unreachable(t_kernel_memory_data* kernel_data)
       unreachable = true;
     }
   }
-  pthread_mutex_unlock(kernel_data->socket_list_mutex);
+  mtx_unlock(kernel_data->socket_list_mutex);
   return unreachable;
 }
 
 static void notify_scheduler_memory_corrupted(t_kernel_memory_data* kernel_data,
                                               t_stick_watchdog* watchdog)
 {
-  int socket_scheduler = atomic_load(&(kernel_data->socket_scheduler));
-  if (watchdog->already_notified || socket_scheduler == -1)
+  t_socket* socket_scheduler = atomic_load(&(kernel_data->socket_scheduler));
+  if (watchdog->already_notified || socket_scheduler == NULL)
     return;
   watchdog->already_notified = true;
 

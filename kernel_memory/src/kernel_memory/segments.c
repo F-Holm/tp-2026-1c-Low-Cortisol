@@ -2,10 +2,12 @@
 
 #include <stdlib.h>
 
+#include "utils/mutex.h"
+
 t_segment* find_and_remove_segment(uint32_t id, uint32_t pid,
                                    t_main_memory* main_memory, t_log* logger)
 {
-  pthread_mutex_lock(main_memory->main_memory_mutex);
+  mtx_lock(main_memory->main_memory_mutex);
 
   log_trace(logger, "Searching %d segments for the one to remove",
             list_size(main_memory->segments));
@@ -26,7 +28,7 @@ t_segment* find_and_remove_segment(uint32_t id, uint32_t pid,
     }
   }
   list_iterator_destroy(iterator);
-  pthread_mutex_unlock(main_memory->main_memory_mutex);
+  mtx_unlock(main_memory->main_memory_mutex);
   if (found_segment != NULL)
   {
     return found_segment;
@@ -69,11 +71,11 @@ void remove_segment(uint32_t id, uint32_t pid, t_main_memory* main_memory,
   log_debug(logger, "Removing requested segment ID: %d, PID: %d", id, pid);
   t_segment* segment_aux =
       find_and_remove_segment(id, pid, main_memory, logger);
-  pthread_mutex_lock(main_memory->main_memory_mutex);
+  mtx_lock(main_memory->main_memory_mutex);
   if (segment_aux == NULL)
   {
     log_error(logger, "Segment not found");
-    pthread_mutex_unlock(main_memory->main_memory_mutex);
+    mtx_unlock(main_memory->main_memory_mutex);
     return;
   }
 
@@ -125,7 +127,7 @@ void remove_segment(uint32_t id, uint32_t pid, t_main_memory* main_memory,
   }
   list_add(main_memory->holes, new_hole);
 
-  pthread_mutex_unlock(main_memory->main_memory_mutex);
+  mtx_unlock(main_memory->main_memory_mutex);
   free(segment_aux);
 }
 
@@ -170,7 +172,7 @@ t_list* filter_process_segments(int pid, t_main_memory* main_memory,
 {
   t_list* filtered_list = list_create();
 
-  pthread_mutex_lock(main_memory->main_memory_mutex);
+  mtx_lock(main_memory->main_memory_mutex);
   for (int i = 0; i < list_size(main_memory->segments); i++)
   {
     t_segment* current_segment = list_get(main_memory->segments, i);
@@ -179,7 +181,7 @@ t_list* filter_process_segments(int pid, t_main_memory* main_memory,
       list_add(filtered_list, current_segment);
     }
   }
-  pthread_mutex_unlock(main_memory->main_memory_mutex);
+  mtx_unlock(main_memory->main_memory_mutex);
 
   return filtered_list;
 }
@@ -201,7 +203,7 @@ t_segment* find_segment(t_main_memory* main_memory, uint32_t pid,
   t_segment* found_seg = NULL;
   uint32_t pid_segment_count = 0;
 
-  pthread_mutex_lock(main_memory->main_memory_mutex);
+  mtx_lock(main_memory->main_memory_mutex);
   // scan the segments looking for the one matching this pid and segment number
   t_list_iterator* iterator = list_iterator_create(main_memory->segments);
   while (list_iterator_has_next(iterator))
@@ -218,7 +220,7 @@ t_segment* find_segment(t_main_memory* main_memory, uint32_t pid,
     }
   }
   list_iterator_destroy(iterator);
-  pthread_mutex_unlock(main_memory->main_memory_mutex);
+  mtx_unlock(main_memory->main_memory_mutex);
   return found_seg;
 }
 
@@ -226,7 +228,7 @@ int compute_process_size(t_process* process, t_main_memory* main_memory)
 {
   int size = 0;
   t_list_iterator* iterator = list_iterator_create(main_memory->segments);
-  pthread_mutex_lock(main_memory->main_memory_mutex);
+  mtx_lock(main_memory->main_memory_mutex);
   while (list_iterator_has_next(iterator))
   {
     t_segment* segment_aux = list_iterator_next(iterator);
@@ -235,7 +237,7 @@ int compute_process_size(t_process* process, t_main_memory* main_memory)
       size += segment_aux->size;
     }
   }
-  pthread_mutex_unlock(main_memory->main_memory_mutex);
+  mtx_unlock(main_memory->main_memory_mutex);
   list_iterator_destroy(iterator);
   return size;
 }

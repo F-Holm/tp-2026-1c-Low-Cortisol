@@ -2,10 +2,10 @@
 
 #include "kernel_memory/structs.h"
 #include "utils/collections/list.h"
+#include "utils/mutex.h"
 
 /** @brief Sums the size of every hole. */
-int compute_free_space(t_list* holes, pthread_mutex_t* holes_mutex,
-                       t_log* logger);
+int compute_free_space(t_list* holes, mtx_t* holes_mutex, t_log* logger);
 
 /**
  * @brief Adds `memory_total` bytes at the end of the address space (a Memory
@@ -30,5 +30,5 @@ void update_segment_list(t_main_memory* main_memory, t_hole chosen_hole,
  *        to the scheduler.
  */
 void create_segment(uint32_t id, uint32_t pid, int size,
-                    t_main_memory* main_memory, int socket_scheduler,
+                    t_main_memory* main_memory, t_socket* socket_scheduler,
                     t_log* logger);

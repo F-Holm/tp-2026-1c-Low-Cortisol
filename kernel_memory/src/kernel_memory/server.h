@@ -14,7 +14,7 @@
  *        per-module init (Kernel Scheduler, CPU, Memory Stick, or Swap).
  * @return false on a handshake failure or unknown module id.
  */
-bool handshake(t_kernel_memory_data* kernel_data, int client_socket);
+bool handshake(t_kernel_memory_data* kernel_data, t_socket* client_socket);
 
 /** @brief Accepts one client connection and runs its handshake(). */
 bool accept_client(void* ptr);

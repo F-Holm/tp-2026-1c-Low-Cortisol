@@ -6,12 +6,13 @@
 #include "kernel_memory/configurator.h"
 #include "kernel_memory/registry.h"
 #include "utils/msg.h"
+#include "utils/mutex.h"
 
 // Reads one handshake field shaped as "an expected op-code, then an int sent
 // as a string": receive_cpu_id/receive_stick_size/receive_stick_listen_port
 // are all this same shape, differing only in the op-code, the field's name
 // for logging, and where the parsed value is stored.
-static bool receive_int_field(int socket, t_log* logger, int expected_op,
+static bool receive_int_field(t_socket* socket, t_log* logger, int expected_op,
                               const char* field_name, int* out_value)
 {
   if (receive_op_code(socket) != expected_op)
@@ -65,11 +66,10 @@ void add_cpu_connection(t_kernel_memory_data* kernel_data, t_cpu_data* cpu_data)
   return;
 }
 
-void send_connected_sticks(t_list* connected_sticks,
-                           pthread_mutex_t* socket_list_mutex,
+void send_connected_sticks(t_list* connected_sticks, mtx_t* socket_list_mutex,
                            t_cpu_data* cpu_data)
 {
-  pthread_mutex_lock(socket_list_mutex);
+  mtx_lock(socket_list_mutex);
   int total_sticks = list_size(connected_sticks);
 
   for (int i = 0; i < total_sticks; i++)
@@ -87,7 +87,7 @@ void send_connected_sticks(t_list* connected_sticks,
     send_packet(packet, cpu_data->socket_cpu);
     destroy_packet(packet);
   }
-  pthread_mutex_unlock(socket_list_mutex);
+  mtx_unlock(socket_list_mutex);
 }
 
 void send_cpu_connection(t_stick_data* stick_data, t_list* connected_cpus)
@@ -113,15 +113,14 @@ void send_cpu_connection(t_stick_data* stick_data, t_list* connected_cpus)
   destroy_packet(packet);
 }
 
-int compute_total_memory(t_list* connected_sticks,
-                         pthread_mutex_t* socket_list_mutex)
+int compute_total_memory(t_list* connected_sticks, mtx_t* socket_list_mutex)
 {
   int total = 0;
   for (int i = 0; i < list_size(connected_sticks); i++)
   {
-    pthread_mutex_lock(socket_list_mutex);
+    mtx_lock(socket_list_mutex);
     t_stick_data* current_stick = (t_stick_data*)list_get(connected_sticks, i);
-    pthread_mutex_unlock(socket_list_mutex);
+    mtx_unlock(socket_list_mutex);
     total += current_stick->stick_size;
   }
   return total;

@@ -1,8 +1,6 @@
 #pragma once
 
-#include <pthread.h>
 #include <string.h>
-#include <unistd.h>
 
 #include "kernel_memory/structs.h"
 #include "utils/config.h"
@@ -14,8 +12,11 @@ t_log* init_logger(t_config* config);
 /** @brief Loads the config file at @p path. */
 t_config* init_config(char* path);
 
-/** @brief Closes a socket. */
-void close_communication(int client_socket);
+/**
+ * @brief Closes a socket without freeing it: whoever owns the t_socket
+ *        releases it with socket_destroy().
+ */
+void close_communication(t_socket* client_socket);
 
 /** @brief Reads SCRIPTS_BASEPATH from the config. */
 char* get_scripts_basepath(t_config* config);

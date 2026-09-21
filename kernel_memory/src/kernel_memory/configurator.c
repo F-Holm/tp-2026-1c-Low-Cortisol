@@ -13,9 +13,9 @@ t_config* init_config(char* path)
   return config_create(path);
 }
 
-void close_communication(int client_socket)
+void close_communication(t_socket* client_socket)
 {
-  close(client_socket);
+  socket_close(client_socket);
 }
 
 char* get_scripts_basepath(t_config* config)

@@ -4,6 +4,7 @@
 
 #include "kernel_memory/compaction.h"
 #include "utils/msg.h"
+#include "utils/mutex.h"
 
 static t_hole hole_selection_algorithm(
     uint32_t size, t_list* current_holes, t_log* logger,
@@ -11,8 +12,7 @@ static t_hole hole_selection_algorithm(
 static void update_hole_table(t_main_memory* main_memory, t_hole chosen_hole,
                               uint32_t size);
 
-int compute_free_space(t_list* holes, pthread_mutex_t* holes_mutex,
-                       t_log* logger)
+int compute_free_space(t_list* holes, mtx_t* holes_mutex, t_log* logger)
 {
   int total = 0;
   log_trace(logger, "Calculating holes...");
@@ -29,7 +29,7 @@ int compute_free_space(t_list* holes, pthread_mutex_t* holes_mutex,
 
 t_main_memory* add_total_memory(t_main_memory* main_memory, int memory_total)
 {
-  pthread_mutex_lock(main_memory->main_memory_mutex);
+  mtx_lock(main_memory->main_memory_mutex);
   int new_base = main_memory->total_size;
   main_memory->total_size += memory_total;
 
@@ -58,7 +58,7 @@ t_main_memory* add_total_memory(t_main_memory* main_memory, int memory_total)
     list_add(main_memory->holes, new_hole);
   }
 
-  pthread_mutex_unlock(main_memory->main_memory_mutex);
+  mtx_unlock(main_memory->main_memory_mutex);
   return main_memory;
 }
 
@@ -88,7 +88,7 @@ void update_segment_list(t_main_memory* main_memory, t_hole chosen_hole,
 }
 
 void create_segment(uint32_t id, uint32_t pid, int size,
-                    t_main_memory* main_memory, int socket_scheduler,
+                    t_main_memory* main_memory, t_socket* socket_scheduler,
                     t_log* logger)
 {
   // Segmentation fault check
@@ -99,14 +99,14 @@ void create_segment(uint32_t id, uint32_t pid, int size,
                 socket_scheduler);
 
   // Check available memory
-  pthread_mutex_lock(main_memory->main_memory_mutex);
+  mtx_lock(main_memory->main_memory_mutex);
   if (compute_free_space(main_memory->holes, main_memory->main_memory_mutex,
                          logger) < size)
   {
     log_debug(logger, "Not enough space to create the segment");
     send_string(OP_NOT_ENOUGH_MEMORY, "There are not memory enough",
                 socket_scheduler);
-    pthread_mutex_unlock(main_memory->main_memory_mutex);
+    mtx_unlock(main_memory->main_memory_mutex);
   }
   else
   {
@@ -123,7 +123,7 @@ void create_segment(uint32_t id, uint32_t pid, int size,
       chosen_hole = select_hole(size, logger, main_memory);
     }
     update_segment_list(main_memory, chosen_hole, size, pid, id);
-    pthread_mutex_unlock(main_memory->main_memory_mutex);
+    mtx_unlock(main_memory->main_memory_mutex);
     send_string(OP_MEMORY_ALLOCATED, "Memory allocated", socket_scheduler);
     log_info(logger, "PID: %u - Segment created %u - Size: %d", pid, id, size);
   }

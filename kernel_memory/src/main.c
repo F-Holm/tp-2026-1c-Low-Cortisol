@@ -1,4 +1,3 @@
-#include <pthread.h>
 #include <stdlib.h>
 
 #include "kernel_memory/cleanup.h"
@@ -19,8 +18,9 @@ int main(int argc, char* argv[])
 
   t_config* config = init_config(config_path);
   t_log* logger = init_logger(config);
-  int socket_kernel_memory =
-      start_server(config_get_string_value(config, "KERNEL_MEMORY_PORT"));
+  t_socket* socket_kernel_memory = socket_create(
+      SOCKET_KIND_SERVER, NULL,
+      config_get_string_value(config, "KERNEL_MEMORY_PORT"), false);
   char* scripts_basepath = get_scripts_basepath(config);
   int instruction_delay = get_instruction_delay(config);
   int compaction_delay = get_compaction_delay(config);
