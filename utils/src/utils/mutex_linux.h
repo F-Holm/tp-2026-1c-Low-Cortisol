@@ -1,5 +1,9 @@
 #pragma once
 
+#include "utils/os.h"
+
+#ifdef OS_LINUX
+
 #include <pthread.h>
 
 // Linux backing types for utils/mutex.h. A future Windows backend would
@@ -8,3 +12,5 @@
 // of this file.
 typedef pthread_mutex_t mtx_t;
 typedef pthread_cond_t cnd_t;
+
+#endif  // OS_LINUX

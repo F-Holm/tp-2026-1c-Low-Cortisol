@@ -1,3 +1,7 @@
+#include "utils/os.h"
+
+#ifdef OS_LINUX
+
 #include "utils/mutex.h"
 
 int mtx_init(mtx_t* mutex)
@@ -44,3 +48,5 @@ void cnd_destroy(cnd_t* cond)
 {
   pthread_cond_destroy(cond);
 }
+
+#endif  // OS_LINUX

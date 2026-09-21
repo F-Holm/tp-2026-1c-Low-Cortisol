@@ -1,5 +1,9 @@
 #pragma once
 
+#include "utils/os.h"
+
+#ifdef OS_LINUX
+
 #include <pthread.h>
 
 // Linux backing types for utils/threads.h. A future Windows backend would
@@ -12,3 +16,5 @@
 // project-wide to be rewritten during the later migration pass.
 typedef pthread_t thrd_t;
 typedef void* (*thrd_start_t)(void*);
+
+#endif  // OS_LINUX

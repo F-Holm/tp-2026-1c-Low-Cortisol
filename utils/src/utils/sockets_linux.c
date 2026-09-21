@@ -1,3 +1,7 @@
+#include "utils/os.h"
+
+#ifdef OS_LINUX
+
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <netinet/in.h>
@@ -169,3 +173,5 @@ static t_socket* create_server(char* port, bool with_mutex)
   freeaddrinfo(servinfo);
   return wrap_handle(handle, with_mutex);
 }
+
+#endif  // OS_LINUX
