@@ -2,7 +2,7 @@
 
 void close_io(t_io* io)
 {
-  close(io->socket_io);
+  socket_destroy(io->socket_io);
   log_destroy(io->logger);
   config_destroy(io->config);
 }
@@ -27,9 +27,9 @@ bool load_config(t_io* io)
 
 bool connect_to_scheduler(t_io* io)
 {
-  io->socket_io = create_connection(io->ip, io->port);
+  io->socket_io = socket_create(SOCKET_KIND_CLIENT, io->ip, io->port, false);
 
-  if (io->socket_io == -1)
+  if (io->socket_io == NULL)
   {
     log_error(io->logger, "Connection error with Kernel Scheduler");
     close_io(io);

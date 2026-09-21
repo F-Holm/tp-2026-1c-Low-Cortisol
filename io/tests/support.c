@@ -1,43 +1,39 @@
 #include "support.h"
 
-#include <arpa/inet.h>
 #include <criterion/criterion.h>
-#include <netinet/in.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/socket.h>
 #include <unistd.h>
 
 #include "utils/msg.h"
 
-int io_listen_ephemeral(char* port_out, int port_len)
+t_socket* io_listen_ephemeral(char* port_out, int port_len)
 {
-  int listen_fd = start_server("0");
-  cr_assert_geq(listen_fd, 0, "start_server failed");
+  t_socket* listener =
+      socket_create(SOCKET_KIND_SERVER, NULL, SOCKET_PORT_EPHEMERAL, false);
+  cr_assert_not_null(listener, "socket_create(SERVER) failed");
 
-  struct sockaddr_in address;
-  socklen_t length = sizeof(address);
-  cr_assert_eq(getsockname(listen_fd, (struct sockaddr*)&address, &length), 0);
-  snprintf(port_out, port_len, "%d", ntohs(address.sin_port));
+  snprintf(port_out, port_len, "%d", socket_get_local_port(listener));
 
-  return listen_fd;
+  return listener;
 }
 
-int io_connected_pair(int* server_out)
+t_socket* io_connected_pair(t_socket** server_out)
 {
   char port[16];
-  int listen_fd = io_listen_ephemeral(port, sizeof(port));
+  t_socket* listener = io_listen_ephemeral(port, sizeof(port));
 
-  int client_fd = create_connection("127.0.0.1", port);
-  cr_assert_geq(client_fd, 0, "create_connection failed");
+  t_socket* client =
+      socket_create(SOCKET_KIND_CLIENT, "127.0.0.1", port, false);
+  cr_assert_not_null(client, "socket_create(CLIENT) failed");
 
-  int server_fd = accept(listen_fd, NULL, NULL);
-  cr_assert_geq(server_fd, 0, "accept failed");
+  t_socket* server = socket_accept(listener, false);
+  cr_assert_not_null(server, "socket_accept failed");
 
-  close(listen_fd);
-  *server_out = server_fd;
-  return client_fd;
+  socket_destroy(listener);
+  *server_out = server;
+  return client;
 }
 
 char* io_write_temp_config(void)

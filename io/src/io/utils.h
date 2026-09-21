@@ -1,15 +1,11 @@
 #pragma once
 
 #include <assert.h>
-#include <netdb.h>
-#include <signal.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/socket.h>
-#include <unistd.h>
 
 #include "utils/collections/list.h"
 #include "utils/config.h"
@@ -23,7 +19,7 @@ typedef struct
   t_log* logger;
   char* ip;
   char* port;
-  int socket_io;
+  t_socket* socket_io;
   int io_type;
   int sleep;
 } t_io;
