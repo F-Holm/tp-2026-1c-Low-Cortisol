@@ -1,12 +1,17 @@
 #include "io/utils.h"
 
 #include <criterion/criterion.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
 #include "support.h"
+#include "utils/config.h"
+#include "utils/io.h"
+#include "utils/log.h"
 #include "utils/msg.h"
+#include "utils/sockets.h"
 #include "utils/threads.h"
 
 /* ── parse_args ─────────────────────────────────────────────────────────── */

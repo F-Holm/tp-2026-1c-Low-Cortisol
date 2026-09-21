@@ -2,13 +2,14 @@
 
 #include <criterion/criterion.h>
 #include <criterion/redirect.h>
-#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 
+#include "io/utils.h"
 #include "support.h"
+#include "utils/log.h"
 #include "utils/msg.h"
+#include "utils/sockets.h"
 #include "utils/syscalls.h"
 
 /* The handlers assume main() has already consumed the request op code, so every
