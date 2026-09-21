@@ -80,6 +80,10 @@ static bool response_km_mem_alloc(t_queues* queues)
     case OP_SEGMENT_SIZE_EXCEEDED:
       free(receive_string(queues->km_socket));
       return false;
+    case OP_NOT_ENOUGH_MEMORY:
+      free(receive_string(queues->km_socket));
+      log_debug(queues->logger, "Not enough space");
+      return false;
     case OP_MEMORY_ALLOCATED:
       free(receive_string(queues->km_socket));
       return true;
