@@ -1,6 +1,19 @@
 #include "kernel_memory/cpu_listener.h"
 
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdlib.h>
+
+#include "kernel_memory/cleanup.h"
+#include "kernel_memory/registry.h"
+#include "kernel_memory/segments.h"
+#include "kernel_memory/structs.h"
+#include "utils/collections/list.h"
+#include "utils/log.h"
+#include "utils/msg.h"
 #include "utils/mutex.h"
+#include "utils/registers_cpu.h"
+#include "utils/sockets.h"
 #include "utils/threads.h"
 #include "utils/time.h"
 

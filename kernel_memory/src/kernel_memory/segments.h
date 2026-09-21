@@ -1,8 +1,13 @@
 #pragma once
 
+#include <stdbool.h>
+#include <stdint.h>
+
 #include "kernel_memory/structs.h"
 #include "utils/collections/list.h"
+#include "utils/log.h"
 #include "utils/msg.h"
+#include "utils/registers_cpu.h"
 
 /**
  * @brief Removes and returns the segment matching id+pid.

@@ -1,8 +1,13 @@
 #include "kernel_memory/compaction.h"
 
+#include <stdbool.h>
 #include <stdlib.h>
 
+#include "kernel_memory/structs.h"
+#include "utils/collections/list.h"
 #include "utils/msg.h"
+#include "utils/registers_cpu.h"
+#include "utils/sockets.h"
 #include "utils/time.h"
 
 bool compact_memory(t_socket* socket_scheduler, t_main_memory* main_memory)

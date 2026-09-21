@@ -1,12 +1,17 @@
 #include "kernel_memory/connections.h"
 
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 
 #include "kernel_memory/configurator.h"
 #include "kernel_memory/registry.h"
+#include "kernel_memory/structs.h"
+#include "utils/collections/list.h"
+#include "utils/log.h"
 #include "utils/msg.h"
 #include "utils/mutex.h"
+#include "utils/sockets.h"
 
 // Reads one handshake field shaped as "an expected op-code, then an int sent
 // as a string": receive_cpu_id/receive_stick_size/receive_stick_listen_port

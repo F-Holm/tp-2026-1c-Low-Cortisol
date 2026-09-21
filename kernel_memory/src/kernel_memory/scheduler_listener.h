@@ -1,15 +1,6 @@
 #pragma once
 
-#include <stdlib.h>
-
-#include "kernel_memory/cleanup.h"
-#include "kernel_memory/initializer.h"
-#include "kernel_memory/protocol.h"
 #include "kernel_memory/structs.h"
-#include "kernel_memory/swap.h"
-#include "utils/collections/list.h"
-#include "utils/msg.h"
-#include "utils/syscalls.h"
 
 /**
  * @brief The scheduler connection's request loop: NEW_PROCESS, MEM_ALLOC/

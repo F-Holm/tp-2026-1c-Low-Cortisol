@@ -1,10 +1,16 @@
 #include "kernel_memory/holes.h"
 
+#include <stdint.h>
 #include <stdlib.h>
 
 #include "kernel_memory/compaction.h"
+#include "kernel_memory/structs.h"
+#include "utils/collections/list.h"
+#include "utils/log.h"
 #include "utils/msg.h"
 #include "utils/mutex.h"
+#include "utils/registers_cpu.h"
+#include "utils/sockets.h"
 
 static t_hole hole_selection_algorithm(
     uint32_t size, t_list* current_holes, t_log* logger,

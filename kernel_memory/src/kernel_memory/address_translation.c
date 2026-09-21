@@ -1,11 +1,18 @@
 #include "kernel_memory/address_translation.h"
 
+#include <stdbool.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "kernel_memory/segments.h"
+#include "kernel_memory/structs.h"
+#include "utils/collections/list.h"
+#include "utils/log.h"
 #include "utils/msg.h"
 #include "utils/mutex.h"
+#include "utils/registers_cpu.h"
+#include "utils/sockets.h"
 
 int translate_logical_address(uint32_t pid, uint32_t logical_address,
                               uint32_t size, t_main_memory* main_memory,

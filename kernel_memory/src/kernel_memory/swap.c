@@ -1,6 +1,21 @@
 #include "kernel_memory/swap.h"
 
+#include <stdatomic.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "kernel_memory/address_translation.h"
+#include "kernel_memory/holes.h"
+#include "kernel_memory/segments.h"
+#include "kernel_memory/structs.h"
+#include "utils/collections/list.h"
+#include "utils/log.h"
+#include "utils/msg.h"
 #include "utils/mutex.h"
+#include "utils/registers_cpu.h"
+#include "utils/sockets.h"
 
 static int find_free_block(t_swap_data* swap_data);
 static int add_block_to_swap(t_segment* segment, int counter,

@@ -1,6 +1,19 @@
 #include "kernel_memory/server.h"
 
+#include <stdatomic.h>
+#include <stdbool.h>
+
+#include "kernel_memory/connections.h"
+#include "kernel_memory/cpu_listener.h"
+#include "kernel_memory/error.h"
+#include "kernel_memory/holes.h"
+#include "kernel_memory/initializer.h"
+#include "kernel_memory/scheduler_listener.h"
+#include "kernel_memory/structs.h"
+#include "utils/log.h"
+#include "utils/msg.h"
 #include "utils/mutex.h"
+#include "utils/sockets.h"
 
 bool handshake(t_kernel_memory_data* kernel_data, t_socket* client_socket)
 {

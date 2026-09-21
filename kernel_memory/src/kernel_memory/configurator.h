@@ -1,10 +1,9 @@
 #pragma once
 
-#include <string.h>
-
 #include "kernel_memory/structs.h"
 #include "utils/config.h"
 #include "utils/log.h"
+#include "utils/sockets.h"
 
 /** @brief Creates the module's logger. */
 t_log* init_logger(t_config* config);

@@ -1,10 +1,15 @@
 #include "kernel_memory/stick_watchdog.h"
 
+#include <stdatomic.h>
+#include <stdbool.h>
 #include <stdlib.h>
 
+#include "kernel_memory/structs.h"
 #include "utils/collections/list.h"
+#include "utils/log.h"
 #include "utils/msg.h"
 #include "utils/mutex.h"
+#include "utils/sockets.h"
 #include "utils/threads.h"
 #include "utils/time.h"
 

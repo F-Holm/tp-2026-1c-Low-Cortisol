@@ -1,6 +1,6 @@
 #pragma once
 
-#include <stdatomic.h>
+#include <stdint.h>
 
 #include "utils/collections/list.h"
 #include "utils/log.h"

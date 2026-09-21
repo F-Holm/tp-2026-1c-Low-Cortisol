@@ -1,5 +1,9 @@
 #include "kernel_memory/registry.h"
 
+#include <stdint.h>
+
+#include "kernel_memory/structs.h"
+#include "utils/collections/list.h"
 #include "utils/mutex.h"
 
 void list_add_mtx(t_list* list, mtx_t* mutex, void* element)

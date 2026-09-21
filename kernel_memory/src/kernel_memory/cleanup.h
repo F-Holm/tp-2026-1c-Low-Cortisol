@@ -1,10 +1,6 @@
 #pragma once
 
-#include <stdlib.h>
-
-#include "kernel_memory/configurator.h"
 #include "kernel_memory/structs.h"
-#include "utils/collections/list.h"
 
 /** @brief Frees a fully torn-down t_kernel_memory_data, waiting for every
  *         listener thread to exit first. */

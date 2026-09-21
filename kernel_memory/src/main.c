@@ -1,3 +1,4 @@
+#include <stdbool.h>
 #include <stdlib.h>
 
 #include "kernel_memory/cleanup.h"
@@ -5,10 +6,10 @@
 #include "kernel_memory/initializer.h"
 #include "kernel_memory/server.h"
 #include "kernel_memory/stick_watchdog.h"
-#include "utils/collections/list.h"
+#include "kernel_memory/structs.h"
 #include "utils/config.h"
 #include "utils/log.h"
-#include "utils/msg.h"
+#include "utils/sockets.h"
 
 int main(int argc, char* argv[])
 {

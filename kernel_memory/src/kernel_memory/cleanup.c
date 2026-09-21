@@ -1,6 +1,14 @@
 #include "kernel_memory/cleanup.h"
 
+#include <stdatomic.h>
+#include <stdlib.h>
+
+#include "kernel_memory/configurator.h"
+#include "kernel_memory/structs.h"
+#include "utils/collections/list.h"
+#include "utils/log.h"
 #include "utils/mutex.h"
+#include "utils/sockets.h"
 
 void free_cpu_data(t_cpu_data* cpu_data)
 {

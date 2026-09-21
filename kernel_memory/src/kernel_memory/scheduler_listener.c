@@ -1,6 +1,25 @@
 #include "kernel_memory/scheduler_listener.h"
 
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "kernel_memory/address_translation.h"
+#include "kernel_memory/cleanup.h"
+#include "kernel_memory/holes.h"
+#include "kernel_memory/initializer.h"
+#include "kernel_memory/registry.h"
+#include "kernel_memory/segments.h"
+#include "kernel_memory/structs.h"
+#include "kernel_memory/swap.h"
+#include "utils/collections/list.h"
+#include "utils/log.h"
+#include "utils/msg.h"
 #include "utils/mutex.h"
+#include "utils/registers_cpu.h"
+#include "utils/sockets.h"
+#include "utils/syscalls.h"
 #include "utils/threads.h"
 
 // Several ops just want a single uint32_t pid off the wire (END_PROCESS,
@@ -20,7 +39,7 @@ static bool handle_new_process(t_scheduler_data* scheduler_data)
 {
   t_list* packet = receive_packet(scheduler_data->socket_scheduler);
   char* relative_path = list_get(packet, 0);
-  u_int32_t* pid = list_get(packet, 1);
+  uint32_t* pid = list_get(packet, 1);
 
   t_process* process =
       init_process(*pid, relative_path, scheduler_data->scripts_basepath,

@@ -1,8 +1,15 @@
 #include "kernel_memory/segments.h"
 
+#include <stdbool.h>
+#include <stdint.h>
 #include <stdlib.h>
 
+#include "kernel_memory/structs.h"
+#include "utils/collections/list.h"
+#include "utils/log.h"
+#include "utils/msg.h"
 #include "utils/mutex.h"
+#include "utils/registers_cpu.h"
 
 t_segment* find_and_remove_segment(uint32_t id, uint32_t pid,
                                    t_main_memory* main_memory, t_log* logger)

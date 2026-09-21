@@ -1,5 +1,9 @@
 #include "error.h"
 
+#include "kernel_memory/configurator.h"
+#include "utils/log.h"
+#include "utils/sockets.h"
+
 void send_handshake_error(t_log* logger, t_socket* client_socket,
                           char* error_section)
 {

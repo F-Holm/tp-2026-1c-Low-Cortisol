@@ -1,7 +1,7 @@
 #pragma once
 
-#include "kernel_memory/configurator.h"
-#include "kernel_memory/structs.h"
+#include "utils/log.h"
+#include "utils/sockets.h"
 
 /** @brief Logs a handshake failure naming @p error_section and destroys the
  * socket, which nothing owns yet. */

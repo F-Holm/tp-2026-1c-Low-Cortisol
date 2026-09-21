@@ -1,6 +1,20 @@
 #include "kernel_memory/initializer.h"
 
+#include <stdatomic.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "kernel_memory/structs.h"
+#include "utils/collections/list.h"
+#include "utils/log.h"
+#include "utils/msg.h"
 #include "utils/mutex.h"
+#include "utils/registers_cpu.h"
+#include "utils/sockets.h"
+#include "utils/swap_km.h"
 
 static void init_block_list(t_swap_data* swap_data);
 static int count_instructions(FILE* f);
@@ -118,7 +132,7 @@ t_swap_data* init_swap_data(t_socket* socket_swap, t_log* logger)
   return swap_data;
 }
 
-t_process* init_process(u_int32_t pid, char* relative_path,
+t_process* init_process(uint32_t pid, char* relative_path,
                         char* scripts_basepath, t_log* logger)
 {
   t_process* process = malloc(sizeof(t_process));

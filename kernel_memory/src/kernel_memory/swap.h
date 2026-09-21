@@ -1,11 +1,8 @@
 #pragma once
 
-#include <stdio.h>
-#include <stdlib.h>
+#include <stdint.h>
 
-#include "kernel_memory/protocol.h"
 #include "kernel_memory/structs.h"
-#include "utils/collections/list.h"
 
 /**
  * @brief Moves every segment of @p process_to_suspend to swap, replying

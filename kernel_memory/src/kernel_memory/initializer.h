@@ -1,14 +1,13 @@
 #pragma once
 
-#include <stdlib.h>
-#include <string.h>
+#include <stdbool.h>
+#include <stdint.h>
 
 #include "kernel_memory/structs.h"
 #include "utils/collections/list.h"
 #include "utils/log.h"
-#include "utils/msg.h"
 #include "utils/mutex.h"
-#include "utils/swap_km.h"
+#include "utils/sockets.h"
 
 /** @brief Allocates and initializes the module's top-level
  * t_kernel_memory_data. */
@@ -50,7 +49,7 @@ t_swap_data* init_swap_data(t_socket* socket_swap, t_log* logger);
  *        `scripts_basepath`/`relative_path`.
  * @return NULL if the instructions file could not be opened.
  */
-t_process* init_process(u_int32_t pid, char* relative_path,
+t_process* init_process(uint32_t pid, char* relative_path,
                         char* scripts_basepath, t_log* logger);
 
 /**

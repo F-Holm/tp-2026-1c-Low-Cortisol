@@ -1,5 +1,7 @@
 #pragma once
 
+#include <stdint.h>
+
 #include "kernel_memory/structs.h"
 #include "utils/collections/list.h"
 #include "utils/mutex.h"

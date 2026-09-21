@@ -1,7 +1,10 @@
 #pragma once
 
+#include <stdbool.h>
+
 #include "kernel_memory/structs.h"
 #include "utils/collections/list.h"
+#include "utils/sockets.h"
 
 /**
  * @brief Slides every segment down to close the gaps, then replaces the hole

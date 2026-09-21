@@ -1,13 +1,9 @@
 #pragma once
 
-#include "kernel_memory/configurator.h"
-#include "kernel_memory/cpu_listener.h"
-#include "kernel_memory/error.h"
-#include "kernel_memory/initializer.h"
-#include "kernel_memory/protocol.h"
-#include "kernel_memory/scheduler_listener.h"
+#include <stdbool.h>
+
 #include "kernel_memory/structs.h"
-#include "utils/msg.h"
+#include "utils/sockets.h"
 
 /**
  * @brief Reads the peer's handshake and routes it to the appropriate

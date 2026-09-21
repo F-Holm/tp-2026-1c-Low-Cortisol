@@ -1,12 +1,6 @@
 #pragma once
 
-#include <stdlib.h>
-
-#include "kernel_memory/cleanup.h"
-#include "kernel_memory/protocol.h"
 #include "kernel_memory/structs.h"
-#include "utils/collections/list.h"
-#include "utils/msg.h"
 
 /**
  * @brief The CPU connection's request loop: NEXT_INSTRUCTION, registers,

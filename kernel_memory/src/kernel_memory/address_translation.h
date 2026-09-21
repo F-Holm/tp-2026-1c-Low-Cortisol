@@ -1,8 +1,13 @@
 #pragma once
 
+#include <stdbool.h>
+#include <stdint.h>
+
 #include "kernel_memory/structs.h"
 #include "utils/collections/list.h"
+#include "utils/log.h"
 #include "utils/mutex.h"
+#include "utils/sockets.h"
 
 /**
  * @brief Resolves a logical address to a physical one via the process's
