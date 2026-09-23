@@ -3,6 +3,7 @@
 #include <criterion/criterion.h>
 #include <stdatomic.h>
 #include <stdlib.h>
+#include <threads.h>
 
 #include "kernel_memory/cleanup.h"
 #include "kernel_memory/initializer.h"
@@ -11,7 +12,6 @@
 #include "utils/collections/list.h"
 #include "utils/log.h"
 #include "utils/msg.h"
-#include "utils/mutex.h"
 #include "utils/registers_cpu.h"
 #include "utils/sockets.h"
 #include "utils/swap_km.h"
@@ -52,7 +52,7 @@ static t_swap_fixture make_swap_fixture(int stick_size, int swap_size,
   f.sticks = list_create();
   list_add(f.sticks, stick);
   f.sticks_mutex = malloc(sizeof(mtx_t));
-  mtx_init(f.sticks_mutex);
+  mtx_init(f.sticks_mutex, mtx_plain);
 
   f.swap_client_fd = km_connected_pair(&f.swap_server_fd);
   t_swap_config config = {.swap_size = swap_size, .block_size = block_size};

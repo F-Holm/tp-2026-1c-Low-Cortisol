@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <sys/stat.h>
+#include <threads.h>
 #include <unistd.h>
 
 #include "support.h"
@@ -12,7 +13,6 @@
 #include "utils/log.h"
 #include "utils/msg.h"
 #include "utils/sockets.h"
-#include "utils/threads.h"
 
 /* ── parse_args ─────────────────────────────────────────────────────────── */
 
@@ -129,13 +129,13 @@ struct scheduler_stub
   bool reached_type; /* whether the stub got as far as the type message */
 };
 
-static void* scheduler_stub_thread(void* arg)
+static int scheduler_stub_thread(void* arg)
 {
   struct scheduler_stub* stub = arg;
   t_socket* client = socket_accept(stub->listener, false);
   if (client == NULL)
   {
-    return NULL;
+    return 0;
   }
   stub->io_module_id = receive_handshake(client);
   send_handshake(stub->announce_as, client);
@@ -145,7 +145,7 @@ static void* scheduler_stub_thread(void* arg)
     stub->reached_type = true;
   }
   socket_destroy(client);
-  return NULL;
+  return 0;
 }
 
 Test(io_connect, completes_the_handshake_and_announces_its_type)

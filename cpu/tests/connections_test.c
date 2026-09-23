@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <threads.h>
 #include <unistd.h>
 
 #include "cpu/cpu.h"
@@ -13,7 +14,6 @@
 #include "utils/log.h"
 #include "utils/msg.h"
 #include "utils/sockets.h"
-#include "utils/threads.h"
 
 Test(cpu_connections, compute_offset_sums_every_stick_size)
 {
@@ -37,12 +37,12 @@ struct handshake_stub_args
   int announce_as;
 };
 
-static void* handshake_stub_thread(void* arg)
+static int handshake_stub_thread(void* arg)
 {
   struct handshake_stub_args* args = arg;
   receive_handshake(args->socket_fd);
   send_handshake(args->announce_as, args->socket_fd);
-  return NULL;
+  return 0;
 }
 
 Test(cpu_connections, handshake_memory_stick_succeeds_when_the_peer_agrees)
@@ -113,14 +113,14 @@ struct accept_and_handshake_args
   t_socket* accepted_fd;
 };
 
-static void* accept_and_handshake_thread(void* arg)
+static int accept_and_handshake_thread(void* arg)
 {
   struct accept_and_handshake_args* args = arg;
   args->accepted_fd = socket_accept(args->listen_fd, false);
   struct handshake_stub_args handshake_args = {args->accepted_fd,
                                                args->announce_as};
   handshake_stub_thread(&handshake_args);
-  return NULL;
+  return 0;
 }
 
 Test(cpu_connections, connect_to_kernel_scheduler_succeeds_when_the_peer_agrees)
@@ -224,7 +224,7 @@ struct stick_stub_args
   t_socket* accepted_fd;
 };
 
-static void* stick_stub_thread(void* arg)
+static int stick_stub_thread(void* arg)
 {
   struct stick_stub_args* args = arg;
   args->accepted_fd = socket_accept(args->listen_fd, false);
@@ -232,7 +232,7 @@ static void* stick_stub_thread(void* arg)
   send_handshake(MID_MEMORY_STICK, args->accepted_fd);
   free(
       receive_string(args->accepted_fd)); /* the CPU's OP_ID_CPU announcement */
-  return NULL;
+  return 0;
 }
 
 Test(cpu_connections, connect_memory_stick_registers_the_new_stick)

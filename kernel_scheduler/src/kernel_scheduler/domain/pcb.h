@@ -1,9 +1,9 @@
 #pragma once
 
 #include <stdint.h>
+#include <threads.h>
 
 #include "utils/collections/list.h"
-#include "utils/mutex.h"
 
 typedef enum
 {

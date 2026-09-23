@@ -2,11 +2,11 @@
 
 #include <criterion/criterion.h>
 #include <stdlib.h>
+#include <threads.h>
 
 #include "kernel_scheduler/domain/pcb.h"
 #include "kernel_scheduler/scheduler/queue_types.h"
 #include "utils/collections/list.h"
-#include "utils/threads.h"
 #include "utils/time.h"
 
 static t_list* levels(int count, int algo)
@@ -178,11 +178,11 @@ struct blocking_take_result
   t_pcb* result;
 };
 
-static void* blocking_take_thread(void* arg)
+static int blocking_take_thread(void* arg)
 {
   struct blocking_take_result* r = arg;
   r->result = transition_take_ready_blocking(r->ready);
-  return NULL;
+  return 0;
 }
 
 Test(ks_ready_queue, blocking_take_waits_for_a_new_arrival)

@@ -1,10 +1,10 @@
 #pragma once
 
 #include <stdbool.h>
+#include <threads.h>
 
 #include "kernel_memory/structs.h"
 #include "utils/collections/list.h"
-#include "utils/mutex.h"
 
 /**
  * @brief Handshake step: reads the peer's self-description off the socket.

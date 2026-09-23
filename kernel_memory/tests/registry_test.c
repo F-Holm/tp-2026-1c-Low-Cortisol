@@ -1,16 +1,16 @@
 #include "kernel_memory/registry.h"
 
 #include <criterion/criterion.h>
+#include <threads.h>
 
 #include "kernel_memory/structs.h"
 #include "utils/collections/list.h"
-#include "utils/mutex.h"
 
 static mtx_t mutex;
 
 static void init_mutex(void)
 {
-  mtx_init(&mutex);
+  mtx_init(&mutex, mtx_plain);
 }
 
 TestSuite(km_registry, .init = init_mutex);

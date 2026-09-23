@@ -2,8 +2,7 @@
 
 #include <stdbool.h>
 #include <stdio.h>
-
-#include "utils/mutex.h"
+#include <threads.h>
 
 /**
  * @file

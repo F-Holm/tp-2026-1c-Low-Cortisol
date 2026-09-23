@@ -1,15 +1,15 @@
 #include "kernel_scheduler/scheduler/counter.h"
 
 #include <stdlib.h>
+#include <threads.h>
 
 #include "kernel_scheduler/scheduler/queue_types.h"
-#include "utils/mutex.h"
 
 t_counter* create_counter(void)
 {
   t_counter* counter = malloc(sizeof(t_counter));
   counter->count = 0;
-  mtx_init(&(counter->counter_mutex));
+  mtx_init(&(counter->counter_mutex), mtx_plain);
   cnd_init(&(counter->condition));
   return counter;
 }

@@ -3,20 +3,20 @@
 #include <criterion/criterion.h>
 #include <stdlib.h>
 #include <string.h>
+#include <threads.h>
 
 #include "kernel_memory/structs.h"
 #include "support.h"
 #include "utils/collections/list.h"
 #include "utils/log.h"
 #include "utils/msg.h"
-#include "utils/mutex.h"
 #include "utils/sockets.h"
 
 static mtx_t mutex;
 
 static void init_mutex(void)
 {
-  mtx_init(&mutex);
+  mtx_init(&mutex, mtx_plain);
 }
 
 TestSuite(km_connections, .init = init_mutex);
@@ -137,7 +137,7 @@ Test(km_connections, add_stick_connection_appends_to_the_list)
 {
   t_list* sticks = list_create();
   mtx_t list_mutex;
-  mtx_init(&list_mutex);
+  mtx_init(&list_mutex, mtx_plain);
   t_kernel_memory_data kernel_data = {.connected_sticks = sticks,
                                       .socket_list_mutex = &list_mutex};
   t_stick_data* stick = km_make_stick(128);
@@ -154,7 +154,7 @@ Test(km_connections, add_cpu_connection_appends_to_the_list)
 {
   t_list* cpus = list_create();
   mtx_t list_mutex;
-  mtx_init(&list_mutex);
+  mtx_init(&list_mutex, mtx_plain);
   t_kernel_memory_data kernel_data = {.connected_cpus = cpus,
                                       .socket_list_mutex = &list_mutex};
   t_cpu_data cpu = {.id = 3};
@@ -180,7 +180,7 @@ Test(km_connections, send_connected_sticks_tells_the_cpu_about_every_stick)
   strcpy(stick->ip_memory_stick, "127.0.0.1");
   list_add(sticks, stick);
   mtx_t list_mutex;
-  mtx_init(&list_mutex);
+  mtx_init(&list_mutex, mtx_plain);
   t_cpu_data cpu_data = {.socket_cpu = client_fd};
 
   send_connected_sticks(sticks, &list_mutex, &cpu_data);

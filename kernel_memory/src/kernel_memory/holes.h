@@ -1,11 +1,11 @@
 #pragma once
 
 #include <stdint.h>
+#include <threads.h>
 
 #include "kernel_memory/structs.h"
 #include "utils/collections/list.h"
 #include "utils/log.h"
-#include "utils/mutex.h"
 #include "utils/sockets.h"
 
 /** @brief Sums the size of every hole. */

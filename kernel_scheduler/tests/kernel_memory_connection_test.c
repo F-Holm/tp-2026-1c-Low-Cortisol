@@ -2,6 +2,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <threads.h>
 
 #include "kernel_scheduler/connections/kernel_memory.h"
 #include "kernel_scheduler/shutdown.h"
@@ -9,7 +10,6 @@
 #include "utils/log.h"
 #include "utils/msg.h"
 #include "utils/sockets.h"
-#include "utils/threads.h"
 
 /* ── start_connection_kernel_memory ───────────────────────────────────── */
 
@@ -20,16 +20,16 @@ struct km_stub
   int received_mid;
 };
 
-static void* km_stub_thread(void* arg)
+static int km_stub_thread(void* arg)
 {
   struct km_stub* stub = arg;
   t_socket* client = socket_accept(stub->listen_fd, false);
   if (client < 0)
-    return NULL;
+    return 0;
   stub->received_mid = receive_handshake(client);
   send_handshake(stub->announce_as, client);
   socket_destroy(client);
-  return NULL;
+  return 0;
 }
 
 Test(ks_km_connection, succeeds_when_the_peer_announces_kernel_memory)

@@ -1,10 +1,10 @@
 #pragma once
 
 #include <stdint.h>
+#include <threads.h>
 
 #include "utils/collections/list.h"
 #include "utils/log.h"
-#include "utils/mutex.h"
 #include "utils/registers_cpu.h"
 #include "utils/sockets.h"
 

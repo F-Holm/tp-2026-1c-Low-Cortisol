@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <threads.h>
 
 #include "kernel_scheduler/domain/pcb.h"
 #include "kernel_scheduler/scheduler/exec_list.h"
@@ -13,7 +14,6 @@
 #include "utils/collections/dictionary.h"
 #include "utils/collections/list.h"
 #include "utils/log.h"
-#include "utils/mutex.h"
 
 static void log_mutex_tomado(t_log* logger, uint32_t pid, char* id_mutex);
 static void log_mutex_released(t_log* logger, uint32_t pid, char* id_mutex);
@@ -38,7 +38,7 @@ t_mutex_list* init_list_mutex(void)
 {
   t_mutex_list* mutex_list = malloc(sizeof(t_mutex_list));
   mutex_list->list = dictionary_create();
-  mtx_init(&(mutex_list->list_mutex));
+  mtx_init(&(mutex_list->list_mutex), mtx_plain);
   return mutex_list;
 }
 
@@ -109,7 +109,7 @@ static t_mutex* create_mutex(char* id, bool priority_active, t_queues* queues)
   mutex->id = malloc(strlen(id) + 1);
   strcpy(mutex->id, id);
   mutex->next_priority = INT_MAX;
-  mtx_init(&(mutex->mutex));
+  mtx_init(&(mutex->mutex), mtx_plain);
   mutex->priority_active = priority_active;
   mutex->list = list_create();
   mutex->current_process = NULL;

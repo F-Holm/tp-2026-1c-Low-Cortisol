@@ -3,6 +3,7 @@
 #include <stdatomic.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <threads.h>
 
 #include "kernel_scheduler/domain/pcb.h"
 #include "kernel_scheduler/scheduler/blocking_list.h"
@@ -16,10 +17,8 @@
 #include "utils/collections/list.h"
 #include "utils/log.h"
 #include "utils/msg.h"
-#include "utils/mutex.h"
-#include "utils/threads.h"
 
-static void* resumption_routine_thread(void* data_resume_suspension);
+static int resumption_routine_thread(void* data_resume_suspension);
 static void resumption_routine(t_queues* queues);
 static bool remove_of_the_list(t_queues* queues);
 static bool set_is_resuming(t_queues* queues, bool new_state);
@@ -27,7 +26,7 @@ static bool set_is_compacting(t_queues* queues, bool new_state);
 static void routine_enter(t_queues* queues);
 static void routine_leave(t_queues* queues);
 static void lock_all(t_queues* queues);
-static void* thread_unlock_queue_ready(void* args);
+static int thread_unlock_queue_ready(void* args);
 static void create_thread_unlock_queue_ready(t_queues* queues);
 static bool compaction_finished(t_queues* queues);
 static void compaction(t_queues* queues);
@@ -147,7 +146,7 @@ static void resumption_routine(t_queues* queues)
   }
 }
 
-static void* resumption_routine_thread(void* data_resume_suspension)
+static int resumption_routine_thread(void* data_resume_suspension)
 {
   t_queues* queues = (t_queues*)data_resume_suspension;
   routine_enter(queues);
@@ -161,7 +160,7 @@ static void* resumption_routine_thread(void* data_resume_suspension)
   }
   routine_leave(queues);
   decrement_thread_counter(queues);
-  return NULL;
+  return 0;
 }
 
 static bool set_is_resuming(t_queues* queues, bool new_state)
@@ -194,7 +193,7 @@ static void routine_leave(t_queues* queues)
   mtx_unlock(&(queues->routines.routine_mutex));
 }
 
-static void* thread_unlock_queue_ready(void* args)
+static int thread_unlock_queue_ready(void* args)
 {
   t_queues* queues = (t_queues*)args;
 
@@ -205,7 +204,7 @@ static void* thread_unlock_queue_ready(void* args)
     unlock_queue_ready(&(queues->ready));
   }
   decrement_thread_counter(queues);
-  return NULL;
+  return 0;
 }
 
 static void create_thread_unlock_queue_ready(t_queues* queues)

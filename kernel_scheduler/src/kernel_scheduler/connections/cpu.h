@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdbool.h>
+#include <threads.h>
 
 #include "kernel_scheduler/connections/io.h"
 #include "kernel_scheduler/domain/pcb.h"
@@ -8,7 +9,6 @@
 #include "kernel_scheduler/syscalls/mutex.h"
 #include "utils/collections/list.h"
 #include "utils/log.h"
-#include "utils/mutex.h"
 #include "utils/sockets.h"
 
 typedef struct

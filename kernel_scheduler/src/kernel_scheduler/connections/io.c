@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <threads.h>
 
 #include "kernel_scheduler/common/handshake.h"
 #include "kernel_scheduler/domain/pcb.h"
@@ -15,10 +16,8 @@
 #include "utils/io.h"
 #include "utils/log.h"
 #include "utils/msg.h"
-#include "utils/mutex.h"
 #include "utils/sockets.h"
 #include "utils/syscalls.h"
-#include "utils/threads.h"
 
 static bool send_stdout(t_io* io_out, t_stdout* request, char* buffer);
 static bool request_stdout_km(t_stdout* request, t_io* io_out);
@@ -38,7 +37,7 @@ static bool handle_stdin(t_io* io);
 static bool handle_stdout(t_io* io);
 static bool handle_sleep(t_io* io);
 static bool handle_io(t_io* io);
-static void* io_thread(void* io_thread);
+static int io_thread(void* io_thread);
 static int get_io_type(t_socket* socket_fd, t_log* logger);
 static bool compare_priority_stdin(void* syscall1, void* syscall2);
 static bool compare_priority_stdout(void* syscall1, void* syscall2);
@@ -84,7 +83,7 @@ bool handle_new_io(t_io io[3], t_socket* socket_fd, t_queues* queues,
   io[io_type].io_type = io_type;
   io[io_type].io_list = malloc(sizeof(t_io_list));
   io[io_type].io_list->io_list = list_create();
-  mtx_init(&(io[io_type].io_list->io_list_mutex));
+  mtx_init(&(io[io_type].io_list->io_list_mutex), mtx_plain);
   atomic_init(&(io[io_type].close_thread), false);
 
   if (thrd_create(&(io[io_type].io_thread), io_thread, (void*)(&(io[io_type]))))
@@ -467,7 +466,7 @@ static bool handle_io(t_io* io)
   return true;
 }
 
-static void* io_thread(void* io_thread)
+static int io_thread(void* io_thread)
 {
   t_io* io = (t_io*)io_thread;
   bool seguir_atendiendo = true;
@@ -483,7 +482,7 @@ static void* io_thread(void* io_thread)
     {
       mtx_unlock(&(io->io_list->io_list_mutex));
       close_thread_io(io);
-      return NULL;
+      return 0;
     }
 
     if (!(handle_io(io)))
@@ -494,7 +493,7 @@ static void* io_thread(void* io_thread)
     }
   }
   close_thread_io(io);
-  return NULL;
+  return 0;
 }
 
 static int get_io_type(t_socket* socket_fd, t_log* logger)

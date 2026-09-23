@@ -2,6 +2,7 @@
 
 #include <criterion/criterion.h>
 #include <stdlib.h>
+#include <threads.h>
 
 #include "kernel_memory/cleanup.h"
 #include "kernel_memory/initializer.h"
@@ -10,7 +11,6 @@
 #include "utils/collections/list.h"
 #include "utils/log.h"
 #include "utils/msg.h"
-#include "utils/mutex.h"
 #include "utils/registers_cpu.h"
 #include "utils/sockets.h"
 
@@ -18,7 +18,7 @@ static mtx_t mutex;
 
 static void init_mutex(void)
 {
-  mtx_init(&mutex);
+  mtx_init(&mutex, mtx_plain);
 }
 
 TestSuite(km_create_segment, .init = init_mutex);

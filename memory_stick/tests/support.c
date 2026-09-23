@@ -5,10 +5,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <threads.h>
 
 #include "memory_stick/memory_stick.h"
 #include "utils/log.h"
-#include "utils/mutex.h"
 #include "utils/sockets.h"
 
 t_log* ms_quiet_logger(void)
@@ -46,7 +46,7 @@ t_ms* ms_make(int memory_size)
   ms->memory_delay = 0;
   ms->logger = ms_quiet_logger();
   ms->memory_mutex = malloc(sizeof(mtx_t));
-  mtx_init(ms->memory_mutex);
+  mtx_init(ms->memory_mutex, mtx_plain);
   return ms;
 }
 

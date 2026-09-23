@@ -2,9 +2,9 @@
 
 #include <stdatomic.h>
 #include <stdbool.h>
+#include <threads.h>
 
 #include "kernel_memory/structs.h"
-#include "utils/threads.h"
 
 // Periodically pings every connected memory stick so a disconnection is
 // noticed even if no process happens to be using that stick at the time

@@ -1,17 +1,17 @@
 #include "kernel_scheduler/scheduler/exec_list.h"
 
 #include <stdbool.h>
+#include <threads.h>
 
 #include "kernel_scheduler/common/time.h"
 #include "kernel_scheduler/domain/pcb.h"
 #include "kernel_scheduler/scheduler/queue_types.h"
 #include "utils/collections/list.h"
-#include "utils/mutex.h"
 
 void init_exec_list(t_execute_list* list, int quantum, bool preemption)
 {
   list->list = list_create();
-  mtx_init(&(list->list_mutex));
+  mtx_init(&(list->list_mutex), mtx_plain);
   cnd_init(&(list->queue_empty));
   list->lowest_priority = 0;
   list->quantum = quantum;

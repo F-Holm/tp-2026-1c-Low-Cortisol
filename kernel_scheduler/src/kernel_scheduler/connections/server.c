@@ -1,6 +1,7 @@
 #include "kernel_scheduler/connections/server.h"
 
 #include <stdbool.h>
+#include <threads.h>
 
 #include "kernel_scheduler/connections/cpu.h"
 #include "kernel_scheduler/connections/io.h"
@@ -10,7 +11,6 @@
 #include "utils/collections/list.h"
 #include "utils/log.h"
 #include "utils/msg.h"
-#include "utils/mutex.h"
 #include "utils/sockets.h"
 
 static void close_thread_listen(t_io* io, t_list* list_sockets_cpu,
@@ -51,7 +51,7 @@ void server_listen(t_listen_server_data* data)
   mtx_t mutex_list_sockets_cpu;
   cnd_t cpu_done_cond;
 
-  mtx_init(&mutex_list_sockets_cpu);
+  mtx_init(&mutex_list_sockets_cpu, mtx_plain);
   cnd_init(&cpu_done_cond);
 
   transition_new_ready(data->queues, data->initial_process_path, 0);

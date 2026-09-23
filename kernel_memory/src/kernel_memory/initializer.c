@@ -6,12 +6,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <threads.h>
 
 #include "kernel_memory/structs.h"
 #include "utils/collections/list.h"
 #include "utils/log.h"
 #include "utils/msg.h"
-#include "utils/mutex.h"
 #include "utils/registers_cpu.h"
 #include "utils/sockets.h"
 #include "utils/swap_km.h"
@@ -41,12 +41,12 @@ t_kernel_memory_data* init_kernel_memory_data(
   atomic_init(&(kernel_data->swap_data), NULL);
   kernel_data->processes_mutex = malloc(sizeof(mtx_t));
   kernel_data->socket_list_mutex = malloc(sizeof(mtx_t));
-  mtx_init(kernel_data->processes_mutex);
-  mtx_init(kernel_data->socket_list_mutex);
+  mtx_init(kernel_data->processes_mutex, mtx_plain);
+  mtx_init(kernel_data->socket_list_mutex, mtx_plain);
   kernel_data->active_threads = 0;
   kernel_data->active_threads_mutex = malloc(sizeof(mtx_t));
   kernel_data->active_threads_cond = malloc(sizeof(cnd_t));
-  mtx_init(kernel_data->active_threads_mutex);
+  mtx_init(kernel_data->active_threads_mutex, mtx_plain);
   cnd_init(kernel_data->active_threads_cond);
   return kernel_data;
 }
@@ -185,7 +185,7 @@ t_main_memory* init_main_memory(int max_segment_size,
   memory->max_segment_size = max_segment_size;
   memory->compaction_delay = compaction_delay;
   memory->main_memory_mutex = malloc(sizeof(mtx_t));
-  mtx_init(memory->main_memory_mutex);
+  mtx_init(memory->main_memory_mutex, mtx_plain);
   memory->segments = list_create();
   memory->allocation_strategy = allocation_strategy;
   memory->holes = list_create();

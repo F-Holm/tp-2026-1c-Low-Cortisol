@@ -2,6 +2,7 @@
 #include <stdatomic.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <threads.h>
 
 #include "kernel_scheduler/connections/io.h"
 #include "kernel_scheduler/domain/pcb.h"
@@ -12,7 +13,6 @@
 #include "utils/io.h"
 #include "utils/log.h"
 #include "utils/msg.h"
-#include "utils/mutex.h"
 #include "utils/sockets.h"
 #include "utils/syscalls.h"
 #include "utils/time.h"
@@ -104,7 +104,7 @@ static t_io make_io_stub(int io_type, bool priority_active)
   cnd_init(&(io.new_process));
   io.io_list = malloc(sizeof(t_io_list));
   io.io_list->io_list = list_create();
-  mtx_init(&(io.io_list->io_list_mutex));
+  mtx_init(&(io.io_list->io_list_mutex), mtx_plain);
   return io;
 }
 

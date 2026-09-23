@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <threads.h>
 
 #include "kernel_scheduler/common/time.h"
 #include "kernel_scheduler/domain/pcb.h"
@@ -18,13 +19,11 @@
 #include "utils/collections/list.h"
 #include "utils/log.h"
 #include "utils/msg.h"
-#include "utils/mutex.h"
 #include "utils/sockets.h"
-#include "utils/threads.h"
 #include "utils/time.h"
 
-static void* thread_suspender(void* data_void);
-static void* thread_resumer(void* data_void);
+static int thread_suspender(void* data_void);
+static int thread_resumer(void* data_void);
 static t_suspended_thread* init_data_thread_suspended(t_queues* queues);
 static void init_data_thread_suspender(t_queues* queues,
                                        int suspension_timeout);
@@ -59,7 +58,7 @@ static bool can_resume_suspended(t_pcb* pcb, t_queues* queues);
 static t_suspended_thread* init_data_thread_suspended(t_queues* queues)
 {
   t_suspended_thread* data = malloc(sizeof(t_suspended_thread));
-  mtx_init(&(data->state_mutex));
+  mtx_init(&(data->state_mutex), mtx_plain);
   data->state = TS_RUNNING;
   cnd_init(&(data->unlock));
   return data;
@@ -489,7 +488,7 @@ static void wait_process_susp_ready(t_queues* queues, t_resumer_thread* data)
   }
 }
 
-static void* thread_suspender(void* data_void)
+static int thread_suspender(void* data_void)
 {
   t_queues* queues = (t_queues*)data_void;
   t_suspender_thread* data =
@@ -520,10 +519,10 @@ static void* thread_suspender(void* data_void)
     }
     mtx_unlock(&(data->data->state_mutex));
   }
-  return NULL;
+  return 0;
 }
 
-static void* thread_resumer(void* data_void)
+static int thread_resumer(void* data_void)
 {
   t_queues* queues = (t_queues*)data_void;
   t_resumer_thread* data =
@@ -554,5 +553,5 @@ static void* thread_resumer(void* data_void)
     }
     mtx_unlock(&(data->data->state_mutex));
   }
-  return NULL;
+  return 0;
 }

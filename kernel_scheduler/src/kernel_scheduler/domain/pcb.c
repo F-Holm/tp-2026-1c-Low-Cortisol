@@ -3,9 +3,9 @@
 #include <stdatomic.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <threads.h>
 
 #include "utils/collections/list.h"
-#include "utils/mutex.h"
 
 const char* const STATE_NAMES[7] = {
     "NEW", "READY", "EXEC", "BLOCK", "SUSP. BLOCK", "SUSP. READY", "EXIT"};
@@ -20,9 +20,9 @@ t_pcb* create_pcb(int state, int priority)
   static atomic_uint pid = 0;
   t_pcb* pcb = malloc(sizeof(t_pcb));
 
-  mtx_init(&(pcb->priority_mutex));
-  mtx_init(&(pcb->state_mutex));
-  mtx_init(&(pcb->active_instances_mutex));
+  mtx_init(&(pcb->priority_mutex), mtx_plain);
+  mtx_init(&(pcb->state_mutex), mtx_plain);
+  mtx_init(&(pcb->active_instances_mutex), mtx_plain);
   cnd_init(&(pcb->no_active_instances));
   pcb->active_instances = 0;
   pcb->blocked_time = 0;

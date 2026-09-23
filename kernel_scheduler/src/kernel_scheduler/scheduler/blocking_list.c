@@ -1,12 +1,12 @@
 #include "kernel_scheduler/scheduler/blocking_list.h"
 
 #include <stdbool.h>
+#include <threads.h>
 
 #include "kernel_scheduler/common/time.h"
 #include "kernel_scheduler/domain/pcb.h"
 #include "kernel_scheduler/scheduler/queue_types.h"
 #include "utils/collections/list.h"
-#include "utils/mutex.h"
 
 static void set_blocked_time(t_pcb* pcb, unsigned long time)
 {
@@ -16,7 +16,7 @@ static void set_blocked_time(t_pcb* pcb, unsigned long time)
 void init_blocking_list(t_blocking_list* list)
 {
   list->list = list_create();
-  mtx_init(&(list->list_mutex));
+  mtx_init(&(list->list_mutex), mtx_plain);
   cnd_init(&(list->new_process_cond));
   list->new_process = false;
 }

@@ -8,7 +8,7 @@
  *        down.
  * @param ptr  t_cpu_data*, owned by this thread.
  */
-void* listen_cpu(void* ptr);
+int listen_cpu(void* ptr);
 
 /** @brief Spawns a detached thread running listen_cpu() for this CPU. */
 void start_cpu_listener(t_cpu_data* cpu_data);
