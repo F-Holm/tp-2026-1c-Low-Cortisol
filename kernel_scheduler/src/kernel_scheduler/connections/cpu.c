@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <threads.h>
 
 #include "kernel_scheduler/common/handshake.h"
 #include "kernel_scheduler/common/time.h"
@@ -18,10 +19,8 @@
 #include "utils/io.h"
 #include "utils/log.h"
 #include "utils/msg.h"
-#include "utils/mutex.h"
 #include "utils/sockets.h"
 #include "utils/syscalls.h"
-#include "utils/threads.h"
 
 const char* const PREEMPTION_REASONS[13] = {
     "no preemption occurred",
@@ -68,7 +67,7 @@ static void handle_syscall_start_process(t_cpu_thread* data);
 static void handle_syscall_exit(t_cpu_thread* data);
 static void handle_invalid_syscall(t_cpu_thread* data);
 static bool send_pid(t_cpu_thread* data);
-static void* handle_cpu_client(void* data_thread_cpu_void);
+static int handle_cpu_client(void* data_thread_cpu_void);
 static void iterator_shutdown(void* value);
 static t_cpu_thread* init_data_thread_cpu(
     t_socket* socket_cpu, t_list* list_sockets_cpu,
@@ -448,7 +447,7 @@ static bool send_pid(t_cpu_thread* data)
   return true;
 }
 
-static void* handle_cpu_client(void* data_thread_cpu_void)
+static int handle_cpu_client(void* data_thread_cpu_void)
 {
   t_cpu_thread* data = (t_cpu_thread*)data_thread_cpu_void;
   void (*syscall_handlers[OP_SYSCALL_EXIT - OP_CPU_CYCLE_OK + 2])(
@@ -529,7 +528,7 @@ static void* handle_cpu_client(void* data_thread_cpu_void)
   }
   // Release connection and remove socket from the list
   close_thread_cpu(data);
-  return NULL;
+  return 0;
 }
 
 static void iterator_shutdown(void* value)

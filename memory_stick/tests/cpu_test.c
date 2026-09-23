@@ -6,15 +6,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <threads.h>
 
 #include "memory_stick/memory_stick.h"
 #include "support.h"
 #include "utils/collections/list.h"
 #include "utils/log.h"
 #include "utils/msg.h"
-#include "utils/mutex.h"
 #include "utils/sockets.h"
-#include "utils/threads.h"
 
 /* Several of these spin up a peer thread -- cap every test so a stalled
  * handshake fails instead of hanging the run. */
@@ -85,12 +84,12 @@ struct cpu_side
   bool ok;
 };
 
-static void* cpu_handshake_thread(void* arg)
+static int cpu_handshake_thread(void* arg)
 {
   struct cpu_side* side = arg;
   send_handshake(MID_CPU, side->fd);
   side->ok = receive_handshake(side->fd) == MID_MEMORY_STICK;
-  return NULL;
+  return 0;
 }
 
 Test(ms_handshake_cpu, exchanges_the_handshake_with_a_cpu)
@@ -176,7 +175,7 @@ Test(ms_handle_new_cpu, accepts_a_cpu_and_spawns_its_client_thread)
   t_list* socket_list = list_create();
   mtx_t socket_list_mutex;
   cnd_t listen_done_cond;
-  mtx_init(&socket_list_mutex);
+  mtx_init(&socket_list_mutex, mtx_plain);
   cnd_init(&listen_done_cond);
 
   /* The handshake + id are sent up front so they're already sitting in the
@@ -224,7 +223,7 @@ Test(ms_handle_new_cpu,
   t_list* socket_list = list_create();
   mtx_t socket_list_mutex;
   cnd_t listen_done_cond;
-  mtx_init(&socket_list_mutex);
+  mtx_init(&socket_list_mutex, mtx_plain);
   cnd_init(&listen_done_cond);
 
   send_handshake(MID_KERNEL_SCHEDULER, cpu_fd); /* not MID_CPU */
@@ -259,7 +258,7 @@ Test(ms_close_listen_thread, waits_for_the_client_thread_then_frees_everything)
   t_list* socket_list = list_create();
   mtx_t socket_list_mutex;
   cnd_t listen_done_cond;
-  mtx_init(&socket_list_mutex);
+  mtx_init(&socket_list_mutex, mtx_plain);
   cnd_init(&listen_done_cond);
 
   cr_assert(send_handshake(MID_CPU, cpu_fd));
@@ -303,7 +302,7 @@ static void handle_cpu_client_fixture_start(t_handle_cpu_client_fixture* fx,
   fx->cpu_fd = ms_connected_pair(&fx->stick_fd);
   fx->ms = ms_make(memory_size);
   fx->socket_list = list_create();
-  mtx_init(&fx->socket_list_mutex);
+  mtx_init(&fx->socket_list_mutex, mtx_plain);
   cnd_init(&fx->listen_done_cond);
 
   /* Mirrors what handle_new_cpu does before spawning the thread: register

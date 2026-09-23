@@ -2,6 +2,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <threads.h>
 
 #include "kernel_scheduler/connections/cpu.h"
 #include "kernel_scheduler/connections/io.h"
@@ -14,7 +15,6 @@
 #include "utils/collections/list.h"
 #include "utils/log.h"
 #include "utils/msg.h"
-#include "utils/mutex.h"
 #include "utils/sockets.h"
 #include "utils/syscalls.h"
 
@@ -105,7 +105,7 @@ Test(ks_cpu_connection, succeeds_and_registers_a_worker_thread)
   t_list* list_sockets_cpu = list_create();
   mtx_t mutex_list_sockets_cpu;
   cnd_t cpu_done_cond;
-  mtx_init(&mutex_list_sockets_cpu);
+  mtx_init(&mutex_list_sockets_cpu, mtx_plain);
   cnd_init(&cpu_done_cond);
 
   cr_assert(handle_new_cpu(server_fd, list_sockets_cpu, &mutex_list_sockets_cpu,
@@ -139,7 +139,7 @@ Test(ks_cpu_connection, fails_when_the_id_handshake_is_wrong)
   t_list* list_sockets_cpu = list_create();
   mtx_t mutex_list_sockets_cpu;
   cnd_t cpu_done_cond;
-  mtx_init(&mutex_list_sockets_cpu);
+  mtx_init(&mutex_list_sockets_cpu, mtx_plain);
   cnd_init(&cpu_done_cond);
 
   cr_assert_not(handle_new_cpu(server_fd, list_sockets_cpu,
@@ -167,7 +167,7 @@ Test(ks_cpu_connection, fails_gracefully_on_a_dead_socket)
   t_list* list_sockets_cpu = list_create();
   mtx_t mutex_list_sockets_cpu;
   cnd_t cpu_done_cond;
-  mtx_init(&mutex_list_sockets_cpu);
+  mtx_init(&mutex_list_sockets_cpu, mtx_plain);
   cnd_init(&cpu_done_cond);
 
   cr_assert_not(handle_new_cpu(NULL, list_sockets_cpu, &mutex_list_sockets_cpu,
@@ -209,7 +209,7 @@ static void dispatch_fixture_start(t_dispatch_fixture* fx)
   fx->mutex_list = init_list_mutex();
   fx->io = create_io_structures();
   fx->list_sockets_cpu = list_create();
-  mtx_init(&fx->mutex_list_sockets_cpu);
+  mtx_init(&fx->mutex_list_sockets_cpu, mtx_plain);
   cnd_init(&fx->cpu_done_cond);
   fx->pcb = seed_ready_pcb(fx->queues, 5);
 
@@ -321,7 +321,7 @@ Test(ks_cpu_connection, memory_allocation_succeeds_when_kernel_memory_allocates)
   fx.mutex_list = init_list_mutex();
   fx.io = create_io_structures();
   fx.list_sockets_cpu = list_create();
-  mtx_init(&fx.mutex_list_sockets_cpu);
+  mtx_init(&fx.mutex_list_sockets_cpu, mtx_plain);
   cnd_init(&fx.cpu_done_cond);
   fx.pcb = seed_ready_pcb(fx.queues, 5);
 
@@ -359,7 +359,7 @@ Test(ks_cpu_connection, memory_free_succeeds_when_kernel_memory_frees)
   fx.mutex_list = init_list_mutex();
   fx.io = create_io_structures();
   fx.list_sockets_cpu = list_create();
-  mtx_init(&fx.mutex_list_sockets_cpu);
+  mtx_init(&fx.mutex_list_sockets_cpu, mtx_plain);
   cnd_init(&fx.cpu_done_cond);
   fx.pcb = seed_ready_pcb(fx.queues, 5);
 
@@ -395,7 +395,7 @@ Test(ks_cpu_connection, start_process_creates_a_new_ready_pcb)
   fx.mutex_list = init_list_mutex();
   fx.io = create_io_structures();
   fx.list_sockets_cpu = list_create();
-  mtx_init(&fx.mutex_list_sockets_cpu);
+  mtx_init(&fx.mutex_list_sockets_cpu, mtx_plain);
   cnd_init(&fx.cpu_done_cond);
   fx.pcb = seed_ready_pcb(fx.queues, 5);
 

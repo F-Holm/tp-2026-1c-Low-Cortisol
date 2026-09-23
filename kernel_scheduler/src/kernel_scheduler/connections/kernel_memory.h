@@ -3,10 +3,10 @@
 #include <stdatomic.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <threads.h>
 
 #include "utils/log.h"
 #include "utils/sockets.h"
-#include "utils/threads.h"
 
 typedef struct
 {

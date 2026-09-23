@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <threads.h>
 #include <unistd.h>
 
 #include "kernel_scheduler/scheduler/blocking_list.h"
@@ -17,7 +18,6 @@
 #include "kernel_scheduler/shutdown.h"
 #include "utils/collections/list.h"
 #include "utils/log.h"
-#include "utils/mutex.h"
 #include "utils/sockets.h"
 
 t_log* ks_quiet_logger(void)
@@ -58,7 +58,7 @@ t_queues* ks_stub_queues_blocking(t_log* logger)
   queues->exec.list = list_create();
   queues->block.list = list_create();
   queues->routines.syscall_counter = calloc(1, sizeof(t_counter));
-  mtx_init(&(queues->routines.syscall_counter->counter_mutex));
+  mtx_init(&(queues->routines.syscall_counter->counter_mutex), mtx_plain);
   cnd_init(&(queues->routines.syscall_counter->condition));
   // Single non-multilevel ready subqueue -- enough for a BLOCK->READY
   // transition (e.g. a process that unblocks once a mutex it was waiting on
@@ -96,7 +96,7 @@ t_queues* ks_stub_queues_full(t_log* logger)
   init_shutdown(NULL, logger, NULL);
   atomic_init(&(queues->routines.compaction_active), false);
   atomic_init(&(queues->routines.resume_active), false);
-  mtx_init(&(queues->routines.routine_mutex));
+  mtx_init(&(queues->routines.routine_mutex), mtx_plain);
   cnd_init(&(queues->routines.routine_cond));
   return queues;
 }

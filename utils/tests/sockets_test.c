@@ -3,8 +3,7 @@
 #include <criterion/criterion.h>
 #include <stdbool.h>
 #include <stdio.h>
-
-#include "utils/threads.h"
+#include <threads.h>
 
 TestSuite(sockets, .timeout = 5.0);
 
@@ -100,7 +99,7 @@ typedef struct
   int increments;
 } t_lock_race_args;
 
-static void* increment_under_lock(void* raw_args)
+static int increment_under_lock(void* raw_args)
 {
   t_lock_race_args* args = raw_args;
   for (int i = 0; i < args->increments; i++)
@@ -109,7 +108,7 @@ static void* increment_under_lock(void* raw_args)
     (*args->counter)++;
     socket_mutex_unlock(args->socket);
   }
-  return NULL;
+  return 0;
 }
 
 Test(sockets, socket_mutex_lock_serializes_concurrent_access)

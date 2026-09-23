@@ -1,5 +1,6 @@
 #include <criterion/criterion.h>
 #include <stdbool.h>
+#include <threads.h>
 
 #include "kernel_scheduler/connections/server.h"
 #include "kernel_scheduler/scheduler/queue_types.h"
@@ -8,12 +9,11 @@
 #include "utils/log.h"
 #include "utils/msg.h"
 #include "utils/sockets.h"
-#include "utils/threads.h"
 
-static void* server_listen_thread(void* arg)
+static int server_listen_thread(void* arg)
 {
   server_listen((t_listen_server_data*)arg);
-  return NULL;
+  return 0;
 }
 
 Test(ks_server_connection, creates_a_listening_socket_on_an_ephemeral_port)

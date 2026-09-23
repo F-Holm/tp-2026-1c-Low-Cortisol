@@ -1,8 +1,7 @@
 #include "utils/process.h"
 
 #include <criterion/criterion.h>
-
-#include "utils/threads.h"
+#include <threads.h>
 
 TestSuite(process, .timeout = 5.0);
 
@@ -12,12 +11,12 @@ typedef struct
   long thread_id;
 } t_ids;
 
-static void* read_ids(void* raw_ids)
+static int read_ids(void* raw_ids)
 {
   t_ids* ids = raw_ids;
   ids->process_id = process_get_id();
   ids->thread_id = process_get_thread_id();
-  return NULL;
+  return 0;
 }
 
 Test(process, ids_are_positive_and_stable)

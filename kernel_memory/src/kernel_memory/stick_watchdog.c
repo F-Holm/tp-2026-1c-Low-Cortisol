@@ -3,17 +3,16 @@
 #include <stdatomic.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <threads.h>
 
 #include "kernel_memory/structs.h"
 #include "utils/collections/list.h"
 #include "utils/log.h"
 #include "utils/msg.h"
-#include "utils/mutex.h"
 #include "utils/sockets.h"
-#include "utils/threads.h"
 #include "utils/time.h"
 
-static void* watch_sticks(void* args);
+static int watch_sticks(void* args);
 static bool any_stick_unreachable(t_kernel_memory_data* kernel_data);
 static void notify_scheduler_memory_corrupted(t_kernel_memory_data* kernel_data,
                                               t_stick_watchdog* watchdog);
@@ -40,7 +39,7 @@ void destroy_stick_watchdog(t_stick_watchdog* watchdog)
   free(watchdog);
 }
 
-static void* watch_sticks(void* args)
+static int watch_sticks(void* args)
 {
   t_stick_watchdog* watchdog = (t_stick_watchdog*)args;
   bool keep_running = true;
@@ -56,7 +55,7 @@ static void* watch_sticks(void* args)
 
     keep_running = !atomic_load(&(watchdog->close));
   }
-  return NULL;
+  return 0;
 }
 
 // Pings every connected stick over the same socket/mutex the rest of Kernel

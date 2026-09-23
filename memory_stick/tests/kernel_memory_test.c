@@ -4,12 +4,12 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <threads.h>
 
 #include "support.h"
 #include "utils/log.h"
 #include "utils/msg.h"
 #include "utils/sockets.h"
-#include "utils/threads.h"
 
 /* Sockets everywhere -- keep a hard ceiling so a protocol mistake fails fast.
  */
@@ -83,13 +83,13 @@ struct km_side
   char* size;
 };
 
-static void* km_thread(void* arg)
+static int km_thread(void* arg)
 {
   struct km_side* side = arg;
   t_socket* client = socket_accept(side->listen_fd, false);
   if (client == NULL)
   {
-    return NULL;
+    return 0;
   }
   side->received_id = receive_handshake(client);
   send_handshake(side->announce_as, client);
@@ -98,7 +98,7 @@ static void* km_thread(void* arg)
     side->size = receive_string(client);
   }
   socket_destroy(client);
-  return NULL;
+  return 0;
 }
 
 Test(ms_km, connect_to_kernel_memory_handshakes_and_sends_the_size)

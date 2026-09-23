@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <threads.h>
 
 #include "kernel_memory/address_translation.h"
 #include "kernel_memory/cleanup.h"
@@ -16,11 +17,9 @@
 #include "utils/collections/list.h"
 #include "utils/log.h"
 #include "utils/msg.h"
-#include "utils/mutex.h"
 #include "utils/registers_cpu.h"
 #include "utils/sockets.h"
 #include "utils/syscalls.h"
-#include "utils/threads.h"
 
 // Several ops just want a single uint32_t pid off the wire (END_PROCESS,
 // REQUEST_PROCESS_SIZE, SUSPEND_PROCESS, RESUME_SUSPENDED_PROCESS): receive
@@ -294,7 +293,7 @@ static bool handle_unrecognized_op(t_scheduler_data* scheduler_data)
   return false;
 }
 
-void* listen_scheduler(void* ptr)
+int listen_scheduler(void* ptr)
 {
   t_scheduler_data* scheduler_data = (t_scheduler_data*)ptr;
   bool connection_alive = true;
@@ -354,7 +353,7 @@ void* listen_scheduler(void* ptr)
   cnd_signal(scheduler_data->active_threads_cond);
   mtx_unlock(scheduler_data->active_threads_mutex);
   free_scheduler_data(scheduler_data);
-  return NULL;
+  return 0;
 }
 
 void start_scheduler_listener(t_scheduler_data* scheduler_data)

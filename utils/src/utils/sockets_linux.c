@@ -125,7 +125,7 @@ static t_socket* wrap_handle(t_socket_handle handle, bool with_mutex)
   t_socket* socket = malloc(sizeof(t_socket));
   socket->handle = handle;
   socket->has_mutex = with_mutex;
-  mtx_init(&socket->mutex);
+  mtx_init(&socket->mutex, mtx_plain);
   return socket;
 }
 

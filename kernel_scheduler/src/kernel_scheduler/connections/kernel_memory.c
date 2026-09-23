@@ -4,17 +4,17 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <threads.h>
 
 #include "kernel_scheduler/shutdown.h"
 #include "utils/log.h"
 #include "utils/msg.h"
 #include "utils/sockets.h"
-#include "utils/threads.h"
 #include "utils/time.h"
 
 static t_socket* connect_kernel_memory(char* ip, char* port, t_log* logger);
 static bool handshake_kernel_memory(t_socket* km_socket, t_log* logger);
-static void* thread_check_connection_kernel_memory(void* args);
+static int thread_check_connection_kernel_memory(void* args);
 
 t_socket* start_connection_kernel_memory(char* ip, char* port, t_log* logger)
 {
@@ -97,7 +97,7 @@ static bool handshake_kernel_memory(t_socket* km_socket, t_log* logger)
   return true;
 }
 
-static void* thread_check_connection_kernel_memory(void* args)
+static int thread_check_connection_kernel_memory(void* args)
 {
   t_connection_check_thread* data = (t_connection_check_thread*)args;
   bool keep_running = true;
@@ -118,5 +118,5 @@ static void* thread_check_connection_kernel_memory(void* args)
     }
     socket_mutex_unlock(data->km_socket);
   }
-  return NULL;
+  return 0;
 }

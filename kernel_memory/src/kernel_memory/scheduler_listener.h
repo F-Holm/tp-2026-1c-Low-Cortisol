@@ -8,7 +8,7 @@
  *        scheduler disconnects or the module shuts down.
  * @param ptr  t_scheduler_data*, owned by this thread.
  */
-void* listen_scheduler(void* ptr);
+int listen_scheduler(void* ptr);
 
 /** @brief Spawns a detached thread running listen_scheduler() for this
  * connection. */

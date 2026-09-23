@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <threads.h>
 #include <unistd.h>
 
 #include "support.h"
@@ -14,7 +15,6 @@
 #include "utils/msg.h"
 #include "utils/sockets.h"
 #include "utils/swap_km.h"
-#include "utils/threads.h"
 
 /* ── init_config ───────────────────────────────────────────────────────── */
 
@@ -129,13 +129,13 @@ struct km_stub
   t_swap_config info; /* the sizes swap reported */
 };
 
-static void* km_stub_thread(void* arg)
+static int km_stub_thread(void* arg)
 {
   struct km_stub* stub = arg;
   t_socket* client = socket_accept(stub->listener, false);
   if (client == NULL)
   {
-    return NULL;
+    return 0;
   }
   stub->swap_module_id = receive_handshake(client);
   send_handshake(stub->announce_as, client);
@@ -151,7 +151,7 @@ static void* km_stub_thread(void* arg)
     }
   }
   socket_destroy(client);
-  return NULL;
+  return 0;
 }
 
 Test(swap_connect, completes_the_handshake_and_reports_its_sizes)

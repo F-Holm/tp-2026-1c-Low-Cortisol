@@ -2,13 +2,12 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <threads.h>
 
 #include "memory_stick/memory_stick.h"
 #include "utils/collections/list.h"
 #include "utils/log.h"
-#include "utils/mutex.h"
 #include "utils/sockets.h"
-#include "utils/threads.h"
 
 typedef struct
 {
@@ -89,14 +88,14 @@ bool handle_new_cpu(t_listen_thread* listen_thread, t_socket* socket_cpu,
  *        socket is closed.
  * @param listen_thread_void A t_listen_thread*, freed internally.
  */
-void* cpu_listen_thread(void* listen_thread_void);
+int cpu_listen_thread(void* listen_thread_void);
 
 /**
  * @brief Thread entry point: serves read/write requests from one CPU until
  *        it disconnects.
  * @param cpu_thread_void A t_cpu_thread*, freed internally.
  */
-void* handle_cpu_client(void* cpu_thread_void);
+int handle_cpu_client(void* cpu_thread_void);
 
 /**
  * @brief Closes the CPU connection, removes it from the socket list and

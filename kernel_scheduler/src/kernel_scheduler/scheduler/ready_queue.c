@@ -4,11 +4,11 @@
 #include <stdatomic.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <threads.h>
 
 #include "kernel_scheduler/domain/pcb.h"
 #include "kernel_scheduler/scheduler/queue_types.h"
 #include "utils/collections/list.h"
-#include "utils/mutex.h"
 
 static void update_highest_priority_ready_no_mutex(t_ready_queue* ready);
 
@@ -38,7 +38,7 @@ void init_ready_queue(t_ready_queue* queue, int algorithm,
     queue->queues->queue = list_create();
     queue->queues->algorithm = algorithm;
   }
-  mtx_init(&(queue->queue_mutex));
+  mtx_init(&(queue->queue_mutex), mtx_plain);
   cnd_init(&(queue->new_process));
   cnd_init(&(queue->exit_unblocked));
   cnd_init(&(queue->queue_empty));

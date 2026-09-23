@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <threads.h>
 
 #include "kernel_memory/cleanup.h"
 #include "kernel_memory/registry.h"
@@ -11,10 +12,8 @@
 #include "utils/collections/list.h"
 #include "utils/log.h"
 #include "utils/msg.h"
-#include "utils/mutex.h"
 #include "utils/registers_cpu.h"
 #include "utils/sockets.h"
-#include "utils/threads.h"
 #include "utils/time.h"
 
 // OP_REQUEST_CONTEXT and OP_UPDATED_SEGMENT_TABLE both need to hand the CPU
@@ -126,7 +125,7 @@ static bool handle_stick_disconnected(t_cpu_data* cpu_data)
   return false;
 }
 
-void* listen_cpu(void* ptr)
+int listen_cpu(void* ptr)
 {
   t_cpu_data* cpu_data = (t_cpu_data*)ptr;
   bool connection_alive = true;
@@ -160,7 +159,7 @@ void* listen_cpu(void* ptr)
   (*cpu_data->active_threads)--;
   cnd_signal(cpu_data->active_threads_cond);
   mtx_unlock(cpu_data->active_threads_mutex);
-  return NULL;
+  return 0;
 }
 
 void start_cpu_listener(t_cpu_data* cpu_data)

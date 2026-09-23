@@ -4,8 +4,8 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <threads.h>
 
-#include "utils/mutex.h"
 #include "utils/process.h"
 #include "utils/string.h"
 #include "utils/time.h"
@@ -42,7 +42,7 @@ t_log* log_create(char* file, char* program_name, bool is_active_console,
   logger->detail = detail;
   logger->program_name = string_duplicate(program_name);
   logger->pid = process_get_id();
-  mtx_init(&logger->mutex);
+  mtx_init(&logger->mutex, mtx_plain);
   return logger;
 }
 

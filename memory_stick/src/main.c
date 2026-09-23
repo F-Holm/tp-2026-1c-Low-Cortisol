@@ -1,11 +1,11 @@
 #include <stdbool.h>
 #include <stdlib.h>
+#include <threads.h>
 
 #include "memory_stick/memory_stick.h"
 #include "utils/collections/list.h"
 #include "utils/log.h"
 #include "utils/msg.h"
-#include "utils/threads.h"
 
 int main(int argc, char* argv[])
 {

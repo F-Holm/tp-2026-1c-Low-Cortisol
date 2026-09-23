@@ -3,6 +3,7 @@
 #include <criterion/criterion.h>
 #include <stdlib.h>
 #include <string.h>
+#include <threads.h>
 
 #include "kernel_memory/cleanup.h"
 #include "kernel_memory/initializer.h"
@@ -11,7 +12,6 @@
 #include "utils/collections/list.h"
 #include "utils/log.h"
 #include "utils/msg.h"
-#include "utils/mutex.h"
 #include "utils/sockets.h"
 
 /* ── translate_logical_address ─────────────────────────────────────────── */
@@ -48,7 +48,7 @@ Test(km_address_translation,
 Test(km_address_translation, find_stick_locates_the_owning_stick)
 {
   mtx_t mutex;
-  mtx_init(&mutex);
+  mtx_init(&mutex, mtx_plain);
   t_list* sticks = list_create();
   list_add(sticks, km_make_stick(100)); /* [0, 100) */
   list_add(sticks, km_make_stick(50));  /* [100, 150) */
@@ -69,7 +69,7 @@ Test(km_address_translation, find_stick_locates_the_owning_stick)
 Test(km_address_translation, find_stick_reports_an_address_past_every_stick)
 {
   mtx_t mutex;
-  mtx_init(&mutex);
+  mtx_init(&mutex, mtx_plain);
   t_list* sticks = list_create();
   list_add(sticks, km_make_stick(100));
 
@@ -90,7 +90,7 @@ Test(km_address_translation, read_from_sticks_reads_from_a_single_stick)
   t_list* sticks = list_create();
   list_add(sticks, stick);
   mtx_t mutex;
-  mtx_init(&mutex);
+  mtx_init(&mutex, mtx_plain);
 
   cr_assert(send_buffer(OP_MEMORY_STICK_READ_DONE, "abcd", 4, stick_server_fd));
 
@@ -122,7 +122,7 @@ Test(km_address_translation, read_from_sticks_spans_two_sticks)
   list_add(sticks, first);
   list_add(sticks, second);
   mtx_t mutex;
-  mtx_init(&mutex);
+  mtx_init(&mutex, mtx_plain);
 
   /* physical_address 2, size 4 -> 2 bytes from the first stick, 2 from the
    * second */
@@ -148,7 +148,7 @@ Test(km_address_translation, read_from_sticks_reports_an_address_with_no_stick)
 {
   t_list* sticks = list_create();
   mtx_t mutex;
-  mtx_init(&mutex);
+  mtx_init(&mutex, mtx_plain);
   t_log* logger = km_quiet_logger();
 
   cr_assert_null(read_from_sticks(0, 4, sticks, &mutex, logger, NULL));
@@ -166,7 +166,7 @@ Test(km_address_translation, read_from_sticks_reports_a_wrong_reply_opcode)
   t_list* sticks = list_create();
   list_add(sticks, stick);
   mtx_t mutex;
-  mtx_init(&mutex);
+  mtx_init(&mutex, mtx_plain);
 
   cr_assert(send_string(OP_ID_CPU, "not expected here", stick_server_fd));
 
@@ -190,7 +190,7 @@ Test(km_address_translation, write_to_sticks_writes_to_a_single_stick)
   t_list* sticks = list_create();
   list_add(sticks, stick);
   mtx_t mutex;
-  mtx_init(&mutex);
+  mtx_init(&mutex, mtx_plain);
 
   cr_assert(send_string(OP_MEMORY_STICK_WRITE_DONE, "ok", stick_server_fd));
 
@@ -224,7 +224,7 @@ Test(km_address_translation, write_to_sticks_spans_two_sticks)
   list_add(sticks, first);
   list_add(sticks, second);
   mtx_t mutex;
-  mtx_init(&mutex);
+  mtx_init(&mutex, mtx_plain);
 
   cr_assert(send_string(OP_MEMORY_STICK_WRITE_DONE, "ok", first_server_fd));
   cr_assert(send_string(OP_MEMORY_STICK_WRITE_DONE, "ok", second_server_fd));
@@ -258,7 +258,7 @@ Test(km_address_translation, write_to_sticks_reports_running_out_of_sticks)
   t_list* sticks = list_create();
   list_add(sticks, only);
   mtx_t mutex;
-  mtx_init(&mutex);
+  mtx_init(&mutex, mtx_plain);
 
   t_socket* scheduler_server_fd;
   t_socket* scheduler_client_fd = km_connected_pair(&scheduler_server_fd);

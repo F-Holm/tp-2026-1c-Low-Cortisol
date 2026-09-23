@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <threads.h>
 
 #include "kernel_scheduler/connections/kernel_memory.h"
 #include "kernel_scheduler/domain/pcb.h"
@@ -16,7 +17,6 @@
 #include "utils/collections/list.h"
 #include "utils/log.h"
 #include "utils/msg.h"
-#include "utils/mutex.h"
 #include "utils/sockets.h"
 
 const char* const PROCESS_END_REASONS[9] = {
@@ -55,7 +55,7 @@ t_queues* init_queues(int algorithm, t_list* multilevel_algorithms, int quantum,
   queues->process_counter = init_counter_processes(km_socket);
   queues->routines.thread_counter = create_counter();
   queues->routines.syscall_counter = create_counter();
-  mtx_init(&(queues->routines.routine_mutex));
+  mtx_init(&(queues->routines.routine_mutex), mtx_plain);
   cnd_init(&(queues->routines.routine_cond));
   queues->routines.routine_active = false;
   queues->routines.terminate_routines = false;

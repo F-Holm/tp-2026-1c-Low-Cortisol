@@ -3,6 +3,7 @@
 #include <criterion/criterion.h>
 #include <stdlib.h>
 #include <string.h>
+#include <threads.h>
 #include <unistd.h>
 
 #include "memory_stick/cpu.h"
@@ -11,7 +12,6 @@
 #include "utils/log.h"
 #include "utils/msg.h"
 #include "utils/sockets.h"
-#include "utils/threads.h"
 
 /* ── get_args ──────────────────────────────────────────────────────────── */
 

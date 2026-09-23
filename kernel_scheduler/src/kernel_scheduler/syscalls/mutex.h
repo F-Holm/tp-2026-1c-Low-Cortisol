@@ -1,12 +1,12 @@
 #pragma once
 
 #include <stdbool.h>
+#include <threads.h>
 
 #include "kernel_scheduler/domain/pcb.h"
 #include "kernel_scheduler/scheduler/queues.h"
 #include "utils/collections/dictionary.h"
 #include "utils/collections/list.h"
-#include "utils/mutex.h"
 
 typedef struct
 {

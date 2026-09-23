@@ -3,15 +3,14 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
+#include <threads.h>
 
 #include "memory_stick/cpu.h"
 #include "memory_stick/kernel_memory.h"
 #include "utils/config.h"
 #include "utils/log.h"
 #include "utils/msg.h"
-#include "utils/mutex.h"
 #include "utils/sockets.h"
-#include "utils/threads.h"
 #include "utils/time.h"
 
 bool send_cpu_server_port(t_socket* socket_km, t_socket* socket_server_cpu,
@@ -56,7 +55,7 @@ bool init_module(t_ms* ms, char* config_path, char* size,
   // Reserve the amount of memory given in the config file.
   ms->memory = calloc(atoi(size), sizeof(char));
   ms->memory_mutex = malloc(sizeof(mtx_t));
-  mtx_init(ms->memory_mutex);
+  mtx_init(ms->memory_mutex, mtx_plain);
 
   // Thread that listens for new CPU connections.
   return start_cpu_server(cpu_server_thread, ms->socket_server_cpu, ms->logger,

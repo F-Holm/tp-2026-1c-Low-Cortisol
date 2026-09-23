@@ -2,6 +2,7 @@
 
 #include <stdatomic.h>
 #include <stdbool.h>
+#include <threads.h>
 
 #include "kernel_memory/connections.h"
 #include "kernel_memory/cpu_listener.h"
@@ -12,7 +13,6 @@
 #include "kernel_memory/structs.h"
 #include "utils/log.h"
 #include "utils/msg.h"
-#include "utils/mutex.h"
 #include "utils/sockets.h"
 
 bool handshake(t_kernel_memory_data* kernel_data, t_socket* client_socket)

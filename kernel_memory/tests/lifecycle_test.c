@@ -1,6 +1,7 @@
 #include <criterion/criterion.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <threads.h>
 #include <unistd.h>
 
 #include "kernel_memory/cleanup.h"
@@ -10,7 +11,6 @@
 #include "utils/collections/list.h"
 #include "utils/log.h"
 #include "utils/msg.h"
-#include "utils/mutex.h"
 #include "utils/sockets.h"
 
 /* ── init_main_memory ──────────────────────────────────────────────────── */

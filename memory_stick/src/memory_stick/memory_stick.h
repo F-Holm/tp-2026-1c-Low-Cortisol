@@ -1,12 +1,11 @@
 #pragma once
 
 #include <stdbool.h>
+#include <threads.h>
 
 #include "utils/config.h"
 #include "utils/log.h"
-#include "utils/mutex.h"
 #include "utils/sockets.h"
-#include "utils/threads.h"
 
 typedef struct
 {

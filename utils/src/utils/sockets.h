@@ -1,8 +1,8 @@
 #pragma once
 
 #include <stdbool.h>
+#include <threads.h>
 
-#include "utils/mutex.h"
 #include "utils/sockets_linux.h"
 // -- future Windows support: switch the include above between
 //    "utils/sockets_linux.h" and a new "utils/sockets_windows.h" behind an

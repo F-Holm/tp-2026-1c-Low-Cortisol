@@ -3,14 +3,13 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <threads.h>
 
 #include "memory_stick/memory_stick.h"
 #include "utils/collections/list.h"
 #include "utils/log.h"
 #include "utils/msg.h"
-#include "utils/mutex.h"
 #include "utils/sockets.h"
-#include "utils/threads.h"
 
 t_socket* create_server_cpu(t_log* logger)
 {
@@ -133,7 +132,7 @@ bool handle_new_cpu(t_listen_thread* listen_thread, t_socket* socket_cpu,
   return true;
 }
 
-void* cpu_listen_thread(void* listen_thread_void)
+int cpu_listen_thread(void* listen_thread_void)
 {
   t_listen_thread* listen_thread = (t_listen_thread*)listen_thread_void;
 
@@ -141,7 +140,7 @@ void* cpu_listen_thread(void* listen_thread_void)
   mtx_t socket_list_mutex;
   cnd_t listen_done_cond;
 
-  mtx_init(&socket_list_mutex);
+  mtx_init(&socket_list_mutex, mtx_plain);
   cnd_init(&listen_done_cond);
 
   while (true)
@@ -162,7 +161,7 @@ void* cpu_listen_thread(void* listen_thread_void)
   log_debug(listen_thread->logger, "Closing the CPU server");
   close_listen_thread(socket_list, &socket_list_mutex, &listen_done_cond,
                       listen_thread);
-  return NULL;
+  return 0;
 }
 
 void close_cpu_thread(t_cpu_thread* cpu_thread)
@@ -178,7 +177,7 @@ void close_cpu_thread(t_cpu_thread* cpu_thread)
   free(cpu_thread);
 }
 
-void* handle_cpu_client(void* cpu_thread_void)
+int handle_cpu_client(void* cpu_thread_void)
 {
   t_cpu_thread* cpu_thread = (t_cpu_thread*)cpu_thread_void;
 
@@ -232,12 +231,12 @@ void* handle_cpu_client(void* cpu_thread_void)
       }
       default:
         close_cpu_thread(cpu_thread);
-        return NULL;
+        return 0;
     }
   }
 
   close_cpu_thread(cpu_thread);
-  return NULL;
+  return 0;
 }
 
 bool start_cpu_server(thrd_t* cpu_server_thread, t_socket* cpu_server_socket,

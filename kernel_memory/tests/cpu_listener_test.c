@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <threads.h>
 
 #include "kernel_memory/cleanup.h"
 #include "kernel_memory/initializer.h"
@@ -12,10 +13,8 @@
 #include "utils/collections/list.h"
 #include "utils/log.h"
 #include "utils/msg.h"
-#include "utils/mutex.h"
 #include "utils/registers_cpu.h"
 #include "utils/sockets.h"
-#include "utils/threads.h"
 
 /* listen_cpu's per-op handlers are static, so the only way to reach them is
  * through the real dispatch loop over a real socket, acting as the fake CPU
@@ -52,14 +51,14 @@ static t_listener_fixture start_fixture(void)
 
   f.processes = list_create();
   f.processes_mutex = malloc(sizeof(mtx_t));
-  mtx_init(f.processes_mutex);
+  mtx_init(f.processes_mutex, mtx_plain);
 
   f.memory = init_main_memory(4096, AS_BEST, 0);
 
   f.active_threads = malloc(sizeof(int));
   *f.active_threads = 1;
   f.active_threads_mutex = malloc(sizeof(mtx_t));
-  mtx_init(f.active_threads_mutex);
+  mtx_init(f.active_threads_mutex, mtx_plain);
   f.active_threads_cond = malloc(sizeof(cnd_t));
   cnd_init(f.active_threads_cond);
 
