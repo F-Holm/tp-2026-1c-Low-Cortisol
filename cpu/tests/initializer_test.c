@@ -62,8 +62,10 @@ Test(cpu_initializer, register_handlers_maps_every_instruction_name)
                    "INIT_PROC",    "EXIT"};
 
   for (int i = 0; i < 18; i++)
+  {
     cr_assert(dictionary_has_key(handlers, names[i]), "missing handler %s",
               names[i]);
+  }
 
   cr_assert_eq(dictionary_get(handlers, "NOOP"), handler_noop);
   cr_assert_eq(dictionary_get(handlers, "EXIT"), handler_exit);

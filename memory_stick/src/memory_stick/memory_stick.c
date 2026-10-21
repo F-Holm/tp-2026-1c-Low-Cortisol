@@ -32,25 +32,35 @@ bool init_module(t_ms* ms, char* config_path, char* size,
 
   ms->config = init_config(config_path, &config_vars);
   if (ms->config == NULL)
+  {
     return false;
+  }
 
   ms->memory_delay = config_vars.memory_delay;
 
   ms->logger = init_logger(log_level_from_string(config_vars.log_level));
   if (ms->logger == NULL)
+  {
     return false;
+  }
 
   ms->socket_km = connect_to_kernel_memory(
       config_vars.km_ip, config_vars.km_port, size, ms->logger);
   if (ms->socket_km == NULL)
+  {
     return false;
+  }
 
   ms->socket_server_cpu = create_server_cpu(ms->logger);
   if (ms->socket_server_cpu == NULL)
+  {
     return false;
+  }
 
   if (!send_cpu_server_port(ms->socket_km, ms->socket_server_cpu, ms->logger))
+  {
     return false;
+  }
 
   // Reserve the amount of memory given in the config file.
   ms->memory = calloc(atoi(size), sizeof(char));
@@ -66,7 +76,9 @@ t_config* init_config(char* config_path, t_config_vars* config_vars)
 {
   t_config* config = config_create(config_path);
   if (config != NULL)
+  {
     read_config(config, config_vars);
+  }
   return config;
 }
 
@@ -88,11 +100,17 @@ void close_module_on_error(t_ms* ms)
   socket_destroy(ms->socket_server_cpu);
   socket_destroy(ms->socket_km);
   if (ms->logger != NULL)
+  {
     log_destroy(ms->logger);
+  }
   if (ms->config != NULL)
+  {
     config_destroy(ms->config);
+  }
   if (ms->memory != NULL)
+  {
     free(ms->memory);
+  }
   if (ms->memory_mutex != NULL)
   {
     mtx_destroy(ms->memory_mutex);
@@ -117,7 +135,9 @@ bool get_args(int argc, char** argv, char** config_path, char** size_str,
               int* size)
 {
   if (argc != 3)
+  {
     return false;
+  }
   *config_path = argv[1];
   *size_str = argv[2];
   *size = atoi(*size_str);

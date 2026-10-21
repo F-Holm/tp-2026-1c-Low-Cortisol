@@ -28,11 +28,12 @@ int receive_km_opcode(t_queues* queues, const int* expected, int count)
         break;
       case OP_MEMORY_CORRUPTED:
         free(receive_string(queues->km_socket));
-        close_kernel_scheduler(SR_CORRUPTED_MEMORY);
+        close_kernel_scheduler(queues->shutdown, SR_CORRUPTED_MEMORY);
         return OP_CODE_ERROR;
       default:
         free(receive_string(queues->km_socket));
-        close_kernel_scheduler(SR_KERNEL_MEMORY_CONNECTION_FAILURE);
+        close_kernel_scheduler(queues->shutdown,
+                               SR_KERNEL_MEMORY_CONNECTION_FAILURE);
         return OP_CODE_ERROR;
     }
   }

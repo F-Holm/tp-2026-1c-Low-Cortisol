@@ -21,9 +21,13 @@ void close_swap(t_swap* swap, t_config* config)
   // was actually acquired.
   socket_destroy(swap->socket_swap);
   if (swap->swap_file != NULL)
+  {
     fclose(swap->swap_file);
+  }
   if (swap->logger != NULL)
+  {
     log_destroy(swap->logger);
+  }
   config_destroy(config);
 }
 
@@ -121,14 +125,18 @@ void read_block(FILE* swap_file, int block_number, int block_size,
 {
   seek_block(swap_file, block_number, block_size);
   if (fread(content, block_size, 1, swap_file) != 1)
+  {
     return;
+  }
 }
 
 static bool init_swap_file(t_swap* swap)
 {
   FILE* swap_file = fopen(swap->swap_file_path, "wb+");
   if (swap_file == NULL)
+  {
     return false;
+  }
 
   // Set the file size and fill it with zeros.
   if (!file_resize(swap_file, swap->swap_size))

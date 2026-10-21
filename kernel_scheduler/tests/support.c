@@ -92,8 +92,9 @@ t_queues* ks_stub_queues_full(t_log* logger)
   queues->routines.thread_counter = create_counter();
   queues->routines.syscall_counter = create_counter();
   queues->km_socket = ks_dead_socket_with_mutex();
-  queues->process_counter = init_counter_processes(queues->km_socket);
-  init_shutdown(NULL, logger, NULL);
+  queues->shutdown = init_shutdown(NULL, logger, queues->km_socket);
+  queues->process_counter =
+      init_counter_processes(queues->km_socket, queues->shutdown);
   atomic_init(&(queues->routines.compaction_active), false);
   atomic_init(&(queues->routines.resume_active), false);
   mtx_init(&(queues->routines.routine_mutex), mtx_plain);
@@ -112,6 +113,7 @@ void ks_destroy_stub_queues_full(t_queues* queues)
   destroy_counter(queues->routines.syscall_counter);
   destroy_counter_processes(queues->process_counter);
   socket_destroy(queues->km_socket);
+  destroy_shutdown(queues->shutdown);
   mtx_destroy(&(queues->routines.routine_mutex));
   cnd_destroy(&(queues->routines.routine_cond));
   free(queues);
@@ -187,7 +189,9 @@ bool ks_file_logger_contains(t_ks_file_logger* file_logger, const char* text)
   while (fgets(line, sizeof(line), file) != NULL)
   {
     if (strstr(line, text) != NULL)
+    {
       found = true;
+    }
   }
   fclose(file);
   return found;

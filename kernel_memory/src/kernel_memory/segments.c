@@ -64,9 +64,13 @@ static void find_adjacent_hole_indices(t_list* holes, int segment_base,
   {
     t_hole* current_hole = list_iterator_next(iterator);
     if (current_hole->base + current_hole->size == segment_base)
+    {
       *index_before = i;
+    }
     if (current_hole->base == segment_end)
+    {
       *index_after = i;
+    }
     i++;
   }
   list_iterator_destroy(iterator);

@@ -25,7 +25,9 @@ static int km_stub_thread(void* arg)
   struct km_stub* stub = arg;
   t_socket* client = socket_accept(stub->listen_fd, false);
   if (client < 0)
+  {
     return 0;
+  }
   stub->received_mid = receive_handshake(client);
   send_handshake(stub->announce_as, client);
   socket_destroy(client);
@@ -94,9 +96,9 @@ Test(ks_km_connection, notify_terminate_process_sends_the_pid)
   t_socket* client_fd = ks_connected_pair_with_mutex(&server_fd);
   t_socket* km_socket = client_fd;
   t_log* logger = ks_quiet_logger();
-  init_shutdown(NULL, logger, client_fd);
+  t_shutdown_ctx* ctx = init_shutdown(NULL, logger, client_fd);
 
-  cr_assert(notify_terminate_process(km_socket, 42));
+  cr_assert(notify_terminate_process(km_socket, ctx, 42));
 
   cr_assert_eq(receive_op_code(server_fd), OP_END_PROCESS);
   int size;
@@ -104,6 +106,7 @@ Test(ks_km_connection, notify_terminate_process_sends_the_pid)
   cr_assert_eq(*pid, 42);
 
   free(pid);
+  destroy_shutdown(ctx);
   socket_destroy(server_fd);
   socket_destroy(km_socket);
   log_destroy(logger);
@@ -122,10 +125,11 @@ Test(ks_km_connection, notify_terminate_process_reports_a_dead_socket)
   socket_destroy(server_fd);
   t_socket* km_socket = client_fd;
   t_log* logger = ks_quiet_logger();
-  init_shutdown(NULL, logger, client_fd);
+  t_shutdown_ctx* ctx = init_shutdown(NULL, logger, client_fd);
 
-  cr_assert_not(notify_terminate_process(km_socket, 42));
+  cr_assert_not(notify_terminate_process(km_socket, ctx, 42));
 
+  destroy_shutdown(ctx);
   socket_destroy(km_socket);
   log_destroy(logger);
 }
@@ -138,13 +142,15 @@ Test(ks_km_connection, the_watchdog_thread_stops_when_asked_to)
   t_socket* client_fd = ks_connected_pair_with_mutex(&server_fd);
   t_socket* km_socket = client_fd;
   t_log* logger = ks_quiet_logger();
+  t_shutdown_ctx* ctx = init_shutdown(NULL, logger, km_socket);
 
-  t_connection_check_thread* data =
-      start_thread_check_connection_kernel_memory(logger, km_socket);
+  t_watchdog* data =
+      start_thread_check_connection_kernel_memory(logger, km_socket, ctx);
   cr_assert_not_null(data);
 
   destroy_thread_check_connection_kernel_memory(data); /* joins the thread */
 
+  destroy_shutdown(ctx);
   socket_destroy(server_fd);
   socket_destroy(km_socket);
   log_destroy(logger);

@@ -66,7 +66,9 @@ Test(ks_suspension, lock_threads_suspended_parks_both_worker_threads)
     mtx_unlock(&(resumer_data->state_mutex));
 
     if (!(suspender_blocked && resumer_blocked))
+    {
       time_sleep_ms(1);
+    }
   }
   cr_assert(suspender_blocked, "suspender thread never parked");
   cr_assert(resumer_blocked, "resumer thread never parked");

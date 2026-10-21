@@ -61,11 +61,15 @@ bool handle_new_io(t_io io[3], t_socket* socket_fd, t_queues* queues,
                    bool priority_active)
 {
   if (!respond_handshake(socket_fd, MID_KERNEL_SCHEDULER, queues->logger))
+  {
     return false;
+  }
 
   int io_type = get_io_type(socket_fd, queues->logger);
   if (io_type == -1)
+  {
     return false;
+  }
 
   if (io[io_type].socket_io != NULL)
   {
@@ -325,7 +329,9 @@ static void close_thread_io(t_io* io)
 static bool chat_km_stdin(t_io* io_in)
 {
   if (RECEIVE_KM_OPCODE(io_in->queues, OP_STDIN_RESPONSE) == OP_CODE_ERROR)
+  {
     return false;
+  }
 
   free(receive_string(io_in->queues->km_socket));
   return true;
@@ -345,7 +351,8 @@ static int io_stdin_f(t_stdin* request, t_io* io_in)
   send = send_stdin(request, io_in, buffer);
   if (!send)
   {
-    close_kernel_scheduler(SR_KERNEL_MEMORY_SEND_ERROR);
+    close_kernel_scheduler(io_in->queues->shutdown,
+                           SR_KERNEL_MEMORY_SEND_ERROR);
     socket_mutex_unlock(io_in->km_socket);
     free(buffer);
     return false;
@@ -373,7 +380,8 @@ static bool io_stdout_f(t_stdout* request, t_io* io_out)
   bool send = request_stdout_km(request, io_out);
   if (!send)
   {
-    close_kernel_scheduler(SR_KERNEL_MEMORY_SEND_ERROR);
+    close_kernel_scheduler(io_out->queues->shutdown,
+                           SR_KERNEL_MEMORY_SEND_ERROR);
     socket_mutex_unlock(io_out->km_socket);
     return false;
   }
@@ -390,7 +398,8 @@ static bool io_stdout_f(t_stdout* request, t_io* io_out)
   {
     log_warning(io_out->logger, "Error receiving the Kernel Memory response");
     free(buffer);
-    close_kernel_scheduler(SR_KERNEL_MEMORY_CONNECTION_FAILURE);
+    close_kernel_scheduler(io_out->queues->shutdown,
+                           SR_KERNEL_MEMORY_CONNECTION_FAILURE);
     return false;
   }
 
@@ -508,11 +517,17 @@ static int get_io_type(t_socket* socket_fd, t_log* logger)
   int io_type;
 
   if (strcmp(buffer, IO_TYPE_NAMES[IO_STDIN]) == 0)
+  {
     io_type = IO_STDIN;
+  }
   else if (strcmp(buffer, IO_TYPE_NAMES[IO_STDOUT]) == 0)
+  {
     io_type = IO_STDOUT;
+  }
   else if (strcmp(buffer, IO_TYPE_NAMES[IO_SLEEP]) == 0)
+  {
     io_type = IO_SLEEP;
+  }
   else
   {
     log_error(logger, "Invalid IO type: %s", buffer);

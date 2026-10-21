@@ -24,7 +24,9 @@ void close_cpu(t_cpu_data* cpu)
 void free_stick_data(t_stick_data* stick_data)
 {
   if (stick_data == NULL)
+  {
     return;
+  }
   socket_destroy(stick_data->socket_stick);
   free(stick_data);
 }
@@ -32,7 +34,9 @@ void free_stick_data(t_stick_data* stick_data)
 void free_swap_data(t_swap_data* swap_data)
 {
   if (swap_data == NULL)
+  {
     return;
+  }
   if (swap_data->block_list != NULL)
   {
     list_destroy_and_destroy_elements(swap_data->block_list, free);
@@ -44,7 +48,9 @@ void free_swap_data(t_swap_data* swap_data)
 void free_scheduler_data(t_scheduler_data* scheduler_data)
 {
   if (scheduler_data == NULL)
+  {
     return;
+  }
   // The scheduler socket stays allocated: other threads keep a pointer to
   // it, and free_kernel_memory_data() destroys it once they are all gone.
   close_communication(scheduler_data->socket_scheduler);
@@ -96,7 +102,9 @@ static void free_kernel_memory_mutexes(t_kernel_memory_data* kernel_data)
 static void free_connected_sticks(t_kernel_memory_data* kernel_data)
 {
   if (kernel_data->connected_sticks == NULL)
+  {
     return;
+  }
   for (int i = 0; i < list_size(kernel_data->connected_sticks); i++)
   {
     t_stick_data* stick =
@@ -109,7 +117,9 @@ static void free_connected_sticks(t_kernel_memory_data* kernel_data)
 static void free_connected_cpus(t_kernel_memory_data* kernel_data)
 {
   if (kernel_data->connected_cpus == NULL)
+  {
     return;
+  }
   while (!list_is_empty(kernel_data->connected_cpus))
   {
     free_cpu_data(list_remove(kernel_data->connected_cpus, 0));
@@ -120,7 +130,9 @@ static void free_connected_cpus(t_kernel_memory_data* kernel_data)
 static void free_all_processes(t_kernel_memory_data* kernel_data)
 {
   if (kernel_data->processes == NULL)
+  {
     return;
+  }
   t_list_iterator* iterator = list_iterator_create(kernel_data->processes);
   while (list_iterator_has_next(iterator))
   {
@@ -134,7 +146,9 @@ static void free_all_processes(t_kernel_memory_data* kernel_data)
 void free_kernel_memory_data(t_kernel_memory_data* kernel_data)
 {
   if (kernel_data == NULL)
+  {
     return;
+  }
   log_debug(kernel_data->logger,
             "Freeing kernel memory data and ending the program.");
 
@@ -167,12 +181,18 @@ void free_process(t_process* process)
 void free_main_memory(t_main_memory* memory)
 {
   if (memory == NULL)
+  {
     return;
+  }
   mtx_destroy(memory->main_memory_mutex);
   free(memory->main_memory_mutex);
   if (memory->segments != NULL)
+  {
     list_destroy_and_destroy_elements(memory->segments, free);
+  }
   if (memory->holes != NULL)
+  {
     list_destroy_and_destroy_elements(memory->holes, free);
+  }
   free(memory);
 }

@@ -24,7 +24,7 @@
  */
 t_queues* init_queues(int algorithm, t_list* multilevel_algorithms, int quantum,
                       bool preemption, t_log* logger, t_socket* km_socket,
-                      int suspension_timeout);
+                      int suspension_timeout, t_shutdown_ctx* shutdown);
 
 /** @brief Waits for every routine/worker thread to finish, then frees
  *         everything. */

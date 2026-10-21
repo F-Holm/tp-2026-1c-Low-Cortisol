@@ -2,6 +2,7 @@
 
 #include <stdatomic.h>
 
+#include "kernel_scheduler/shutdown.h"
 #include "utils/sockets.h"
 
 // Counts the processes currently alive in the system. When the count drops
@@ -10,10 +11,12 @@ typedef struct
 {
   atomic_int active_process_count;
   t_socket* km_socket;
+  t_shutdown_ctx* shutdown;
 } t_process_counter;
 
 /** @brief Creates a counter at zero. */
-t_process_counter* init_counter_processes(t_socket* km_socket);
+t_process_counter* init_counter_processes(t_socket* km_socket,
+                                          t_shutdown_ctx* shutdown);
 
 /** @brief Increments the count of alive processes. */
 void increment_process_count(t_process_counter* counter);

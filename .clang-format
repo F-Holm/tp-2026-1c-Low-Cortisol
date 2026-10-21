@@ -9,6 +9,10 @@ AllowShortFunctionsOnASingleLine: None
 # Forbid: if (a) return; (without braces)
 AllowShortIfStatementsOnASingleLine: Never
 
+# Force braces on every if/else/for/while/do, even a single-statement body
+# spread across two lines (if (a)\n  return;)
+InsertBraces: true
+
 # Forbid: while (true) { continue; }
 AllowShortLoopsOnASingleLine: false
 

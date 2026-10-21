@@ -5,6 +5,7 @@
 #include <threads.h>
 
 #include "kernel_scheduler/scheduler/process_counter.h"
+#include "kernel_scheduler/shutdown.h"
 #include "utils/collections/list.h"
 #include "utils/log.h"
 #include "utils/sockets.h"
@@ -146,4 +147,5 @@ typedef struct
   t_log* logger;
   t_socket* km_socket;
   t_routine_state routines;
+  t_shutdown_ctx* shutdown;  // owned by whoever created this t_queues
 } t_queues;

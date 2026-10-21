@@ -27,57 +27,61 @@ bool start_module(t_kernel_scheduler* resources, char* config_path)
   // Config
   resources->config = start_config(config_path, &(resources->config_vars));
   if (resources->config == NULL)
+  {
     return false;
+  }
 
   // Logger
   resources->logger = start_logger(resources->config_vars.log_level);
   if (resources->logger == NULL)
-    return false;
+  {
+    goto fail_close_config;
+  }
 
   // Socket Kernel Memory
   resources->socket_kernel_memory = start_connection_kernel_memory(
       resources->config_vars.kernel_memory_ip,
       resources->config_vars.kernel_memory_port, resources->logger);
   if (resources->socket_kernel_memory == NULL)
-    return false;
+  {
+    goto fail_close_logger;
+  }
 
   // Create server socket
   resources->socket_server = create_socket_server(
       resources->config_vars.server_port, resources->logger);
   if (resources->socket_server == NULL)
-    return false;
+  {
+    goto fail_close_km_socket;
+  }
 
-  init_shutdown(resources->socket_server, resources->logger,
-                resources->socket_kernel_memory);
+  resources->shutdown =
+      init_shutdown(resources->socket_server, resources->logger,
+                    resources->socket_kernel_memory);
   return true;
+
+fail_close_km_socket:
+  socket_destroy(resources->socket_kernel_memory);
+fail_close_logger:
+  log_destroy(resources->logger);
+fail_close_config:
+  close_config(&(resources->config_vars), resources->config);
+  return false;
 }
 
 void init_scheduler_resources(t_kernel_scheduler* resources)
 {
   resources->connection_check_thread_data =
       start_thread_check_connection_kernel_memory(
-          resources->logger, resources->socket_kernel_memory);
+          resources->logger, resources->socket_kernel_memory,
+          resources->shutdown);
   resources->mutex_list = init_list_mutex();
   resources->queues = init_queues(
       resources->config_vars.scheduling_algorithm,
       resources->config_vars.multilevel_algorithms,
       resources->config_vars.rr_quantum, resources->config_vars.preemption,
       resources->logger, resources->socket_kernel_memory,
-      resources->config_vars.suspension_timeout);
-}
-
-void close_module_error(t_kernel_scheduler* resources)
-{
-  socket_destroy(resources->socket_server);
-  socket_destroy(resources->socket_kernel_memory);
-  if (resources->logger != NULL)
-  {
-    log_destroy(resources->logger);
-  }
-  if (resources->config != NULL)
-  {
-    close_config(&(resources->config_vars), resources->config);
-  }
+      resources->config_vars.suspension_timeout, resources->shutdown);
 }
 
 void close_module(t_kernel_scheduler* resources)
@@ -87,6 +91,7 @@ void close_module(t_kernel_scheduler* resources)
   destroy_queues(resources->queues);
   destroy_thread_check_connection_kernel_memory(
       resources->connection_check_thread_data);
+  destroy_shutdown(resources->shutdown);
   socket_destroy(resources->socket_kernel_memory);
   socket_destroy(resources->socket_server);
   log_destroy(resources->logger);
@@ -120,9 +125,13 @@ static t_config* start_config(char* config_path, t_config_vars* config_vars)
     {
       int* algorithm = malloc(sizeof(int));
       if (strcmp(array_str[i], SCHEDULING_ALGORITHMS[SA_FIFO]) == 0)
+      {
         *algorithm = SA_FIFO;
+      }
       else if (strcmp(array_str[i], SCHEDULING_ALGORITHMS[SA_RR]) == 0)
+      {
         *algorithm = SA_RR;
+      }
       list_add(config_vars->multilevel_algorithms, algorithm);
       i++;
     }

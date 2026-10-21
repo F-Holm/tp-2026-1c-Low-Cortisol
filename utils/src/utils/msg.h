@@ -11,8 +11,11 @@
 typedef enum
 {
   // ==== Common ====
-  OP_CODE_ERROR,  // receive_op_code() result when the socket is closed
-  OP_HANDSHAKE,   // module identification, on every new connection
+  OP_CODE_ERROR,        // receive_op_code() result when the socket is closed
+  OP_HANDSHAKE,         // module identification, on every new connection
+  OP_CONNECTION_CHECK,  // generic connection-check ping (utils/watchdog.c);
+                        // no reply expected, the peer just needs to
+                        // tolerate the opcode instead of closing on it
 
   // ==== Kernel Scheduler <-> CPU ====
 

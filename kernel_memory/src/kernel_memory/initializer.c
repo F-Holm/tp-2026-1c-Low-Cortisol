@@ -171,7 +171,9 @@ bool resolve_stick_ip(t_stick_data* stick_data, t_socket* client_socket)
 {
   if (socket_get_peer_ip(client_socket, stick_data->ip_memory_stick,
                          sizeof(stick_data->ip_memory_stick)))
+  {
     return true;
+  }
   log_error(stick_data->logger, "Could not resolve the memory stick IP");
   return false;
 }
@@ -212,7 +214,9 @@ static int count_instructions(FILE* f)
   int counter = 0;
   char line[256];
   while (fgets(line, sizeof(line), f))
+  {
     counter++;
+  }
   rewind(f);
   return counter;
 }

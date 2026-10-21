@@ -23,7 +23,9 @@ Test(file, file_resize_grows_the_file_with_zeros)
 
   rewind(file);
   for (int i = 0; i < 4096; i++)
+  {
     cr_assert_eq(fgetc(file), 0);
+  }
 
   fclose(file);
 }

@@ -20,7 +20,7 @@ int space_available_no_mutex(t_queues* queues, uint32_t pid)
   if (!(send_string(OP_REQUEST_FREE_MEMORY, "Requesting the available space",
                     queues->km_socket)))
   {
-    close_kernel_scheduler(SR_KERNEL_MEMORY_SEND_ERROR);
+    close_kernel_scheduler(queues->shutdown, SR_KERNEL_MEMORY_SEND_ERROR);
     return -1;
   }
   return receive_space(queues);
@@ -39,7 +39,7 @@ int process_size_no_mutex(t_queues* queues, uint32_t pid)
   if (!(send_buffer(OP_REQUEST_PROCESS_SIZE, &pid, sizeof(uint32_t),
                     queues->km_socket)))
   {
-    close_kernel_scheduler(SR_KERNEL_MEMORY_SEND_ERROR);
+    close_kernel_scheduler(queues->shutdown, SR_KERNEL_MEMORY_SEND_ERROR);
     return -1;
   }
 
@@ -65,7 +65,9 @@ int process_size_no_logger(t_queues* queues, uint32_t pid)
 static int receive_space(t_queues* queues)
 {
   if (RECEIVE_KM_OPCODE(queues, OP_FREE_MEMORY) == OP_CODE_ERROR)
+  {
     return -1;
+  }
 
   int space;
   int* aux = receive_buffer(&space, queues->km_socket);
@@ -78,7 +80,9 @@ static int receive_space(t_queues* queues)
 static int receive_size(t_queues* queues)
 {
   if (RECEIVE_KM_OPCODE(queues, OP_PROCESS_SIZE) == OP_CODE_ERROR)
+  {
     return -1;
+  }
 
   int space;
   int* aux = receive_buffer(&space, queues->km_socket);
@@ -91,7 +95,9 @@ static int receive_size(t_queues* queues)
 static int receive_size_no_logger(t_queues* queues)
 {
   if (RECEIVE_KM_OPCODE(queues, OP_PROCESS_SIZE) == OP_CODE_ERROR)
+  {
     return -1;
+  }
 
   int space;
   int* aux = receive_buffer(&space, queues->km_socket);
@@ -105,7 +111,7 @@ static int process_size_no_mutex_no_logger(t_queues* queues, uint32_t pid)
   if (!(send_buffer(OP_REQUEST_PROCESS_SIZE, &pid, sizeof(uint32_t),
                     queues->km_socket)))
   {
-    close_kernel_scheduler(SR_KERNEL_MEMORY_SEND_ERROR);
+    close_kernel_scheduler(queues->shutdown, SR_KERNEL_MEMORY_SEND_ERROR);
     return -1;
   }
 
