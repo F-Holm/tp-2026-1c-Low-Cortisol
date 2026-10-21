@@ -92,8 +92,7 @@ t_queues* ks_stub_queues_full(t_log* logger)
   queues->routines.thread_counter = create_counter();
   queues->routines.syscall_counter = create_counter();
   queues->km_socket = ks_dead_socket_with_mutex();
-  queues->shutdown = malloc(sizeof(t_shutdown_ctx));
-  init_shutdown(queues->shutdown, NULL, logger, queues->km_socket);
+  queues->shutdown = init_shutdown(NULL, logger, queues->km_socket);
   queues->process_counter =
       init_counter_processes(queues->km_socket, queues->shutdown);
   atomic_init(&(queues->routines.compaction_active), false);
@@ -114,7 +113,7 @@ void ks_destroy_stub_queues_full(t_queues* queues)
   destroy_counter(queues->routines.syscall_counter);
   destroy_counter_processes(queues->process_counter);
   socket_destroy(queues->km_socket);
-  free(queues->shutdown);
+  destroy_shutdown(queues->shutdown);
   mtx_destroy(&(queues->routines.routine_mutex));
   cnd_destroy(&(queues->routines.routine_cond));
   free(queues);

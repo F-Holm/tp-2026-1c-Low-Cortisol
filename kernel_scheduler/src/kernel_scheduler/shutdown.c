@@ -17,12 +17,19 @@ static void check_reason_shutdown(t_shutdown_ctx* ctx, int* reason_shutdown);
 static void notify_shutdown_kernel_memory(t_shutdown_ctx* ctx,
                                           int reason_shutdown);
 
-void init_shutdown(t_shutdown_ctx* ctx, t_socket* server_socket, t_log* logger,
-                   t_socket* km_socket)
+t_shutdown_ctx* init_shutdown(t_socket* server_socket, t_log* logger,
+                              t_socket* km_socket)
 {
+  t_shutdown_ctx* ctx = malloc(sizeof(t_shutdown_ctx));
   ctx->server_socket = server_socket;
   ctx->logger = logger;
   ctx->km_socket = km_socket;
+  return ctx;
+}
+
+void destroy_shutdown(t_shutdown_ctx* ctx)
+{
+  free(ctx);
 }
 
 void close_kernel_scheduler(t_shutdown_ctx* ctx, int reason_shutdown)

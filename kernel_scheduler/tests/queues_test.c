@@ -31,11 +31,10 @@ Test(ks_queues, init_queues_builds_a_working_full_lifecycle)
 {
   t_log* logger = ks_quiet_logger();
   t_socket* km_socket = ks_dead_socket_with_mutex();
-  t_shutdown_ctx ctx;
-  init_shutdown(&ctx, NULL, logger, km_socket);
+  t_shutdown_ctx* ctx = init_shutdown(NULL, logger, km_socket);
 
   t_queues* queues =
-      init_queues(SA_FIFO, NULL, 0, false, logger, km_socket, 1000, &ctx);
+      init_queues(SA_FIFO, NULL, 0, false, logger, km_socket, 1000, ctx);
 
   cr_assert_not_null(queues);
   cr_assert_eq(queues->logger, logger);
@@ -45,6 +44,7 @@ Test(ks_queues, init_queues_builds_a_working_full_lifecycle)
 
   /* destroy_queues waits out the suspender/resumer threads itself. */
   destroy_queues(queues);
+  destroy_shutdown(ctx);
   socket_destroy(km_socket);
   log_destroy(logger);
 }

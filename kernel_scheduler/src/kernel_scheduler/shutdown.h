@@ -14,9 +14,8 @@ typedef enum
 
 extern const char* const SHUTDOWN_REASONS[4];
 
-/** @brief Everything close_kernel_scheduler() needs. Owned by the caller
- *         (see init_shutdown()) and always passed around by pointer -- never
- *         kept as module-level state. */
+/** @brief Everything close_kernel_scheduler() needs. Always passed around by
+ *         pointer -- never kept as module-level state. */
 typedef struct
 {
   t_socket* server_socket;
@@ -24,10 +23,14 @@ typedef struct
   t_socket* km_socket;
 } t_shutdown_ctx;
 
-/** @brief Fills @p ctx. Must happen once, before any thread can reach
- *         close_kernel_scheduler() with it. */
-void init_shutdown(t_shutdown_ctx* ctx, t_socket* server_socket, t_log* logger,
-                   t_socket* km_socket);
+/** @brief Creates the shutdown context. Must happen once, before any thread
+ *         can reach close_kernel_scheduler() with it. Free it with
+ *         destroy_shutdown(). */
+t_shutdown_ctx* init_shutdown(t_socket* server_socket, t_log* logger,
+                              t_socket* km_socket);
+
+/** @brief Frees @p ctx. */
+void destroy_shutdown(t_shutdown_ctx* ctx);
 
 /**
  * @brief Shuts the scheduler down for @p reason_shutdown: notifies Kernel
