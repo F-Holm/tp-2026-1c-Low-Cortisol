@@ -55,8 +55,8 @@ bool start_module(t_kernel_scheduler* resources, char* config_path)
     return false;
   }
 
-  init_shutdown(resources->socket_server, resources->logger,
-                resources->socket_kernel_memory);
+  init_shutdown(&(resources->shutdown), resources->socket_server,
+                resources->logger, resources->socket_kernel_memory);
   return true;
 }
 
@@ -64,14 +64,15 @@ void init_scheduler_resources(t_kernel_scheduler* resources)
 {
   resources->connection_check_thread_data =
       start_thread_check_connection_kernel_memory(
-          resources->logger, resources->socket_kernel_memory);
+          resources->logger, resources->socket_kernel_memory,
+          &(resources->shutdown));
   resources->mutex_list = init_list_mutex();
   resources->queues = init_queues(
       resources->config_vars.scheduling_algorithm,
       resources->config_vars.multilevel_algorithms,
       resources->config_vars.rr_quantum, resources->config_vars.preemption,
       resources->logger, resources->socket_kernel_memory,
-      resources->config_vars.suspension_timeout);
+      resources->config_vars.suspension_timeout, &(resources->shutdown));
 }
 
 void close_module_error(t_kernel_scheduler* resources)

@@ -258,7 +258,7 @@ static bool notify_process_suspended(t_pcb* pcb, t_queues* queues)
   if (!send_buffer(OP_SUSPEND_PROCESS, &(pcb->pid), sizeof(uint32_t),
                    queues->km_socket))
   {
-    close_kernel_scheduler(SR_KERNEL_MEMORY_SEND_ERROR);
+    close_kernel_scheduler(queues->shutdown, SR_KERNEL_MEMORY_SEND_ERROR);
     socket_mutex_unlock(queues->km_socket);
     return false;
   }
@@ -275,7 +275,7 @@ static bool notify_process_resume_suspended(t_pcb* pcb, t_queues* queues)
   if (!(send_buffer(OP_RESUME_SUSPENDED_PROCESS, &(pcb->pid), sizeof(uint32_t),
                     queues->km_socket)))
   {
-    close_kernel_scheduler(SR_KERNEL_MEMORY_SEND_ERROR);
+    close_kernel_scheduler(queues->shutdown, SR_KERNEL_MEMORY_SEND_ERROR);
     socket_mutex_unlock(queues->km_socket);
     return false;
   }

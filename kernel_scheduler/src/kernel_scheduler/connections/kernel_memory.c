@@ -33,24 +33,26 @@ t_socket* start_connection_kernel_memory(char* ip, char* port, t_log* logger)
   return km_socket;
 }
 
-bool notify_terminate_process(t_socket* km_socket, uint32_t pid)
+bool notify_terminate_process(t_socket* km_socket, t_shutdown_ctx* shutdown,
+                              uint32_t pid)
 {
   socket_mutex_lock(km_socket);
   bool ret = send_buffer(OP_END_PROCESS, &pid, sizeof(uint32_t), km_socket);
   if (!ret)
   {
-    close_kernel_scheduler(SR_KERNEL_MEMORY_SEND_ERROR);
+    close_kernel_scheduler(shutdown, SR_KERNEL_MEMORY_SEND_ERROR);
   }
   socket_mutex_unlock(km_socket);
   return ret;
 }
 
 t_connection_check_thread* start_thread_check_connection_kernel_memory(
-    t_log* logger, t_socket* km_socket)
+    t_log* logger, t_socket* km_socket, t_shutdown_ctx* shutdown)
 {
   t_connection_check_thread* data = malloc(sizeof(t_connection_check_thread));
   data->logger = logger;
   data->km_socket = km_socket;
+  data->shutdown = shutdown;
   atomic_init(&(data->close), false);
 
   if (thrd_create(&(data->thread), thread_check_connection_kernel_memory,
@@ -112,7 +114,7 @@ static int thread_check_connection_kernel_memory(void* args)
                     "Is Kernel Memory still connected?", data->km_socket);
     if (!keep_running)
     {
-      close_kernel_scheduler(SR_KERNEL_MEMORY_SEND_ERROR);
+      close_kernel_scheduler(data->shutdown, SR_KERNEL_MEMORY_SEND_ERROR);
     }
     else
     {

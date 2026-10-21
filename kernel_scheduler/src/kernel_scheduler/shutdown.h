@@ -14,13 +14,24 @@ typedef enum
 
 extern const char* const SHUTDOWN_REASONS[4];
 
-/** @brief Must be called once, before any thread can reach
- *         close_kernel_scheduler(). */
-void init_shutdown(t_socket* server_socket, t_log* logger, t_socket* km_socket);
+/** @brief Everything close_kernel_scheduler() needs. Owned by the caller
+ *         (see init_shutdown()) and always passed around by pointer -- never
+ *         kept as module-level state. */
+typedef struct
+{
+  t_socket* server_socket;
+  t_log* logger;
+  t_socket* km_socket;
+} t_shutdown_ctx;
+
+/** @brief Fills @p ctx. Must happen once, before any thread can reach
+ *         close_kernel_scheduler() with it. */
+void init_shutdown(t_shutdown_ctx* ctx, t_socket* server_socket, t_log* logger,
+                   t_socket* km_socket);
 
 /**
  * @brief Shuts the scheduler down for @p reason_shutdown: notifies Kernel
  *        Memory if applicable, logs it and closes the server socket.
  * @note Idempotent: only the first call has effect.
  */
-void close_kernel_scheduler(int reason_shutdown);
+void close_kernel_scheduler(t_shutdown_ctx* ctx, int reason_shutdown);

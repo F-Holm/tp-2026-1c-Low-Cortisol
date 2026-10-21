@@ -244,7 +244,7 @@ static void compaction(t_queues* queues)
 {
   if (!(send_string(OP_CAN_COMPACT, "Start compaction", queues->km_socket)))
   {
-    close_kernel_scheduler(SR_KERNEL_MEMORY_SEND_ERROR);
+    close_kernel_scheduler(queues->shutdown, SR_KERNEL_MEMORY_SEND_ERROR);
     return;
   }
   log_info(queues->logger, "Start of compaction");

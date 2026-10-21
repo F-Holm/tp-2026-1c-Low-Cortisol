@@ -351,7 +351,8 @@ static int io_stdin_f(t_stdin* request, t_io* io_in)
   send = send_stdin(request, io_in, buffer);
   if (!send)
   {
-    close_kernel_scheduler(SR_KERNEL_MEMORY_SEND_ERROR);
+    close_kernel_scheduler(io_in->queues->shutdown,
+                           SR_KERNEL_MEMORY_SEND_ERROR);
     socket_mutex_unlock(io_in->km_socket);
     free(buffer);
     return false;
@@ -379,7 +380,8 @@ static bool io_stdout_f(t_stdout* request, t_io* io_out)
   bool send = request_stdout_km(request, io_out);
   if (!send)
   {
-    close_kernel_scheduler(SR_KERNEL_MEMORY_SEND_ERROR);
+    close_kernel_scheduler(io_out->queues->shutdown,
+                           SR_KERNEL_MEMORY_SEND_ERROR);
     socket_mutex_unlock(io_out->km_socket);
     return false;
   }
@@ -396,7 +398,8 @@ static bool io_stdout_f(t_stdout* request, t_io* io_out)
   {
     log_warning(io_out->logger, "Error receiving the Kernel Memory response");
     free(buffer);
-    close_kernel_scheduler(SR_KERNEL_MEMORY_CONNECTION_FAILURE);
+    close_kernel_scheduler(io_out->queues->shutdown,
+                           SR_KERNEL_MEMORY_CONNECTION_FAILURE);
     return false;
   }
 

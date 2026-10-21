@@ -44,7 +44,7 @@ static bool notify_new_process(t_queues* queues, char* instructions_file,
 
 t_queues* init_queues(int algorithm, t_list* multilevel_algorithms, int quantum,
                       bool preemption, t_log* logger, t_socket* km_socket,
-                      int suspension_timeout)
+                      int suspension_timeout, t_shutdown_ctx* shutdown)
 {
   t_queues* queues = malloc(sizeof(t_queues));
   init_ready_queue(&(queues->ready), algorithm, multilevel_algorithms);
@@ -52,7 +52,8 @@ t_queues* init_queues(int algorithm, t_list* multilevel_algorithms, int quantum,
   init_blocking_list(&(queues->block));
   init_blocking_list(&(queues->susp_block));
   init_blocking_list(&(queues->susp_ready));
-  queues->process_counter = init_counter_processes(km_socket);
+  queues->shutdown = shutdown;
+  queues->process_counter = init_counter_processes(km_socket, shutdown);
   queues->routines.thread_counter = create_counter();
   queues->routines.syscall_counter = create_counter();
   mtx_init(&(queues->routines.routine_mutex), mtx_plain);
@@ -329,7 +330,8 @@ static void transition_to_exit(t_pcb* pcb, t_queues* queues, int reason)
   if (reason != PER_SYSTEM_SHUTDOWN && reason != PER_INVALID_PRIORITY)
   {
     bool run_resumption_routine = process_size(queues, pcb->pid) > 0;
-    if (notify_terminate_process(queues->km_socket, pcb->pid) &&
+    if (notify_terminate_process(queues->km_socket, queues->shutdown,
+                                 pcb->pid) &&
         run_resumption_routine)
     {
       create_resumption_routine_thread(queues);
@@ -412,7 +414,7 @@ static bool notify_new_process(t_queues* queues, char* instructions_file,
 
   if (!ret)
   {
-    close_kernel_scheduler(SR_KERNEL_MEMORY_SEND_ERROR);
+    close_kernel_scheduler(queues->shutdown, SR_KERNEL_MEMORY_SEND_ERROR);
     socket_mutex_unlock(queues->km_socket);
     return false;
   }

@@ -4,6 +4,7 @@
 
 #include "kernel_scheduler/connections/kernel_memory.h"
 #include "kernel_scheduler/scheduler/queues.h"
+#include "kernel_scheduler/shutdown.h"
 #include "kernel_scheduler/syscalls/mutex.h"
 #include "utils/collections/list.h"
 #include "utils/config.h"
@@ -35,6 +36,7 @@ typedef struct
   t_mutex_list* mutex_list;
   t_queues* queues;
   t_connection_check_thread* connection_check_thread_data;
+  t_shutdown_ctx shutdown;
 } t_kernel_scheduler;
 
 /**

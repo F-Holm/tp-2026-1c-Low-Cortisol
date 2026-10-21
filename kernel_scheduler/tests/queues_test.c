@@ -6,6 +6,7 @@
 #include <stdlib.h>
 
 #include "kernel_scheduler/domain/pcb.h"
+#include "kernel_scheduler/shutdown.h"
 #include "support.h"
 #include "utils/collections/list.h"
 #include "utils/log.h"
@@ -30,9 +31,11 @@ Test(ks_queues, init_queues_builds_a_working_full_lifecycle)
 {
   t_log* logger = ks_quiet_logger();
   t_socket* km_socket = ks_dead_socket_with_mutex();
+  t_shutdown_ctx ctx;
+  init_shutdown(&ctx, NULL, logger, km_socket);
 
   t_queues* queues =
-      init_queues(SA_FIFO, NULL, 0, false, logger, km_socket, 1000);
+      init_queues(SA_FIFO, NULL, 0, false, logger, km_socket, 1000, &ctx);
 
   cr_assert_not_null(queues);
   cr_assert_eq(queues->logger, logger);
