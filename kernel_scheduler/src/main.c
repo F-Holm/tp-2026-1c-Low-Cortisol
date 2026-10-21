@@ -18,7 +18,6 @@ int main(int argc, char* argv[])
   // Start the module
   if (!start_module(&resources, config_path))
   {
-    close_module_error(&resources);
     return EXIT_FAILURE;
   }
 

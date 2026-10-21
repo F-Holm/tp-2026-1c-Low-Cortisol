@@ -35,7 +35,7 @@ bool start_module(t_kernel_scheduler* resources, char* config_path)
   resources->logger = start_logger(resources->config_vars.log_level);
   if (resources->logger == NULL)
   {
-    return false;
+    goto fail_close_config;
   }
 
   // Socket Kernel Memory
@@ -44,7 +44,7 @@ bool start_module(t_kernel_scheduler* resources, char* config_path)
       resources->config_vars.kernel_memory_port, resources->logger);
   if (resources->socket_kernel_memory == NULL)
   {
-    return false;
+    goto fail_close_logger;
   }
 
   // Create server socket
@@ -52,13 +52,21 @@ bool start_module(t_kernel_scheduler* resources, char* config_path)
       resources->config_vars.server_port, resources->logger);
   if (resources->socket_server == NULL)
   {
-    return false;
+    goto fail_close_km_socket;
   }
 
   resources->shutdown =
       init_shutdown(resources->socket_server, resources->logger,
                     resources->socket_kernel_memory);
   return true;
+
+fail_close_km_socket:
+  socket_destroy(resources->socket_kernel_memory);
+fail_close_logger:
+  log_destroy(resources->logger);
+fail_close_config:
+  close_config(&(resources->config_vars), resources->config);
+  return false;
 }
 
 void init_scheduler_resources(t_kernel_scheduler* resources)
@@ -74,21 +82,6 @@ void init_scheduler_resources(t_kernel_scheduler* resources)
       resources->config_vars.rr_quantum, resources->config_vars.preemption,
       resources->logger, resources->socket_kernel_memory,
       resources->config_vars.suspension_timeout, resources->shutdown);
-}
-
-void close_module_error(t_kernel_scheduler* resources)
-{
-  destroy_shutdown(resources->shutdown);
-  socket_destroy(resources->socket_server);
-  socket_destroy(resources->socket_kernel_memory);
-  if (resources->logger != NULL)
-  {
-    log_destroy(resources->logger);
-  }
-  if (resources->config != NULL)
-  {
-    close_config(&(resources->config_vars), resources->config);
-  }
 }
 
 void close_module(t_kernel_scheduler* resources)

@@ -42,16 +42,13 @@ typedef struct
 /**
  * @brief Loads the config, starts the logger, connects to Kernel Memory and
  *        opens the listening server socket.
- * @return false if any step fails.
+ * @return false if any step fails, after releasing whatever it had managed
+ *         to initialize so far.
  */
 bool start_module(t_kernel_scheduler* resources, char* config_path);
 
 /** @brief Initializes the mutex list and the scheduler's queues. */
 void init_scheduler_resources(t_kernel_scheduler* resources);
-
-/** @brief Releases whatever @p resources managed to initialize before a
- *         startup failure. */
-void close_module_error(t_kernel_scheduler* resources);
 
 /** @brief Releases every resource on a normal shutdown. */
 void close_module(t_kernel_scheduler* resources);
