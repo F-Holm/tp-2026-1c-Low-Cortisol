@@ -12,15 +12,19 @@
 
 static int watch_sockets(void* args);
 static void check_all_sockets(t_watchdog* watchdog);
+static t_socket* element_socket(t_watchdog* watchdog, void* element);
 static bool ping_socket(t_socket* socket);
 
-t_watchdog* watchdog_start(t_list* sockets, mtx_t* sockets_mutex,
+t_watchdog* watchdog_start(t_list* sockets,
+                           t_socket* (*get_socket)(void* element),
+                           mtx_t* sockets_mutex,
                            unsigned long cycle_interval_ms,
                            void (*on_disconnected)(void* arg),
                            void* callback_arg)
 {
   t_watchdog* watchdog = malloc(sizeof(t_watchdog));
   watchdog->sockets = sockets;
+  watchdog->get_socket = get_socket;
   watchdog->sockets_mutex = sockets_mutex;
   watchdog->cycle_interval_ms = cycle_interval_ms;
   watchdog->on_disconnected = on_disconnected;
@@ -68,8 +72,8 @@ static void check_all_sockets(t_watchdog* watchdog)
   t_list_iterator* iterator = list_iterator_create(watchdog->sockets);
   while (list_iterator_has_next(iterator))
   {
-    t_socket* socket = list_iterator_next(iterator);
-    if (!ping_socket(socket))
+    void* element = list_iterator_next(iterator);
+    if (!ping_socket(element_socket(watchdog, element)))
     {
       watchdog->on_disconnected(watchdog->callback_arg);
     }
@@ -80,6 +84,12 @@ static void check_all_sockets(t_watchdog* watchdog)
   {
     mtx_unlock(watchdog->sockets_mutex);
   }
+}
+
+static t_socket* element_socket(t_watchdog* watchdog, void* element)
+{
+  return watchdog->get_socket != NULL ? watchdog->get_socket(element)
+                                      : (t_socket*)element;
 }
 
 // Locked with the socket's own mutex, so a ping never races a real

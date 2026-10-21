@@ -87,7 +87,7 @@ Test(watchdog, pings_every_socket_in_the_list)
   list_add(sockets, client2);
 
   t_watchdog* watchdog =
-      watchdog_start(sockets, NULL, 20, noop_on_disconnected, NULL);
+      watchdog_start(sockets, NULL, NULL, 20, noop_on_disconnected, NULL);
   cr_assert_not_null(watchdog);
 
   cr_assert_eq(receive_op_code(server1), OP_CONNECTION_CHECK);
@@ -112,8 +112,8 @@ Test(watchdog, does_not_call_on_disconnected_while_every_socket_stays_alive)
   list_add(sockets, client);
 
   atomic_int disconnections = 0;
-  t_watchdog* watchdog =
-      watchdog_start(sockets, NULL, 10, count_disconnection, &disconnections);
+  t_watchdog* watchdog = watchdog_start(sockets, NULL, NULL, 10,
+                                        count_disconnection, &disconnections);
   cr_assert_not_null(watchdog);
 
   /* Block for three full pings instead of sleeping a guessed amount of
@@ -141,8 +141,8 @@ Test(watchdog, calls_on_disconnected_when_a_ping_fails)
   list_add(sockets, client);
 
   atomic_int disconnections = 0;
-  t_watchdog* watchdog =
-      watchdog_start(sockets, NULL, 20, count_disconnection, &disconnections);
+  t_watchdog* watchdog = watchdog_start(sockets, NULL, NULL, 20,
+                                        count_disconnection, &disconnections);
   cr_assert_not_null(watchdog);
 
   cr_assert(wait_until_at_least(&disconnections, 1, 2000));
@@ -162,8 +162,8 @@ Test(watchdog, stops_calling_back_once_destroyed)
   list_add(sockets, client);
 
   atomic_int disconnections = 0;
-  t_watchdog* watchdog =
-      watchdog_start(sockets, NULL, 10, count_disconnection, &disconnections);
+  t_watchdog* watchdog = watchdog_start(sockets, NULL, NULL, 10,
+                                        count_disconnection, &disconnections);
   cr_assert_not_null(watchdog);
   cr_assert(wait_until_at_least(&disconnections, 1, 2000));
 
@@ -191,8 +191,8 @@ Test(watchdog, detects_the_dead_socket_when_mixed_in_with_alive_ones)
   list_add(sockets, dead_client);
 
   atomic_int disconnections = 0;
-  t_watchdog* watchdog =
-      watchdog_start(sockets, NULL, 20, count_disconnection, &disconnections);
+  t_watchdog* watchdog = watchdog_start(sockets, NULL, NULL, 20,
+                                        count_disconnection, &disconnections);
   cr_assert_not_null(watchdog);
 
   /* The dead socket gets flagged every pass -- combined with the zero seen
@@ -217,8 +217,8 @@ Test(watchdog, works_with_an_empty_socket_list)
   t_list* sockets = list_create();
 
   atomic_int disconnections = 0;
-  t_watchdog* watchdog =
-      watchdog_start(sockets, NULL, 10, count_disconnection, &disconnections);
+  t_watchdog* watchdog = watchdog_start(sockets, NULL, NULL, 10,
+                                        count_disconnection, &disconnections);
   cr_assert_not_null(watchdog);
 
   time_sleep_ms(50);  // a handful of cycles over an empty list; must not crash
@@ -239,8 +239,8 @@ Test(watchdog, still_pings_when_given_a_sockets_list_mutex)
   t_list* sockets = list_create();
   list_add(sockets, client);
 
-  t_watchdog* watchdog =
-      watchdog_start(sockets, &sockets_mutex, 20, noop_on_disconnected, NULL);
+  t_watchdog* watchdog = watchdog_start(sockets, NULL, &sockets_mutex, 20,
+                                        noop_on_disconnected, NULL);
   cr_assert_not_null(watchdog);
 
   cr_assert_eq(receive_op_code(server), OP_CONNECTION_CHECK);

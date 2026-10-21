@@ -26,8 +26,14 @@
 /** @brief A connection-check thread watching every socket in @p sockets. */
 typedef struct
 {
-  t_list* sockets;       // t_socket* elements to periodically ping; each one
-                         // must have been created with with_mutex=true
+  t_list* sockets;  // elements to periodically ping -- t_socket* themselves
+                    // if get_socket is NULL, or whatever get_socket expects
+                    // otherwise; each socket must have been created with
+                    // with_mutex=true
+  t_socket* (*get_socket)(void* element);  // extracts the t_socket* to ping
+                                           // from a @p sockets element; NULL
+                                           // if elements already are
+                                           // t_socket*
   mtx_t* sockets_mutex;  // optional mutex guarding @p sockets itself (e.g. if
                          // another thread adds/removes elements concurrently);
                          // NULL if no such mutex is needed
@@ -44,12 +50,14 @@ typedef struct
 
 /**
  * @brief Starts the watchdog thread: repeatedly walks @p sockets, pinging
- *        each one, then sleeps @p cycle_interval_ms before the next pass.
- *        Calls @p on_disconnected (with @p callback_arg) for every ping that
- *        fails. @p sockets_mutex is locked/unlocked around each pass if not
- *        NULL.
+ *        each one (through @p get_socket if not NULL), then sleeps
+ *        @p cycle_interval_ms before the next pass. Calls @p on_disconnected
+ *        (with @p callback_arg) for every ping that fails. @p sockets_mutex
+ *        is locked/unlocked around each pass if not NULL.
  */
-t_watchdog* watchdog_start(t_list* sockets, mtx_t* sockets_mutex,
+t_watchdog* watchdog_start(t_list* sockets,
+                           t_socket* (*get_socket)(void* element),
+                           mtx_t* sockets_mutex,
                            unsigned long cycle_interval_ms,
                            void (*on_disconnected)(void* arg),
                            void* callback_arg);
