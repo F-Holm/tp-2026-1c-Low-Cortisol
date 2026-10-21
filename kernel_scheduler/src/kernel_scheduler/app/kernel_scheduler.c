@@ -27,25 +27,33 @@ bool start_module(t_kernel_scheduler* resources, char* config_path)
   // Config
   resources->config = start_config(config_path, &(resources->config_vars));
   if (resources->config == NULL)
+  {
     return false;
+  }
 
   // Logger
   resources->logger = start_logger(resources->config_vars.log_level);
   if (resources->logger == NULL)
+  {
     return false;
+  }
 
   // Socket Kernel Memory
   resources->socket_kernel_memory = start_connection_kernel_memory(
       resources->config_vars.kernel_memory_ip,
       resources->config_vars.kernel_memory_port, resources->logger);
   if (resources->socket_kernel_memory == NULL)
+  {
     return false;
+  }
 
   // Create server socket
   resources->socket_server = create_socket_server(
       resources->config_vars.server_port, resources->logger);
   if (resources->socket_server == NULL)
+  {
     return false;
+  }
 
   init_shutdown(resources->socket_server, resources->logger,
                 resources->socket_kernel_memory);
@@ -120,9 +128,13 @@ static t_config* start_config(char* config_path, t_config_vars* config_vars)
     {
       int* algorithm = malloc(sizeof(int));
       if (strcmp(array_str[i], SCHEDULING_ALGORITHMS[SA_FIFO]) == 0)
+      {
         *algorithm = SA_FIFO;
+      }
       else if (strcmp(array_str[i], SCHEDULING_ALGORITHMS[SA_RR]) == 0)
+      {
         *algorithm = SA_RR;
+      }
       list_add(config_vars->multilevel_algorithms, algorithm);
       i++;
     }

@@ -198,7 +198,9 @@ Test(ms_handle_new_cpu, accepts_a_cpu_and_spawns_its_client_thread)
 
   mtx_lock(&socket_list_mutex);
   while (!list_is_empty(socket_list))
+  {
     cnd_wait(&listen_done_cond, &socket_list_mutex);
+  }
   mtx_unlock(&socket_list_mutex);
 
   socket_destroy(cpu_fd);
@@ -330,7 +332,9 @@ static void handle_cpu_client_fixture_terminate(t_handle_cpu_client_fixture* fx)
 
   mtx_lock(&fx->socket_list_mutex);
   while (!list_is_empty(fx->socket_list))
+  {
     cnd_wait(&fx->listen_done_cond, &fx->socket_list_mutex);
+  }
   mtx_unlock(&fx->socket_list_mutex);
 }
 

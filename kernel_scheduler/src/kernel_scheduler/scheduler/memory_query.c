@@ -65,7 +65,9 @@ int process_size_no_logger(t_queues* queues, uint32_t pid)
 static int receive_space(t_queues* queues)
 {
   if (RECEIVE_KM_OPCODE(queues, OP_FREE_MEMORY) == OP_CODE_ERROR)
+  {
     return -1;
+  }
 
   int space;
   int* aux = receive_buffer(&space, queues->km_socket);
@@ -78,7 +80,9 @@ static int receive_space(t_queues* queues)
 static int receive_size(t_queues* queues)
 {
   if (RECEIVE_KM_OPCODE(queues, OP_PROCESS_SIZE) == OP_CODE_ERROR)
+  {
     return -1;
+  }
 
   int space;
   int* aux = receive_buffer(&space, queues->km_socket);
@@ -91,7 +95,9 @@ static int receive_size(t_queues* queues)
 static int receive_size_no_logger(t_queues* queues)
 {
   if (RECEIVE_KM_OPCODE(queues, OP_PROCESS_SIZE) == OP_CODE_ERROR)
+  {
     return -1;
+  }
 
   int space;
   int* aux = receive_buffer(&space, queues->km_socket);

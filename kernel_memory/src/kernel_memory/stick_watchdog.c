@@ -85,7 +85,9 @@ static void notify_scheduler_memory_corrupted(t_kernel_memory_data* kernel_data,
 {
   t_socket* socket_scheduler = atomic_load(&(kernel_data->socket_scheduler));
   if (watchdog->already_notified || socket_scheduler == NULL)
+  {
     return;
+  }
   watchdog->already_notified = true;
 
   log_warning(kernel_data->logger,

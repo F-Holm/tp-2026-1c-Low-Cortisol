@@ -17,7 +17,9 @@ int receive_op_code(t_socket* socket)
 {
   int op_code;
   if (socket_receive(socket, &op_code, sizeof(int)))
+  {
     return op_code;
+  }
   else
   {
     return OP_CODE_ERROR;
@@ -97,8 +99,12 @@ int handshake_msg_to_module_id(char* handshake_msg)
   int module_count = 6;
 
   for (int i = 0; i < module_count; i++)
+  {
     if (strcmp(handshake_msg, HANDSHAKE_MSG[i]) == 0)
+    {
       return i;
+    }
+  }
   return MID_MODULE_ID_ERROR;
 }
 
@@ -110,7 +116,9 @@ bool send_handshake(int module_id, t_socket* socket)
 int receive_handshake(t_socket* socket)
 {
   if (receive_op_code(socket) != OP_HANDSHAKE)
+  {
     return MID_MODULE_ID_ERROR;
+  }
   char* msg = receive_string(socket);
   int module_id = handshake_msg_to_module_id(msg);
   free(msg);

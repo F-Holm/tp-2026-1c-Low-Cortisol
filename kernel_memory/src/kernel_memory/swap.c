@@ -213,7 +213,9 @@ static bool resume_block(t_block_data* block, uint32_t pid, int block_size,
         scheduler_data->main_memory, scheduler_data->socket_scheduler,
         scheduler_data->logger);
     if (!regen_ok)
+    {
       return false;
+    }
   }
   char* content = read_block_from_swap(block->block_number, swap_data);
   if (content == NULL)
@@ -260,7 +262,9 @@ static int find_free_block(t_swap_data* swap_data)
   {
     t_block_data* block = list_get(swap_data->block_list, i);
     if (block->pid == -1)
+    {
       return i;
+    }
   }
   log_debug(swap_data->logger, "No free blocks in swap");
   return -1;

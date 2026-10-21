@@ -99,10 +99,12 @@ void create_segment(uint32_t id, uint32_t pid, int size,
 {
   // Segmentation fault check
   if (size > main_memory->max_segment_size)
+  {
     send_string(OP_SEGMENT_SIZE_EXCEEDED,
                 "The requested size exceeds "
                 "the max segment size.",
                 socket_scheduler);
+  }
 
   // Check available memory
   mtx_lock(main_memory->main_memory_mutex);
@@ -150,11 +152,15 @@ static t_hole hole_selection_algorithm(
       {
         case AS_BEST:
           if (chosen_hole.size == -1 || chosen_hole.size > current_hole->size)
+          {
             chosen_hole = *current_hole;
+          }
           break;
         case AS_WORST:
           if (chosen_hole.size == -1 || chosen_hole.size < current_hole->size)
+          {
             chosen_hole = *current_hole;
+          }
           break;
       }
     }

@@ -25,7 +25,9 @@ static int km_stub_thread(void* arg)
   struct km_stub* stub = arg;
   t_socket* client = socket_accept(stub->listen_fd, false);
   if (client < 0)
+  {
     return 0;
+  }
   stub->received_mid = receive_handshake(client);
   send_handshake(stub->announce_as, client);
   socket_destroy(client);

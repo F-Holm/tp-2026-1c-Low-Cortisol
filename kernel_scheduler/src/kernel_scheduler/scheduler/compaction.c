@@ -108,7 +108,9 @@ bool fits_process(t_queues* queues, t_pcb* process)
   int op_code = RECEIVE_KM_OPCODE(queues, OP_RESUME_SUSPENSION_OK,
                                   OP_RESUME_SUSPENSION_FAILED);
   if (op_code == OP_CODE_ERROR)
+  {
     return false;
+  }
 
   free(receive_string(queues->km_socket));
   return op_code == OP_RESUME_SUSPENSION_OK;
@@ -230,7 +232,9 @@ static void create_thread_unlock_queue_ready(t_queues* queues)
 static bool compaction_finished(t_queues* queues)
 {
   if (RECEIVE_KM_OPCODE(queues, OP_COMPACTION_DONE) == OP_CODE_ERROR)
+  {
     return false;
+  }
 
   free(receive_string(queues->km_socket));
   return true;

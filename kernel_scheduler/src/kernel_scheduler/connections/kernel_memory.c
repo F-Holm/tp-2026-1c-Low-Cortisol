@@ -20,7 +20,9 @@ t_socket* start_connection_kernel_memory(char* ip, char* port, t_log* logger)
 {
   t_socket* km_socket = connect_kernel_memory(ip, port, logger);
   if (km_socket == NULL)
+  {
     return NULL;
+  }
 
   if (!handshake_kernel_memory(km_socket, logger))
   {

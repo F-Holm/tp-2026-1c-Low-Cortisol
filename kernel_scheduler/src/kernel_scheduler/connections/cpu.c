@@ -84,12 +84,16 @@ bool handle_new_cpu(t_socket* socket_cpu, t_list* list_sockets_cpu,
 {
   // Handshake with CPU
   if (!respond_handshake(socket_cpu, MID_KERNEL_SCHEDULER, logger))
+  {
     return false;
+  }
 
   // Get ID
   char* id_cpu = get_id_cpu(socket_cpu, logger);
   if (id_cpu == NULL)
+  {
     return false;
+  }
 
   // Initialize cpu thread data
   t_cpu_thread* data_thread_cpu = init_data_thread_cpu(
@@ -122,7 +126,9 @@ void close_cpu(t_list* list_sockets_cpu, mtx_t* mutex_list_sockets_cpu,
   mtx_lock(mutex_list_sockets_cpu);
   list_iterate(list_sockets_cpu, (void*)iterator_shutdown);
   while (!list_is_empty(list_sockets_cpu))
+  {
     cnd_wait(cpu_done_cond, mutex_list_sockets_cpu);
+  }
   mtx_unlock(mutex_list_sockets_cpu);
   list_destroy(list_sockets_cpu);
   cnd_destroy(cpu_done_cond);
@@ -145,7 +151,9 @@ static void close_thread_cpu(t_cpu_thread* data)
   mtx_lock(data->socket_list_mutex);
   list_remove_element(data->socket_list, &(data->socket_fd));
   if (list_is_empty(data->socket_list))
+  {
     cnd_signal(data->done_cond);
+  }
   mtx_unlock(data->socket_list_mutex);
   socket_destroy(data->socket_fd);
   free(data->id);

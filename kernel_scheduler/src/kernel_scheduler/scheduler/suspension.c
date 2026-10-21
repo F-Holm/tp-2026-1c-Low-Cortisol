@@ -244,7 +244,9 @@ static bool receive_suspend_process_response(t_queues* queues)
   int op_code =
       RECEIVE_KM_OPCODE(queues, OP_SUSPENSION_OK, OP_SUSPENSION_FAILED);
   if (op_code == OP_CODE_ERROR)
+  {
     return false;
+  }
 
   free(receive_string(queues->km_socket));
   return op_code == OP_SUSPENSION_OK;

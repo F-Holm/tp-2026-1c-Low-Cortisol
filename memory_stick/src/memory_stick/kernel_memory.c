@@ -40,7 +40,9 @@ t_socket* connect_to_kernel_memory(char* ip, char* port, char* size,
 {
   t_socket* socket_km = connect_km(ip, port, logger);
   if (socket_km == NULL)
+  {
     return NULL;
+  }
 
   if (!handshake_km(socket_km, logger) || !send_size(socket_km, size, logger))
   {

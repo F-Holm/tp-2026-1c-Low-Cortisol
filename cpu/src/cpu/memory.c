@@ -31,9 +31,13 @@ uint32_t mmu(t_cpu* cpu, t_context* context, uint32_t logical_address,
   if (offset + size > segment->size)
   {
     if (notify_seg_fault(cpu, pid))
+    {
       return INVALID_ADDRESS;
+    }
     else
+    {
       return INVALID_ADDRESS - 1;
+    }
   }
 
   return segment->base + offset;
@@ -72,7 +76,9 @@ t_memory_stick_info* find_stick(t_cpu* cpu, uint32_t physical_address)
     t_memory_stick_info* stick = list_get(cpu->memory_sticks, i);
     if (physical_address >= stick->offset &&
         physical_address < stick->offset + stick->size)
+    {
       return stick;
+    }
   }
   return NULL;
 }
@@ -98,12 +104,18 @@ void* read_memory(t_cpu* cpu, uint32_t physical_address, uint32_t size)
 
     // Use this stick or move on to the next one.
     if (available_bytes < (size - read_bytes))
+    {
       bytes_to_read = available_bytes;
+    }
     else
+    {
       bytes_to_read = size - read_bytes;
+    }
 
     if (!request_read(cpu, stick, address_in_stick, bytes_to_read))
+    {
       return NULL;
+    }
 
     char* partial_read = receive_read_response(cpu, stick);
 
@@ -180,16 +192,24 @@ bool write_memory(t_cpu* cpu, uint32_t physical_address, void* data_to_write,
     uint32_t bytes_to_write;
 
     if (available_bytes < (size - written_bytes))
+    {
       bytes_to_write = available_bytes;
+    }
     else
+    {
       bytes_to_write = size - written_bytes;
+    }
 
     if (!request_write(cpu, stick, address_in_stick,
                        data_to_write + written_bytes, bytes_to_write))
+    {
       return false;
+    }
 
     if (!receive_write_response(cpu, stick))
+    {
       return false;
+    }
 
     written_bytes += bytes_to_write;
   }

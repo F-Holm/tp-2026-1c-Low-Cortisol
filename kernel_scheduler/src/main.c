@@ -9,7 +9,9 @@ int main(int argc, char* argv[])
 
   // args
   if (argc != 3)
+  {
     return EXIT_FAILURE;
+  }
   char* config_path = argv[1];
   char* initial_process_path = argv[2];
 

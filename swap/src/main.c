@@ -12,11 +12,15 @@ int main(int argc, char* argv[])
   t_swap swap = {0};
 
   if (argc != 2)
+  {
     return EXIT_FAILURE;
+  }
   char* config_path = argv[1];
   t_config* config = config_create(config_path);
   if (config == NULL)
+  {
     return EXIT_FAILURE;
+  }
 
   if (!init_config(&swap, config))
   {

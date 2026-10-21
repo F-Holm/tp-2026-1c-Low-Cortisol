@@ -76,7 +76,9 @@ bool listen_kernel_memory(t_cpu* cpu)
 
       case OP_PACKET:
         if (!connect_memory_stick(cpu))
+        {
           return false;
+        }
         break;
 
       case OP_CODE_ERROR:

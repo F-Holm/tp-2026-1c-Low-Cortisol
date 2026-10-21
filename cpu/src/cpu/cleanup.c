@@ -18,7 +18,9 @@ void destroy_instruction(t_instruction* instruction)
 {
   free(instruction->name);
   for (int i = 0; i < instruction->parameter_count; i++)
+  {
     free(instruction->parameters[i]);
+  }
   free(instruction);
 }
 
@@ -32,16 +34,22 @@ void destroy_memory_stick(void* value)
 void close_module(t_cpu* cpu)
 {
   if (cpu->memory_sticks != NULL)
+  {
     list_destroy_and_destroy_elements(cpu->memory_sticks, destroy_memory_stick);
+  }
 
   socket_destroy(cpu->socket_kernel_memory);
   socket_destroy(cpu->socket_kernel_scheduler);
 
   if (cpu->config != NULL)
+  {
     config_destroy(cpu->config);
+  }
 
   if (cpu->handlers != NULL)
+  {
     dictionary_destroy(cpu->handlers);
+  }
 
   if (cpu->logger != NULL)
   {

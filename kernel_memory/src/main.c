@@ -14,7 +14,9 @@
 int main(int argc, char* argv[])
 {
   if (argc != 2)
+  {
     return EXIT_FAILURE;
+  }
   char* config_path = argv[1];
 
   t_config* config = init_config(config_path);

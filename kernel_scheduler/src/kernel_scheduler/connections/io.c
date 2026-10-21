@@ -61,11 +61,15 @@ bool handle_new_io(t_io io[3], t_socket* socket_fd, t_queues* queues,
                    bool priority_active)
 {
   if (!respond_handshake(socket_fd, MID_KERNEL_SCHEDULER, queues->logger))
+  {
     return false;
+  }
 
   int io_type = get_io_type(socket_fd, queues->logger);
   if (io_type == -1)
+  {
     return false;
+  }
 
   if (io[io_type].socket_io != NULL)
   {
@@ -325,7 +329,9 @@ static void close_thread_io(t_io* io)
 static bool chat_km_stdin(t_io* io_in)
 {
   if (RECEIVE_KM_OPCODE(io_in->queues, OP_STDIN_RESPONSE) == OP_CODE_ERROR)
+  {
     return false;
+  }
 
   free(receive_string(io_in->queues->km_socket));
   return true;
@@ -508,11 +514,17 @@ static int get_io_type(t_socket* socket_fd, t_log* logger)
   int io_type;
 
   if (strcmp(buffer, IO_TYPE_NAMES[IO_STDIN]) == 0)
+  {
     io_type = IO_STDIN;
+  }
   else if (strcmp(buffer, IO_TYPE_NAMES[IO_STDOUT]) == 0)
+  {
     io_type = IO_STDOUT;
+  }
   else if (strcmp(buffer, IO_TYPE_NAMES[IO_SLEEP]) == 0)
+  {
     io_type = IO_SLEEP;
+  }
   else
   {
     log_error(logger, "Invalid IO type: %s", buffer);

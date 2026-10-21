@@ -187,7 +187,9 @@ bool ks_file_logger_contains(t_ks_file_logger* file_logger, const char* text)
   while (fgets(line, sizeof(line), file) != NULL)
   {
     if (strstr(line, text) != NULL)
+    {
       found = true;
+    }
   }
   fclose(file);
   return found;

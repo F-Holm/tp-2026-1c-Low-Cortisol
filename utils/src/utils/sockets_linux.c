@@ -23,7 +23,9 @@ t_socket* socket_create(t_socket_kind kind, char* ip, char* port,
                         bool with_mutex)
 {
   if (kind == SOCKET_KIND_CLIENT)
+  {
     return create_client(ip, port, with_mutex);
+  }
   return create_server(port, with_mutex);
 }
 
@@ -35,26 +37,34 @@ t_socket* socket_accept(t_socket* listener, bool with_mutex)
 bool socket_send(t_socket* socket, const void* data, int size)
 {
   if (socket == NULL || !socket_handle_is_valid(socket->handle))
+  {
     return false;
+  }
   return send(socket->handle, data, size, MSG_NOSIGNAL) > 0;
 }
 
 bool socket_receive(t_socket* socket, void* data, int size)
 {
   if (socket == NULL || !socket_handle_is_valid(socket->handle))
+  {
     return false;
+  }
   return recv(socket->handle, data, size, MSG_WAITALL) > 0;
 }
 
 bool socket_get_peer_ip(t_socket* socket, char* ip, int size)
 {
   if (socket == NULL || !socket_handle_is_valid(socket->handle))
+  {
     return false;
+  }
 
   struct sockaddr_in address;
   socklen_t length = sizeof(address);
   if (getpeername(socket->handle, (struct sockaddr*)&address, &length) != 0)
+  {
     return false;
+  }
 
   return inet_ntop(AF_INET, &address.sin_addr, ip, size) != NULL;
 }
@@ -62,12 +72,16 @@ bool socket_get_peer_ip(t_socket* socket, char* ip, int size)
 int socket_get_local_port(t_socket* socket)
 {
   if (socket == NULL || !socket_handle_is_valid(socket->handle))
+  {
     return -1;
+  }
 
   struct sockaddr_in address;
   socklen_t length = sizeof(address);
   if (getsockname(socket->handle, (struct sockaddr*)&address, &length) != 0)
+  {
     return -1;
+  }
 
   return ntohs(address.sin_port);
 }
@@ -75,7 +89,9 @@ int socket_get_local_port(t_socket* socket)
 void socket_shutdown(t_socket* socket, t_socket_shutdown_mode mode)
 {
   if (socket == NULL || !socket_handle_is_valid(socket->handle))
+  {
     return;
+  }
 
   static const int HOW[] = {SHUT_RD, SHUT_WR, SHUT_RDWR};
   shutdown(socket->handle, HOW[mode]);
@@ -84,7 +100,9 @@ void socket_shutdown(t_socket* socket, t_socket_shutdown_mode mode)
 void socket_close(t_socket* socket)
 {
   if (socket == NULL || !socket_handle_is_valid(socket->handle))
+  {
     return;
+  }
   close(socket->handle);
   socket->handle = INVALID_HANDLE;
 }
@@ -92,7 +110,9 @@ void socket_close(t_socket* socket)
 void socket_destroy(t_socket* socket)
 {
   if (socket == NULL)
+  {
     return;
+  }
   socket_close(socket);
   mtx_destroy(&socket->mutex);
   free(socket);
@@ -101,14 +121,18 @@ void socket_destroy(t_socket* socket)
 void socket_mutex_lock(t_socket* socket)
 {
   if (socket == NULL || !socket->has_mutex)
+  {
     return;
+  }
   mtx_lock(&socket->mutex);
 }
 
 void socket_mutex_unlock(t_socket* socket)
 {
   if (socket == NULL || !socket->has_mutex)
+  {
     return;
+  }
   mtx_unlock(&socket->mutex);
 }
 
@@ -120,7 +144,9 @@ static bool socket_handle_is_valid(t_socket_handle handle)
 static t_socket* wrap_handle(t_socket_handle handle, bool with_mutex)
 {
   if (!socket_handle_is_valid(handle))
+  {
     return NULL;
+  }
 
   t_socket* socket = malloc(sizeof(t_socket));
   socket->handle = handle;
@@ -140,7 +166,9 @@ static t_socket* create_client(char* ip, char* port, bool with_mutex)
   hints.ai_flags = AI_PASSIVE;
 
   if (getaddrinfo(ip, port, &hints, &server_info) != 0)
+  {
     return NULL;
+  }
 
   t_socket_handle handle =
       socket(server_info->ai_family, server_info->ai_socktype,

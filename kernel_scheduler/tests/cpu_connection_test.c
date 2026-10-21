@@ -87,7 +87,9 @@ static t_socket* wire_km_for_exit(t_queues* queues)
   t_socket* stub_socket = queues->km_socket;
   queues->km_socket = km_client_fd;
   if (queues->process_counter != NULL)
+  {
     queues->process_counter->km_socket = km_client_fd;
+  }
   socket_destroy(stub_socket);
   return km_server_fd;
 }

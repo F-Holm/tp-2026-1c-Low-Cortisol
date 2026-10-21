@@ -118,7 +118,9 @@ Test(ks_km_reply, skips_any_number_of_new_memory_sticks)
 {
   t_fixture f = start_fixture();
   for (int i = 0; i < 500; i++)
+  {
     cr_assert(send_string(OP_NEW_MEMORY_STICK, "a stick connected", f.km_peer));
+  }
   cr_assert(send_string(OP_PROCESS_STARTED, "started", f.km_peer));
 
   cr_assert_eq(RECEIVE_KM_OPCODE(f.queues, OP_PROCESS_STARTED),

@@ -103,7 +103,9 @@ static bool has_space(t_syscall_memory* mem_alloc, t_queues* queues)
 static bool response_km_mem_free(t_queues* queues)
 {
   if (RECEIVE_KM_OPCODE(queues, OP_MEMORY_FREED) == OP_CODE_ERROR)
+  {
     return false;
+  }
 
   free(receive_string(queues->km_socket));
   return true;
