@@ -144,7 +144,7 @@ Test(ks_km_connection, the_watchdog_thread_stops_when_asked_to)
   t_log* logger = ks_quiet_logger();
   t_shutdown_ctx* ctx = init_shutdown(NULL, logger, km_socket);
 
-  t_connection_check_thread* data =
+  t_watchdog* data =
       start_thread_check_connection_kernel_memory(logger, km_socket, ctx);
   cr_assert_not_null(data);
 

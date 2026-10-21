@@ -35,7 +35,7 @@ typedef struct
   t_config_vars config_vars;
   t_mutex_list* mutex_list;
   t_queues* queues;
-  t_connection_check_thread* connection_check_thread_data;
+  t_watchdog* connection_check_thread_data;
   t_shutdown_ctx* shutdown;
 } t_kernel_scheduler;
 
