@@ -80,11 +80,11 @@ t_extended_bool handler_mov_in(t_cpu* cpu, t_context* context,
   }
 
   void* read_value = read_memory(cpu, phys_addr, sizeof(uint32_t));
-  uint32_t value = *(uint32_t*)read_value;
   if (!read_value)
   {
     return EB_ERROR;
   }
+  uint32_t value = *(uint32_t*)read_value;
 
   free(read_value);
 
