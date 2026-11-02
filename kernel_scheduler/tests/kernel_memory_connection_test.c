@@ -155,3 +155,33 @@ Test(ks_km_connection, the_watchdog_thread_stops_when_asked_to)
   socket_destroy(km_socket);
   log_destroy(logger);
 }
+
+Test(ks_km_connection,
+     the_watchdog_shuts_the_scheduler_down_when_memory_is_gone, .timeout = 10.0)
+{
+  t_socket* server_fd;
+  t_socket* client_fd = ks_connected_pair_with_mutex(&server_fd);
+  /* every ping now fails; the closed peer lets close_kernel_scheduler's
+   * extra read return at once */
+  socket_shutdown(client_fd, SOCKET_SHUTDOWN_WRITE);
+  socket_destroy(server_fd);
+
+  char port[16];
+  t_socket* scheduler_server = ks_listen_ephemeral(port, sizeof(port));
+  t_log* logger = ks_quiet_logger();
+  t_shutdown_ctx* ctx = init_shutdown(scheduler_server, logger, client_fd);
+
+  t_watchdog* watchdog =
+      start_thread_check_connection_kernel_memory(logger, client_fd, ctx);
+  cr_assert_not_null(watchdog);
+
+  /* shutting down closes the scheduler's server socket, which is what
+   * unblocks its accept loop in the real module */
+  cr_assert_null(socket_accept(scheduler_server, false));
+
+  destroy_thread_check_connection_kernel_memory(watchdog);
+  destroy_shutdown(ctx);
+  socket_destroy(scheduler_server);
+  socket_destroy(client_fd);
+  log_destroy(logger);
+}
