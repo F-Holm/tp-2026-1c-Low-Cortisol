@@ -99,6 +99,7 @@ bool connect_to_kernel_memory(t_swap* swap, t_config* config)
   km_config->block_size = swap->block_size;
   sent_ok = send_buffer(OP_INFO_SWAP, (void*)km_config, config_size,
                         swap->socket_swap);
+  free(km_config);
 
   if (!sent_ok)
   {
@@ -106,7 +107,6 @@ bool connect_to_kernel_memory(t_swap* swap, t_config* config)
     close_swap(swap, config);
     return false;
   }
-  free(km_config);
 
   log_debug(swap->logger, "Reported SWAP geometry to Kernel Memory");
   return true;
