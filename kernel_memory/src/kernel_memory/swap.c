@@ -39,6 +39,8 @@ static bool suspend_segment(t_segment* segment, t_swap_data* swap_data,
 static bool resume_block(t_block_data* block, uint32_t pid, int block_size,
                          t_swap_data* swap_data,
                          t_scheduler_data* scheduler_data);
+static void release_process_blocks(uint32_t pid, t_swap_data* swap_data,
+                                   t_log* logger);
 
 void suspend_process(t_process* process_to_suspend,
                      t_scheduler_data* scheduler_data)
@@ -77,8 +79,12 @@ void suspend_process(t_process* process_to_suspend,
       }
       else
       {
+        // Every segment stays in memory, so the blocks the earlier ones
+        // already took in swap must not stay assigned to this process.
         list_iterator_destroy(iterator);
         list_destroy(segments_to_remove);
+        release_process_blocks(process_to_suspend->pid, swap_data,
+                               scheduler_data->logger);
         return;
       }
     }
@@ -357,6 +363,19 @@ static void remove_process_segments(t_list* segments_to_remove, uint32_t pid,
   }
   list_iterator_destroy(it);
   list_destroy(segments_to_remove);
+}
+
+static void release_process_blocks(uint32_t pid, t_swap_data* swap_data,
+                                   t_log* logger)
+{
+  for (int i = 0; i < list_size(swap_data->block_list); i++)
+  {
+    t_block_data* block = list_get(swap_data->block_list, i);
+    if (block->pid == pid)
+    {
+      remove_block_from_swap(i, swap_data, logger);
+    }
+  }
 }
 
 // RESUME PROCESS
