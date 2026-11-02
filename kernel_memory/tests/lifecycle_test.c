@@ -1,6 +1,7 @@
 #include <criterion/criterion.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <threads.h>
 #include <unistd.h>
 
@@ -127,4 +128,53 @@ Test(km_cleanup, free_cpu_data_closes_the_socket_and_frees_the_struct)
 
   cr_assert_eq(receive_op_code(peer), OP_CODE_ERROR);
   socket_destroy(peer);
+}
+
+Test(km_cleanup, every_free_helper_tolerates_a_null_argument)
+{
+  /* each must return without touching anything */
+  free_stick_data(nullptr);
+  free_scheduler_data(nullptr);
+  free_main_memory(nullptr);
+  free_kernel_memory_data(nullptr);
+}
+
+Test(km_cleanup, free_kernel_memory_data_tolerates_missing_lists)
+{
+  t_log* logger = km_quiet_logger();
+  t_kernel_memory_data* kernel_data =
+      init_kernel_memory_data(nullptr, nullptr, 0, 0, 1024, AS_WORST, logger);
+
+  /* as if start-up had failed before creating them */
+  list_destroy(kernel_data->connected_sticks);
+  kernel_data->connected_sticks = nullptr;
+  list_destroy(kernel_data->connected_cpus);
+  kernel_data->connected_cpus = nullptr;
+  list_destroy(kernel_data->processes);
+  kernel_data->processes = nullptr;
+
+  free_kernel_memory_data(kernel_data); /* must not crash */
+  log_destroy(logger);
+}
+
+Test(km_cleanup, free_kernel_memory_data_releases_every_process)
+{
+  t_log* logger = km_quiet_logger();
+  t_kernel_memory_data* kernel_data =
+      init_kernel_memory_data(nullptr, nullptr, 0, 0, 1024, AS_WORST, logger);
+
+  for (uint32_t pid = 1; pid <= 2; pid++)
+  {
+    t_process* process = calloc(1, sizeof(t_process));
+    process->pid = pid;
+    process->instruction_count = 1;
+    process->instructions = malloc(sizeof(char*));
+    process->instructions[0] = strdup("EXIT");
+    process->segments = list_create();
+    list_add(process->segments, km_make_segment(0, pid, 0, 16));
+    list_add(kernel_data->processes, process);
+  }
+
+  free_kernel_memory_data(kernel_data); /* leak-checked under valgrind */
+  log_destroy(logger);
 }
