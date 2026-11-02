@@ -1,9 +1,11 @@
 #include "cpu/kernel_memory_protocol.h"
 
 #include <criterion/criterion.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <threads.h>
 
 #include "cpu/cpu.h"
 #include "support.h"
@@ -146,5 +148,89 @@ Test(cpu_listen_kernel_memory,
 
   socket_destroy(client_fd);
   socket_destroy(server_fd);
+  log_destroy(cpu.logger);
+}
+
+/* ── listen_kernel_memory: stick announcements ─────────────────────────── */
+
+static void send_stick_announcement(t_socket* km_peer, const char* port,
+                                    bool complete)
+{
+  t_packet* packet = create_packet(OP_PACKET);
+  packet_append_string(packet, "127.0.0.1");
+  packet_append_string(packet, (char*)port);
+  if (complete)
+  {
+    int size = 128;
+    packet_append(packet, &size, sizeof(int));
+  }
+  cr_assert(send_packet(packet, km_peer));
+  destroy_packet(packet);
+}
+
+struct stick_stub
+{
+  t_socket* listener;
+  t_socket* accepted;
+};
+
+/* Plays a Memory Stick accepting the cpu: handshake, then its CPU id. */
+static int stick_stub_thread(void* arg)
+{
+  struct stick_stub* stub = arg;
+  stub->accepted = socket_accept(stub->listener, false);
+  receive_handshake(stub->accepted);
+  send_handshake(MID_MEMORY_STICK, stub->accepted);
+  receive_op_code(stub->accepted);
+  free(receive_string(stub->accepted));
+  return 0;
+}
+
+Test(cpu_listen_kernel_memory, connects_an_announced_stick_and_keeps_listening)
+{
+  t_socket* km_peer;
+  t_socket* km_client = cpu_connected_pair(&km_peer);
+  t_cpu cpu = {.socket_kernel_memory = km_client, .id = "2"};
+  cpu.logger = cpu_quiet_logger();
+  cpu.memory_sticks = list_create();
+
+  char port[16];
+  struct stick_stub stub = {.listener = cpu_listen_ephemeral(port, 16)};
+  thrd_t thread;
+  thrd_create(&thread, stick_stub_thread, &stub);
+
+  send_stick_announcement(km_peer, port, true);
+  cr_assert(send_string(OP_SEND_INSTRUCTION, "NOOP", km_peer));
+
+  cr_assert(listen_kernel_memory(&cpu));
+  cr_assert_eq(list_size(cpu.memory_sticks), 1);
+  free(receive_string(km_client)); /* the instruction, left for the caller */
+
+  thrd_join(thread, nullptr);
+  t_memory_stick_info* stick = list_get(cpu.memory_sticks, 0);
+  socket_destroy(stick->socket_ms);
+  list_destroy_and_destroy_elements(cpu.memory_sticks, free);
+  socket_destroy(stub.accepted);
+  socket_destroy(stub.listener);
+  socket_destroy(km_client);
+  socket_destroy(km_peer);
+  log_destroy(cpu.logger);
+}
+
+Test(cpu_listen_kernel_memory, fails_when_an_announced_stick_cannot_be_used)
+{
+  t_socket* km_peer;
+  t_socket* km_client = cpu_connected_pair(&km_peer);
+  t_cpu cpu = {.socket_kernel_memory = km_client, .id = "2"};
+  cpu.logger = cpu_quiet_logger();
+  cpu.memory_sticks = list_create();
+
+  send_stick_announcement(km_peer, "1", false); /* missing its size */
+  cr_assert_not(listen_kernel_memory(&cpu));
+  cr_assert_eq(list_size(cpu.memory_sticks), 0);
+
+  list_destroy(cpu.memory_sticks);
+  socket_destroy(km_client);
+  socket_destroy(km_peer);
   log_destroy(cpu.logger);
 }
