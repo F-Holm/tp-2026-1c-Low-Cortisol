@@ -100,6 +100,11 @@ bool handle_new_io(t_io io[3], t_socket* socket_fd, t_queues* queues,
               IO_TYPE_NAMES[io_type]);
     // The caller destroys the socket; do not leave a dangling reference.
     io[io_type].socket_io = nullptr;
+    mtx_destroy(&(io[io_type].io_list->io_list_mutex));
+    list_destroy(io[io_type].io_list->io_list);
+    free(io[io_type].io_list);
+    io[io_type].io_list = nullptr;
+    atomic_store(&(io[io_type].close_thread), true);
     return false;
   }
   log_debug(queues->logger, "IO thread of type %s created",
@@ -109,12 +114,20 @@ bool handle_new_io(t_io io[3], t_socket* socket_fd, t_queues* queues,
 
 bool enqueue_io_request(void* request, t_io* io, t_pcb* pcb)
 {
+  if (io->io_list == nullptr)
+  {
+    return false; /* no IO module ever connected for this interface */
+  }
+  // Checked under the list's mutex, not before taking it: the worker marks
+  // itself closed and drains the list under this same mutex, so a request
+  // either makes it in before that drain or is turned away here.
+  mtx_lock(&(io->io_list->io_list_mutex));
   if (atomic_load(&(io->close_thread)))
   {
+    mtx_unlock(&(io->io_list->io_list_mutex));
     return false;
   }
   void* entry = transform_request(request, io->io_type, pcb);
-  mtx_lock(&(io->io_list->io_list_mutex));
   bool list_empty = list_is_empty(io->io_list->io_list);
   if (io->priority_active)
   {
@@ -138,12 +151,12 @@ void close_io(t_io* io)
   {
     if (io[i].socket_io != nullptr)
     {
-      if (!atomic_exchange(&(io[i].close_thread), true))
-      {
-        mtx_lock(&(io[i].io_list->io_list_mutex));
-        cnd_signal(&(io[i].new_process));
-        mtx_unlock(&(io[i].io_list->io_list_mutex));
-      }
+      // io_list outlives the worker (only destroy_io frees it), so it is
+      // always safe to lock here, whether or not the worker already quit.
+      mtx_lock(&(io[i].io_list->io_list_mutex));
+      atomic_store(&(io[i].close_thread), true);
+      cnd_signal(&(io[i].new_process));
+      mtx_unlock(&(io[i].io_list->io_list_mutex));
       socket_shutdown(io[i].socket_io, SOCKET_SHUTDOWN_BOTH);
       thrd_join(io[i].io_thread, nullptr);
       destroy_io(&(io[i]));
@@ -315,19 +328,19 @@ static void free_request(void* request, t_io* io)
   transition_unlock(pcb, io->queues);
 }
 
+// Marks the interface closed and releases every pending request. The list
+// itself is left for destroy_io(): other threads may still be about to lock
+// its mutex in enqueue_io_request() or close_io().
 static void close_thread_io(t_io* io)
 {
-  atomic_store(&(io->close_thread), true);
   mtx_lock(&(io->io_list->io_list_mutex));
+  atomic_store(&(io->close_thread), true);
   while (!list_is_empty(io->io_list->io_list))
   {
     void* request = list_remove(io->io_list->io_list, 0);
     free_request(request, io);
   }
   mtx_unlock(&(io->io_list->io_list_mutex));
-  mtx_destroy(&(io->io_list->io_list_mutex));
-  list_destroy(io->io_list->io_list);
-  free(io->io_list);
 }
 
 static bool chat_km_stdin(t_io* io_in)
@@ -612,4 +625,11 @@ static void destroy_io(t_io* io)
 {
   cnd_destroy(&(io->new_process));
   socket_destroy(io->socket_io);
+  if (io->io_list != nullptr)
+  {
+    mtx_destroy(&(io->io_list->io_list_mutex));
+    list_destroy(io->io_list->io_list);
+    free(io->io_list);
+    io->io_list = nullptr;
+  }
 }
