@@ -10,14 +10,14 @@ static void list_clean(t_list* self, void (*element_destroyer)(void*));
 t_list* list_create(void)
 {
   t_list* self = malloc(sizeof(t_list));
-  self->head = NULL;
+  self->head = nullptr;
   self->elements_count = 0;
   return self;
 }
 
 void list_destroy(t_list* self)
 {
-  list_clean(self, NULL);
+  list_clean(self, nullptr);
   free(self);
 }
 
@@ -39,7 +39,7 @@ int list_add_sorted(t_list* self, void* data, bool (*comparator)(void*, void*))
 {
   t_link_element** slot = &self->head;
   int index = 0;
-  while (*slot != NULL && !comparator(data, (*slot)->data))
+  while (*slot != nullptr && !comparator(data, (*slot)->data))
   {
     slot = &(*slot)->next;
     index++;
@@ -56,7 +56,7 @@ void* list_get(t_list* self, int index)
 {
   if (index < 0 || index >= self->elements_count)
   {
-    return NULL;
+    return nullptr;
   }
   return (*list_get_slot(self, index))->data;
 }
@@ -65,7 +65,7 @@ void* list_remove(t_list* self, int index)
 {
   if (index < 0 || index >= self->elements_count)
   {
-    return NULL;
+    return nullptr;
   }
 
   t_link_element** slot = list_get_slot(self, index);
@@ -80,7 +80,7 @@ void* list_remove(t_list* self, int index)
 bool list_remove_element(t_list* self, void* element)
 {
   t_link_element** slot = &self->head;
-  while (*slot != NULL)
+  while (*slot != nullptr)
   {
     if ((*slot)->data == element)
     {
@@ -99,7 +99,7 @@ void list_remove_and_destroy_element(t_list* self, int index,
                                      void (*element_destroyer)(void*))
 {
   void* data = list_remove(self, index);
-  if (data != NULL)
+  if (data != nullptr)
   {
     element_destroyer(data);
   }
@@ -107,7 +107,7 @@ void list_remove_and_destroy_element(t_list* self, int index,
 
 void list_iterate(t_list* self, void (*closure)(void*))
 {
-  for (t_link_element* element = self->head; element != NULL;
+  for (t_link_element* element = self->head; element != nullptr;
        element = element->next)
   {
     closure(element->data);
@@ -136,7 +136,7 @@ t_list_iterator* list_iterator_create(t_list* list)
 
 bool list_iterator_has_next(t_list_iterator* iterator)
 {
-  return *iterator->next != NULL;
+  return *iterator->next != nullptr;
 }
 
 void* list_iterator_next(t_list_iterator* iterator)
@@ -166,14 +166,14 @@ static t_link_element* list_create_element(void* data)
 {
   t_link_element* element = malloc(sizeof(t_link_element));
   element->data = data;
-  element->next = NULL;
+  element->next = nullptr;
   return element;
 }
 
 static t_link_element** list_get_slot(t_list* self, int index)
 {
   t_link_element** slot = &self->head;
-  for (int i = 0; i < index && *slot != NULL; i++)
+  for (int i = 0; i < index && *slot != nullptr; i++)
   {
     slot = &(*slot)->next;
   }
@@ -183,16 +183,16 @@ static t_link_element** list_get_slot(t_list* self, int index)
 static void list_clean(t_list* self, void (*element_destroyer)(void*))
 {
   t_link_element* element = self->head;
-  while (element != NULL)
+  while (element != nullptr)
   {
     t_link_element* next = element->next;
-    if (element_destroyer != NULL)
+    if (element_destroyer != nullptr)
     {
       element_destroyer(element->data);
     }
     free(element);
     element = next;
   }
-  self->head = NULL;
+  self->head = nullptr;
   self->elements_count = 0;
 }

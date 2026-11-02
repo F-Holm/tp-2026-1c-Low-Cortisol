@@ -31,11 +31,11 @@ void* receive_buffer(int* size, t_socket* socket)
   if (!socket_receive(socket, size, sizeof(int)))
   {
     *size = 0;
-    return NULL;
+    return nullptr;
   }
   if (*size == 0)
   {
-    return NULL;
+    return nullptr;
   }
 
   void* buffer = malloc(*size);
@@ -184,7 +184,7 @@ t_list* receive_packet(t_socket* socket)
     offset += element_size;
     list_add(values, value);
   }
-  if (buffer != NULL)
+  if (buffer != nullptr)
   {
     free(buffer);
   }
@@ -202,7 +202,7 @@ static void create_buffer(t_packet* packet)
 {
   packet->buffer = malloc(sizeof(t_buffer));
   packet->buffer->size = 0;
-  packet->buffer->stream = NULL;
+  packet->buffer->stream = nullptr;
 }
 
 static void* serialize_packet(t_packet* packet, int bytes)
@@ -214,7 +214,7 @@ static void* serialize_packet(t_packet* packet, int bytes)
   offset += sizeof(int);
   memcpy(magic + offset, &(packet->buffer->size), sizeof(int));
   offset += sizeof(int);
-  if (packet->buffer->stream != NULL)
+  if (packet->buffer->stream != nullptr)
   {
     memcpy(magic + offset, packet->buffer->stream, packet->buffer->size);
   }

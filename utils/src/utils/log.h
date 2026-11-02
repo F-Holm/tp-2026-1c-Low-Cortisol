@@ -39,15 +39,15 @@ typedef struct
 
 /**
  * @brief Creates a logger.
- * @param file             Path of the log file (must end in `.log`), or NULL to
- *                         log only to the console.
+ * @param file             Path of the log file (must end in `.log`), or nullptr
+ * to log only to the console.
  * @param program_name     Name shown on every entry.
  * @param is_active_console Whether entries are also printed to stdout.
  * @param detail           Lowest level that gets logged.
  * @param is_thread_safe   When true, every logging call is serialized with an
  *                         internal mutex. Pass false only when the logger is
  *                         used from a single thread.
- * @return A new logger, or NULL on failure.
+ * @return A new logger, or nullptr on failure.
  */
 t_log* log_create(char* file, char* program_name, bool is_active_console,
                   t_log_level detail, bool is_thread_safe);

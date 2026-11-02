@@ -34,7 +34,7 @@ t_watchdog* watchdog_start(t_list* sockets,
   if (thrd_create(&(watchdog->thread), watch_sockets, watchdog) != 0)
   {
     free(watchdog);
-    return NULL;
+    return nullptr;
   }
   return watchdog;
 }
@@ -42,7 +42,7 @@ t_watchdog* watchdog_start(t_list* sockets,
 void watchdog_destroy(t_watchdog* watchdog)
 {
   atomic_store(&(watchdog->close), true);
-  thrd_join(watchdog->thread, NULL);
+  thrd_join(watchdog->thread, nullptr);
   free(watchdog);
 }
 
@@ -64,7 +64,7 @@ static int watch_sockets(void* args)
 // holding their list/socket mutex while walking their connections.
 static void check_all_sockets(t_watchdog* watchdog)
 {
-  if (watchdog->sockets_mutex != NULL)
+  if (watchdog->sockets_mutex != nullptr)
   {
     mtx_lock(watchdog->sockets_mutex);
   }
@@ -80,7 +80,7 @@ static void check_all_sockets(t_watchdog* watchdog)
   }
   list_iterator_destroy(iterator);
 
-  if (watchdog->sockets_mutex != NULL)
+  if (watchdog->sockets_mutex != nullptr)
   {
     mtx_unlock(watchdog->sockets_mutex);
   }
@@ -88,8 +88,8 @@ static void check_all_sockets(t_watchdog* watchdog)
 
 static t_socket* element_socket(t_watchdog* watchdog, void* element)
 {
-  return watchdog->get_socket != NULL ? watchdog->get_socket(element)
-                                      : (t_socket*)element;
+  return watchdog->get_socket != nullptr ? watchdog->get_socket(element)
+                                         : (t_socket*)element;
 }
 
 // Locked with the socket's own mutex, so a ping never races a real

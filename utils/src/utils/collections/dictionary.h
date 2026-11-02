@@ -34,7 +34,7 @@ t_dictionary* dictionary_create(void);
  */
 void dictionary_put(t_dictionary* self, char* key, void* data);
 
-/** @brief Returns the value associated with @p key, or NULL if absent. */
+/** @brief Returns the value associated with @p key, or nullptr if absent. */
 void* dictionary_get(t_dictionary* self, char* key);
 
 /** @brief Whether @p key is present. */

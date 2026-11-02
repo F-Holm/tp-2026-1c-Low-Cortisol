@@ -9,16 +9,16 @@ static void string_array_push(char*** array, char* value, int size);
 
 char* string_duplicate(const char* original)
 {
-  if (original == NULL)
+  if (original == nullptr)
   {
-    return NULL;
+    return nullptr;
   }
   return strdup(original);
 }
 
 bool string_is_empty(const char* text)
 {
-  return text == NULL || text[0] == '\0';
+  return text == nullptr || text[0] == '\0';
 }
 
 bool string_starts_with(const char* text, const char* prefix)
@@ -56,14 +56,14 @@ void string_trim(char** text)
 char** string_array_new(void)
 {
   char** array = malloc(sizeof(char*));
-  array[0] = NULL;
+  array[0] = nullptr;
   return array;
 }
 
 int string_array_size(char** array)
 {
   int size = 0;
-  while (array[size] != NULL)
+  while (array[size] != nullptr)
   {
     size++;
   }
@@ -72,7 +72,7 @@ int string_array_size(char** array)
 
 void string_array_destroy(char** array)
 {
-  for (int i = 0; array[i] != NULL; i++)
+  for (int i = 0; array[i] != nullptr; i++)
   {
     free(array[i]);
   }
@@ -87,7 +87,7 @@ char** string_split(const char* text, const char* separator)
 
   const char* start = text;
   const char* match;
-  while ((match = strstr(start, separator)) != NULL)
+  while ((match = strstr(start, separator)) != nullptr)
   {
     size_t token_length = match - start;
     char* token = malloc(token_length + 1);
@@ -103,7 +103,7 @@ char** string_split(const char* text, const char* separator)
 
 char** string_get_string_as_array(const char* text)
 {
-  if (text == NULL)
+  if (text == nullptr)
   {
     return string_array_new();
   }
@@ -120,7 +120,7 @@ char** string_get_string_as_array(const char* text)
   inner[inner_length] = '\0';
 
   char** values = string_split(inner, ",");
-  for (int i = 0; values[i] != NULL; i++)
+  for (int i = 0; values[i] != nullptr; i++)
   {
     string_trim(&values[i]);
   }
@@ -133,5 +133,5 @@ static void string_array_push(char*** array, char* value, int size)
 {
   *array = realloc(*array, sizeof(char*) * (size + 2));
   (*array)[size] = value;
-  (*array)[size + 1] = NULL;
+  (*array)[size + 1] = nullptr;
 }

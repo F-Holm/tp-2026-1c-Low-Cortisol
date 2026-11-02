@@ -20,23 +20,23 @@
  * socket in the list must simply have been created with a mutex
  * (socket_create(..., with_mutex=true)). The list itself is a separate
  * concern: if some other thread can add/remove sockets to/from it while the
- * watchdog is running, pass a mutex guarding it; otherwise pass NULL.
+ * watchdog is running, pass a mutex guarding it; otherwise pass nullptr.
  */
 
 /** @brief A connection-check thread watching every socket in @p sockets. */
 typedef struct
 {
   t_list* sockets;  // elements to periodically ping -- t_socket* themselves
-                    // if get_socket is NULL, or whatever get_socket expects
+                    // if get_socket is nullptr, or whatever get_socket expects
                     // otherwise; each socket must have been created with
                     // with_mutex=true
   t_socket* (*get_socket)(void* element);  // extracts the t_socket* to ping
-                                           // from a @p sockets element; NULL
+                                           // from a @p sockets element; nullptr
                                            // if elements already are
                                            // t_socket*
   mtx_t* sockets_mutex;  // optional mutex guarding @p sockets itself (e.g. if
                          // another thread adds/removes elements concurrently);
-                         // NULL if no such mutex is needed
+                         // nullptr if no such mutex is needed
 
   unsigned long cycle_interval_ms;  // sleep between finishing one full pass
                                     // over @p sockets and starting the next
@@ -50,10 +50,10 @@ typedef struct
 
 /**
  * @brief Starts the watchdog thread: repeatedly walks @p sockets, pinging
- *        each one (through @p get_socket if not NULL), then sleeps
+ *        each one (through @p get_socket if not nullptr), then sleeps
  *        @p cycle_interval_ms before the next pass. Calls @p on_disconnected
  *        (with @p callback_arg) for every ping that fails. @p sockets_mutex
- *        is locked/unlocked around each pass if not NULL.
+ *        is locked/unlocked around each pass if not nullptr.
  */
 t_watchdog* watchdog_start(t_list* sockets,
                            t_socket* (*get_socket)(void* element),
