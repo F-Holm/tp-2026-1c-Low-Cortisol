@@ -121,6 +121,18 @@ static bool suspend_segment(t_segment* segment, t_swap_data* swap_data,
         segment->base + offset, bytes_to_read, scheduler_data->connected_sticks,
         scheduler_data->socket_list_mutex, scheduler_data->logger,
         scheduler_data->socket_scheduler);
+    if (content == nullptr)
+    {
+      log_warning(scheduler_data->logger,
+                  "Could not suspend process PID %d: reading its segment "
+                  "from the sticks failed.",
+                  segment->pid);
+      send_string(OP_SUSPENSION_FAILED,
+                  "Could not suspend the process because its memory could "
+                  "not be read.",
+                  scheduler_data->socket_scheduler);
+      return false;
+    }
     int block_number =
         add_block_to_swap(segment, i, swap_data, scheduler_data->logger);
     if (block_number == -1)
