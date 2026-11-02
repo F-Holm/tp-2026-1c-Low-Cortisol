@@ -442,7 +442,7 @@ Test(cpu_handlers, mov_out_writes_a_register_value_to_memory)
   log_destroy(cpu.logger);
 }
 
-Test(cpu_handlers, copy_mem_short_circuits_when_the_destination_faults)
+Test(cpu_handlers, copy_mem_stops_the_process_when_the_destination_faults)
 {
   t_socket* peer_fd;
   t_socket* client_fd = cpu_connected_pair(&peer_fd);
@@ -460,7 +460,7 @@ Test(cpu_handlers, copy_mem_short_circuits_when_the_destination_faults)
   /* dst_addr's mmu() call reports a segmentation fault (segment 0 doesn't
    * cover offset 90), so the handler returns without ever touching src or
    * dst memory. */
-  cr_assert_eq(handler_copy_mem(&cpu, context, &instruction, 1), EB_TRUE);
+  cr_assert_eq(handler_copy_mem(&cpu, context, &instruction, 1), EB_FALSE);
 
   cr_assert_eq(receive_op_code(peer_fd), OP_SEG_FAULT);
   free(receive_string(peer_fd));

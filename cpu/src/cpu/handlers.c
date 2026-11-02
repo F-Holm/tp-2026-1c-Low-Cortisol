@@ -145,7 +145,9 @@ t_extended_bool handler_copy_mem(t_cpu* cpu, t_context* context,
       mmu(cpu, context, context->registers->DI, sizeof(uint32_t), pid);
   if (dst_addr == INVALID_ADDRESS)
   {
-    return EB_TRUE;
+    // The segmentation fault was already reported: like MOV_IN/MOV_OUT, the
+    // cycle must not also confirm itself with OP_CPU_CYCLE_OK.
+    return EB_FALSE;
   }
   else if (dst_addr == INVALID_ADDRESS - 1)
   {
