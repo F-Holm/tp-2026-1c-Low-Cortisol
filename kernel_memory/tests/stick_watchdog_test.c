@@ -1,7 +1,6 @@
 #include "kernel_memory/stick_watchdog.h"
 
 #include <criterion/criterion.h>
-#include <poll.h>
 #include <stdatomic.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -60,12 +59,6 @@ Test(km_stick_watchdog, notifies_the_scheduler_once_a_stick_goes_unreachable)
 /* The stick watchdog pings every 500ms; 1.2s is a couple of full passes. */
 #define TWO_WATCHDOG_PASSES_MS 1200
 
-static bool has_pending_data(t_socket* socket)
-{
-  struct pollfd pfd = {.fd = socket->handle, .events = POLLIN};
-  return poll(&pfd, 1, 0) == 1 && (pfd.revents & POLLIN);
-}
-
 Test(km_stick_watchdog, notifies_the_scheduler_only_once_per_outage,
      .timeout = 10.0)
 {
@@ -89,7 +82,7 @@ Test(km_stick_watchdog, notifies_the_scheduler_only_once_per_outage,
 
   /* later failing pings of the same stick stay silent */
   time_sleep_ms(TWO_WATCHDOG_PASSES_MS);
-  cr_assert_not(has_pending_data(scheduler_client_fd));
+  cr_assert_not(socket_has_pending_data(scheduler_client_fd));
 
   destroy_stick_watchdog(watchdog);
   socket_destroy(scheduler_client_fd);
