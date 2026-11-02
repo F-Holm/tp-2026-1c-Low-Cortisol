@@ -97,6 +97,26 @@ Test(km_segments, remove_segment_merges_two_adjacent_holes)
   log_destroy(logger);
 }
 
+Test(km_segments, remove_segment_merges_two_holes_listed_out_of_order)
+{
+  t_log* logger = km_quiet_logger();
+  t_main_memory* memory = init_main_memory(4096, AS_BEST, 0);
+  list_add(memory->segments, km_make_segment(0, 1, 50, 100)); /* [50, 150) */
+  /* the hole after the segment comes first in the list */
+  list_add(memory->holes, km_make_hole(150, 30));
+  list_add(memory->holes, km_make_hole(0, 50));
+
+  remove_segment(0, 1, memory, logger);
+
+  cr_assert_eq(list_size(memory->holes), 1);
+  t_hole* merged = list_get(memory->holes, 0);
+  cr_assert_eq(merged->base, 0);
+  cr_assert_eq(merged->size, 180);
+
+  free_main_memory(memory);
+  log_destroy(logger);
+}
+
 Test(km_segments, remove_segment_merges_with_a_hole_before_it)
 {
   t_log* logger = km_quiet_logger();
