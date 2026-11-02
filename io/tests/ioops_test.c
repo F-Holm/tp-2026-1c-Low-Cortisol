@@ -119,6 +119,31 @@ Test(io_run_stdout, fails_when_the_packet_carries_no_text)
   log_destroy(io.logger);
 }
 
+Test(io_run_stdout, reports_failure_when_the_answer_cannot_be_sent)
+{
+  t_socket* scheduler;
+  t_socket* io_socket = io_connected_pair(&scheduler);
+
+  t_io io = {0};
+  io.logger = io_quiet_logger();
+  io.socket_io = io_socket;
+
+  t_stdout_request request = {.pid = 5, .bytes_to_write = 2};
+  t_packet* packet = create_packet(OP_IO_STDOUT_REQUEST);
+  packet_append(packet, &request, sizeof(request));
+  packet_append_string(packet, "hi");
+  send_packet(packet, scheduler);
+  destroy_packet(packet);
+
+  cr_assert_eq(receive_op_code(io.socket_io), OP_IO_STDOUT_REQUEST);
+  socket_shutdown(io.socket_io, SOCKET_SHUTDOWN_WRITE);
+  cr_assert_not(run_stdout(&io));
+
+  socket_destroy(io_socket);
+  socket_destroy(scheduler);
+  log_destroy(io.logger);
+}
+
 /* ── run_stdin ─────────────────────────────────────────────────────────── */
 
 Test(io_run_stdin, returns_the_typed_line_to_the_scheduler,
@@ -202,6 +227,34 @@ Test(io_run_stdin, fails_on_end_of_input, .init = cr_redirect_stdout)
   fclose(cr_get_redirected_stdin()); /* immediate EOF, nothing typed */
 
   cr_assert_eq(receive_op_code(io.socket_io), OP_IO_STDIN_REQUEST);
+  cr_assert_not(run_stdin(&io));
+
+  socket_destroy(io_socket);
+  socket_destroy(scheduler);
+  log_destroy(io.logger);
+}
+
+Test(io_run_stdin, reports_failure_when_the_answer_cannot_be_sent,
+     .init = cr_redirect_stdout)
+{
+  cr_redirect_stdin();
+
+  t_socket* scheduler;
+  t_socket* io_socket = io_connected_pair(&scheduler);
+
+  t_io io = {0};
+  io.logger = io_quiet_logger();
+  io.socket_io = io_socket;
+
+  t_stdin_request request = {.pid = 6, .bytes_to_read = 16};
+  send_buffer(OP_IO_STDIN_REQUEST, &request, sizeof(request), scheduler);
+
+  FILE* keyboard = cr_get_redirected_stdin();
+  fputs("lost answer\n", keyboard);
+  fclose(keyboard);
+
+  cr_assert_eq(receive_op_code(io.socket_io), OP_IO_STDIN_REQUEST);
+  socket_shutdown(io.socket_io, SOCKET_SHUTDOWN_WRITE);
   cr_assert_not(run_stdin(&io));
 
   socket_destroy(io_socket);
