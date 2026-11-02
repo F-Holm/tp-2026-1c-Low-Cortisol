@@ -196,7 +196,7 @@ Test(ks_km_reply, a_closed_connection_shuts_down_and_returns_op_code_error)
 {
   t_fixture f = start_fixture();
   socket_destroy(f.km_peer);
-  f.km_peer = NULL;
+  f.km_peer = nullptr;
 
   cr_assert_eq(RECEIVE_KM_OPCODE(f.queues, OP_PROCESS_SIZE), OP_CODE_ERROR);
 

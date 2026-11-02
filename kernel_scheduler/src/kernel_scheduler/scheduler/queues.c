@@ -116,7 +116,7 @@ void transition_new_ready(t_queues* queues, char* instructions_file,
   log_debug(queues->logger, "Creating process with priority %d located at %s",
             priority, instructions_file);
   t_pcb* pcb = transition_take_new(instructions_file, priority, queues);
-  if (pcb != NULL)
+  if (pcb != nullptr)
   {
     if (!check_priority_valid(pcb, &(queues->ready)))
     {
@@ -354,7 +354,7 @@ static t_pcb* transition_take_new(char* instructions_file, int priority,
     log_transition_state(queues->logger, pcb->pid, PS_NEW, PS_EXIT);
     transition_to_exit(pcb, queues, PER_SYSTEM_SHUTDOWN);
 
-    return NULL;
+    return nullptr;
   }
   return pcb;
 }
@@ -370,7 +370,7 @@ static void transition_block_ready_no_mutex(t_pcb* pcb, t_queues* queues)
 
 static bool transition_any_exit(t_queues* queues, int state, int reason)
 {
-  t_pcb* pcb = NULL;
+  t_pcb* pcb = nullptr;
   switch (state)
   {
     case PS_READY:
@@ -390,7 +390,7 @@ static bool transition_any_exit(t_queues* queues, int state, int reason)
       break;
   }
 
-  if (pcb == NULL)
+  if (pcb == nullptr)
   {
     return false;
   }

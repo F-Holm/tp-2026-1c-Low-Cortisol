@@ -48,7 +48,7 @@ Test(ks_km_connection, succeeds_when_the_peer_announces_kernel_memory)
   t_socket* km_socket =
       start_connection_kernel_memory("127.0.0.1", port, logger);
 
-  thrd_join(thread, NULL);
+  thrd_join(thread, nullptr);
   cr_assert_not_null(km_socket);
   cr_assert_eq(stub.received_mid, MID_KERNEL_SCHEDULER);
 
@@ -70,7 +70,7 @@ Test(ks_km_connection, fails_when_the_peer_is_not_kernel_memory)
   t_socket* km_socket =
       start_connection_kernel_memory("127.0.0.1", port, logger);
 
-  thrd_join(thread, NULL);
+  thrd_join(thread, nullptr);
   cr_assert_null(km_socket);
 
   socket_destroy(listen_fd);
@@ -96,7 +96,7 @@ Test(ks_km_connection, notify_terminate_process_sends_the_pid)
   t_socket* client_fd = ks_connected_pair_with_mutex(&server_fd);
   t_socket* km_socket = client_fd;
   t_log* logger = ks_quiet_logger();
-  t_shutdown_ctx* ctx = init_shutdown(NULL, logger, client_fd);
+  t_shutdown_ctx* ctx = init_shutdown(nullptr, logger, client_fd);
 
   cr_assert(notify_terminate_process(km_socket, ctx, 42));
 
@@ -125,7 +125,7 @@ Test(ks_km_connection, notify_terminate_process_reports_a_dead_socket)
   socket_destroy(server_fd);
   t_socket* km_socket = client_fd;
   t_log* logger = ks_quiet_logger();
-  t_shutdown_ctx* ctx = init_shutdown(NULL, logger, client_fd);
+  t_shutdown_ctx* ctx = init_shutdown(nullptr, logger, client_fd);
 
   cr_assert_not(notify_terminate_process(km_socket, ctx, 42));
 
@@ -142,7 +142,7 @@ Test(ks_km_connection, the_watchdog_thread_stops_when_asked_to)
   t_socket* client_fd = ks_connected_pair_with_mutex(&server_fd);
   t_socket* km_socket = client_fd;
   t_log* logger = ks_quiet_logger();
-  t_shutdown_ctx* ctx = init_shutdown(NULL, logger, km_socket);
+  t_shutdown_ctx* ctx = init_shutdown(nullptr, logger, km_socket);
 
   t_watchdog* data =
       start_thread_check_connection_kernel_memory(logger, km_socket, ctx);

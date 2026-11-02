@@ -86,7 +86,7 @@ Test(ks_io_connection, fails_gracefully_on_a_dead_socket)
   t_queues* queues = ks_stub_queues(logger);
   t_io* io = create_io_structures();
 
-  cr_assert_not(handle_new_io(io, NULL, queues, false));
+  cr_assert_not(handle_new_io(io, nullptr, queues, false));
 
   close_io(io);
   free(queues);

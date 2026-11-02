@@ -69,7 +69,7 @@ Test(ks_server_connection,
   /* Shutting the listening socket down makes accept() return an error,
    * ending server_listen's loop; it then tears io/cpu state down itself. */
   socket_shutdown(socket_server, SOCKET_SHUTDOWN_BOTH);
-  thrd_join(listener, NULL);
+  thrd_join(listener, nullptr);
 
   socket_destroy(io_fd);
   socket_destroy(garbage_fd);

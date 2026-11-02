@@ -26,7 +26,7 @@ static t_list* levels(int count, int algo)
 Test(ks_ready_queue, init_fifo_is_a_single_level)
 {
   t_ready_queue ready;
-  init_ready_queue(&ready, SA_FIFO, NULL);
+  init_ready_queue(&ready, SA_FIFO, nullptr);
   cr_assert_not(ready.multilevel_queue);
   cr_assert_eq(ready.queue_count, 1);
   cr_assert(is_queue_ready_empty(&ready));
@@ -51,7 +51,7 @@ Test(ks_ready_queue, init_multilevel_makes_one_level_per_entry)
 Test(ks_ready_queue, lock_and_unlock_toggle_the_preempt_flag)
 {
   t_ready_queue ready;
-  init_ready_queue(&ready, SA_FIFO, NULL);
+  init_ready_queue(&ready, SA_FIFO, nullptr);
   lock_queue_ready(&ready);
   cr_assert(is_queue_ready_blocked(&ready));
   unlock_queue_ready(&ready);
@@ -62,7 +62,7 @@ Test(ks_ready_queue, lock_and_unlock_toggle_the_preempt_flag)
 Test(ks_ready_queue, terminate_is_sticky_and_makes_blocking_take_return_null)
 {
   t_ready_queue ready;
-  init_ready_queue(&ready, SA_FIFO, NULL);
+  init_ready_queue(&ready, SA_FIFO, nullptr);
   terminate_queue_ready(&ready);
   cr_assert(queue_ready_terminated(&ready));
   cr_assert_null(transition_take_ready_blocking(&ready));
@@ -74,7 +74,7 @@ Test(ks_ready_queue, terminate_is_sticky_and_makes_blocking_take_return_null)
 Test(ks_ready_queue, single_level_accepts_any_priority)
 {
   t_ready_queue ready;
-  init_ready_queue(&ready, SA_FIFO, NULL);
+  init_ready_queue(&ready, SA_FIFO, nullptr);
   t_pcb* pcb = create_pcb(PS_READY, 99);
   cr_assert(check_priority_valid(pcb, &ready));
   destroy_pcb(pcb);
@@ -101,7 +101,7 @@ Test(ks_ready_queue, multilevel_rejects_a_priority_past_the_last_level)
 Test(ks_ready_queue, fifo_take_next_returns_processes_in_arrival_order)
 {
   t_ready_queue ready;
-  init_ready_queue(&ready, SA_FIFO, NULL);
+  init_ready_queue(&ready, SA_FIFO, nullptr);
   t_pcb* a = create_pcb(PS_READY, 0);
   t_pcb* b = create_pcb(PS_READY, 0);
 
@@ -122,7 +122,7 @@ Test(ks_ready_queue, fifo_take_next_returns_processes_in_arrival_order)
 Test(ks_ready_queue, take_ready_removes_a_specific_process)
 {
   t_ready_queue ready;
-  init_ready_queue(&ready, SA_FIFO, NULL);
+  init_ready_queue(&ready, SA_FIFO, nullptr);
   t_pcb* a = create_pcb(PS_READY, 0);
   t_pcb* b = create_pcb(PS_READY, 0);
   transition_to_ready(a, &ready);
@@ -162,7 +162,7 @@ Test(ks_ready_queue, multilevel_serves_the_highest_priority_level_first)
 Test(ks_ready_queue, blocking_take_returns_a_ready_process_without_blocking)
 {
   t_ready_queue ready;
-  init_ready_queue(&ready, SA_FIFO, NULL);
+  init_ready_queue(&ready, SA_FIFO, nullptr);
   t_pcb* a = create_pcb(PS_READY, 0);
   transition_to_ready(a, &ready);
 
@@ -188,8 +188,8 @@ static int blocking_take_thread(void* arg)
 Test(ks_ready_queue, blocking_take_waits_for_a_new_arrival)
 {
   t_ready_queue ready;
-  init_ready_queue(&ready, SA_FIFO, NULL);
-  struct blocking_take_result r = {&ready, NULL};
+  init_ready_queue(&ready, SA_FIFO, nullptr);
+  struct blocking_take_result r = {&ready, nullptr};
 
   thrd_t taker;
   thrd_create(&taker, blocking_take_thread, &r);
@@ -198,7 +198,7 @@ Test(ks_ready_queue, blocking_take_waits_for_a_new_arrival)
 
   t_pcb* pcb = create_pcb(PS_READY, 0);
   transition_to_ready(pcb, &ready);
-  thrd_join(taker, NULL);
+  thrd_join(taker, nullptr);
 
   cr_assert_eq(r.result, pcb);
 
@@ -209,18 +209,18 @@ Test(ks_ready_queue, blocking_take_waits_for_a_new_arrival)
 Test(ks_ready_queue, blocking_take_waits_out_a_preemption_lock)
 {
   t_ready_queue ready;
-  init_ready_queue(&ready, SA_FIFO, NULL);
+  init_ready_queue(&ready, SA_FIFO, nullptr);
   t_pcb* pcb = create_pcb(PS_READY, 0);
   transition_to_ready(pcb, &ready);
   lock_queue_ready(&ready); /* preempt_all: even a ready pcb must wait */
 
-  struct blocking_take_result r = {&ready, NULL};
+  struct blocking_take_result r = {&ready, nullptr};
   thrd_t taker;
   thrd_create(&taker, blocking_take_thread, &r);
   time_sleep_ms(50); /* let the thread reach its wait on exit_unblocked */
 
   unlock_queue_ready(&ready);
-  thrd_join(taker, NULL);
+  thrd_join(taker, nullptr);
 
   cr_assert_eq(r.result, pcb);
 

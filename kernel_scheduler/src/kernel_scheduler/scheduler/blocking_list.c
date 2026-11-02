@@ -74,14 +74,14 @@ void transition_take_block(t_pcb* pcb, t_blocking_list* block)
 
 t_pcb* transition_take_block_next(t_blocking_list* block)
 {
-  t_pcb* pcb = NULL;
+  t_pcb* pcb = nullptr;
   mtx_lock(&(block->list_mutex));
   if (!list_is_empty(block->list))
   {
     pcb = list_remove(block->list, 0);
   }
   mtx_unlock(&(block->list_mutex));
-  if (pcb != NULL)
+  if (pcb != nullptr)
   {
     set_blocked_time(pcb, 0);
   }
@@ -97,7 +97,7 @@ void transition_take_susp_block(t_pcb* pcb, t_blocking_list* susp_block)
 
 t_pcb* transition_take_susp_block_next(t_blocking_list* susp_block)
 {
-  t_pcb* pcb = NULL;
+  t_pcb* pcb = nullptr;
   mtx_lock(&(susp_block->list_mutex));
   if (!list_is_empty(susp_block->list))
   {
@@ -116,7 +116,7 @@ void transition_take_susp_ready(t_pcb* pcb, t_blocking_list* susp_ready)
 
 t_pcb* transition_take_susp_ready_next(t_blocking_list* susp_ready)
 {
-  t_pcb* pcb = NULL;
+  t_pcb* pcb = nullptr;
   mtx_lock(&(susp_ready->list_mutex));
   if (!list_is_empty(susp_ready->list))
   {

@@ -26,14 +26,14 @@ bool start_module(t_kernel_scheduler* resources, char* config_path)
 {
   // Config
   resources->config = start_config(config_path, &(resources->config_vars));
-  if (resources->config == NULL)
+  if (resources->config == nullptr)
   {
     return false;
   }
 
   // Logger
   resources->logger = start_logger(resources->config_vars.log_level);
-  if (resources->logger == NULL)
+  if (resources->logger == nullptr)
   {
     goto fail_close_config;
   }
@@ -42,7 +42,7 @@ bool start_module(t_kernel_scheduler* resources, char* config_path)
   resources->socket_kernel_memory = start_connection_kernel_memory(
       resources->config_vars.kernel_memory_ip,
       resources->config_vars.kernel_memory_port, resources->logger);
-  if (resources->socket_kernel_memory == NULL)
+  if (resources->socket_kernel_memory == nullptr)
   {
     goto fail_close_logger;
   }
@@ -50,7 +50,7 @@ bool start_module(t_kernel_scheduler* resources, char* config_path)
   // Create server socket
   resources->socket_server = create_socket_server(
       resources->config_vars.server_port, resources->logger);
-  if (resources->socket_server == NULL)
+  if (resources->socket_server == nullptr)
   {
     goto fail_close_km_socket;
   }
@@ -102,7 +102,7 @@ static t_config* start_config(char* config_path, t_config_vars* config_vars)
 {
   int i;
   t_config* config = config_create(config_path);
-  if (config != NULL)
+  if (config != nullptr)
   {
     config_vars->log_level =
         log_level_from_string(config_get_string_value(config, "LOG_LEVEL"));
@@ -121,7 +121,7 @@ static t_config* start_config(char* config_path, t_config_vars* config_vars)
     char** array_str = config_get_array_value(config, "QUEUE_ALGORITHMS");
     config_vars->multilevel_algorithms = list_create();
     i = 0;
-    while (array_str[i] != NULL)
+    while (array_str[i] != nullptr)
     {
       int* algorithm = malloc(sizeof(int));
       if (strcmp(array_str[i], SCHEDULING_ALGORITHMS[SA_FIFO]) == 0)

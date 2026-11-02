@@ -13,7 +13,7 @@ Test(ks_shutdown, notifies_kernel_memory_when_there_are_no_more_processes)
   t_socket* server_fd;
   t_socket* client_fd = ks_connected_pair(&server_fd);
   t_log* logger = ks_quiet_logger();
-  t_shutdown_ctx* ctx = init_shutdown(NULL, logger, client_fd);
+  t_shutdown_ctx* ctx = init_shutdown(nullptr, logger, client_fd);
 
   close_kernel_scheduler(ctx, SR_NO_PROCESSES);
 
@@ -31,7 +31,7 @@ Test(ks_shutdown, is_idempotent)
   t_socket* server_fd;
   t_socket* client_fd = ks_connected_pair(&server_fd);
   t_log* logger = ks_quiet_logger();
-  t_shutdown_ctx* ctx = init_shutdown(NULL, logger, client_fd);
+  t_shutdown_ctx* ctx = init_shutdown(nullptr, logger, client_fd);
 
   close_kernel_scheduler(ctx, SR_NO_PROCESSES);
   close_kernel_scheduler(ctx, SR_NO_PROCESSES);
@@ -55,7 +55,7 @@ Test(ks_shutdown,
   t_socket* client_fd = ks_connected_pair(&server_fd);
   socket_destroy(server_fd); /* the peer is already gone */
   t_log* logger = ks_quiet_logger();
-  t_shutdown_ctx* ctx = init_shutdown(NULL, logger, client_fd);
+  t_shutdown_ctx* ctx = init_shutdown(nullptr, logger, client_fd);
 
   /* Regression guard: check_reason_shutdown used to block forever here
    * waiting for a reply nobody would ever send. */
@@ -75,7 +75,7 @@ Test(ks_shutdown, resolves_a_send_error_by_detecting_memory_corruption)
   cr_assert(send_string(OP_MEMORY_CORRUPTED, "boom", server_fd));
 
   t_log* logger = ks_quiet_logger();
-  t_shutdown_ctx* ctx = init_shutdown(NULL, logger, client_fd);
+  t_shutdown_ctx* ctx = init_shutdown(nullptr, logger, client_fd);
 
   close_kernel_scheduler(ctx, SR_KERNEL_MEMORY_SEND_ERROR);
 

@@ -27,7 +27,7 @@ t_pcb* create_pcb(int state, int priority)
   pcb->active_instances = 0;
   pcb->blocked_time = 0;
   pcb->state = state;
-  pcb->blocking_mutex = NULL;
+  pcb->blocking_mutex = nullptr;
 
   pcb->priority_list = list_create();
   pcb->priority = priority;

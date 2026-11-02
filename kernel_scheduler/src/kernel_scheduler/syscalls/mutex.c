@@ -70,7 +70,7 @@ int list_mutex_lock(t_mutex_list* mutex_list, char* id, t_pcb* pcb)
   mtx_lock(&(mutex_list->list_mutex));
   t_mutex* mutex = dictionary_get(mutex_list->list, id);
   mtx_unlock(&(mutex_list->list_mutex));
-  return mutex == NULL ? MR_MUTEX_NAME_NOT_FOUND : mutex_lock(mutex, pcb);
+  return mutex == nullptr ? MR_MUTEX_NAME_NOT_FOUND : mutex_lock(mutex, pcb);
 }
 
 int list_mutex_unlock(t_mutex_list* mutex_list, char* id, t_pcb* pcb)
@@ -78,7 +78,7 @@ int list_mutex_unlock(t_mutex_list* mutex_list, char* id, t_pcb* pcb)
   mtx_lock(&(mutex_list->list_mutex));
   t_mutex* mutex = dictionary_get(mutex_list->list, id);
   mtx_unlock(&(mutex_list->list_mutex));
-  return mutex == NULL ? MR_MUTEX_NAME_NOT_FOUND : mutex_unlock(mutex, pcb);
+  return mutex == nullptr ? MR_MUTEX_NAME_NOT_FOUND : mutex_unlock(mutex, pcb);
 }
 
 static void log_mutex_tomado(t_log* logger, uint32_t pid, char* id_mutex)
@@ -112,7 +112,7 @@ static t_mutex* create_mutex(char* id, bool priority_active, t_queues* queues)
   mtx_init(&(mutex->mutex), mtx_plain);
   mutex->priority_active = priority_active;
   mutex->list = list_create();
-  mutex->current_process = NULL;
+  mutex->current_process = nullptr;
   mutex->state = 1;
   mutex->queues = queues;
   return mutex;
@@ -199,7 +199,7 @@ static void propagate_priority_transitive(t_pcb* pcb, int priority_new,
                                           t_queues* queues)
 {
   t_mutex* expected_mutex = get_mutex_blocking(pcb);
-  if (expected_mutex == NULL)
+  if (expected_mutex == nullptr)
   {
     return;
   }
@@ -301,13 +301,13 @@ static int mutex_unlock(t_mutex* mutex, t_pcb* pcb)
   log_mutex_released(mutex->queues->logger, pcb->pid, mutex->id);
   if (mutex->state == 0)
   {
-    mutex->current_process = NULL;
+    mutex->current_process = nullptr;
     mutex->next_priority = INT_MAX;
   }
   else if (mutex->state < 0)
   {
     mutex->current_process = list_remove(mutex->list, 0);
-    set_mutex_blocking(mutex->current_process, NULL);
+    set_mutex_blocking(mutex->current_process, nullptr);
     if (mutex->priority_active)
     {
       if (mutex->state == -1)
@@ -338,7 +338,7 @@ static void destroy_mutex(t_mutex* mutex)
   {
     t_pcb* pcb = list_iterator_next(iterador_list);
     list_iterator_remove(iterador_list);
-    set_mutex_blocking(pcb, NULL);
+    set_mutex_blocking(pcb, nullptr);
     transition_unlock(pcb, mutex->queues);
   }
   list_iterator_destroy(iterador_list);

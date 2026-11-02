@@ -190,7 +190,7 @@ t_pcb* transition_take_ready_next_no_mutex(t_ready_queue* ready)
       return pcb;
     }
   }
-  return NULL;
+  return nullptr;
 }
 
 t_pcb* transition_take_ready_next(t_ready_queue* ready)
@@ -220,7 +220,7 @@ t_pcb* transition_take_ready_blocking(t_ready_queue* ready)
   t_pcb* pcb;
   if (queue_ready_terminated(ready))
   {
-    pcb = NULL;
+    pcb = nullptr;
   }
   else
   {

@@ -51,7 +51,7 @@ t_io* create_io_structures(void)
   t_io* io = malloc(sizeof(t_io) * 3);
   for (int i = 0; i < 3; i++)
   {
-    io[i].socket_io = NULL;
+    io[i].socket_io = nullptr;
     cnd_init(&(io[i].new_process));
   }
   return io;
@@ -71,7 +71,7 @@ bool handle_new_io(t_io io[3], t_socket* socket_fd, t_queues* queues,
     return false;
   }
 
-  if (io[io_type].socket_io != NULL)
+  if (io[io_type].socket_io != nullptr)
   {
     log_warning(queues->logger, "Duplicate IO type: %d. Closing connection",
                 io_type);
@@ -79,7 +79,7 @@ bool handle_new_io(t_io io[3], t_socket* socket_fd, t_queues* queues,
   }
   // Prepare the t_io to create the thread
   io[io_type].socket_io = socket_fd;
-  io[io_type].current_process = NULL;
+  io[io_type].current_process = nullptr;
   io[io_type].queues = queues;
   io[io_type].logger = queues->logger;
   io[io_type].km_socket = queues->km_socket;
@@ -95,7 +95,7 @@ bool handle_new_io(t_io io[3], t_socket* socket_fd, t_queues* queues,
     log_error(queues->logger, "Error creating the thread for IO of type %s",
               IO_TYPE_NAMES[io_type]);
     // The caller destroys the socket; do not leave a dangling reference.
-    io[io_type].socket_io = NULL;
+    io[io_type].socket_io = nullptr;
     return false;
   }
   log_debug(queues->logger, "IO thread of type %s created",
@@ -132,7 +132,7 @@ void close_io(t_io* io)
 {
   for (int i = 0; i < 3; i++)
   {
-    if (io[i].socket_io != NULL)
+    if (io[i].socket_io != nullptr)
     {
       if (!atomic_exchange(&(io[i].close_thread), true))
       {
@@ -141,7 +141,7 @@ void close_io(t_io* io)
         mtx_unlock(&(io[i].io_list->io_list_mutex));
       }
       socket_shutdown(io[i].socket_io, SOCKET_SHUTDOWN_BOTH);
-      thrd_join(io[i].io_thread, NULL);
+      thrd_join(io[i].io_thread, nullptr);
       destroy_io(&(io[i]));
     }
   }
@@ -215,7 +215,7 @@ static bool communication_io_stdin(t_stdin* request, t_io* io_in, char** buffer)
   }
   *buffer = receive_string(io_in->socket_io);
 
-  if (*buffer == NULL)
+  if (*buffer == nullptr)
   {
     log_warning(io_in->logger, "Error receiving the IO response");
     free(*buffer);
@@ -394,7 +394,7 @@ static bool io_stdout_f(t_stdout* request, t_io* io_out)
 
   char* buffer = receive_string(io_out->km_socket);
   socket_mutex_unlock(io_out->km_socket);
-  if (buffer == NULL)
+  if (buffer == nullptr)
   {
     log_warning(io_out->logger, "Error receiving the Kernel Memory response");
     free(buffer);
@@ -426,7 +426,7 @@ static bool handle_stdin(t_io* io)
 {
   t_stdin* request = list_get(io->io_list->io_list, 0);
   mtx_unlock(&(io->io_list->io_list_mutex));
-  if (request == NULL)
+  if (request == nullptr)
   {
     log_warning(io->logger, "The STDIN request queue was empty");
     return false;
@@ -438,7 +438,7 @@ static bool handle_stdout(t_io* io)
 {
   t_stdout* request = list_get(io->io_list->io_list, 0);
   mtx_unlock(&(io->io_list->io_list_mutex));
-  if (request == NULL)
+  if (request == nullptr)
   {
     log_warning(io->logger, "The STDOUT request queue was empty");
     return false;
@@ -450,7 +450,7 @@ static bool handle_sleep(t_io* io)
 {
   t_sleep* request = list_get(io->io_list->io_list, 0);
   mtx_unlock(&(io->io_list->io_list_mutex));
-  if (request == NULL)
+  if (request == nullptr)
   {
     log_warning(io->logger, "The SLEEP request queue was empty");
     return false;

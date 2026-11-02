@@ -86,7 +86,7 @@ static t_socket* wire_km_for_exit(t_queues* queues)
   // Replace the stub's dead socket everywhere it was shared.
   t_socket* stub_socket = queues->km_socket;
   queues->km_socket = km_client_fd;
-  if (queues->process_counter != NULL)
+  if (queues->process_counter != nullptr)
   {
     queues->process_counter->km_socket = km_client_fd;
   }
@@ -146,7 +146,7 @@ Test(ks_cpu_connection, fails_when_the_id_handshake_is_wrong)
 
   cr_assert_not(handle_new_cpu(server_fd, list_sockets_cpu,
                                &mutex_list_sockets_cpu, &cpu_done_cond, logger,
-                               mutex_list, queues, io, NULL));
+                               mutex_list, queues, io, nullptr));
   cr_assert(list_is_empty(list_sockets_cpu));
 
   socket_destroy(server_fd);
@@ -172,9 +172,9 @@ Test(ks_cpu_connection, fails_gracefully_on_a_dead_socket)
   mtx_init(&mutex_list_sockets_cpu, mtx_plain);
   cnd_init(&cpu_done_cond);
 
-  cr_assert_not(handle_new_cpu(NULL, list_sockets_cpu, &mutex_list_sockets_cpu,
-                               &cpu_done_cond, logger, mutex_list, queues, io,
-                               NULL));
+  cr_assert_not(handle_new_cpu(nullptr, list_sockets_cpu,
+                               &mutex_list_sockets_cpu, &cpu_done_cond, logger,
+                               mutex_list, queues, io, nullptr));
 
   list_destroy(list_sockets_cpu);
   mtx_destroy(&mutex_list_sockets_cpu);

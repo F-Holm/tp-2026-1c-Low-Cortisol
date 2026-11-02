@@ -120,7 +120,7 @@ void transition_take_exec(t_pcb* pcb, t_execute_list* exec,
 
 t_pcb* transition_take_exec_next(t_execute_list* exec)
 {
-  t_pcb* pcb = NULL;
+  t_pcb* pcb = nullptr;
   mtx_lock(&(exec->list_mutex));
   if (!list_is_empty(exec->list))
   {

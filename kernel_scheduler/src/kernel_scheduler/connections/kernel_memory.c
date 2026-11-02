@@ -1,7 +1,6 @@
 #include "kernel_scheduler/connections/kernel_memory.h"
 
 #include <stdbool.h>
-#include <stddef.h>
 #include <stdint.h>
 
 #include "kernel_scheduler/shutdown.h"
@@ -18,15 +17,15 @@ static void on_kernel_memory_disconnected(void* arg);
 t_socket* start_connection_kernel_memory(char* ip, char* port, t_log* logger)
 {
   t_socket* km_socket = connect_kernel_memory(ip, port, logger);
-  if (km_socket == NULL)
+  if (km_socket == nullptr)
   {
-    return NULL;
+    return nullptr;
   }
 
   if (!handshake_kernel_memory(km_socket, logger))
   {
     socket_destroy(km_socket);
-    return NULL;
+    return nullptr;
   }
 
   return km_socket;
@@ -52,8 +51,8 @@ t_watchdog* start_thread_check_connection_kernel_memory(
   list_add(sockets, km_socket);
 
   t_watchdog* watchdog = watchdog_start(
-      sockets, NULL, NULL, 500, on_kernel_memory_disconnected, shutdown);
-  if (watchdog == NULL)
+      sockets, nullptr, nullptr, 500, on_kernel_memory_disconnected, shutdown);
+  if (watchdog == nullptr)
   {
     log_error(logger,
               "Error creating the connection-check thread for the "
@@ -73,10 +72,10 @@ void destroy_thread_check_connection_kernel_memory(t_watchdog* watchdog)
 static t_socket* connect_kernel_memory(char* ip, char* port, t_log* logger)
 {
   t_socket* km_socket = socket_create(SOCKET_KIND_CLIENT, ip, port, true);
-  if (km_socket == NULL)
+  if (km_socket == nullptr)
   {
     log_error(logger, "Connection error with Kernel Memory");
-    return NULL;
+    return nullptr;
   }
   log_info(logger, "Connected to Kernel Memory");
   return km_socket;

@@ -18,7 +18,7 @@
 /**
  * @brief Creates every subqueue, counter and background thread the
  *        scheduler needs.
- * @param multilevel_algorithms  NULL unless @p algorithm is
+ * @param multilevel_algorithms  nullptr unless @p algorithm is
  *        SA_MULTILEVEL_QUEUES.
  * @param quantum  0 unless @p algorithm is RR.
  */

@@ -8,7 +8,7 @@
 
 /**
  * @brief Creates an empty ready queue. Pass @p multilevel_algorithms (one
- *        subqueue per level) when @p algorithm is SA_MULTILEVEL_QUEUES, NULL
+ *        subqueue per level) when @p algorithm is SA_MULTILEVEL_QUEUES, nullptr
  *        otherwise.
  */
 void init_ready_queue(t_ready_queue* queue, int algorithm,
@@ -35,7 +35,7 @@ void unlock_queue_ready(t_ready_queue* ready);
 bool queue_ready_terminated(t_ready_queue* ready);
 
 /** @brief Marks the queue terminated and wakes every blocked taker (they
- *         then return NULL); used on shutdown. */
+ *         then return nullptr); used on shutdown. */
 void terminate_queue_ready(t_ready_queue* ready);
 
 // True unless the PCB's priority falls outside a multilevel queue's levels.
@@ -51,11 +51,11 @@ void transition_to_ready(t_pcb* pcb, t_ready_queue* ready);
 /** @brief Removes a specific @p pcb from its level's subqueue. */
 void transition_take_ready(t_pcb* pcb, t_ready_queue* ready);
 
-/** @brief Pops the head of the highest-priority non-empty subqueue, or NULL
+/** @brief Pops the head of the highest-priority non-empty subqueue, or nullptr
  *         if every subqueue is empty. */
 t_pcb* transition_take_ready_next(t_ready_queue* ready);
 t_pcb* transition_take_ready_next_no_mutex(t_ready_queue* ready);
 
 // Blocks until a schedulable PCB is available (or the queue is terminated,
-// returning NULL). Respects the preempt-all gate.
+// returning nullptr). Respects the preempt-all gate.
 t_pcb* transition_take_ready_blocking(t_ready_queue* ready);
