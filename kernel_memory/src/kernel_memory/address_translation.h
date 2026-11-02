@@ -29,7 +29,7 @@ int find_stick(int physical_address, t_list* connected_sticks,
 /**
  * @brief Reads @p size bytes starting at @p physical_address, possibly
  *        spanning multiple Memory Sticks.
- * @return Newly allocated buffer (caller frees), or NULL on failure.
+ * @return Newly allocated buffer (caller frees), or nullptr on failure.
  */
 char* read_from_sticks(int physical_address, int size, t_list* connected_sticks,
                        mtx_t* sticks_mutex, t_log* logger,

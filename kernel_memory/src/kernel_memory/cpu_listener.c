@@ -54,7 +54,7 @@ static bool handle_request_context(t_cpu_data* cpu_data)
   uint32_t* pid = (uint32_t*)receive_buffer(&a, cpu_data->socket_cpu);
   t_process* process =
       find_process(cpu_data->processes, cpu_data->processes_mutex, *pid);
-  if (process == NULL)
+  if (process == nullptr)
   {
     log_error(cpu_data->logger, "Process with pid %d not found", *pid);
     free(pid);
@@ -80,7 +80,7 @@ static bool handle_updated_context(t_cpu_data* cpu_data)
   t_registers registers = *(t_registers*)list_get(packet, 1);
   t_process* process =
       find_process(cpu_data->processes, cpu_data->processes_mutex, pid);
-  if (process != NULL)
+  if (process != nullptr)
   {
     mtx_lock(cpu_data->processes_mutex);
     process->registers = registers;
@@ -97,7 +97,7 @@ static bool handle_updated_segment_table(t_cpu_data* cpu_data)
   uint32_t* pid = (uint32_t*)receive_buffer(&a, cpu_data->socket_cpu);
   t_process* process =
       find_process(cpu_data->processes, cpu_data->processes_mutex, *pid);
-  if (process == NULL)
+  if (process == nullptr)
   {
     log_debug(cpu_data->logger, "Process with PID %u was not found", *pid);
     free(pid);

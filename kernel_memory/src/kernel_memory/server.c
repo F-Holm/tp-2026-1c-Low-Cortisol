@@ -17,8 +17,8 @@
 
 bool handshake(t_kernel_memory_data* kernel_data, t_socket* client_socket)
 {
-  static t_socket* socket_scheduler = NULL;
-  if (client_socket != NULL)
+  static t_socket* socket_scheduler = nullptr;
+  if (client_socket != nullptr)
   {
     log_trace(kernel_data->logger, "A client was accepted!");
     log_trace(kernel_data->logger, "Server waiting for handshake");
@@ -55,7 +55,7 @@ bool handshake(t_kernel_memory_data* kernel_data, t_socket* client_socket)
 
     case MID_CPU:
     {
-      if (socket_scheduler == NULL)
+      if (socket_scheduler == nullptr)
       {
         log_debug(kernel_data->logger,
                   "Kernel Scheduler not connected, connection rejected");

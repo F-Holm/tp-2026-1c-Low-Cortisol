@@ -16,7 +16,8 @@
 
 static t_kernel_memory_data* km_stub_kernel_data(t_log* logger)
 {
-  return init_kernel_memory_data(NULL, NULL, 0, 0, 1024, AS_WORST, logger);
+  return init_kernel_memory_data(nullptr, nullptr, 0, 0, 1024, AS_WORST,
+                                 logger);
 }
 
 Test(km_server, handshake_rejects_an_unrecognized_identifier)
@@ -163,7 +164,7 @@ Test(km_server, accept_client_accepts_and_handshakes_one_connection)
 
   t_log* logger = km_quiet_logger();
   t_kernel_memory_data* kernel_data =
-      init_kernel_memory_data(listen_fd, NULL, 0, 0, 1024, AS_WORST, logger);
+      init_kernel_memory_data(listen_fd, nullptr, 0, 0, 1024, AS_WORST, logger);
 
   cr_assert_not(accept_client(kernel_data));
 

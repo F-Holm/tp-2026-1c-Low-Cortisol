@@ -28,7 +28,7 @@ t_watchdog* start_stick_watchdog(t_kernel_memory_data* kernel_data)
   t_watchdog* watchdog = watchdog_start(
       kernel_data->connected_sticks, stick_socket,
       kernel_data->socket_list_mutex, 500, on_stick_disconnected, ctx);
-  if (watchdog == NULL)
+  if (watchdog == nullptr)
   {
     log_error(kernel_data->logger,
               "Error creating the memory stick connection-check thread");
@@ -62,7 +62,7 @@ static void on_stick_disconnected(void* arg)
   t_stick_watchdog_ctx* ctx = arg;
   t_socket* socket_scheduler =
       atomic_load(&(ctx->kernel_data->socket_scheduler));
-  if (ctx->already_notified || socket_scheduler == NULL)
+  if (ctx->already_notified || socket_scheduler == nullptr)
   {
     return;
   }

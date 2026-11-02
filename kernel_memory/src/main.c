@@ -22,7 +22,7 @@ int main(int argc, char* argv[])
   t_config* config = init_config(config_path);
   t_log* logger = init_logger(config);
   t_socket* socket_kernel_memory = socket_create(
-      SOCKET_KIND_SERVER, NULL,
+      SOCKET_KIND_SERVER, nullptr,
       config_get_string_value(config, "KERNEL_MEMORY_PORT"), false);
   char* scripts_basepath = get_scripts_basepath(config);
   int instruction_delay = get_instruction_delay(config);

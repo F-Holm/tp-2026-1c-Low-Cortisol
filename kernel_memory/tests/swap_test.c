@@ -68,8 +68,9 @@ static t_swap_fixture make_swap_fixture(int stick_size, int swap_size,
   f.memory = init_main_memory(max_segment_size, AS_BEST, 0);
 
   f.scheduler_data = init_scheduler_data(
-      NULL, f.scheduler_client_fd, NULL, NULL, NULL, f.memory, f.sticks,
-      f.sticks_mutex, f.swap_data_slot, f.logger, NULL, NULL, NULL);
+      nullptr, f.scheduler_client_fd, nullptr, nullptr, nullptr, f.memory,
+      f.sticks, f.sticks_mutex, f.swap_data_slot, f.logger, nullptr, nullptr,
+      nullptr);
   return f;
 }
 
@@ -98,7 +99,7 @@ Test(km_swap, suspend_process_guards_against_a_null_process)
   t_scheduler_data sd = {0};
   sd.logger = logger;
 
-  suspend_process(NULL, &sd); /* must not crash */
+  suspend_process(nullptr, &sd); /* must not crash */
 
   log_destroy(logger);
 }

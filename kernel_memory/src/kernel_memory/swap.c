@@ -43,7 +43,7 @@ static bool resume_block(t_block_data* block, uint32_t pid, int block_size,
 void suspend_process(t_process* process_to_suspend,
                      t_scheduler_data* scheduler_data)
 {
-  if (process_to_suspend == NULL)
+  if (process_to_suspend == nullptr)
   {
     log_error(scheduler_data->logger,
               "Suspend_process received a NULL process");
@@ -51,7 +51,7 @@ void suspend_process(t_process* process_to_suspend,
   }
 
   t_swap_data* swap_data = atomic_load(scheduler_data->swap_data);
-  if (swap_data == NULL)
+  if (swap_data == nullptr)
   {
     log_warning(scheduler_data->logger,
                 "Cannot suspend PID %d: the Swap module is not connected yet.",
@@ -142,7 +142,7 @@ static bool suspend_segment(t_segment* segment, t_swap_data* swap_data,
 void resume_process(uint32_t pid, t_scheduler_data* scheduler_data)
 {
   t_swap_data* swap_data = atomic_load(scheduler_data->swap_data);
-  if (swap_data == NULL)
+  if (swap_data == nullptr)
   {
     log_warning(scheduler_data->logger,
                 "Cannot resume PID %u: the Swap module is not connected yet.",
@@ -218,7 +218,7 @@ static bool resume_block(t_block_data* block, uint32_t pid, int block_size,
     }
   }
   char* content = read_block_from_swap(block->block_number, swap_data);
-  if (content == NULL)
+  if (content == nullptr)
   {
     log_warning(scheduler_data->logger,
                 "Could not read block %d from swap for PID %d",
@@ -340,7 +340,7 @@ static void remove_process_segments(t_list* segments_to_remove, uint32_t pid,
 static bool can_resume(uint32_t pid, t_scheduler_data* scheduler_data)
 {
   t_swap_data* swap_data = atomic_load(scheduler_data->swap_data);
-  if (swap_data == NULL)
+  if (swap_data == nullptr)
   {
     return false;
   }
@@ -415,7 +415,7 @@ static char* read_block_from_swap(int block_number, t_swap_data* swap)
         swap->logger,
         "Unexpected response from the swap module while reading block %d",
         block_number);
-    return NULL;
+    return nullptr;
   }
 
   int a;
@@ -428,7 +428,7 @@ static int remove_block_from_swap(int block_number, t_swap_data* swap_data,
 /* returns the removed block number, or -1 if it could not be removed */
 {
   t_block_data* block_to_remove = list_get(swap_data->block_list, block_number);
-  if (block_to_remove == NULL)
+  if (block_to_remove == nullptr)
   {
     log_debug(logger,
               "Could not remove swap block number %d because "

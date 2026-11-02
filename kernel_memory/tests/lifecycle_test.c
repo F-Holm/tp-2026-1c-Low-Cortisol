@@ -39,8 +39,9 @@ Test(km_init, init_cpu_data_keeps_every_field)
   int active = 0;
   t_socket cpu_socket, scheduler_socket;
 
-  t_cpu_data* data = init_cpu_data(&cpu_socket, &processes, &pm, 25, &memory,
-                                   NULL, &active, &am, &ac, &scheduler_socket);
+  t_cpu_data* data =
+      init_cpu_data(&cpu_socket, &processes, &pm, 25, &memory, nullptr, &active,
+                    &am, &ac, &scheduler_socket);
   cr_assert_eq(data->socket_cpu, &cpu_socket);
   cr_assert_eq(data->processes, &processes);
   cr_assert_eq(data->instruction_delay, 25);
@@ -55,7 +56,8 @@ Test(km_init, init_cpu_data_keeps_every_field)
 Test(km_init, init_stick_data_defaults_size_and_port_to_minus_one)
 {
   t_socket stick_socket, scheduler_socket;
-  t_stick_data* data = init_stick_data(&stick_socket, NULL, &scheduler_socket);
+  t_stick_data* data =
+      init_stick_data(&stick_socket, nullptr, &scheduler_socket);
   cr_assert_eq(data->socket_stick, &stick_socket);
   cr_assert_eq(data->socket_scheduler, &scheduler_socket);
   cr_assert_eq(data->stick_size, -1);
@@ -102,7 +104,7 @@ Test(km_init, init_process_returns_null_when_the_script_is_missing)
 
 Test(km_cleanup, free_swap_data_tolerates_a_null_argument)
 {
-  free_swap_data(NULL); /* must not crash */
+  free_swap_data(nullptr); /* must not crash */
 }
 
 Test(km_cleanup, free_main_memory_releases_segments_and_holes)

@@ -11,7 +11,7 @@
 
 /**
  * @brief Removes and returns the segment matching id+pid.
- * @return NULL (and logs) if there is none.
+ * @return nullptr (and logs) if there is none.
  */
 t_segment* find_and_remove_segment(uint32_t id, uint32_t pid,
                                    t_main_memory* main_memory, t_log* logger);

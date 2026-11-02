@@ -95,7 +95,7 @@ Test(km_address_translation, read_from_sticks_reads_from_a_single_stick)
   cr_assert(send_buffer(OP_MEMORY_STICK_READ_DONE, "abcd", 4, stick_server_fd));
 
   t_log* logger = km_quiet_logger();
-  char* result = read_from_sticks(10, 4, sticks, &mutex, logger, NULL);
+  char* result = read_from_sticks(10, 4, sticks, &mutex, logger, nullptr);
 
   cr_assert_not_null(result);
   cr_assert_eq(memcmp(result, "abcd", 4), 0);
@@ -130,7 +130,7 @@ Test(km_address_translation, read_from_sticks_spans_two_sticks)
   cr_assert(send_buffer(OP_MEMORY_STICK_READ_DONE, "cd", 2, second_server_fd));
 
   t_log* logger = km_quiet_logger();
-  char* result = read_from_sticks(2, 4, sticks, &mutex, logger, NULL);
+  char* result = read_from_sticks(2, 4, sticks, &mutex, logger, nullptr);
 
   cr_assert_not_null(result);
   cr_assert_eq(memcmp(result, "abcd", 4), 0);
@@ -151,7 +151,7 @@ Test(km_address_translation, read_from_sticks_reports_an_address_with_no_stick)
   mtx_init(&mutex, mtx_plain);
   t_log* logger = km_quiet_logger();
 
-  cr_assert_null(read_from_sticks(0, 4, sticks, &mutex, logger, NULL));
+  cr_assert_null(read_from_sticks(0, 4, sticks, &mutex, logger, nullptr));
 
   list_destroy(sticks);
   log_destroy(logger);
@@ -171,7 +171,7 @@ Test(km_address_translation, read_from_sticks_reports_a_wrong_reply_opcode)
   cr_assert(send_string(OP_ID_CPU, "not expected here", stick_server_fd));
 
   t_log* logger = km_quiet_logger();
-  cr_assert_null(read_from_sticks(10, 4, sticks, &mutex, logger, NULL));
+  cr_assert_null(read_from_sticks(10, 4, sticks, &mutex, logger, nullptr));
 
   list_destroy_and_destroy_elements(sticks, free);
   socket_destroy(stick_client_fd);
@@ -195,7 +195,7 @@ Test(km_address_translation, write_to_sticks_writes_to_a_single_stick)
   cr_assert(send_string(OP_MEMORY_STICK_WRITE_DONE, "ok", stick_server_fd));
 
   t_log* logger = km_quiet_logger();
-  cr_assert(write_to_sticks(1, 10, 4, "data", sticks, &mutex, logger, NULL));
+  cr_assert(write_to_sticks(1, 10, 4, "data", sticks, &mutex, logger, nullptr));
 
   cr_assert_eq(receive_op_code(stick_server_fd), OP_MEMORY_STICK_WRITE);
   t_list* fields = receive_packet(stick_server_fd);
@@ -230,7 +230,7 @@ Test(km_address_translation, write_to_sticks_spans_two_sticks)
   cr_assert(send_string(OP_MEMORY_STICK_WRITE_DONE, "ok", second_server_fd));
 
   t_log* logger = km_quiet_logger();
-  cr_assert(write_to_sticks(1, 0, 4, "abcd", sticks, &mutex, logger, NULL));
+  cr_assert(write_to_sticks(1, 0, 4, "abcd", sticks, &mutex, logger, nullptr));
 
   cr_assert_eq(receive_op_code(first_server_fd), OP_MEMORY_STICK_WRITE);
   t_list* first_fields = receive_packet(first_server_fd);

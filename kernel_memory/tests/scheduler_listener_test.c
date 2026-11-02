@@ -64,7 +64,7 @@ static t_listener_fixture start_fixture(char* scripts_basepath)
   f.memory = init_main_memory(4096, AS_BEST, 0);
 
   f.swap_data_slot = malloc(sizeof(_Atomic(t_swap_data*)));
-  atomic_init(f.swap_data_slot, NULL);
+  atomic_init(f.swap_data_slot, nullptr);
 
   f.active_threads = malloc(sizeof(int));
   *f.active_threads = 1;
@@ -74,9 +74,10 @@ static t_listener_fixture start_fixture(char* scripts_basepath)
   cnd_init(f.active_threads_cond);
 
   f.scheduler_data = init_scheduler_data(
-      NULL, f.server_socket, f.processes, scripts_basepath, f.processes_mutex,
-      f.memory, f.sticks, f.sticks_mutex, f.swap_data_slot, f.logger,
-      f.active_threads, f.active_threads_mutex, f.active_threads_cond);
+      nullptr, f.server_socket, f.processes, scripts_basepath,
+      f.processes_mutex, f.memory, f.sticks, f.sticks_mutex, f.swap_data_slot,
+      f.logger, f.active_threads, f.active_threads_mutex,
+      f.active_threads_cond);
 
   thrd_create(&f.thread, listen_scheduler, f.scheduler_data);
   return f;
@@ -88,7 +89,7 @@ static void shutdown_and_join(t_listener_fixture* f)
 {
   int op_code = OP_KERNEL_SCHEDULER_SHUTDOWN;
   cr_assert(socket_send(f->peer_fd, &op_code, sizeof(op_code)));
-  thrd_join(f->thread, NULL);
+  thrd_join(f->thread, nullptr);
 }
 
 /* listen_scheduler already freed scheduler_data (and closed its socket) by
@@ -115,7 +116,7 @@ static t_process* add_process(t_listener_fixture* f, uint32_t pid)
 {
   t_process* process = malloc(sizeof(t_process));
   process->pid = pid;
-  process->instructions_path = NULL;
+  process->instructions_path = nullptr;
   process->instruction_count = 2;
   process->instructions = malloc(sizeof(char*) * 2);
   process->instructions[0] = strdup("NOOP");
@@ -139,7 +140,7 @@ Test(km_scheduler_listener, closing_the_socket_ends_the_loop)
 {
   t_listener_fixture f = start_fixture("/tmp");
   socket_close(f.peer_fd);
-  thrd_join(f.thread, NULL);
+  thrd_join(f.thread, nullptr);
   destroy_fixture(&f);
 }
 
@@ -148,7 +149,7 @@ Test(km_scheduler_listener, an_unrecognized_op_code_ends_the_loop)
   t_listener_fixture f = start_fixture("/tmp");
   int op_code = 99999;
   cr_assert(socket_send(f.peer_fd, &op_code, sizeof(op_code)));
-  thrd_join(f.thread, NULL);
+  thrd_join(f.thread, nullptr);
   destroy_fixture(&f);
 }
 
