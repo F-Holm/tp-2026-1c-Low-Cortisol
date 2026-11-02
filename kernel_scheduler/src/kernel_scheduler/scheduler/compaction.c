@@ -118,19 +118,30 @@ bool fits_process(t_queues* queues, t_pcb* process)
 
 static bool remove_of_the_list(t_queues* queues)
 {
+  // Pin the head while still holding the list's mutex, as the resumer thread
+  // does: transition_to_exit waits for active instances to drop to zero
+  // before destroying a pcb, so it cannot be freed under us once unlocked.
   mtx_lock(&(queues->susp_ready.list_mutex));
   t_pcb* process = list_get(queues->susp_ready.list, 0);
+  if (process != nullptr)
+  {
+    increment_active_instances(process);
+  }
   mtx_unlock(&(queues->susp_ready.list_mutex));
+  if (process == nullptr)
+  {
+    return false; /* emptied since the caller checked */
+  }
+
+  bool result = true;
   mtx_lock(&(process->state_mutex));
   if (process->state == PS_SUSP_READY)
   {
-    bool result = transition_susp_ready_no_mutex(process, queues);
-    mtx_unlock(&(process->state_mutex));
-    return result;
+    result = transition_susp_ready_no_mutex(process, queues);
   }
-
   mtx_unlock(&(process->state_mutex));
-  return true;
+  decrement_active_instances(process);
+  return result;
 }
 
 static void resumption_routine(t_queues* queues)
