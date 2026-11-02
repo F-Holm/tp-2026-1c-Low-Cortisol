@@ -463,3 +463,18 @@ Test(cpu_connections, notify_bsod_tolerates_kernel_memory_being_gone)
   socket_destroy(km_server_fd);
   log_destroy(cpu.logger);
 }
+
+Test(cpu_connections, handshake_memory_stick_fails_when_it_cannot_send)
+{
+  t_socket* server_fd;
+  t_socket* client_fd = cpu_connected_pair(&server_fd);
+  t_cpu cpu = {0};
+  cpu.logger = cpu_quiet_logger();
+
+  socket_shutdown(client_fd, SOCKET_SHUTDOWN_WRITE);
+  /* handshake_memory_stick destroys the socket itself on failure */
+  cr_assert_not(handshake_memory_stick(&cpu, client_fd));
+
+  socket_destroy(server_fd);
+  log_destroy(cpu.logger);
+}
