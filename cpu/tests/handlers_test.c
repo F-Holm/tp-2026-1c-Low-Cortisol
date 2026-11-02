@@ -708,3 +708,39 @@ Test(cpu_handlers, copy_mem_fails_when_the_write_fails)
 
   handler_fixture_end(&fx);
 }
+
+/* ── syscalls that cannot reach the Kernel Scheduler ───────────────────── */
+
+Test(cpu_handlers, every_syscall_fails_when_the_scheduler_is_unreachable)
+{
+  t_handler_fixture fx;
+  handler_fixture_start(&fx);
+  socket_shutdown(fx.cpu.socket_kernel_scheduler, SOCKET_SHUTDOWN_WRITE);
+
+  struct
+  {
+    t_handler handler;
+    t_instruction instruction;
+  } syscalls[] = {
+      {handler_mutex_create, make_instruction("MUTEX_CREATE", "M", nullptr)},
+      {handler_mutex_lock, make_instruction("MUTEX_LOCK", "M", nullptr)},
+      {handler_mutex_unlock, make_instruction("MUTEX_UNLOCK", "M", nullptr)},
+      {handler_mem_alloc, make_instruction("MEM_ALLOC", "1", "16")},
+      {handler_mem_free, make_instruction("MEM_FREE", "1", nullptr)},
+      {handler_sleep, make_instruction("SLEEP", "10", nullptr)},
+      {handler_stdout, make_instruction("STDOUT", "EAX", "EBX")},
+      {handler_stdin, make_instruction("STDIN", "EAX", "EBX")},
+      {handler_init_proc, make_instruction("INIT_PROC", "script", "1")},
+      {handler_exit, make_instruction("EXIT", nullptr, nullptr)},
+  };
+
+  for (size_t i = 0; i < sizeof(syscalls) / sizeof(syscalls[0]); i++)
+  {
+    cr_assert_eq(
+        syscalls[i].handler(&fx.cpu, fx.context, &syscalls[i].instruction, 1),
+        EB_ERROR, "%s should report the failed send",
+        syscalls[i].instruction.name);
+  }
+
+  handler_fixture_end(&fx);
+}
