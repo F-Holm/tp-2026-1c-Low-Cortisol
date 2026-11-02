@@ -118,6 +118,45 @@ Test(swap_init_config, fails_cleanly_when_the_swap_file_cannot_be_created,
   free(config_path);
 }
 
+Test(swap_init_config, fails_cleanly_when_the_swap_file_cannot_be_sized,
+     .init = cr_redirect_stdout)
+{
+  char* swap_file = make_swap_file_path();
+
+  /* A negative size makes ftruncate() -- and so file_resize -- fail. */
+  char config_path[] = "/tmp/swap_test_config_XXXXXX";
+  int fd = mkstemp(config_path);
+  cr_assert_neq(fd, -1);
+  FILE* file = fdopen(fd, "w");
+  fprintf(file,
+          "LOG_LEVEL=INFO\n"
+          "KERNEL_MEMORY_IP=127.0.0.1\n"
+          "KERNEL_MEMORY_PORT=1234\n"
+          "SWAP_FILE_PATH=%s\n"
+          "SWAP_FILE_SIZE=-1\n"
+          "BLOCK_SIZE=64\n",
+          swap_file);
+  fclose(file);
+
+  char scratch[] = "/tmp/swap_test_cwd_XXXXXX";
+  cr_assert_not_null(mkdtemp(scratch));
+  cr_assert_eq(chdir(scratch), 0);
+
+  t_config* config = config_create(config_path);
+  cr_assert_not_null(config);
+
+  t_swap swap = {0};
+  cr_assert_not(init_config(&swap, config));
+  cr_assert_null(swap.swap_file);
+
+  unlink("swap.log");
+  cr_assert_eq(chdir("/"), 0);
+  rmdir(scratch);
+  unlink(swap_file);
+  unlink(config_path);
+  free(swap_file);
+}
+
 /* ── connect_to_kernel_memory ──────────────────────────────────────────── */
 
 struct km_stub
