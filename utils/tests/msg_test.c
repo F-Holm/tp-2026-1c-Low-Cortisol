@@ -189,6 +189,29 @@ Test(msg, an_empty_packet_yields_an_empty_list)
   socket_destroy(server);
 }
 
+Test(msg, a_zero_length_element_ends_the_packet)
+{
+  t_socket* server;
+  t_socket* client = connected_pair(&server);
+
+  t_packet* packet = create_packet(OP_PACKET);
+  int number = 7;
+  packet_append(packet, &number, sizeof(number));
+  packet_append(packet, &number, 0);
+  packet_append_string(packet, "never read");
+  cr_assert(send_packet(packet, client));
+  destroy_packet(packet);
+
+  cr_assert_eq(receive_op_code(server), OP_PACKET);
+  t_list* values = receive_packet(server);
+  cr_assert_eq(list_size(values), 1);
+  cr_assert_eq(*(int*)list_get(values, 0), 7);
+
+  list_destroy_and_destroy_elements(values, free);
+  socket_destroy(client);
+  socket_destroy(server);
+}
+
 Test(msg, receive_buffer_reports_a_zero_length_payload_as_null)
 {
   t_socket* server;
