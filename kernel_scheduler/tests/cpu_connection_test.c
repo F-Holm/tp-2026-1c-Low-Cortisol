@@ -645,6 +645,27 @@ Test(ks_cpu_connection, an_io_syscall_with_no_such_io_finishes_the_process)
   socket_destroy(km_peer_fd);
 }
 
+Test(ks_cpu_connection, stdout_and_stdin_with_no_such_io_finish_the_process)
+{
+  /* one process per syscall: each ends in EXIT, so each needs its own run */
+  int syscalls[] = {OP_SYSCALL_STDOUT, OP_SYSCALL_STDIN};
+  for (int i = 0; i < 2; i++)
+  {
+    t_dispatch_fixture fx;
+    dispatch_fixture_start(&fx);
+    t_socket* km_peer_fd = wire_km_for_exit(fx.queues);
+
+    t_stdout_request request = {
+        .pid = fx.pcb->pid, .bytes_to_write = 4, .logical_address = 0};
+    cr_assert(
+        send_buffer(syscalls[i], &request, sizeof(request), fx.client_fd));
+    expect_preemption(fx.client_fd, OP_INTERRUPT, "IO operation");
+
+    dispatch_fixture_end_after_preemption(&fx);
+    socket_destroy(km_peer_fd);
+  }
+}
+
 /* ── memory syscalls that fail ─────────────────────────────────────────── */
 
 /* dispatch_fixture_start, but with Kernel Memory replaced by a live peer
