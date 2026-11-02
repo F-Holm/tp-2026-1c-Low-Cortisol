@@ -285,9 +285,11 @@ Test(ks_cpu_connection, mutex_lock_locks_an_uncontended_mutex)
 
   t_pcb* other = create_pcb(PS_EXEC, 5);
   cr_assert_eq(list_mutex_lock(fx.mutex_list, "m", other), MR_WAITING_MUTEX);
-  destroy_pcb(other);
 
+  /* other is still queued on the mutex: destroying the mutex list (in the
+   * teardown) touches it, so it may only be freed afterwards */
   dispatch_fixture_end_no_preemption(&fx);
+  destroy_pcb(other);
 }
 
 Test(ks_cpu_connection, mutex_unlock_hands_off_the_mutex)
