@@ -561,3 +561,84 @@ Test(ks_cpu_connection, invalid_syscall_ends_the_thread)
   ks_destroy_stub_queues_full(fx.queues);
   log_destroy(fx.logger);
 }
+
+/* ── syscalls that end the process ─────────────────────────────────────── */
+
+Test(ks_cpu_connection, creating_an_existing_mutex_finishes_the_process)
+{
+  t_dispatch_fixture fx;
+  dispatch_fixture_start(&fx);
+  t_socket* km_peer_fd = wire_km_for_exit(fx.queues);
+  cr_assert_eq(create_and_add_mutex(fx.mutex_list, "m", true, fx.queues),
+               MR_MUTEX_CREATED);
+
+  cr_assert(send_string(OP_SYSCALL_MUTEX_CREATE, "m", fx.client_fd));
+  expect_preemption(fx.client_fd, OP_INTERRUPT,
+                    "a mutex with that name already exists");
+
+  dispatch_fixture_end_after_preemption(&fx);
+  socket_destroy(km_peer_fd);
+}
+
+Test(ks_cpu_connection, locking_an_unknown_mutex_finishes_the_process)
+{
+  t_dispatch_fixture fx;
+  dispatch_fixture_start(&fx);
+  t_socket* km_peer_fd = wire_km_for_exit(fx.queues);
+
+  cr_assert(send_string(OP_SYSCALL_MUTEX_LOCK, "missing", fx.client_fd));
+  expect_preemption(fx.client_fd, OP_INTERRUPT,
+                    "no mutex with that name exists");
+
+  dispatch_fixture_end_after_preemption(&fx);
+  socket_destroy(km_peer_fd);
+}
+
+Test(ks_cpu_connection, unlocking_an_unknown_mutex_finishes_the_process)
+{
+  t_dispatch_fixture fx;
+  dispatch_fixture_start(&fx);
+  t_socket* km_peer_fd = wire_km_for_exit(fx.queues);
+
+  cr_assert(send_string(OP_SYSCALL_MUTEX_UNLOCK, "missing", fx.client_fd));
+  expect_preemption(fx.client_fd, OP_INTERRUPT,
+                    "no mutex with that name exists");
+
+  dispatch_fixture_end_after_preemption(&fx);
+  socket_destroy(km_peer_fd);
+}
+
+Test(ks_cpu_connection, unlocking_a_mutex_held_by_another_finishes_the_process)
+{
+  t_dispatch_fixture fx;
+  dispatch_fixture_start(&fx);
+  t_socket* km_peer_fd = wire_km_for_exit(fx.queues);
+  cr_assert_eq(create_and_add_mutex(fx.mutex_list, "m", true, fx.queues),
+               MR_MUTEX_CREATED);
+  t_pcb* holder = create_pcb(PS_EXEC, 5);
+  cr_assert_eq(list_mutex_lock(fx.mutex_list, "m", holder), MR_MUTEX_LOCKED);
+
+  cr_assert(send_string(OP_SYSCALL_MUTEX_UNLOCK, "m", fx.client_fd));
+  expect_preemption(fx.client_fd, OP_INTERRUPT,
+                    "this process cannot unlock this mutex");
+
+  dispatch_fixture_end_after_preemption(&fx);
+  destroy_pcb(holder);
+  socket_destroy(km_peer_fd);
+}
+
+Test(ks_cpu_connection, an_io_syscall_with_no_such_io_finishes_the_process)
+{
+  t_dispatch_fixture fx;
+  dispatch_fixture_start(&fx);
+  t_socket* km_peer_fd = wire_km_for_exit(fx.queues);
+
+  /* no SLEEP interface was ever connected */
+  t_sleep_request request = {.pid = fx.pcb->pid, .blocked_time_ms = 10};
+  cr_assert(
+      send_buffer(OP_SYSCALL_SLEEP, &request, sizeof(request), fx.client_fd));
+  expect_preemption(fx.client_fd, OP_INTERRUPT, "IO operation");
+
+  dispatch_fixture_end_after_preemption(&fx);
+  socket_destroy(km_peer_fd);
+}
