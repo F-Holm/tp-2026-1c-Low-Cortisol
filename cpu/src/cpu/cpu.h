@@ -81,7 +81,7 @@ bool run_instruction_cycle(t_cpu* cpu, uint32_t pid, t_context* context);
 
 /**
  * @brief Requests and receives the instruction at @p pc.
- * @return The raw instruction string, or NULL on failure. Caller frees it.
+ * @return The raw instruction string, or nullptr on failure. Caller frees it.
  */
 char* fetch_stage(t_cpu* cpu, uint32_t pid, uint32_t pc);
 

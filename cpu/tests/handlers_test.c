@@ -2,7 +2,10 @@
 
 #include <criterion/criterion.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
 #include "cpu/cpu.h"
 #include "cpu/registers.h"
@@ -19,12 +22,12 @@
 static t_instruction make_instruction(char* name, char* p0, char* p1)
 {
   t_instruction instruction = {.name = name, .parameter_count = 0};
-  if (p0 != NULL)
+  if (p0 != nullptr)
   {
     instruction.parameters[0] = p0;
     instruction.parameter_count++;
   }
-  if (p1 != NULL)
+  if (p1 != nullptr)
   {
     instruction.parameters[1] = p1;
     instruction.parameter_count++;
@@ -38,7 +41,7 @@ Test(cpu_handlers, noop_does_nothing_and_succeeds)
   t_context* context = cpu_make_context();
   context->registers->EAX = 5;
 
-  t_instruction instruction = make_instruction("NOOP", NULL, NULL);
+  t_instruction instruction = make_instruction("NOOP", nullptr, nullptr);
   cr_assert_eq(handler_noop(&cpu, context, &instruction, 1), EB_TRUE);
   cr_assert_eq(context->registers->EAX, 5);
 
@@ -152,7 +155,7 @@ Test(cpu_handlers, mem_free_sends_the_syscall_with_a_zero_size)
   cpu.logger = cpu_quiet_logger();
   t_context* context = cpu_make_context();
 
-  t_instruction instruction = make_instruction("MEM_FREE", "3", NULL);
+  t_instruction instruction = make_instruction("MEM_FREE", "3", nullptr);
   cr_assert_eq(handler_mem_free(&cpu, context, &instruction, 7), EB_FALSE);
   cr_assert(context->segment_changed);
 
@@ -178,7 +181,7 @@ Test(cpu_handlers, sleep_sends_the_pid_and_the_blocked_time)
   cpu.logger = cpu_quiet_logger();
   t_context* context = cpu_make_context();
 
-  t_instruction instruction = make_instruction("SLEEP", "250", NULL);
+  t_instruction instruction = make_instruction("SLEEP", "250", nullptr);
   cr_assert_eq(handler_sleep(&cpu, context, &instruction, 9), EB_FALSE);
 
   cr_assert_eq(receive_op_code(peer_fd), OP_SYSCALL_SLEEP);
@@ -257,7 +260,7 @@ Test(cpu_handlers, mutex_create_sends_the_mutex_name)
   t_context* context = cpu_make_context();
 
   t_instruction instruction =
-      make_instruction("MUTEX_CREATE", "my_mutex", NULL);
+      make_instruction("MUTEX_CREATE", "my_mutex", nullptr);
   cr_assert_eq(handler_mutex_create(&cpu, context, &instruction, 1), EB_FALSE);
 
   cr_assert_eq(receive_op_code(peer_fd), OP_SYSCALL_MUTEX_CREATE);
@@ -279,7 +282,8 @@ Test(cpu_handlers, mutex_lock_sends_the_mutex_name)
   cpu.logger = cpu_quiet_logger();
   t_context* context = cpu_make_context();
 
-  t_instruction instruction = make_instruction("MUTEX_LOCK", "my_mutex", NULL);
+  t_instruction instruction =
+      make_instruction("MUTEX_LOCK", "my_mutex", nullptr);
   cr_assert_eq(handler_mutex_lock(&cpu, context, &instruction, 1), EB_FALSE);
 
   cr_assert_eq(receive_op_code(peer_fd), OP_SYSCALL_MUTEX_LOCK);
@@ -302,7 +306,7 @@ Test(cpu_handlers, mutex_unlock_sends_the_mutex_name)
   t_context* context = cpu_make_context();
 
   t_instruction instruction =
-      make_instruction("MUTEX_UNLOCK", "my_mutex", NULL);
+      make_instruction("MUTEX_UNLOCK", "my_mutex", nullptr);
   cr_assert_eq(handler_mutex_unlock(&cpu, context, &instruction, 1), EB_FALSE);
 
   cr_assert_eq(receive_op_code(peer_fd), OP_SYSCALL_MUTEX_UNLOCK);
@@ -348,7 +352,7 @@ Test(cpu_handlers, exit_sends_the_process_finished_message)
   cpu.logger = cpu_quiet_logger();
   t_context* context = cpu_make_context();
 
-  t_instruction instruction = make_instruction("EXIT", NULL, NULL);
+  t_instruction instruction = make_instruction("EXIT", nullptr, nullptr);
   cr_assert_eq(handler_exit(&cpu, context, &instruction, 1), EB_FALSE);
 
   cr_assert_eq(receive_op_code(peer_fd), OP_SYSCALL_EXIT);
@@ -386,7 +390,7 @@ Test(cpu_handlers, mov_in_reads_a_value_from_memory_into_a_register)
   cr_assert(send_buffer(OP_MEMORY_STICK_READ_DONE, &stored_value,
                         sizeof(stored_value), stick_server_fd));
 
-  t_instruction instruction = make_instruction("MOV_IN", "EAX", NULL);
+  t_instruction instruction = make_instruction("MOV_IN", "EAX", nullptr);
   cr_assert_eq(handler_mov_in(&cpu, context, &instruction, 1), EB_TRUE);
   cr_assert_eq(get_register(context->registers, "EAX"), 55);
 
@@ -423,7 +427,7 @@ Test(cpu_handlers, mov_out_writes_a_register_value_to_memory)
    * always reads an op code AND a string, whatever that op code is. */
   cr_assert(send_string(OP_MEMORY_STICK_WRITE_DONE, "ok", stick_server_fd));
 
-  t_instruction instruction = make_instruction("MOV_OUT", "EAX", NULL);
+  t_instruction instruction = make_instruction("MOV_OUT", "EAX", nullptr);
   cr_assert_eq(handler_mov_out(&cpu, context, &instruction, 1), EB_TRUE);
 
   cr_assert_eq(receive_op_code(stick_server_fd), OP_MEMORY_STICK_WRITE);
@@ -440,7 +444,7 @@ Test(cpu_handlers, mov_out_writes_a_register_value_to_memory)
   log_destroy(cpu.logger);
 }
 
-Test(cpu_handlers, copy_mem_short_circuits_when_the_destination_faults)
+Test(cpu_handlers, copy_mem_stops_the_process_when_the_destination_faults)
 {
   t_socket* peer_fd;
   t_socket* client_fd = cpu_connected_pair(&peer_fd);
@@ -454,11 +458,11 @@ Test(cpu_handlers, copy_mem_short_circuits_when_the_destination_faults)
   context->registers->DI = 90; /* logical address past segment 0's range */
   set_register(context->registers, "EAX", 4);
 
-  t_instruction instruction = make_instruction("COPY_MEM", "EAX", NULL);
+  t_instruction instruction = make_instruction("COPY_MEM", "EAX", nullptr);
   /* dst_addr's mmu() call reports a segmentation fault (segment 0 doesn't
    * cover offset 90), so the handler returns without ever touching src or
    * dst memory. */
-  cr_assert_eq(handler_copy_mem(&cpu, context, &instruction, 1), EB_TRUE);
+  cr_assert_eq(handler_copy_mem(&cpu, context, &instruction, 1), EB_FALSE);
 
   cr_assert_eq(receive_op_code(peer_fd), OP_SEG_FAULT);
   free(receive_string(peer_fd));
@@ -467,4 +471,349 @@ Test(cpu_handlers, copy_mem_short_circuits_when_the_destination_faults)
   socket_destroy(client_fd);
   socket_destroy(peer_fd);
   log_destroy(cpu.logger);
+}
+
+/* ── memory-instruction failure paths and COPY_MEM ─────────────────────── */
+
+/* A cpu with a Kernel Scheduler peer and one stick covering [0, 100), running
+ * a process whose segment 0 maps to [0, 32) and segment 1 to [32, 64). Segment
+ * 2 maps to [200, 232): valid for the MMU, but no stick backs it. */
+typedef struct
+{
+  t_cpu cpu;
+  t_socket* scheduler_peer;
+  t_socket* km_peer;
+  t_socket* stick_peer;
+  t_context* context;
+} t_handler_fixture;
+
+static void handler_fixture_start(t_handler_fixture* fx)
+{
+  memset(fx, 0, sizeof(*fx));
+  fx->cpu.logger = cpu_quiet_logger();
+  fx->cpu.max_segment_size = 100;
+  fx->cpu.socket_kernel_scheduler = cpu_connected_pair(&fx->scheduler_peer);
+  fx->cpu.socket_kernel_memory = cpu_connected_pair(&fx->km_peer);
+  fx->cpu.memory_sticks = list_create();
+  t_memory_stick_info* stick = cpu_make_stick(0, 100);
+  stick->socket_ms = cpu_connected_pair(&fx->stick_peer);
+  list_add(fx->cpu.memory_sticks, stick);
+
+  fx->context = cpu_make_context();
+  list_add(fx->context->segment_table, cpu_make_segment(0, 0, 32));
+  list_add(fx->context->segment_table, cpu_make_segment(1, 32, 32));
+  list_add(fx->context->segment_table, cpu_make_segment(2, 200, 32));
+}
+
+static void handler_fixture_end(t_handler_fixture* fx)
+{
+  cpu_destroy_context(fx->context);
+  t_memory_stick_info* stick = list_get(fx->cpu.memory_sticks, 0);
+  socket_destroy(stick->socket_ms);
+  socket_destroy(fx->stick_peer);
+  list_destroy_and_destroy_elements(fx->cpu.memory_sticks, free);
+  socket_destroy(fx->cpu.socket_kernel_scheduler);
+  socket_destroy(fx->scheduler_peer);
+  socket_destroy(fx->cpu.socket_kernel_memory);
+  socket_destroy(fx->km_peer);
+  log_destroy(fx->cpu.logger);
+}
+
+static void assert_seg_fault_sent(t_handler_fixture* fx)
+{
+  cr_assert_eq(receive_op_code(fx->scheduler_peer), OP_SEG_FAULT);
+  free(receive_string(fx->scheduler_peer));
+}
+
+/* Logical addresses (max_segment_size = 100): segment * 100 + offset. */
+#define SEG0_OFFSET(o) (0 + (o))
+#define SEG1_OFFSET(o) (100 + (o))
+#define SEG2_OFFSET(o) (200 + (o))
+#define MISSING_SEGMENT 300
+#define PAST_SEG0_END SEG0_OFFSET(30) /* 30 + 4 bytes > 32 */
+
+Test(cpu_handlers, mov_in_stops_the_process_on_a_segmentation_fault)
+{
+  t_handler_fixture fx;
+  handler_fixture_start(&fx);
+  fx.context->registers->SI = PAST_SEG0_END;
+
+  t_instruction instruction = make_instruction("MOV_IN", "EAX", nullptr);
+  cr_assert_eq(handler_mov_in(&fx.cpu, fx.context, &instruction, 1), EB_FALSE);
+  assert_seg_fault_sent(&fx);
+
+  handler_fixture_end(&fx);
+}
+
+Test(cpu_handlers, mov_in_fails_on_an_unknown_segment)
+{
+  t_handler_fixture fx;
+  handler_fixture_start(&fx);
+  fx.context->registers->SI = MISSING_SEGMENT;
+
+  t_instruction instruction = make_instruction("MOV_IN", "EAX", nullptr);
+  cr_assert_eq(handler_mov_in(&fx.cpu, fx.context, &instruction, 1), EB_ERROR);
+
+  handler_fixture_end(&fx);
+}
+
+Test(cpu_handlers, mov_in_fails_when_the_read_fails)
+{
+  t_handler_fixture fx;
+  handler_fixture_start(&fx);
+  fx.context->registers->SI = SEG2_OFFSET(0); /* no stick backs it */
+
+  t_instruction instruction = make_instruction("MOV_IN", "EAX", nullptr);
+  cr_assert_eq(handler_mov_in(&fx.cpu, fx.context, &instruction, 1), EB_ERROR);
+
+  handler_fixture_end(&fx);
+}
+
+Test(cpu_handlers, mov_out_stops_the_process_on_a_segmentation_fault)
+{
+  t_handler_fixture fx;
+  handler_fixture_start(&fx);
+  fx.context->registers->DI = PAST_SEG0_END;
+
+  t_instruction instruction = make_instruction("MOV_OUT", "EAX", nullptr);
+  cr_assert_eq(handler_mov_out(&fx.cpu, fx.context, &instruction, 1), EB_FALSE);
+  assert_seg_fault_sent(&fx);
+
+  handler_fixture_end(&fx);
+}
+
+Test(cpu_handlers, mov_out_fails_on_an_unknown_segment)
+{
+  t_handler_fixture fx;
+  handler_fixture_start(&fx);
+  fx.context->registers->DI = MISSING_SEGMENT;
+
+  t_instruction instruction = make_instruction("MOV_OUT", "EAX", nullptr);
+  cr_assert_eq(handler_mov_out(&fx.cpu, fx.context, &instruction, 1), EB_ERROR);
+
+  handler_fixture_end(&fx);
+}
+
+Test(cpu_handlers, mov_out_fails_when_the_write_fails)
+{
+  t_handler_fixture fx;
+  handler_fixture_start(&fx);
+  fx.context->registers->DI = SEG2_OFFSET(0); /* no stick backs it */
+
+  t_instruction instruction = make_instruction("MOV_OUT", "EAX", nullptr);
+  cr_assert_eq(handler_mov_out(&fx.cpu, fx.context, &instruction, 1), EB_ERROR);
+
+  handler_fixture_end(&fx);
+}
+
+Test(cpu_handlers, copy_mem_copies_the_bytes_from_si_to_di)
+{
+  t_handler_fixture fx;
+  handler_fixture_start(&fx);
+  fx.context->registers->SI = SEG0_OFFSET(4); /* physical 4 */
+  fx.context->registers->DI = SEG1_OFFSET(0); /* physical 32 */
+  set_register(fx.context->registers, "EAX", 4);
+
+  /* Both stick replies are queued up front: the read, then the write. */
+  cr_assert(send_string(OP_MEMORY_STICK_READ_DONE, "WXY", fx.stick_peer));
+  cr_assert(send_string(OP_MEMORY_STICK_WRITE_DONE, "ok", fx.stick_peer));
+
+  t_instruction instruction = make_instruction("COPY_MEM", "EAX", nullptr);
+  cr_assert_eq(handler_copy_mem(&fx.cpu, fx.context, &instruction, 1), EB_TRUE);
+
+  cr_assert_eq(receive_op_code(fx.stick_peer), OP_MEMORY_STICK_READ);
+  t_list* read = receive_packet(fx.stick_peer);
+  cr_assert_eq(*(int*)list_get(read, 0), 4);
+  cr_assert_eq(*(int*)list_get(read, 1), 4);
+  list_destroy_and_destroy_elements(read, free);
+
+  cr_assert_eq(receive_op_code(fx.stick_peer), OP_MEMORY_STICK_WRITE);
+  t_list* write = receive_packet(fx.stick_peer);
+  cr_assert_eq(*(int*)list_get(write, 0), 32);
+  cr_assert_eq(memcmp(list_get(write, 1), "WXY", 4), 0);
+  list_destroy_and_destroy_elements(write, free);
+
+  handler_fixture_end(&fx);
+}
+
+Test(cpu_handlers, copy_mem_stops_the_process_when_the_source_faults)
+{
+  t_handler_fixture fx;
+  handler_fixture_start(&fx);
+  fx.context->registers->SI = PAST_SEG0_END;
+  fx.context->registers->DI = SEG1_OFFSET(0);
+  set_register(fx.context->registers, "EAX", 4); /* 30 + 4 bytes > 32 */
+
+  t_instruction instruction = make_instruction("COPY_MEM", "EAX", nullptr);
+  cr_assert_eq(handler_copy_mem(&fx.cpu, fx.context, &instruction, 1),
+               EB_FALSE);
+  assert_seg_fault_sent(&fx);
+
+  handler_fixture_end(&fx);
+}
+
+Test(cpu_handlers, copy_mem_fails_when_the_source_segment_is_unknown)
+{
+  t_handler_fixture fx;
+  handler_fixture_start(&fx);
+  fx.context->registers->SI = MISSING_SEGMENT;
+  fx.context->registers->DI = SEG1_OFFSET(0);
+
+  t_instruction instruction = make_instruction("COPY_MEM", "EAX", nullptr);
+  cr_assert_eq(handler_copy_mem(&fx.cpu, fx.context, &instruction, 1),
+               EB_ERROR);
+
+  handler_fixture_end(&fx);
+}
+
+Test(cpu_handlers, copy_mem_fails_when_the_destination_segment_is_unknown)
+{
+  t_handler_fixture fx;
+  handler_fixture_start(&fx);
+  fx.context->registers->SI = SEG0_OFFSET(0);
+  fx.context->registers->DI = MISSING_SEGMENT;
+
+  t_instruction instruction = make_instruction("COPY_MEM", "EAX", nullptr);
+  cr_assert_eq(handler_copy_mem(&fx.cpu, fx.context, &instruction, 1),
+               EB_ERROR);
+
+  handler_fixture_end(&fx);
+}
+
+Test(cpu_handlers, copy_mem_fails_when_the_read_fails)
+{
+  t_handler_fixture fx;
+  handler_fixture_start(&fx);
+  fx.context->registers->SI = SEG2_OFFSET(0); /* no stick backs it */
+  fx.context->registers->DI = SEG1_OFFSET(0);
+  set_register(fx.context->registers, "EAX", 4);
+
+  t_instruction instruction = make_instruction("COPY_MEM", "EAX", nullptr);
+  cr_assert_eq(handler_copy_mem(&fx.cpu, fx.context, &instruction, 1),
+               EB_ERROR);
+
+  handler_fixture_end(&fx);
+}
+
+Test(cpu_handlers, copy_mem_fails_when_the_write_fails)
+{
+  t_handler_fixture fx;
+  handler_fixture_start(&fx);
+  fx.context->registers->SI = SEG0_OFFSET(0);
+  fx.context->registers->DI = SEG2_OFFSET(0); /* no stick backs it */
+  set_register(fx.context->registers, "EAX", 4);
+
+  cr_assert(send_string(OP_MEMORY_STICK_READ_DONE, "abc", fx.stick_peer));
+
+  t_instruction instruction = make_instruction("COPY_MEM", "EAX", nullptr);
+  cr_assert_eq(handler_copy_mem(&fx.cpu, fx.context, &instruction, 1),
+               EB_ERROR);
+
+  handler_fixture_end(&fx);
+}
+
+/* ── syscalls that cannot reach the Kernel Scheduler ───────────────────── */
+
+Test(cpu_handlers, every_syscall_fails_when_the_scheduler_is_unreachable)
+{
+  t_handler_fixture fx;
+  handler_fixture_start(&fx);
+  socket_shutdown(fx.cpu.socket_kernel_scheduler, SOCKET_SHUTDOWN_WRITE);
+
+  struct
+  {
+    t_handler handler;
+    t_instruction instruction;
+  } syscalls[] = {
+      {handler_mutex_create, make_instruction("MUTEX_CREATE", "M", nullptr)},
+      {handler_mutex_lock, make_instruction("MUTEX_LOCK", "M", nullptr)},
+      {handler_mutex_unlock, make_instruction("MUTEX_UNLOCK", "M", nullptr)},
+      {handler_mem_alloc, make_instruction("MEM_ALLOC", "1", "16")},
+      {handler_mem_free, make_instruction("MEM_FREE", "1", nullptr)},
+      {handler_sleep, make_instruction("SLEEP", "10", nullptr)},
+      {handler_stdout, make_instruction("STDOUT", "EAX", "EBX")},
+      {handler_stdin, make_instruction("STDIN", "EAX", "EBX")},
+      {handler_init_proc, make_instruction("INIT_PROC", "script", "1")},
+      {handler_exit, make_instruction("EXIT", nullptr, nullptr)},
+  };
+
+  for (size_t i = 0; i < sizeof(syscalls) / sizeof(syscalls[0]); i++)
+  {
+    cr_assert_eq(
+        syscalls[i].handler(&fx.cpu, fx.context, &syscalls[i].instruction, 1),
+        EB_ERROR, "%s should report the failed send",
+        syscalls[i].instruction.name);
+  }
+
+  handler_fixture_end(&fx);
+}
+
+Test(cpu_handlers, copy_mem_faults_when_the_copy_runs_past_the_source_segment,
+     .timeout = 5.0)
+{
+  t_handler_fixture fx;
+  handler_fixture_start(&fx);
+  fx.context->registers->SI = SEG0_OFFSET(20); /* 20 + 20 bytes > 32 */
+  fx.context->registers->DI = SEG2_OFFSET(0);
+  set_register(fx.context->registers, "EAX", 20);
+
+  t_instruction instruction = make_instruction("COPY_MEM", "EAX", nullptr);
+  cr_assert_eq(handler_copy_mem(&fx.cpu, fx.context, &instruction, 1),
+               EB_FALSE);
+  assert_seg_fault_sent(&fx);
+
+  handler_fixture_end(&fx);
+}
+
+Test(cpu_handlers,
+     copy_mem_faults_when_the_copy_runs_past_the_destination_segment,
+     .timeout = 5.0)
+{
+  t_handler_fixture fx;
+  handler_fixture_start(&fx);
+  fx.context->registers->SI = SEG0_OFFSET(0);
+  fx.context->registers->DI = SEG1_OFFSET(20); /* 20 + 20 bytes > 32 */
+  set_register(fx.context->registers, "EAX", 20);
+
+  t_instruction instruction = make_instruction("COPY_MEM", "EAX", nullptr);
+  cr_assert_eq(handler_copy_mem(&fx.cpu, fx.context, &instruction, 1),
+               EB_FALSE);
+  assert_seg_fault_sent(&fx);
+
+  handler_fixture_end(&fx);
+}
+
+Test(cpu_handlers, copy_mem_logs_exactly_the_copied_bytes, .timeout = 5.0)
+{
+  t_handler_fixture fx;
+  handler_fixture_start(&fx);
+  char log_path[] = "/tmp/cpu_copy_mem_log_XXXXXX";
+  int fd = mkstemp(log_path);
+  cr_assert_neq(fd, -1);
+  close(fd);
+  log_destroy(fx.cpu.logger);
+  fx.cpu.logger =
+      log_create(log_path, "CPU-test", false, LOG_LEVEL_INFO, false);
+
+  fx.context->registers->SI = SEG0_OFFSET(4);
+  fx.context->registers->DI = SEG1_OFFSET(0);
+  set_register(fx.context->registers, "EAX", 4);
+  /* four raw bytes with no terminating '\0' after them */
+  cr_assert(send_buffer(OP_MEMORY_STICK_READ_DONE, "WXYZ", 4, fx.stick_peer));
+  cr_assert(send_string(OP_MEMORY_STICK_WRITE_DONE, "ok", fx.stick_peer));
+
+  t_instruction instruction = make_instruction("COPY_MEM", "EAX", nullptr);
+  cr_assert_eq(handler_copy_mem(&fx.cpu, fx.context, &instruction, 1), EB_TRUE);
+
+  FILE* log = fopen(log_path, "r");
+  char contents[1024] = {0};
+  fread(contents, 1, sizeof(contents) - 1, log);
+  fclose(log);
+  cr_assert_not_null(
+      strstr(contents, "READ - Physical Address: 4 - Value: WXYZ\n"));
+  cr_assert_not_null(
+      strstr(contents, "WRITE - Physical Address: 32 - Value: WXYZ\n"));
+
+  unlink(log_path);
+  handler_fixture_end(&fx);
 }

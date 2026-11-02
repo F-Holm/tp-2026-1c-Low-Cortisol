@@ -13,12 +13,12 @@ Test(string, duplicate_copies_content)
 
 Test(string, duplicate_of_null_is_null)
 {
-  cr_assert_null(string_duplicate(NULL));
+  cr_assert_null(string_duplicate(nullptr));
 }
 
 Test(string, is_empty_on_null_and_zero_length)
 {
-  cr_assert(string_is_empty(NULL));
+  cr_assert(string_is_empty(nullptr));
   cr_assert(string_is_empty(""));
   cr_assert_not(string_is_empty(" "));
   cr_assert_not(string_is_empty("x"));
@@ -107,7 +107,7 @@ Test(string, get_string_as_array_handles_empty_and_null)
   cr_assert_eq(string_array_size(empty), 0);
   string_array_destroy(empty);
 
-  char** from_null = string_get_string_as_array(NULL);
+  char** from_null = string_get_string_as_array(nullptr);
   cr_assert_eq(string_array_size(from_null), 0);
   string_array_destroy(from_null);
 }

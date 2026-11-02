@@ -9,7 +9,9 @@
 bool file_resize(FILE* file, long size)
 {
   if (fflush(file) != 0)
+  {
     return false;
+  }
   return ftruncate(fileno(file), size) == 0;
 }
 

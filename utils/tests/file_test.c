@@ -23,7 +23,9 @@ Test(file, file_resize_grows_the_file_with_zeros)
 
   rewind(file);
   for (int i = 0; i < 4096; i++)
+  {
     cr_assert_eq(fgetc(file), 0);
+  }
 
   fclose(file);
 }
@@ -48,6 +50,19 @@ Test(file, file_resize_to_the_same_size_keeps_it)
   cr_assert(file_resize(file, 128));
   cr_assert(file_resize(file, 128));
   cr_assert_eq(file_size(file), 128);
+
+  fclose(file);
+}
+
+Test(file, file_resize_fails_when_flushing_pending_writes_fails)
+{
+  /* Every write to /dev/full fails with ENOSPC, so flushing the byte
+   * buffered below makes fflush() -- and therefore file_resize -- fail. */
+  FILE* file = fopen("/dev/full", "w");
+  cr_assert_not_null(file);
+
+  fputc('x', file);
+  cr_assert_not(file_resize(file, 0));
 
   fclose(file);
 }

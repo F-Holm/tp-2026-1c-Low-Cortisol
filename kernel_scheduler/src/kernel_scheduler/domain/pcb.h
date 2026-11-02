@@ -61,8 +61,8 @@ void decrement_active_instances(t_pcb* pcb);
 /** @brief Blocks until active_instances reaches zero. */
 void wait_zero_active_instances(t_pcb* pcb);
 
-/** @brief Records the mutex @p pcb is blocked waiting on (NULL to clear). */
+/** @brief Records the mutex @p pcb is blocked waiting on (nullptr to clear). */
 void set_mutex_blocking(t_pcb* pcb, void* mutex);
 
-/** @brief Returns the mutex @p pcb is blocked waiting on, or NULL. */
+/** @brief Returns the mutex @p pcb is blocked waiting on, or nullptr. */
 void* get_mutex_blocking(t_pcb* pcb);

@@ -20,10 +20,14 @@ void close_swap(t_swap* swap, t_config* config)
   // socket or the SWAP file were set, so each resource is released only if it
   // was actually acquired.
   socket_destroy(swap->socket_swap);
-  if (swap->swap_file != NULL)
+  if (swap->swap_file != nullptr)
+  {
     fclose(swap->swap_file);
-  if (swap->logger != NULL)
+  }
+  if (swap->logger != nullptr)
+  {
     log_destroy(swap->logger);
+  }
   config_destroy(config);
 }
 
@@ -37,7 +41,7 @@ bool init_config(t_swap* swap, t_config* config)
   swap->block_size = config_get_int_value(config, "BLOCK_SIZE");
   swap->logger = log_create("swap.log", "SWAP", true,
                             log_level_from_string(log_level_str), false);
-  if (swap->logger == NULL)
+  if (swap->logger == nullptr)
   {
     config_destroy(config);
     return false;
@@ -63,7 +67,7 @@ bool connect_to_kernel_memory(t_swap* swap, t_config* config)
   swap->socket_swap =
       socket_create(SOCKET_KIND_CLIENT, swap->ip, swap->port, false);
 
-  if (swap->socket_swap == NULL)
+  if (swap->socket_swap == nullptr)
   {
     log_error(swap->logger, "Connection error with Kernel Memory");
     close_swap(swap, config);
@@ -95,6 +99,7 @@ bool connect_to_kernel_memory(t_swap* swap, t_config* config)
   km_config->block_size = swap->block_size;
   sent_ok = send_buffer(OP_INFO_SWAP, (void*)km_config, config_size,
                         swap->socket_swap);
+  free(km_config);
 
   if (!sent_ok)
   {
@@ -102,7 +107,6 @@ bool connect_to_kernel_memory(t_swap* swap, t_config* config)
     close_swap(swap, config);
     return false;
   }
-  free(km_config);
 
   log_debug(swap->logger, "Reported SWAP geometry to Kernel Memory");
   return true;
@@ -121,14 +125,18 @@ void read_block(FILE* swap_file, int block_number, int block_size,
 {
   seek_block(swap_file, block_number, block_size);
   if (fread(content, block_size, 1, swap_file) != 1)
+  {
     return;
+  }
 }
 
 static bool init_swap_file(t_swap* swap)
 {
   FILE* swap_file = fopen(swap->swap_file_path, "wb+");
-  if (swap_file == NULL)
+  if (swap_file == nullptr)
+  {
     return false;
+  }
 
   // Set the file size and fill it with zeros.
   if (!file_resize(swap_file, swap->swap_size))

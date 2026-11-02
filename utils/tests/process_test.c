@@ -32,7 +32,7 @@ Test(process, another_thread_shares_the_process_id_but_not_the_thread_id)
   t_ids other = {0};
   thrd_t thread;
   thrd_create(&thread, read_ids, &other);
-  thrd_join(thread, NULL);
+  thrd_join(thread, nullptr);
 
   cr_assert_eq(other.process_id, process_get_id());
   cr_assert_neq(other.thread_id, process_get_thread_id());

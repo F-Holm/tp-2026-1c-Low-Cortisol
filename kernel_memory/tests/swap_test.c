@@ -68,8 +68,9 @@ static t_swap_fixture make_swap_fixture(int stick_size, int swap_size,
   f.memory = init_main_memory(max_segment_size, AS_BEST, 0);
 
   f.scheduler_data = init_scheduler_data(
-      NULL, f.scheduler_client_fd, NULL, NULL, NULL, f.memory, f.sticks,
-      f.sticks_mutex, f.swap_data_slot, f.logger, NULL, NULL, NULL);
+      nullptr, f.scheduler_client_fd, nullptr, nullptr, nullptr, f.memory,
+      f.sticks, f.sticks_mutex, f.swap_data_slot, f.logger, nullptr, nullptr,
+      nullptr);
   return f;
 }
 
@@ -98,7 +99,7 @@ Test(km_swap, suspend_process_guards_against_a_null_process)
   t_scheduler_data sd = {0};
   sd.logger = logger;
 
-  suspend_process(NULL, &sd); /* must not crash */
+  suspend_process(nullptr, &sd); /* must not crash */
 
   log_destroy(logger);
 }
@@ -213,6 +214,143 @@ Test(km_swap, resume_process_restores_a_segment_and_reports_success)
 
   cr_assert_eq(receive_op_code(f.scheduler_server_fd), OP_RESUME_SUSPENSION_OK);
   free(receive_string(f.scheduler_server_fd));
+
+  destroy_swap_fixture(&f);
+}
+
+/* ── resume_process / suspend_process failure paths ────────────────────── */
+
+/* Marks swap block 0 as the first (and only) block of pid 1's segment 0. */
+static t_block_data* park_one_block(t_swap_fixture* f, int segment_size)
+{
+  t_block_data* block = list_get(f->swap_data->block_list, 0);
+  block->pid = 1;
+  block->segment_number = 0;
+  block->segment_block_number = 0;
+  block->segment_size = segment_size;
+  return block;
+}
+
+static void assert_resume_failed(t_swap_fixture* f)
+{
+  cr_assert_eq(receive_op_code(f->scheduler_server_fd),
+               OP_RESUME_SUSPENSION_FAILED);
+  free(receive_string(f->scheduler_server_fd));
+}
+
+Test(km_swap, resume_process_fails_when_no_single_hole_fits_the_segment)
+{
+  t_swap_fixture f = make_swap_fixture(1000, 10, 10, 1000);
+  /* 12 bytes free in total, but split in two 6-byte holes */
+  list_add(f.memory->holes, km_make_hole(0, 6));
+  list_add(f.memory->holes, km_make_hole(20, 6));
+  t_block_data* block = park_one_block(&f, 10);
+
+  resume_process(1, f.scheduler_data);
+
+  assert_resume_failed(&f);
+  cr_assert_eq(list_size(f.memory->segments), 0);
+  cr_assert_eq(block->pid, 1, "the block stays in swap");
+
+  destroy_swap_fixture(&f);
+}
+
+Test(km_swap, resume_process_fails_when_swap_cannot_read_the_block)
+{
+  t_swap_fixture f = make_swap_fixture(1000, 10, 10, 1000);
+  list_add(f.memory->holes, km_make_hole(0, 1000));
+  t_block_data* block = park_one_block(&f, 10);
+
+  cr_assert(send_string(OP_DISK_WRITE_DONE, "not a read", f.swap_server_fd));
+
+  resume_process(1, f.scheduler_data);
+
+  assert_resume_failed(&f);
+  cr_assert_eq(block->pid, 1, "the block stays in swap");
+
+  destroy_swap_fixture(&f);
+}
+
+Test(km_swap, suspend_process_tolerates_an_unexpected_swap_write_reply)
+{
+  t_swap_fixture f = make_swap_fixture(1000, 10, 10, 1000);
+  list_add(f.memory->segments, km_make_segment(0, 1, 0, 10));
+  t_process process = {.pid = 1};
+
+  cr_assert(send_buffer(OP_MEMORY_STICK_READ_DONE, "0123456789", 10,
+                        f.stick_server_fd));
+  cr_assert(
+      send_string(OP_DISK_READ_DONE, "not a write ack", f.swap_server_fd));
+
+  suspend_process(&process, f.scheduler_data);
+
+  /* the odd reply is only logged: the suspension still goes through */
+  cr_assert_eq(receive_op_code(f.scheduler_server_fd), OP_SUSPENSION_OK);
+  free(receive_string(f.scheduler_server_fd));
+
+  destroy_swap_fixture(&f);
+}
+
+Test(km_swap, resume_process_fails_when_the_block_cannot_be_written_back)
+{
+  t_swap_fixture f = make_swap_fixture(1000, 10, 10, 1000);
+  list_add(f.memory->holes, km_make_hole(0, 1000));
+  t_block_data* block = park_one_block(&f, 10);
+
+  cr_assert(send_buffer(OP_DISK_READ_DONE, "0123456789", 10, f.swap_server_fd));
+  cr_assert(send_string(OP_ID_CPU, "not a write ack", f.stick_server_fd));
+
+  resume_process(1, f.scheduler_data);
+
+  /* the stick's failure is reported first, then the resume itself fails */
+  cr_assert_eq(receive_op_code(f.scheduler_server_fd), OP_MEMORY_CORRUPTED);
+  free(receive_string(f.scheduler_server_fd));
+  assert_resume_failed(&f);
+  cr_assert_eq(block->pid, 1, "the block stays in swap");
+
+  destroy_swap_fixture(&f);
+}
+
+Test(km_swap, suspend_process_fails_when_the_segment_cannot_be_read)
+{
+  t_swap_fixture f = make_swap_fixture(1000, 10, 10, 1000);
+  list_add(f.memory->segments, km_make_segment(0, 1, 0, 10));
+  t_process process = {.pid = 1};
+
+  cr_assert(send_string(OP_ID_CPU, "not a read reply", f.stick_server_fd));
+
+  suspend_process(&process, f.scheduler_data);
+
+  cr_assert_eq(receive_op_code(f.scheduler_server_fd), OP_SUSPENSION_FAILED);
+  free(receive_string(f.scheduler_server_fd));
+  cr_assert_eq(list_size(f.memory->segments), 1, "the segment stays in memory");
+  t_block_data* block = list_get(f.swap_data->block_list, 0);
+  cr_assert_eq(block->pid, -1, "no swap block was taken");
+
+  destroy_swap_fixture(&f);
+}
+
+Test(km_swap, a_failed_suspension_gives_back_the_blocks_it_had_taken)
+{
+  /* one swap block, two segments: the first fits, the second does not */
+  t_swap_fixture f = make_swap_fixture(1000, 10, 10, 1000);
+  list_add(f.memory->segments, km_make_segment(0, 1, 0, 10));
+  list_add(f.memory->segments, km_make_segment(1, 1, 10, 10));
+  t_process process = {.pid = 1};
+
+  cr_assert(send_buffer(OP_MEMORY_STICK_READ_DONE, "0123456789", 10,
+                        f.stick_server_fd));
+  cr_assert(send_string(OP_DISK_WRITE_DONE, "ok", f.swap_server_fd));
+  cr_assert(send_buffer(OP_MEMORY_STICK_READ_DONE, "abcdefghij", 10,
+                        f.stick_server_fd));
+
+  suspend_process(&process, f.scheduler_data);
+
+  cr_assert_eq(receive_op_code(f.scheduler_server_fd), OP_SUSPENSION_FAILED);
+  free(receive_string(f.scheduler_server_fd));
+  cr_assert_eq(list_size(f.memory->segments), 2, "both segments stay");
+  t_block_data* block = list_get(f.swap_data->block_list, 0);
+  cr_assert_eq(block->pid, -1, "the first segment's block is free again");
 
   destroy_swap_fixture(&f);
 }

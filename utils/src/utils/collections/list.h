@@ -56,7 +56,8 @@ int list_add(t_list* self, void* element);
  */
 int list_add_sorted(t_list* self, void* data, bool (*comparator)(void*, void*));
 
-/** @brief Returns the element stored at @p index, or NULL if out of range. */
+/** @brief Returns the element stored at @p index, or nullptr if out of range.
+ */
 void* list_get(t_list* self, int index);
 
 /**

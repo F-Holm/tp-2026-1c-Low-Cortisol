@@ -339,3 +339,174 @@ Test(cpu_memory, write_memory_writes_to_a_single_stick)
   socket_destroy(peer_fd);
   log_destroy(cpu.logger);
 }
+
+/* ── failure paths ─────────────────────────────────────────────────────── */
+
+/* A cpu wired to a Kernel Scheduler peer, a Kernel Memory peer and two
+ * adjacent sticks: [0, 50) and [50, 100). */
+typedef struct
+{
+  t_cpu cpu;
+  t_socket* scheduler_peer;
+  t_socket* km_peer;
+  t_socket* stick_peer[2];
+} t_memory_fixture;
+
+static void memory_fixture_start(t_memory_fixture* fx)
+{
+  memset(fx, 0, sizeof(*fx));
+  fx->cpu.logger = cpu_quiet_logger();
+  fx->cpu.max_segment_size = 100;
+  fx->cpu.socket_kernel_scheduler = cpu_connected_pair(&fx->scheduler_peer);
+  fx->cpu.socket_kernel_memory = cpu_connected_pair(&fx->km_peer);
+  fx->cpu.memory_sticks = list_create();
+  for (int i = 0; i < 2; i++)
+  {
+    t_memory_stick_info* stick = cpu_make_stick(i * 50, 50);
+    stick->socket_ms = cpu_connected_pair(&fx->stick_peer[i]);
+    list_add(fx->cpu.memory_sticks, stick);
+  }
+}
+
+static t_memory_stick_info* fixture_stick(t_memory_fixture* fx, int index)
+{
+  return list_get(fx->cpu.memory_sticks, index);
+}
+
+static void memory_fixture_end(t_memory_fixture* fx)
+{
+  for (int i = 0; i < 2; i++)
+  {
+    socket_destroy(fixture_stick(fx, i)->socket_ms);
+    socket_destroy(fx->stick_peer[i]);
+  }
+  list_destroy_and_destroy_elements(fx->cpu.memory_sticks, free);
+  socket_destroy(fx->cpu.socket_kernel_scheduler);
+  socket_destroy(fx->scheduler_peer);
+  socket_destroy(fx->cpu.socket_kernel_memory);
+  socket_destroy(fx->km_peer);
+  log_destroy(fx->cpu.logger);
+}
+
+/* Asserts Kernel Memory was told the stick went down (notify_bsod). */
+static void assert_bsod_reported(t_memory_fixture* fx)
+{
+  cr_assert_eq(receive_op_code(fx->km_peer), OP_STICK_DISCONNECTED);
+  free(receive_string(fx->km_peer));
+}
+
+Test(cpu_mmu, reports_an_error_when_the_segmentation_fault_cannot_be_sent)
+{
+  t_memory_fixture fx;
+  memory_fixture_start(&fx);
+  t_context* context = cpu_make_context();
+  list_add(context->segment_table, cpu_make_segment(0, 0, 32));
+
+  socket_shutdown(fx.cpu.socket_kernel_scheduler, SOCKET_SHUTDOWN_WRITE);
+  cr_assert_eq(mmu(&fx.cpu, context, 30, 4, 7), INVALID_ADDRESS - 1);
+  cr_assert_not(notify_seg_fault(&fx.cpu, 7));
+
+  cpu_destroy_context(context);
+  memory_fixture_end(&fx);
+}
+
+Test(cpu_memory, read_memory_fails_when_no_stick_owns_the_address)
+{
+  t_memory_fixture fx;
+  memory_fixture_start(&fx);
+
+  cr_assert_null(read_memory(&fx.cpu, 100, 4));
+
+  memory_fixture_end(&fx);
+}
+
+Test(cpu_memory, read_memory_fails_and_reports_a_bsod_when_the_request_fails)
+{
+  t_memory_fixture fx;
+  memory_fixture_start(&fx);
+
+  socket_shutdown(fixture_stick(&fx, 0)->socket_ms, SOCKET_SHUTDOWN_WRITE);
+  cr_assert_null(read_memory(&fx.cpu, 4, 4));
+  assert_bsod_reported(&fx);
+
+  memory_fixture_end(&fx);
+}
+
+Test(cpu_memory, read_memory_fails_and_reports_a_bsod_on_a_bad_response)
+{
+  t_memory_fixture fx;
+  memory_fixture_start(&fx);
+
+  cr_assert(
+      send_string(OP_MEMORY_STICK_WRITE_DONE, "not a read", fx.stick_peer[0]));
+  cr_assert_null(read_memory(&fx.cpu, 4, 4));
+  assert_bsod_reported(&fx);
+
+  memory_fixture_end(&fx);
+}
+
+Test(cpu_memory, write_memory_fails_when_no_stick_owns_the_address)
+{
+  t_memory_fixture fx;
+  memory_fixture_start(&fx);
+
+  char payload[4] = "abc";
+  cr_assert_not(write_memory(&fx.cpu, 100, payload, sizeof(payload)));
+
+  memory_fixture_end(&fx);
+}
+
+Test(cpu_memory, write_memory_spans_two_sticks)
+{
+  t_memory_fixture fx;
+  memory_fixture_start(&fx);
+
+  cr_assert(send_string(OP_MEMORY_STICK_WRITE_DONE, "ok", fx.stick_peer[0]));
+  cr_assert(send_string(OP_MEMORY_STICK_WRITE_DONE, "ok", fx.stick_peer[1]));
+
+  /* 48..51: two bytes at the end of stick 0, two at the start of stick 1 */
+  char payload[4] = {'A', 'B', 'C', 'D'};
+  cr_assert(write_memory(&fx.cpu, 48, payload, sizeof(payload)));
+
+  cr_assert_eq(receive_op_code(fx.stick_peer[0]), OP_MEMORY_STICK_WRITE);
+  t_list* first = receive_packet(fx.stick_peer[0]);
+  cr_assert_eq(*(int*)list_get(first, 0), 48);
+  cr_assert_eq(memcmp(list_get(first, 1), "AB", 2), 0);
+  cr_assert_eq(*(int*)list_get(first, 2), 2);
+  list_destroy_and_destroy_elements(first, free);
+
+  cr_assert_eq(receive_op_code(fx.stick_peer[1]), OP_MEMORY_STICK_WRITE);
+  t_list* second = receive_packet(fx.stick_peer[1]);
+  cr_assert_eq(*(int*)list_get(second, 0), 0);
+  cr_assert_eq(memcmp(list_get(second, 1), "CD", 2), 0);
+  cr_assert_eq(*(int*)list_get(second, 2), 2);
+  list_destroy_and_destroy_elements(second, free);
+
+  memory_fixture_end(&fx);
+}
+
+Test(cpu_memory, write_memory_fails_and_reports_a_bsod_when_the_request_fails)
+{
+  t_memory_fixture fx;
+  memory_fixture_start(&fx);
+
+  socket_shutdown(fixture_stick(&fx, 0)->socket_ms, SOCKET_SHUTDOWN_WRITE);
+  char payload[4] = "abc";
+  cr_assert_not(write_memory(&fx.cpu, 4, payload, sizeof(payload)));
+  assert_bsod_reported(&fx);
+
+  memory_fixture_end(&fx);
+}
+
+Test(cpu_memory, write_memory_fails_on_an_unexpected_response)
+{
+  t_memory_fixture fx;
+  memory_fixture_start(&fx);
+
+  cr_assert(
+      send_string(OP_MEMORY_STICK_READ_DONE, "not a write", fx.stick_peer[0]));
+  char payload[4] = "abc";
+  cr_assert_not(write_memory(&fx.cpu, 4, payload, sizeof(payload)));
+
+  memory_fixture_end(&fx);
+}

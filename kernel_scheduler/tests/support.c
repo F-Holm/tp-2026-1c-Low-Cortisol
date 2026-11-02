@@ -22,7 +22,7 @@
 
 t_log* ks_quiet_logger(void)
 {
-  t_log* logger = log_create(NULL, "KS-test", false, LOG_LEVEL_ERROR, true);
+  t_log* logger = log_create(nullptr, "KS-test", false, LOG_LEVEL_ERROR, true);
   cr_assert_not_null(logger);
   return logger;
 }
@@ -32,7 +32,7 @@ t_log* ks_quiet_logger(void)
 t_socket* ks_dead_socket_with_mutex(void)
 {
   t_socket* listener =
-      socket_create(SOCKET_KIND_SERVER, NULL, SOCKET_PORT_EPHEMERAL, false);
+      socket_create(SOCKET_KIND_SERVER, nullptr, SOCKET_PORT_EPHEMERAL, false);
   cr_assert_not_null(listener);
   char port[16];
   snprintf(port, sizeof(port), "%d", socket_get_local_port(listener));
@@ -84,7 +84,7 @@ t_queues* ks_stub_queues_full(t_log* logger)
 {
   t_queues* queues = calloc(1, sizeof(t_queues));
   queues->logger = logger;
-  init_ready_queue(&(queues->ready), SA_FIFO, NULL);
+  init_ready_queue(&(queues->ready), SA_FIFO, nullptr);
   init_exec_list(&(queues->exec), 0, false);
   init_blocking_list(&(queues->block));
   init_blocking_list(&(queues->susp_block));
@@ -92,8 +92,9 @@ t_queues* ks_stub_queues_full(t_log* logger)
   queues->routines.thread_counter = create_counter();
   queues->routines.syscall_counter = create_counter();
   queues->km_socket = ks_dead_socket_with_mutex();
-  queues->process_counter = init_counter_processes(queues->km_socket);
-  init_shutdown(NULL, logger, NULL);
+  queues->shutdown = init_shutdown(nullptr, logger, queues->km_socket);
+  queues->process_counter =
+      init_counter_processes(queues->km_socket, queues->shutdown);
   atomic_init(&(queues->routines.compaction_active), false);
   atomic_init(&(queues->routines.resume_active), false);
   mtx_init(&(queues->routines.routine_mutex), mtx_plain);
@@ -112,6 +113,7 @@ void ks_destroy_stub_queues_full(t_queues* queues)
   destroy_counter(queues->routines.syscall_counter);
   destroy_counter_processes(queues->process_counter);
   socket_destroy(queues->km_socket);
+  destroy_shutdown(queues->shutdown);
   mtx_destroy(&(queues->routines.routine_mutex));
   cnd_destroy(&(queues->routines.routine_cond));
   free(queues);
@@ -120,7 +122,7 @@ void ks_destroy_stub_queues_full(t_queues* queues)
 t_socket* ks_listen_ephemeral(char* port_out, int port_len)
 {
   t_socket* listener =
-      socket_create(SOCKET_KIND_SERVER, NULL, SOCKET_PORT_EPHEMERAL, false);
+      socket_create(SOCKET_KIND_SERVER, nullptr, SOCKET_PORT_EPHEMERAL, false);
   cr_assert_not_null(listener, "socket_create(SERVER) failed");
 
   snprintf(port_out, port_len, "%d", socket_get_local_port(listener));
@@ -184,10 +186,12 @@ bool ks_file_logger_contains(t_ks_file_logger* file_logger, const char* text)
   cr_assert_not_null(file);
   char line[512];
   bool found = false;
-  while (fgets(line, sizeof(line), file) != NULL)
+  while (fgets(line, sizeof(line), file) != nullptr)
   {
-    if (strstr(line, text) != NULL)
+    if (strstr(line, text) != nullptr)
+    {
       found = true;
+    }
   }
   fclose(file);
   return found;

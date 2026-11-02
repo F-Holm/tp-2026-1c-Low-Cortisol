@@ -69,7 +69,7 @@ Test(ks_server_connection,
   /* Shutting the listening socket down makes accept() return an error,
    * ending server_listen's loop; it then tears io/cpu state down itself. */
   socket_shutdown(socket_server, SOCKET_SHUTDOWN_BOTH);
-  thrd_join(listener, NULL);
+  thrd_join(listener, nullptr);
 
   socket_destroy(io_fd);
   socket_destroy(garbage_fd);
@@ -77,5 +77,12 @@ Test(ks_server_connection,
   socket_destroy(km_server_fd);
   destroy_list_mutex(mutex_list);
   ks_destroy_stub_queues_full(queues);
+  log_destroy(logger);
+}
+
+Test(ks_server_connection, fails_to_create_a_server_on_an_invalid_port)
+{
+  t_log* logger = ks_quiet_logger();
+  cr_assert_null(create_socket_server("not-a-port", logger));
   log_destroy(logger);
 }

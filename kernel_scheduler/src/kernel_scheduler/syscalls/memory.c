@@ -34,7 +34,7 @@ bool allocate_memory(t_syscall_memory* mem_alloc, t_queues* queues)
   if (!comms)
   {
     log_warning(queues->logger, "Error communicating with Kernel Memory");
-    close_kernel_scheduler(SR_KERNEL_MEMORY_SEND_ERROR);
+    close_kernel_scheduler(queues->shutdown, SR_KERNEL_MEMORY_SEND_ERROR);
     socket_mutex_unlock(queues->km_socket);
     return false;
   }
@@ -54,7 +54,7 @@ bool free_memory(t_syscall_memory* mem_free, t_queues* queues)
   if (!comms)
   {
     log_warning(queues->logger, "Error communicating with Kernel Memory");
-    close_kernel_scheduler(SR_KERNEL_MEMORY_SEND_ERROR);
+    close_kernel_scheduler(queues->shutdown, SR_KERNEL_MEMORY_SEND_ERROR);
     socket_mutex_unlock(queues->km_socket);
     return false;
   }
@@ -103,7 +103,9 @@ static bool has_space(t_syscall_memory* mem_alloc, t_queues* queues)
 static bool response_km_mem_free(t_queues* queues)
 {
   if (RECEIVE_KM_OPCODE(queues, OP_MEMORY_FREED) == OP_CODE_ERROR)
+  {
     return false;
+  }
 
   free(receive_string(queues->km_socket));
   return true;

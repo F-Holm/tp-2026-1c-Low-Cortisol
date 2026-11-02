@@ -25,13 +25,13 @@ static void log_write(t_log* logger, t_log_level level, const char* template,
 t_log* log_create(char* file, char* program_name, bool is_active_console,
                   t_log_level detail, bool is_thread_safe)
 {
-  FILE* opened = NULL;
-  if (file != NULL)
+  FILE* opened = nullptr;
+  if (file != nullptr)
   {
     opened = fopen(file, "a");
-    if (opened == NULL)
+    if (opened == nullptr)
     {
-      return NULL;
+      return nullptr;
     }
   }
 
@@ -48,7 +48,7 @@ t_log* log_create(char* file, char* program_name, bool is_active_console,
 
 void log_destroy(t_log* logger)
 {
-  if (logger->file != NULL)
+  if (logger->file != nullptr)
   {
     fclose(logger->file);
   }
@@ -104,7 +104,7 @@ static char* format_message(const char* template, va_list arguments)
 {
   va_list copy;
   va_copy(copy, arguments);
-  int length = vsnprintf(NULL, 0, template, copy);
+  int length = vsnprintf(nullptr, 0, template, copy);
   va_end(copy);
 
   char* message = malloc(length + 1);
@@ -134,7 +134,7 @@ static void log_write(t_log* logger, t_log_level level, const char* template,
     mtx_lock(&logger->mutex);
   }
 
-  if (logger->file != NULL)
+  if (logger->file != nullptr)
   {
     fprintf(logger->file, "[%s] %s %s/(%d:%ld): %s\n",
             log_level_as_string(level), timestamp, logger->program_name,

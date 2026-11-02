@@ -84,12 +84,16 @@ bool handle_new_cpu(t_socket* socket_cpu, t_list* list_sockets_cpu,
 {
   // Handshake with CPU
   if (!respond_handshake(socket_cpu, MID_KERNEL_SCHEDULER, logger))
+  {
     return false;
+  }
 
   // Get ID
   char* id_cpu = get_id_cpu(socket_cpu, logger);
-  if (id_cpu == NULL)
+  if (id_cpu == nullptr)
+  {
     return false;
+  }
 
   // Initialize cpu thread data
   t_cpu_thread* data_thread_cpu = init_data_thread_cpu(
@@ -122,7 +126,9 @@ void close_cpu(t_list* list_sockets_cpu, mtx_t* mutex_list_sockets_cpu,
   mtx_lock(mutex_list_sockets_cpu);
   list_iterate(list_sockets_cpu, (void*)iterator_shutdown);
   while (!list_is_empty(list_sockets_cpu))
+  {
     cnd_wait(cpu_done_cond, mutex_list_sockets_cpu);
+  }
   mtx_unlock(mutex_list_sockets_cpu);
   list_destroy(list_sockets_cpu);
   cnd_destroy(cpu_done_cond);
@@ -145,7 +151,9 @@ static void close_thread_cpu(t_cpu_thread* data)
   mtx_lock(data->socket_list_mutex);
   list_remove_element(data->socket_list, &(data->socket_fd));
   if (list_is_empty(data->socket_list))
+  {
     cnd_signal(data->done_cond);
+  }
   mtx_unlock(data->socket_list_mutex);
   socket_destroy(data->socket_fd);
   free(data->id);
@@ -181,7 +189,7 @@ static void log_preemption_end_quantum(t_log* logger, uint32_t pid)
 static void manage_preemption_priority(t_cpu_thread* data)
 {
   if (data->preemption_reason != PR_NO_PREEMPTION ||
-      !data->queues->exec.preemption || data->pcb == NULL)
+      !data->queues->exec.preemption || data->pcb == nullptr)
   {
     return;
   }
@@ -207,7 +215,7 @@ static void manage_preemption_priority(t_cpu_thread* data)
   t_pcb* new_pcb = transition_take_ready_next_no_mutex(&(data->queues->ready));
   mtx_unlock(&(data->queues->ready.queue_mutex));
 
-  if (new_pcb == NULL)
+  if (new_pcb == nullptr)
   {
     log_warning(data->logger, "Priority preemption failed");
     return;
@@ -255,7 +263,7 @@ static void manage_request_process(t_cpu_thread* data)
     log_trace(data->logger, "CPU %s: Requesting new process", data->id);
     data->counter = millis();
     data->pcb = transition_take_ready_blocking(&(data->queues->ready));
-    if (data->pcb != NULL)
+    if (data->pcb != nullptr)
     {
       log_debug(data->logger, "CPU %s: got process: %u", data->id,
                 data->pcb->pid);
@@ -368,6 +376,7 @@ static void handle_syscall_io_sleep(t_cpu_thread* data)
   data->preemption_reason = PR_IO;
   if (!enqueue_io_request(request, &(data->io[IO_SLEEP]), data->pcb))
   {
+    free(request); /* a rejected request is still ours */
     transition_exec_exit(data->pcb, data->queues, PER_IO_FAILURE);
   }
   else
@@ -383,6 +392,7 @@ static void handle_syscall_io_stdout(t_cpu_thread* data)
   data->preemption_reason = PR_IO;
   if (!enqueue_io_request(request, &(data->io[IO_STDOUT]), data->pcb))
   {
+    free(request); /* a rejected request is still ours */
     transition_exec_exit(data->pcb, data->queues, PER_IO_FAILURE);
   }
   else
@@ -398,6 +408,7 @@ static void handle_syscall_io_stdin(t_cpu_thread* data)
   data->preemption_reason = PR_IO;
   if (!enqueue_io_request(request, &(data->io[IO_STDIN]), data->pcb))
   {
+    free(request); /* a rejected request is still ours */
     transition_exec_exit(data->pcb, data->queues, PER_IO_FAILURE);
   }
   else
@@ -464,7 +475,7 @@ static int handle_cpu_client(void* data_thread_cpu_void)
   {
     manage_request_process(data);
 
-    if (data->pcb == NULL)
+    if (data->pcb == nullptr)
     {
       log_debug(data->logger, "CPU %s: Shutdown of CPU", data->id);
       data->keep_running = false;
@@ -521,7 +532,7 @@ static int handle_cpu_client(void* data_thread_cpu_void)
 
   log_debug(data->logger, "CPU %s: Closing thread", data->id);
   if (data->preemption_reason == PR_HIGHER_PRIORITY_PROCESS &&
-      data->pcb != NULL)
+      data->pcb != nullptr)
   {
     log_trace(data->logger, "CPU %s: Saving running process", data->id);
     transition_exec_ready(data->pcb, data->queues);
@@ -553,7 +564,7 @@ static t_cpu_thread* init_data_thread_cpu(
   data->queues = queues;
   data->io = io;
   data->km_socket = km_socket;
-  data->pcb = NULL;
+  data->pcb = nullptr;
   data->keep_running = true;
   data->counter = 0;
   data->preemption_reason = PR_FIRST_CYCLE;
@@ -577,7 +588,7 @@ static char* get_id_cpu(t_socket* socket_cpu, t_log* logger)
   if (receive_op_code(socket_cpu) != OP_ID_CPU)
   {
     log_warning(logger, "Error receiving the CPU ID");
-    return NULL;
+    return nullptr;
   }
   char* id_cpu = receive_string(socket_cpu);
   log_info(logger, "CPU %s connected", id_cpu);

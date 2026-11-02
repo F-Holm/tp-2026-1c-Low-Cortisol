@@ -27,7 +27,7 @@ typedef struct
 
 /**
  * @brief Creates the listening TCP socket CPUs connect to.
- * @return The listening socket, or NULL on failure.
+ * @return The listening socket, or nullptr on failure.
  */
 t_socket* create_server_cpu(t_log* logger);
 
@@ -70,7 +70,7 @@ bool handshake_cpu(t_socket* socket_cpu, t_log* logger);
 
 /**
  * @brief Receives the connecting CPU's id string.
- * @return The id (caller must free), or NULL on error.
+ * @return The id (caller must free), or nullptr on error.
  */
 char* receive_cpu_id(t_socket* socket_cpu, t_log* logger);
 

@@ -20,7 +20,7 @@ t_segment* find_and_remove_segment(uint32_t id, uint32_t pid,
             list_size(main_memory->segments));
 
   t_list_iterator* iterator = list_iterator_create(main_memory->segments);
-  t_segment* found_segment = NULL;
+  t_segment* found_segment = nullptr;
 
   while (list_iterator_has_next(iterator))
   {
@@ -36,13 +36,13 @@ t_segment* find_and_remove_segment(uint32_t id, uint32_t pid,
   }
   list_iterator_destroy(iterator);
   mtx_unlock(main_memory->main_memory_mutex);
-  if (found_segment != NULL)
+  if (found_segment != nullptr)
   {
     return found_segment;
   }
   log_error(logger, "Could not find the segment to remove (ID: %d, PID: %d)",
             id, pid);
-  return NULL;
+  return nullptr;
 }
 
 // Finds, in a single pass over `holes`, the index of the hole immediately
@@ -64,9 +64,13 @@ static void find_adjacent_hole_indices(t_list* holes, int segment_base,
   {
     t_hole* current_hole = list_iterator_next(iterator);
     if (current_hole->base + current_hole->size == segment_base)
+    {
       *index_before = i;
+    }
     if (current_hole->base == segment_end)
+    {
       *index_after = i;
+    }
     i++;
   }
   list_iterator_destroy(iterator);
@@ -79,7 +83,7 @@ void remove_segment(uint32_t id, uint32_t pid, t_main_memory* main_memory,
   t_segment* segment_aux =
       find_and_remove_segment(id, pid, main_memory, logger);
   mtx_lock(main_memory->main_memory_mutex);
-  if (segment_aux == NULL)
+  if (segment_aux == nullptr)
   {
     log_error(logger, "Segment not found");
     mtx_unlock(main_memory->main_memory_mutex);
@@ -207,7 +211,7 @@ void add_segments_to_packet(t_list* segments, t_packet* process_segment_table)
 t_segment* find_segment(t_main_memory* main_memory, uint32_t pid,
                         uint32_t segment_number)
 {
-  t_segment* found_seg = NULL;
+  t_segment* found_seg = nullptr;
   uint32_t pid_segment_count = 0;
 
   mtx_lock(main_memory->main_memory_mutex);

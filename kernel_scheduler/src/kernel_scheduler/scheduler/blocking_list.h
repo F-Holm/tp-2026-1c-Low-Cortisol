@@ -37,7 +37,7 @@ void transition_take_susp_block(t_pcb* pcb, t_blocking_list* susp_block);
 void transition_take_susp_ready(t_pcb* pcb, t_blocking_list* susp_ready);
 
 /**
- * @brief Pops the head of the list, or NULL if empty (transition_take_block_
+ * @brief Pops the head of the list, or nullptr if empty (transition_take_block_
  *        next also clears the popped PCB's blocked-at timestamp).
  */
 t_pcb* transition_take_block_next(t_blocking_list* block);

@@ -56,7 +56,9 @@ t_extended_bool handler_jnz(t_cpu* cpu, t_context* context,
   uint32_t reg_value =
       get_register(context->registers, instruction->parameters[0]);
   if (reg_value != 0)
+  {
     set_register(context->registers, "PC", atoi(instruction->parameters[1]));
+  }
 
   return EB_TRUE;
 }
@@ -69,14 +71,20 @@ t_extended_bool handler_mov_in(t_cpu* cpu, t_context* context,
       mmu(cpu, context, context->registers->SI, sizeof(uint32_t), pid);
 
   if (phys_addr == INVALID_ADDRESS)
+  {
     return EB_FALSE;
+  }
   else if (phys_addr == INVALID_ADDRESS - 1)
+  {
     return EB_ERROR;
+  }
 
   void* read_value = read_memory(cpu, phys_addr, sizeof(uint32_t));
-  uint32_t value = *(uint32_t*)read_value;
   if (!read_value)
+  {
     return EB_ERROR;
+  }
+  uint32_t value = *(uint32_t*)read_value;
 
   free(read_value);
 
@@ -96,12 +104,18 @@ t_extended_bool handler_mov_out(t_cpu* cpu, t_context* context,
       mmu(cpu, context, context->registers->DI, sizeof(uint32_t), pid);
 
   if (phys_addr == INVALID_ADDRESS)
+  {
     return EB_FALSE;
+  }
   else if (phys_addr == INVALID_ADDRESS - 1)
+  {
     return EB_ERROR;
+  }
 
   if (!write_memory(cpu, phys_addr, &value, sizeof(uint32_t)))
+  {
     return EB_ERROR;
+  }
 
   log_info(cpu->logger,
            "PID: %u - Action: WRITE - Physical Address: %u - Value: %u", pid,
@@ -116,35 +130,54 @@ t_extended_bool handler_copy_mem(t_cpu* cpu, t_context* context,
   uint32_t byte_count =
       get_register(context->registers, instruction->parameters[0]);
 
+  // Both ranges are byte_count long: validating only a uint32_t's worth
+  // would let a long copy run past the end of either segment.
   uint32_t src_addr =
-      mmu(cpu, context, context->registers->SI, sizeof(uint32_t), pid);
+      mmu(cpu, context, context->registers->SI, byte_count, pid);
   if (src_addr == INVALID_ADDRESS)
+  {
     return EB_FALSE;
+  }
   else if (src_addr == INVALID_ADDRESS - 1)
+  {
     return EB_ERROR;
+  }
 
   uint32_t dst_addr =
-      mmu(cpu, context, context->registers->DI, sizeof(uint32_t), pid);
+      mmu(cpu, context, context->registers->DI, byte_count, pid);
   if (dst_addr == INVALID_ADDRESS)
-    return EB_TRUE;
+  {
+    // The segmentation fault was already reported: like MOV_IN/MOV_OUT, the
+    // cycle must not also confirm itself with OP_CPU_CYCLE_OK.
+    return EB_FALSE;
+  }
   else if (dst_addr == INVALID_ADDRESS - 1)
+  {
     return EB_ERROR;
+  }
 
+  // Memory holds raw bytes, not C strings: the logs below print exactly
+  // byte_count of them instead of reading on until some '\0'.
   void* read_bytes = read_memory(cpu, src_addr, byte_count);
 
   if (!read_bytes)
+  {
     return EB_ERROR;
+  }
 
   log_info(cpu->logger,
-           "PID: %u - Action: READ - Physical Address: %u - Value: %s", pid,
-           src_addr, (char*)read_bytes);
+           "PID: %u - Action: READ - Physical Address: %u - Value: %.*s", pid,
+           src_addr, (int)byte_count, (char*)read_bytes);
 
   if (!write_memory(cpu, dst_addr, read_bytes, byte_count))
+  {
+    free(read_bytes);
     return EB_ERROR;
+  }
 
   log_info(cpu->logger,
-           "PID: %u - Action: WRITE - Physical Address: %u - Value: %s", pid,
-           dst_addr, (char*)read_bytes);
+           "PID: %u - Action: WRITE - Physical Address: %u - Value: %.*s", pid,
+           dst_addr, (int)byte_count, (char*)read_bytes);
 
   free(read_bytes);
   return EB_TRUE;

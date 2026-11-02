@@ -3,14 +3,17 @@
 #include <criterion/criterion.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <string.h>
 #include <threads.h>
+
+#include "utils/time.h"
 
 TestSuite(sockets, .timeout = 5.0);
 
 static t_socket* connected_pair(t_socket** server_out, bool with_mutex)
 {
   t_socket* listener =
-      socket_create(SOCKET_KIND_SERVER, NULL, SOCKET_PORT_EPHEMERAL, false);
+      socket_create(SOCKET_KIND_SERVER, nullptr, SOCKET_PORT_EPHEMERAL, false);
   cr_assert_not_null(listener, "socket_create(SERVER) failed");
 
   char port[16];
@@ -42,7 +45,7 @@ Test(sockets, create_and_accept_establish_a_loopback_connection)
 Test(sockets, create_client_to_an_unbound_port_fails)
 {
   t_socket* listener =
-      socket_create(SOCKET_KIND_SERVER, NULL, SOCKET_PORT_EPHEMERAL, false);
+      socket_create(SOCKET_KIND_SERVER, nullptr, SOCKET_PORT_EPHEMERAL, false);
   char port[16];
   snprintf(port, sizeof(port), "%d", socket_get_local_port(listener));
   socket_destroy(listener);
@@ -75,8 +78,8 @@ Test(sockets, send_and_receive_roundtrip_a_buffer)
 Test(sockets, send_and_receive_on_a_null_socket_fail_without_crashing)
 {
   char buffer[4] = {0};
-  cr_assert_not(socket_send(NULL, buffer, sizeof(buffer)));
-  cr_assert_not(socket_receive(NULL, buffer, sizeof(buffer)));
+  cr_assert_not(socket_send(nullptr, buffer, sizeof(buffer)));
+  cr_assert_not(socket_receive(nullptr, buffer, sizeof(buffer)));
 }
 
 Test(sockets, mutex_lock_and_unlock_are_noops_without_with_mutex)
@@ -125,8 +128,8 @@ Test(sockets, socket_mutex_lock_serializes_concurrent_access)
   thrd_t thread1, thread2;
   thrd_create(&thread1, increment_under_lock, &args1);
   thrd_create(&thread2, increment_under_lock, &args2);
-  thrd_join(thread1, NULL);
-  thrd_join(thread2, NULL);
+  thrd_join(thread1, nullptr);
+  thrd_join(thread2, nullptr);
 
   cr_assert_eq(counter, 2 * increments);
 
@@ -148,8 +151,8 @@ Test(sockets, closed_socket_rejects_further_sends)
 
 Test(sockets, destroy_and_close_on_null_do_not_crash)
 {
-  socket_destroy(NULL);
-  socket_close(NULL);
+  socket_destroy(nullptr);
+  socket_close(nullptr);
 }
 
 Test(sockets, shutdown_both_prevents_further_sends_from_that_side)
@@ -186,10 +189,107 @@ Test(sockets, get_peer_ip_fails_on_a_null_or_too_small_buffer_or_closed_socket)
 
   char ip[16];
   char tiny[4];
-  cr_assert_not(socket_get_peer_ip(NULL, ip, sizeof(ip)));
+  cr_assert_not(socket_get_peer_ip(nullptr, ip, sizeof(ip)));
   cr_assert_not(socket_get_peer_ip(client, tiny, sizeof(tiny)));
   socket_close(client);
   cr_assert_not(socket_get_peer_ip(client, ip, sizeof(ip)));
+
+  socket_destroy(client);
+  socket_destroy(server);
+}
+
+Test(sockets, get_peer_ip_fails_on_a_socket_that_is_not_connected)
+{
+  t_socket* listener =
+      socket_create(SOCKET_KIND_SERVER, nullptr, SOCKET_PORT_EPHEMERAL, false);
+  cr_assert_not_null(listener);
+
+  char ip[16];
+  cr_assert_not(socket_get_peer_ip(listener, ip, sizeof(ip)));
+
+  socket_destroy(listener);
+}
+
+Test(sockets, get_local_port_fails_on_a_null_or_closed_socket)
+{
+  t_socket* listener =
+      socket_create(SOCKET_KIND_SERVER, nullptr, SOCKET_PORT_EPHEMERAL, false);
+  cr_assert_not_null(listener);
+  cr_assert_gt(socket_get_local_port(listener), 0);
+
+  cr_assert_eq(socket_get_local_port(nullptr), -1);
+  socket_close(listener);
+  cr_assert_eq(socket_get_local_port(listener), -1);
+
+  socket_destroy(listener);
+}
+
+Test(sockets, create_server_with_an_invalid_service_fails)
+{
+  cr_assert_null(
+      socket_create(SOCKET_KIND_SERVER, nullptr, "not-a-port", false));
+}
+
+Test(sockets, create_server_on_a_port_already_listened_on_fails)
+{
+  t_socket* first =
+      socket_create(SOCKET_KIND_SERVER, nullptr, SOCKET_PORT_EPHEMERAL, false);
+  cr_assert_not_null(first);
+  char port[16];
+  snprintf(port, sizeof(port), "%d", socket_get_local_port(first));
+
+  cr_assert_null(socket_create(SOCKET_KIND_SERVER, nullptr, port, false));
+
+  socket_destroy(first);
+}
+
+Test(sockets, has_pending_data_reports_unread_bytes_without_consuming_them)
+{
+  t_socket* server;
+  t_socket* client = connected_pair(&server, false);
+
+  cr_assert_not(socket_has_pending_data(server), "nothing sent yet");
+
+  cr_assert(socket_send(client, "xy", 2));
+  /* loopback delivery is not instantaneous: wait for it, bounded */
+  for (int waited = 0; waited < 1000 && !socket_has_pending_data(server);
+       waited += 5)
+  {
+    time_sleep_ms(5);
+  }
+  cr_assert(socket_has_pending_data(server));
+  cr_assert(socket_has_pending_data(server), "peeking must not consume");
+
+  char received[2];
+  cr_assert(socket_receive(server, received, 2));
+  cr_assert_eq(memcmp(received, "xy", 2), 0);
+  cr_assert_not(socket_has_pending_data(server), "everything was read");
+
+  socket_destroy(client);
+  socket_destroy(server);
+}
+
+Test(sockets, has_pending_data_is_false_once_the_peer_closed_with_nothing_left)
+{
+  t_socket* server;
+  t_socket* client = connected_pair(&server, false);
+
+  socket_destroy(client);
+  time_sleep_ms(20);
+  cr_assert_not(socket_has_pending_data(server));
+
+  socket_destroy(server);
+}
+
+Test(sockets, has_pending_data_is_false_on_a_null_or_closed_socket)
+{
+  t_socket* server;
+  t_socket* client = connected_pair(&server, false);
+  cr_assert(socket_send(client, "x", 1));
+
+  cr_assert_not(socket_has_pending_data(nullptr));
+  socket_close(server);
+  cr_assert_not(socket_has_pending_data(server));
 
   socket_destroy(client);
   socket_destroy(server);

@@ -12,11 +12,13 @@ int main(int argc, char* argv[])
   t_ms ms = {0};
   thrd_t cpu_server_thread;
 
-  char* config_path = NULL;
-  char* size_str = NULL;
+  char* config_path = nullptr;
+  char* size_str = nullptr;
   int size;
   if (!get_args(argc, argv, &config_path, &size_str, &size))
+  {
     return EXIT_FAILURE;
+  }
 
   if (!init_module(&ms, config_path, size_str, &cpu_server_thread))
   {

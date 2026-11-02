@@ -23,59 +23,87 @@ t_socket* socket_create(t_socket_kind kind, char* ip, char* port,
                         bool with_mutex)
 {
   if (kind == SOCKET_KIND_CLIENT)
+  {
     return create_client(ip, port, with_mutex);
+  }
   return create_server(port, with_mutex);
 }
 
 t_socket* socket_accept(t_socket* listener, bool with_mutex)
 {
-  return wrap_handle(accept(listener->handle, NULL, NULL), with_mutex);
+  return wrap_handle(accept(listener->handle, nullptr, nullptr), with_mutex);
 }
 
 bool socket_send(t_socket* socket, const void* data, int size)
 {
-  if (socket == NULL || !socket_handle_is_valid(socket->handle))
+  if (socket == nullptr || !socket_handle_is_valid(socket->handle))
+  {
     return false;
+  }
   return send(socket->handle, data, size, MSG_NOSIGNAL) > 0;
 }
 
 bool socket_receive(t_socket* socket, void* data, int size)
 {
-  if (socket == NULL || !socket_handle_is_valid(socket->handle))
+  if (socket == nullptr || !socket_handle_is_valid(socket->handle))
+  {
     return false;
+  }
   return recv(socket->handle, data, size, MSG_WAITALL) > 0;
+}
+
+bool socket_has_pending_data(t_socket* socket)
+{
+  if (socket == nullptr || !socket_handle_is_valid(socket->handle))
+  {
+    return false;
+  }
+  // MSG_PEEK leaves the byte queued; MSG_DONTWAIT makes "nothing yet" an
+  // EAGAIN instead of a wait. 0 means the peer closed with nothing pending.
+  char byte;
+  return recv(socket->handle, &byte, 1, MSG_PEEK | MSG_DONTWAIT) > 0;
 }
 
 bool socket_get_peer_ip(t_socket* socket, char* ip, int size)
 {
-  if (socket == NULL || !socket_handle_is_valid(socket->handle))
+  if (socket == nullptr || !socket_handle_is_valid(socket->handle))
+  {
     return false;
+  }
 
   struct sockaddr_in address;
   socklen_t length = sizeof(address);
   if (getpeername(socket->handle, (struct sockaddr*)&address, &length) != 0)
+  {
     return false;
+  }
 
-  return inet_ntop(AF_INET, &address.sin_addr, ip, size) != NULL;
+  return inet_ntop(AF_INET, &address.sin_addr, ip, size) != nullptr;
 }
 
 int socket_get_local_port(t_socket* socket)
 {
-  if (socket == NULL || !socket_handle_is_valid(socket->handle))
+  if (socket == nullptr || !socket_handle_is_valid(socket->handle))
+  {
     return -1;
+  }
 
   struct sockaddr_in address;
   socklen_t length = sizeof(address);
   if (getsockname(socket->handle, (struct sockaddr*)&address, &length) != 0)
+  {
     return -1;
+  }
 
   return ntohs(address.sin_port);
 }
 
 void socket_shutdown(t_socket* socket, t_socket_shutdown_mode mode)
 {
-  if (socket == NULL || !socket_handle_is_valid(socket->handle))
+  if (socket == nullptr || !socket_handle_is_valid(socket->handle))
+  {
     return;
+  }
 
   static const int HOW[] = {SHUT_RD, SHUT_WR, SHUT_RDWR};
   shutdown(socket->handle, HOW[mode]);
@@ -83,16 +111,20 @@ void socket_shutdown(t_socket* socket, t_socket_shutdown_mode mode)
 
 void socket_close(t_socket* socket)
 {
-  if (socket == NULL || !socket_handle_is_valid(socket->handle))
+  if (socket == nullptr || !socket_handle_is_valid(socket->handle))
+  {
     return;
+  }
   close(socket->handle);
   socket->handle = INVALID_HANDLE;
 }
 
 void socket_destroy(t_socket* socket)
 {
-  if (socket == NULL)
+  if (socket == nullptr)
+  {
     return;
+  }
   socket_close(socket);
   mtx_destroy(&socket->mutex);
   free(socket);
@@ -100,15 +132,19 @@ void socket_destroy(t_socket* socket)
 
 void socket_mutex_lock(t_socket* socket)
 {
-  if (socket == NULL || !socket->has_mutex)
+  if (socket == nullptr || !socket->has_mutex)
+  {
     return;
+  }
   mtx_lock(&socket->mutex);
 }
 
 void socket_mutex_unlock(t_socket* socket)
 {
-  if (socket == NULL || !socket->has_mutex)
+  if (socket == nullptr || !socket->has_mutex)
+  {
     return;
+  }
   mtx_unlock(&socket->mutex);
 }
 
@@ -120,7 +156,9 @@ static bool socket_handle_is_valid(t_socket_handle handle)
 static t_socket* wrap_handle(t_socket_handle handle, bool with_mutex)
 {
   if (!socket_handle_is_valid(handle))
-    return NULL;
+  {
+    return nullptr;
+  }
 
   t_socket* socket = malloc(sizeof(t_socket));
   socket->handle = handle;
@@ -140,7 +178,9 @@ static t_socket* create_client(char* ip, char* port, bool with_mutex)
   hints.ai_flags = AI_PASSIVE;
 
   if (getaddrinfo(ip, port, &hints, &server_info) != 0)
-    return NULL;
+  {
+    return nullptr;
+  }
 
   t_socket_handle handle =
       socket(server_info->ai_family, server_info->ai_socktype,
@@ -148,14 +188,14 @@ static t_socket* create_client(char* ip, char* port, bool with_mutex)
   if (!socket_handle_is_valid(handle))
   {
     freeaddrinfo(server_info);
-    return NULL;
+    return nullptr;
   }
 
   if (connect(handle, server_info->ai_addr, server_info->ai_addrlen) == -1)
   {
     freeaddrinfo(server_info);
     close(handle);
-    return NULL;
+    return nullptr;
   }
 
   freeaddrinfo(server_info);
@@ -171,17 +211,30 @@ static t_socket* create_server(char* port, bool with_mutex)
   hints.ai_socktype = SOCK_STREAM;
   hints.ai_flags = AI_PASSIVE;
 
-  getaddrinfo(NULL, port, &hints, &servinfo);
+  if (getaddrinfo(nullptr, port, &hints, &servinfo) != 0)
+  {
+    return nullptr;
+  }
 
   t_socket_handle handle =
-      socket(hints.ai_family, hints.ai_socktype, hints.ai_protocol);
+      socket(servinfo->ai_family, servinfo->ai_socktype, servinfo->ai_protocol);
+  if (!socket_handle_is_valid(handle))
+  {
+    freeaddrinfo(servinfo);
+    return nullptr;
+  }
 
   // Make the socket reusable; remove if it causes issues.
   int opt = 1;
   setsockopt(handle, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
 
-  bind(handle, servinfo->ai_addr, servinfo->ai_addrlen);
-  listen(handle, SOMAXCONN);
+  if (bind(handle, servinfo->ai_addr, servinfo->ai_addrlen) != 0 ||
+      listen(handle, SOMAXCONN) != 0)
+  {
+    freeaddrinfo(servinfo);
+    close(handle);
+    return nullptr;
+  }
 
   freeaddrinfo(servinfo);
   return wrap_handle(handle, with_mutex);

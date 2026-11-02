@@ -12,7 +12,7 @@ char* file_read_line(FILE* file)
   size_t length = 0;
   char* line = malloc(capacity);
 
-  while (fgets(line + length, capacity - length, file) != NULL)
+  while (fgets(line + length, capacity - length, file) != nullptr)
   {
     length += strlen(line + length);
     if (length > 0 && line[length - 1] == '\n')
@@ -30,7 +30,7 @@ char* file_read_line(FILE* file)
   if (length == 0)
   {
     free(line);
-    return NULL;
+    return nullptr;
   }
   return line;
 }

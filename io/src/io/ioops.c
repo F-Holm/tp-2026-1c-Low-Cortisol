@@ -28,7 +28,7 @@ bool run_stdin(t_io* io)
   fflush(stdout);
 
   char* buffer = file_read_line(stdin);
-  if (buffer == NULL)
+  if (buffer == nullptr)
   {
     log_warning(io->logger, "Could not read user input (end of input?)");
     free(request);
@@ -63,7 +63,7 @@ bool run_stdout(t_io* io)
   t_stdout_request* request = (t_stdout_request*)list_remove(packet, 0);
   char* buffer = (char*)list_remove(packet, 0);
   list_destroy(packet);
-  if (buffer == NULL)
+  if (buffer == nullptr)
   {
     log_error(io->logger, "Malformed STDOUT request: no content");
     free(request);

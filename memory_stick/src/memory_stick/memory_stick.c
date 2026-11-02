@@ -31,26 +31,36 @@ bool init_module(t_ms* ms, char* config_path, char* size,
   t_config_vars config_vars;
 
   ms->config = init_config(config_path, &config_vars);
-  if (ms->config == NULL)
+  if (ms->config == nullptr)
+  {
     return false;
+  }
 
   ms->memory_delay = config_vars.memory_delay;
 
   ms->logger = init_logger(log_level_from_string(config_vars.log_level));
-  if (ms->logger == NULL)
+  if (ms->logger == nullptr)
+  {
     return false;
+  }
 
   ms->socket_km = connect_to_kernel_memory(
       config_vars.km_ip, config_vars.km_port, size, ms->logger);
-  if (ms->socket_km == NULL)
+  if (ms->socket_km == nullptr)
+  {
     return false;
+  }
 
   ms->socket_server_cpu = create_server_cpu(ms->logger);
-  if (ms->socket_server_cpu == NULL)
+  if (ms->socket_server_cpu == nullptr)
+  {
     return false;
+  }
 
   if (!send_cpu_server_port(ms->socket_km, ms->socket_server_cpu, ms->logger))
+  {
     return false;
+  }
 
   // Reserve the amount of memory given in the config file.
   ms->memory = calloc(atoi(size), sizeof(char));
@@ -65,8 +75,10 @@ bool init_module(t_ms* ms, char* config_path, char* size,
 t_config* init_config(char* config_path, t_config_vars* config_vars)
 {
   t_config* config = config_create(config_path);
-  if (config != NULL)
+  if (config != nullptr)
+  {
     read_config(config, config_vars);
+  }
   return config;
 }
 
@@ -87,13 +99,19 @@ void close_module_on_error(t_ms* ms)
 {
   socket_destroy(ms->socket_server_cpu);
   socket_destroy(ms->socket_km);
-  if (ms->logger != NULL)
+  if (ms->logger != nullptr)
+  {
     log_destroy(ms->logger);
-  if (ms->config != NULL)
+  }
+  if (ms->config != nullptr)
+  {
     config_destroy(ms->config);
-  if (ms->memory != NULL)
+  }
+  if (ms->memory != nullptr)
+  {
     free(ms->memory);
-  if (ms->memory_mutex != NULL)
+  }
+  if (ms->memory_mutex != nullptr)
   {
     mtx_destroy(ms->memory_mutex);
     free(ms->memory_mutex);
@@ -103,7 +121,7 @@ void close_module_on_error(t_ms* ms)
 void close_module(t_ms* ms, thrd_t* cpu_server_thread)
 {
   socket_shutdown(ms->socket_server_cpu, SOCKET_SHUTDOWN_BOTH);
-  thrd_join(*cpu_server_thread, NULL);
+  thrd_join(*cpu_server_thread, nullptr);
   socket_destroy(ms->socket_km);
   socket_destroy(ms->socket_server_cpu);
   log_destroy(ms->logger);
@@ -117,7 +135,9 @@ bool get_args(int argc, char** argv, char** config_path, char** size_str,
               int* size)
 {
   if (argc != 3)
+  {
     return false;
+  }
   *config_path = argv[1];
   *size_str = argv[2];
   *size = atoi(*size_str);

@@ -39,13 +39,15 @@ t_socket* connect_to_kernel_memory(char* ip, char* port, char* size,
                                    t_log* logger)
 {
   t_socket* socket_km = connect_km(ip, port, logger);
-  if (socket_km == NULL)
-    return NULL;
+  if (socket_km == nullptr)
+  {
+    return nullptr;
+  }
 
   if (!handshake_km(socket_km, logger) || !send_size(socket_km, size, logger))
   {
     socket_destroy(socket_km);
-    return NULL;
+    return nullptr;
   }
 
   return socket_km;
@@ -54,10 +56,10 @@ t_socket* connect_to_kernel_memory(char* ip, char* port, char* size,
 t_socket* connect_km(char* ip, char* port, t_log* logger)
 {
   t_socket* socket_km = socket_create(SOCKET_KIND_CLIENT, ip, port, false);
-  if (socket_km == NULL)
+  if (socket_km == nullptr)
   {
     log_error(logger, "Connection error with Kernel Memory");
-    return NULL;
+    return nullptr;
   }
   log_info(logger, "Connected to Kernel Memory");
   return socket_km;

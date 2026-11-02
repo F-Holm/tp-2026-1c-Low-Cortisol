@@ -12,7 +12,7 @@ void list_add_mtx(t_list* list, mtx_t* mutex, void* element);
 /**
  * @brief Linear search for the process with this pid, guarded by
  *        `processes_mutex`.
- * @return NULL if there is none.
+ * @return nullptr if there is none.
  */
 t_process* find_process(t_list* process_list, mtx_t* processes_mutex,
                         uint32_t pid);

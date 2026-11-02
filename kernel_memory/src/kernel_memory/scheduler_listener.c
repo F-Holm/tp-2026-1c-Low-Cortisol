@@ -169,7 +169,7 @@ static bool handle_stdout_request(t_scheduler_data* scheduler_data)
       physical_address, peticion_stdout->bytes_to_write,
       scheduler_data->connected_sticks, scheduler_data->socket_list_mutex,
       scheduler_data->logger, scheduler_data->socket_scheduler);
-  if (buffer == NULL)
+  if (buffer == nullptr)
   {
     send_string(OP_STDOUT_RESPONSE, "Stick read error",
                 scheduler_data->socket_scheduler);
@@ -191,7 +191,7 @@ static bool handle_end_process(t_scheduler_data* scheduler_data)
       scheduler_data->processes, scheduler_data->processes_mutex, pid);
   t_list* segment_list = filter_process_segments(
       pid, scheduler_data->main_memory, scheduler_data->logger);
-  if (process_to_end != NULL)
+  if (process_to_end != nullptr)
   {
     mtx_lock(scheduler_data->processes_mutex);
     list_remove_element(scheduler_data->processes, process_to_end);
@@ -241,10 +241,10 @@ static bool handle_request_process_size(t_scheduler_data* scheduler_data)
    * unknown pid must be handled here instead -- the caller always awaits an
    * OP_PROCESS_SIZE reply for this request (no dedicated failure op-code
    * exists for it), so still reply, with a size of 0. */
-  int size = process == NULL
+  int size = process == nullptr
                  ? 0
                  : compute_process_size(process, scheduler_data->main_memory);
-  if (process == NULL)
+  if (process == nullptr)
   {
     log_debug(scheduler_data->logger,
               "Process with PID %u to compute the size of was not found", pid);

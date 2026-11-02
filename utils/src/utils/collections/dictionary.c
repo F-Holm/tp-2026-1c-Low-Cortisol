@@ -20,7 +20,7 @@ t_dictionary* dictionary_create(void)
 void dictionary_put(t_dictionary* self, char* key, void* data)
 {
   t_hash_element* existing = dictionary_find(self, key);
-  if (existing != NULL)
+  if (existing != nullptr)
   {
     existing->data = data;
     return;
@@ -40,17 +40,17 @@ void dictionary_put(t_dictionary* self, char* key, void* data)
 void* dictionary_get(t_dictionary* self, char* key)
 {
   t_hash_element* element = dictionary_find(self, key);
-  return element != NULL ? element->data : NULL;
+  return element != nullptr ? element->data : nullptr;
 }
 
 bool dictionary_has_key(t_dictionary* self, char* key)
 {
-  return dictionary_find(self, key) != NULL;
+  return dictionary_find(self, key) != nullptr;
 }
 
 void dictionary_destroy(t_dictionary* self)
 {
-  dictionary_clean(self, NULL);
+  dictionary_clean(self, nullptr);
   free(self->elements);
   free(self);
 }
@@ -83,7 +83,7 @@ static t_hash_element* dictionary_find(t_dictionary* self, const char* key)
 {
   unsigned int hashcode = dictionary_hash(key);
   int index = hashcode % self->table_size;
-  for (t_hash_element* element = self->elements[index]; element != NULL;
+  for (t_hash_element* element = self->elements[index]; element != nullptr;
        element = element->next)
   {
     if (element->hashcode == hashcode && strcmp(element->key, key) == 0)
@@ -91,7 +91,7 @@ static t_hash_element* dictionary_find(t_dictionary* self, const char* key)
       return element;
     }
   }
-  return NULL;
+  return nullptr;
 }
 
 static void dictionary_clean(t_dictionary* self, void (*data_destroyer)(void*))
@@ -99,10 +99,10 @@ static void dictionary_clean(t_dictionary* self, void (*data_destroyer)(void*))
   for (int index = 0; index < self->table_size; index++)
   {
     t_hash_element* element = self->elements[index];
-    while (element != NULL)
+    while (element != nullptr)
     {
       t_hash_element* next = element->next;
-      if (data_destroyer != NULL)
+      if (data_destroyer != nullptr)
       {
         data_destroyer(element->data);
       }
@@ -110,7 +110,7 @@ static void dictionary_clean(t_dictionary* self, void (*data_destroyer)(void*))
       free(element);
       element = next;
     }
-    self->elements[index] = NULL;
+    self->elements[index] = nullptr;
   }
   self->elements_amount = 0;
 }

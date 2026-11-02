@@ -21,7 +21,7 @@ void transition_to_exec(t_pcb* pcb, t_execute_list* exec);
 void transition_take_exec(t_pcb* pcb, t_execute_list* exec,
                           t_counter* syscall_counter);
 
-/** @brief Pops the head of the list, or NULL if empty. */
+/** @brief Pops the head of the list, or nullptr if empty. */
 t_pcb* transition_take_exec_next(t_execute_list* exec);
 
 /** @brief Recomputes lowest_priority from the PCBs currently in exec. */

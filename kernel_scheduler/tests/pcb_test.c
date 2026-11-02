@@ -60,7 +60,7 @@ Test(ks_pcb, wait_zero_active_instances_blocks_until_the_last_decrement)
 
   wait_zero_active_instances(pcb); /* blocks until the thread above wakes it */
 
-  thrd_join(decrementer, NULL);
+  thrd_join(decrementer, nullptr);
   cr_assert_eq(pcb->active_instances, 0);
   destroy_pcb(pcb);
 }

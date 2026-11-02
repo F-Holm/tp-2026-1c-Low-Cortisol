@@ -158,3 +158,63 @@ Test(ks_memory_query,
   socket_destroy(server_fd);
   ks_close_file_logger(&file_logger);
 }
+
+/* ── failure paths ─────────────────────────────────────────────────────── */
+
+/* A Kernel Memory connection whose peer hung up: every reply read now fails. */
+static t_queues* queues_with_hung_up_km(t_log* logger)
+{
+  t_socket* server_fd;
+  t_socket* client_fd = ks_connected_pair(&server_fd);
+  socket_destroy(server_fd);
+  t_queues* queues = ks_stub_queues_full(logger);
+  queues->km_socket = client_fd;
+  return queues;
+}
+
+/* A Kernel Memory connection whose own write side is shut: requests fail. */
+static t_queues* queues_with_unwritable_km(t_log* logger)
+{
+  t_socket* server_fd;
+  t_socket* client_fd = ks_connected_pair(&server_fd);
+  socket_shutdown(client_fd, SOCKET_SHUTDOWN_WRITE);
+  socket_destroy(server_fd);
+  t_queues* queues = ks_stub_queues_full(logger);
+  queues->km_socket = client_fd;
+  return queues;
+}
+
+Test(ks_memory_query, every_query_reports_a_kernel_memory_that_hung_up)
+{
+  t_log* logger = ks_quiet_logger();
+
+  t_queues* queues = queues_with_hung_up_km(logger);
+  cr_assert_eq(space_available(queues, 1), -1);
+  cr_assert_eq(process_size(queues, 1), -1);
+  cr_assert_eq(process_size_no_logger(queues, 1), -1);
+
+  ks_destroy_stub_queues_full(queues);
+  log_destroy(logger);
+}
+
+Test(ks_memory_query, process_size_reports_a_send_failure)
+{
+  t_log* logger = ks_quiet_logger();
+  t_queues* queues = queues_with_unwritable_km(logger);
+
+  cr_assert_eq(process_size(queues, 1), -1);
+
+  ks_destroy_stub_queues_full(queues);
+  log_destroy(logger);
+}
+
+Test(ks_memory_query, process_size_no_logger_reports_a_send_failure)
+{
+  t_log* logger = ks_quiet_logger();
+  t_queues* queues = queues_with_unwritable_km(logger);
+
+  cr_assert_eq(process_size_no_logger(queues, 1), -1);
+
+  ks_destroy_stub_queues_full(queues);
+  log_destroy(logger);
+}

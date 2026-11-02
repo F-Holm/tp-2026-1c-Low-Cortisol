@@ -25,7 +25,9 @@ static int km_stub_thread(void* arg)
   struct km_stub* stub = arg;
   t_socket* client = socket_accept(stub->listen_fd, false);
   if (client < 0)
+  {
     return 0;
+  }
   stub->received_mid = receive_handshake(client);
   send_handshake(stub->announce_as, client);
   socket_destroy(client);
@@ -46,7 +48,7 @@ Test(ks_km_connection, succeeds_when_the_peer_announces_kernel_memory)
   t_socket* km_socket =
       start_connection_kernel_memory("127.0.0.1", port, logger);
 
-  thrd_join(thread, NULL);
+  thrd_join(thread, nullptr);
   cr_assert_not_null(km_socket);
   cr_assert_eq(stub.received_mid, MID_KERNEL_SCHEDULER);
 
@@ -68,7 +70,7 @@ Test(ks_km_connection, fails_when_the_peer_is_not_kernel_memory)
   t_socket* km_socket =
       start_connection_kernel_memory("127.0.0.1", port, logger);
 
-  thrd_join(thread, NULL);
+  thrd_join(thread, nullptr);
   cr_assert_null(km_socket);
 
   socket_destroy(listen_fd);
@@ -94,9 +96,9 @@ Test(ks_km_connection, notify_terminate_process_sends_the_pid)
   t_socket* client_fd = ks_connected_pair_with_mutex(&server_fd);
   t_socket* km_socket = client_fd;
   t_log* logger = ks_quiet_logger();
-  init_shutdown(NULL, logger, client_fd);
+  t_shutdown_ctx* ctx = init_shutdown(nullptr, logger, client_fd);
 
-  cr_assert(notify_terminate_process(km_socket, 42));
+  cr_assert(notify_terminate_process(km_socket, ctx, 42));
 
   cr_assert_eq(receive_op_code(server_fd), OP_END_PROCESS);
   int size;
@@ -104,6 +106,7 @@ Test(ks_km_connection, notify_terminate_process_sends_the_pid)
   cr_assert_eq(*pid, 42);
 
   free(pid);
+  destroy_shutdown(ctx);
   socket_destroy(server_fd);
   socket_destroy(km_socket);
   log_destroy(logger);
@@ -122,10 +125,11 @@ Test(ks_km_connection, notify_terminate_process_reports_a_dead_socket)
   socket_destroy(server_fd);
   t_socket* km_socket = client_fd;
   t_log* logger = ks_quiet_logger();
-  init_shutdown(NULL, logger, client_fd);
+  t_shutdown_ctx* ctx = init_shutdown(nullptr, logger, client_fd);
 
-  cr_assert_not(notify_terminate_process(km_socket, 42));
+  cr_assert_not(notify_terminate_process(km_socket, ctx, 42));
 
+  destroy_shutdown(ctx);
   socket_destroy(km_socket);
   log_destroy(logger);
 }
@@ -138,14 +142,46 @@ Test(ks_km_connection, the_watchdog_thread_stops_when_asked_to)
   t_socket* client_fd = ks_connected_pair_with_mutex(&server_fd);
   t_socket* km_socket = client_fd;
   t_log* logger = ks_quiet_logger();
+  t_shutdown_ctx* ctx = init_shutdown(nullptr, logger, km_socket);
 
-  t_connection_check_thread* data =
-      start_thread_check_connection_kernel_memory(logger, km_socket);
+  t_watchdog* data =
+      start_thread_check_connection_kernel_memory(logger, km_socket, ctx);
   cr_assert_not_null(data);
 
   destroy_thread_check_connection_kernel_memory(data); /* joins the thread */
 
+  destroy_shutdown(ctx);
   socket_destroy(server_fd);
   socket_destroy(km_socket);
+  log_destroy(logger);
+}
+
+Test(ks_km_connection,
+     the_watchdog_shuts_the_scheduler_down_when_memory_is_gone, .timeout = 10.0)
+{
+  t_socket* server_fd;
+  t_socket* client_fd = ks_connected_pair_with_mutex(&server_fd);
+  /* every ping now fails; the closed peer lets close_kernel_scheduler's
+   * extra read return at once */
+  socket_shutdown(client_fd, SOCKET_SHUTDOWN_WRITE);
+  socket_destroy(server_fd);
+
+  char port[16];
+  t_socket* scheduler_server = ks_listen_ephemeral(port, sizeof(port));
+  t_log* logger = ks_quiet_logger();
+  t_shutdown_ctx* ctx = init_shutdown(scheduler_server, logger, client_fd);
+
+  t_watchdog* watchdog =
+      start_thread_check_connection_kernel_memory(logger, client_fd, ctx);
+  cr_assert_not_null(watchdog);
+
+  /* shutting down closes the scheduler's server socket, which is what
+   * unblocks its accept loop in the real module */
+  cr_assert_null(socket_accept(scheduler_server, false));
+
+  destroy_thread_check_connection_kernel_memory(watchdog);
+  destroy_shutdown(ctx);
+  socket_destroy(scheduler_server);
+  socket_destroy(client_fd);
   log_destroy(logger);
 }

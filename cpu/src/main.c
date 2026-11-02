@@ -16,7 +16,9 @@ int main(int argc, char* argv[])
 
   // Check that the arguments were received correctly.
   if (!check_arguments(argc, argv))
+  {
     return EXIT_FAILURE;
+  }
 
   char* config_path = argv[1];
   cpu->id = argv[2];

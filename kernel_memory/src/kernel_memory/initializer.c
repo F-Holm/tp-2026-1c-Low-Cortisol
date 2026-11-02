@@ -27,7 +27,7 @@ t_kernel_memory_data* init_kernel_memory_data(
   t_kernel_memory_data* kernel_data = malloc(sizeof(t_kernel_memory_data));
   kernel_data->socket_kernel_memory = socket_kernel_memory;
   kernel_data->logger = logger;
-  atomic_init(&(kernel_data->socket_scheduler), NULL);
+  atomic_init(&(kernel_data->socket_scheduler), nullptr);
   kernel_data->scripts_basepath = scripts_basepath;
   kernel_data->instruction_delay = instruction_delay;
   kernel_data->compaction_delay = compaction_delay;
@@ -38,7 +38,7 @@ t_kernel_memory_data* init_kernel_memory_data(
   kernel_data->processes = list_create();
   kernel_data->main_memory =
       init_main_memory(segment_max_size, allocation_strategy, compaction_delay);
-  atomic_init(&(kernel_data->swap_data), NULL);
+  atomic_init(&(kernel_data->swap_data), nullptr);
   kernel_data->processes_mutex = malloc(sizeof(mtx_t));
   kernel_data->socket_list_mutex = malloc(sizeof(mtx_t));
   mtx_init(kernel_data->processes_mutex, mtx_plain);
@@ -120,7 +120,7 @@ t_swap_data* init_swap_data(t_socket* socket_swap, t_log* logger)
     log_error(logger, "Unexpected opcode while receiving swap info");
     socket_destroy(socket_swap);
     free(swap_data);
-    return NULL;
+    return nullptr;
   }
   int a;
   t_swap_config* send_to_km = (t_swap_config*)receive_buffer(&a, socket_swap);
@@ -146,12 +146,12 @@ t_process* init_process(uint32_t pid, char* relative_path,
   char* full_path = malloc(length);
   snprintf(full_path, length, "%s/%s", scripts_basepath, relative_path);
   FILE* f = fopen(full_path, "r");
-  if (f == NULL)
+  if (f == nullptr)
   {
     log_error(logger, "PID: %u - Could not open the file: %s", pid, full_path);
     free(full_path);
     free(process);
-    return NULL;
+    return nullptr;
   }
   process->instruction_count = count_instructions(f);
   process->instructions = malloc(sizeof(char*) * process->instruction_count);
@@ -171,7 +171,9 @@ bool resolve_stick_ip(t_stick_data* stick_data, t_socket* client_socket)
 {
   if (socket_get_peer_ip(client_socket, stick_data->ip_memory_stick,
                          sizeof(stick_data->ip_memory_stick)))
+  {
     return true;
+  }
   log_error(stick_data->logger, "Could not resolve the memory stick IP");
   return false;
 }
@@ -212,7 +214,9 @@ static int count_instructions(FILE* f)
   int counter = 0;
   char line[256];
   while (fgets(line, sizeof(line), f))
+  {
     counter++;
+  }
   rewind(f);
   return counter;
 }

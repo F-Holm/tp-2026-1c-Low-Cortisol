@@ -118,6 +118,45 @@ Test(swap_init_config, fails_cleanly_when_the_swap_file_cannot_be_created,
   free(config_path);
 }
 
+Test(swap_init_config, fails_cleanly_when_the_swap_file_cannot_be_sized,
+     .init = cr_redirect_stdout)
+{
+  char* swap_file = make_swap_file_path();
+
+  /* A negative size makes ftruncate() -- and so file_resize -- fail. */
+  char config_path[] = "/tmp/swap_test_config_XXXXXX";
+  int fd = mkstemp(config_path);
+  cr_assert_neq(fd, -1);
+  FILE* file = fdopen(fd, "w");
+  fprintf(file,
+          "LOG_LEVEL=INFO\n"
+          "KERNEL_MEMORY_IP=127.0.0.1\n"
+          "KERNEL_MEMORY_PORT=1234\n"
+          "SWAP_FILE_PATH=%s\n"
+          "SWAP_FILE_SIZE=-1\n"
+          "BLOCK_SIZE=64\n",
+          swap_file);
+  fclose(file);
+
+  char scratch[] = "/tmp/swap_test_cwd_XXXXXX";
+  cr_assert_not_null(mkdtemp(scratch));
+  cr_assert_eq(chdir(scratch), 0);
+
+  t_config* config = config_create(config_path);
+  cr_assert_not_null(config);
+
+  t_swap swap = {0};
+  cr_assert_not(init_config(&swap, config));
+  cr_assert_null(swap.swap_file);
+
+  unlink("swap.log");
+  cr_assert_eq(chdir("/"), 0);
+  rmdir(scratch);
+  unlink(swap_file);
+  unlink(config_path);
+  free(swap_file);
+}
+
 /* ── connect_to_kernel_memory ──────────────────────────────────────────── */
 
 struct km_stub
@@ -133,7 +172,7 @@ static int km_stub_thread(void* arg)
 {
   struct km_stub* stub = arg;
   t_socket* client = socket_accept(stub->listener, false);
-  if (client == NULL)
+  if (client == nullptr)
   {
     return 0;
   }
@@ -143,7 +182,7 @@ static int km_stub_thread(void* arg)
   {
     int size;
     t_swap_config* received = receive_buffer(&size, client);
-    if (received != NULL)
+    if (received != nullptr)
     {
       stub->info = *received;
       stub->got_info = true;
@@ -175,9 +214,9 @@ Test(swap_connect, completes_the_handshake_and_reports_its_sizes)
   swap.block_size = 128;
 
   cr_assert(
-      connect_to_kernel_memory(&swap, NULL)); /* config unused on success */
+      connect_to_kernel_memory(&swap, nullptr)); /* config unused on success */
 
-  thrd_join(thread, NULL);
+  thrd_join(thread, nullptr);
   cr_assert_eq(stub.swap_module_id, MID_SWAP);
   cr_assert(stub.got_info);
   cr_assert_eq(stub.info.swap_size, 8192);
@@ -210,7 +249,7 @@ Test(swap_connect, fails_when_the_peer_is_not_kernel_memory)
   t_config* config = config_create((char*)"/dev/null");
   cr_assert_not(connect_to_kernel_memory(&swap, config)); /* close_swap runs */
 
-  thrd_join(thread, NULL);
+  thrd_join(thread, nullptr);
   cr_assert_eq(stub.swap_module_id, MID_SWAP);
 
   socket_destroy(listener);

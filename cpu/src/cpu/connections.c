@@ -90,11 +90,13 @@ bool connect_memory_stick(t_cpu* cpu)
   uint32_t received_size;
 
   if (!parse_stick_packet(cpu, packet, stick_ip, stick_port, &received_size))
+  {
     return false;
+  }
 
   new_socket = socket_create(SOCKET_KIND_CLIENT, stick_ip, stick_port, false);
 
-  if (new_socket == NULL)
+  if (new_socket == nullptr)
   {
     log_warning(cpu->logger, "Could not connect to the Memory Stick");
     return false;
@@ -160,7 +162,11 @@ void notify_bsod(t_cpu* cpu)
 {
   if (!send_string(OP_STICK_DISCONNECTED, "MS disconnected",
                    cpu->socket_kernel_memory))
+  {
     log_warning(cpu->logger, "Kernel Memory disconnected");
+  }
   else
+  {
     log_info(cpu->logger, "Kernel Memory notified of BSOD");
+  }
 }

@@ -1,8 +1,10 @@
 #include "cpu/cpu.h"
 
 #include <criterion/criterion.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "cpu/cleanup.h"
 #include "cpu/handlers.h"
@@ -589,4 +591,271 @@ Test(cpu_cpu, run_instruction_loop_runs_one_cycle_then_stops_on_disconnect)
   socket_destroy(km_peer);
   socket_destroy(sched_client);
   log_destroy(cpu.logger);
+}
+
+/* ── run_instruction_cycle / run_instruction_loop failure paths ────────── */
+
+/* A cpu wired to a Kernel Memory peer and a Kernel Scheduler peer, with every
+ * handler registered. As in the tests above, every reply a peer gives is
+ * queued before the call under test, in the order the cpu reads them. */
+typedef struct
+{
+  t_cpu cpu;
+  t_socket* km_peer;
+  t_socket* sched_peer;
+  t_context* context;
+} t_cycle_fixture;
+
+static void cycle_fixture_start(t_cycle_fixture* fx)
+{
+  memset(fx, 0, sizeof(*fx));
+  fx->cpu.socket_kernel_memory = cpu_connected_pair(&fx->km_peer);
+  fx->cpu.socket_kernel_scheduler = cpu_connected_pair(&fx->sched_peer);
+  fx->cpu.logger = cpu_quiet_logger();
+  fx->cpu.handlers = dictionary_create();
+  register_handlers(fx->cpu.handlers);
+  fx->context = cpu_make_context();
+}
+
+static void cycle_fixture_end(t_cycle_fixture* fx)
+{
+  dictionary_destroy(fx->cpu.handlers);
+  cpu_destroy_context(fx->context);
+  socket_destroy(fx->cpu.socket_kernel_memory);
+  socket_destroy(fx->km_peer);
+  socket_destroy(fx->cpu.socket_kernel_scheduler);
+  socket_destroy(fx->sched_peer);
+  log_destroy(fx->cpu.logger);
+}
+
+/* Reads the next op code @p peer got and drops whatever packet followed. */
+static int drain_packet(t_socket* peer)
+{
+  int op_code = receive_op_code(peer);
+  list_destroy_and_destroy_elements(receive_packet(peer), free);
+  return op_code;
+}
+
+static void queue_segment_table(t_socket* km_peer, int segment_count)
+{
+  t_packet* reply = create_packet(OP_SEGMENT_TABLE);
+  for (int i = 0; i < segment_count; i++)
+  {
+    t_segment segment = {.id = i, .base = i * 32, .size = 32};
+    packet_append(reply, &segment, sizeof(segment));
+  }
+  cr_assert(send_packet(reply, km_peer));
+  destroy_packet(reply);
+}
+
+Test(cpu_cpu,
+     run_instruction_cycle_fails_when_the_instruction_cannot_be_fetched)
+{
+  t_cycle_fixture fx;
+  cycle_fixture_start(&fx);
+
+  socket_shutdown(fx.cpu.socket_kernel_memory, SOCKET_SHUTDOWN_WRITE);
+  cr_assert_not(request_instruction(&fx.cpu, 1, 0));
+  cr_assert_null(fetch_stage(&fx.cpu, 1, 0));
+  cr_assert_not(run_instruction_cycle(&fx.cpu, 1, fx.context));
+
+  cycle_fixture_end(&fx);
+}
+
+Test(cpu_cpu, run_instruction_cycle_fails_on_an_unknown_instruction)
+{
+  t_cycle_fixture fx;
+  cycle_fixture_start(&fx);
+  cr_assert(send_string(OP_SEND_INSTRUCTION, "BOGUS 1 2", fx.km_peer));
+
+  cr_assert_not(run_instruction_cycle(&fx.cpu, 1, fx.context));
+
+  cycle_fixture_end(&fx);
+}
+
+Test(cpu_cpu, run_instruction_cycle_fails_when_the_cycle_end_cannot_be_sent)
+{
+  t_cycle_fixture fx;
+  cycle_fixture_start(&fx);
+  cr_assert(send_string(OP_SEND_INSTRUCTION, "NOOP", fx.km_peer));
+
+  socket_shutdown(fx.cpu.socket_kernel_scheduler, SOCKET_SHUTDOWN_WRITE);
+  cr_assert_not(run_instruction_cycle(&fx.cpu, 1, fx.context));
+
+  cycle_fixture_end(&fx);
+}
+
+Test(cpu_cpu, run_instruction_cycle_fails_when_the_interrupt_check_fails)
+{
+  t_cycle_fixture fx;
+  cycle_fixture_start(&fx);
+  cr_assert(send_string(OP_SEND_INSTRUCTION, "NOOP", fx.km_peer));
+  cr_assert(send_string(OP_ID_CPU, "unexpected", fx.sched_peer));
+
+  cr_assert_not(run_instruction_cycle(&fx.cpu, 1, fx.context));
+
+  cycle_fixture_end(&fx);
+}
+
+Test(cpu_cpu, run_instruction_cycle_refreshes_the_segment_table_after_mem_alloc)
+{
+  t_cycle_fixture fx;
+  cycle_fixture_start(&fx);
+  cr_assert(send_string(OP_SEND_INSTRUCTION, "MEM_ALLOC 1 32", fx.km_peer));
+  queue_segment_table(fx.km_peer, 2); /* the refreshed table */
+  cr_assert(send_string(OP_INTERRUPT, "syscall", fx.sched_peer));
+
+  cr_assert(run_instruction_cycle(&fx.cpu, 3, fx.context));
+  cr_assert_eq(list_size(fx.context->segment_table), 2);
+  cr_assert_not(fx.context->segment_changed);
+
+  cr_assert_eq(drain_packet(fx.km_peer), OP_NEXT_INSTRUCTION);
+  cr_assert_eq(receive_op_code(fx.km_peer), OP_UPDATED_SEGMENT_TABLE);
+  int size;
+  void* pid = receive_buffer(&size, fx.km_peer);
+  cr_assert_eq(*(uint32_t*)pid, 3);
+  free(pid);
+  cr_assert_eq(drain_packet(fx.km_peer), OP_UPDATED_CONTEXT);
+
+  cycle_fixture_end(&fx);
+}
+
+Test(cpu_cpu, run_instruction_cycle_skips_the_refresh_when_memory_ran_out)
+{
+  t_cycle_fixture fx;
+  cycle_fixture_start(&fx);
+  cr_assert(send_string(OP_SEND_INSTRUCTION, "MEM_ALLOC 1 32", fx.km_peer));
+  cr_assert(send_string(OP_INTERRUPT,
+                        "there is not enough memory for this instruction",
+                        fx.sched_peer));
+
+  cr_assert(run_instruction_cycle(&fx.cpu, 3, fx.context));
+  cr_assert_not(fx.context->segment_changed);
+
+  /* no OP_UPDATED_SEGMENT_TABLE in between */
+  cr_assert_eq(drain_packet(fx.km_peer), OP_NEXT_INSTRUCTION);
+  cr_assert_eq(drain_packet(fx.km_peer), OP_UPDATED_CONTEXT);
+
+  cycle_fixture_end(&fx);
+}
+
+Test(cpu_cpu, run_instruction_cycle_fails_when_the_segment_table_refresh_fails)
+{
+  t_cycle_fixture fx;
+  cycle_fixture_start(&fx);
+  cr_assert(send_string(OP_SEND_INSTRUCTION, "MEM_ALLOC 1 32", fx.km_peer));
+  cr_assert(send_string(OP_ID_CPU, "not a segment table", fx.km_peer));
+  cr_assert(send_string(OP_INTERRUPT, "syscall", fx.sched_peer));
+
+  cr_assert_not(run_instruction_cycle(&fx.cpu, 3, fx.context));
+
+  cycle_fixture_end(&fx);
+}
+
+Test(cpu_cpu, update_segment_table_fails_when_the_request_cannot_be_sent)
+{
+  t_cycle_fixture fx;
+  cycle_fixture_start(&fx);
+
+  socket_shutdown(fx.cpu.socket_kernel_memory, SOCKET_SHUTDOWN_WRITE);
+  cr_assert_not(update_segment_table(&fx.cpu, 1, fx.context));
+
+  cycle_fixture_end(&fx);
+}
+
+Test(cpu_cpu, send_updated_context_fails_when_kernel_memory_is_gone)
+{
+  t_cycle_fixture fx;
+  cycle_fixture_start(&fx);
+
+  socket_shutdown(fx.cpu.socket_kernel_memory, SOCKET_SHUTDOWN_WRITE);
+  cr_assert_not(send_updated_context(&fx.cpu, 1, fx.context->registers));
+
+  cycle_fixture_end(&fx);
+}
+
+/* run_instruction_loop builds its own context, so these only queue the
+ * Kernel Scheduler's PID and the Kernel Memory replies, then hang up. */
+static void queue_resume(t_cycle_fixture* fx, uint32_t pid)
+{
+  cr_assert(send_buffer(OP_RESUME_PROCESS, &pid, sizeof(pid), fx->sched_peer));
+}
+
+Test(cpu_cpu, run_instruction_loop_stops_when_the_context_cannot_be_requested)
+{
+  t_cycle_fixture fx;
+  cycle_fixture_start(&fx);
+  queue_resume(&fx, 1);
+
+  socket_shutdown(fx.cpu.socket_kernel_memory, SOCKET_SHUTDOWN_WRITE);
+  run_instruction_loop(&fx.cpu); /* must return instead of looping */
+
+  cycle_fixture_end(&fx);
+}
+
+Test(cpu_cpu, run_instruction_loop_stops_when_kernel_memory_sends_no_context)
+{
+  t_cycle_fixture fx;
+  cycle_fixture_start(&fx);
+  queue_resume(&fx, 1);
+  cr_assert(send_string(OP_ID_CPU, "not a context", fx.km_peer));
+
+  run_instruction_loop(&fx.cpu);
+
+  cycle_fixture_end(&fx);
+}
+
+Test(cpu_cpu, run_instruction_loop_stops_when_kernel_memory_sends_no_table)
+{
+  t_cycle_fixture fx;
+  cycle_fixture_start(&fx);
+  queue_resume(&fx, 1);
+  t_registers registers = {0};
+  cr_assert(
+      send_buffer(OP_SEND_CONTEXT, &registers, sizeof(registers), fx.km_peer));
+  cr_assert(send_string(OP_ID_CPU, "not a segment table", fx.km_peer));
+
+  run_instruction_loop(&fx.cpu);
+
+  cycle_fixture_end(&fx);
+}
+
+Test(cpu_cpu, run_instruction_loop_stops_when_the_cycle_fails)
+{
+  t_cycle_fixture fx;
+  cycle_fixture_start(&fx);
+  queue_resume(&fx, 1);
+  t_registers registers = {0};
+  cr_assert(
+      send_buffer(OP_SEND_CONTEXT, &registers, sizeof(registers), fx.km_peer));
+  queue_segment_table(fx.km_peer, 1);
+  cr_assert(send_string(OP_SEND_INSTRUCTION, "BOGUS", fx.km_peer));
+
+  run_instruction_loop(&fx.cpu);
+
+  cycle_fixture_end(&fx);
+}
+
+Test(cpu_cpu, a_segmentation_fault_is_not_followed_by_a_cycle_confirmation)
+{
+  t_cycle_fixture fx;
+  cycle_fixture_start(&fx);
+  fx.cpu.max_segment_size = 100;
+  list_add(fx.context->segment_table, cpu_make_segment(0, 0, 32));
+  fx.context->registers->SI = 4;  /* inside segment 0 */
+  fx.context->registers->DI = 90; /* past segment 0's end */
+  set_register(fx.context->registers, "EAX", 4);
+
+  cr_assert(send_string(OP_SEND_INSTRUCTION, "COPY_MEM EAX", fx.km_peer));
+  cr_assert(send_string(OP_INTERRUPT, "segmentation fault", fx.sched_peer));
+
+  cr_assert(run_instruction_cycle(&fx.cpu, 1, fx.context));
+
+  /* the scheduler hears about the fault, and nothing else: an extra
+   * OP_CPU_CYCLE_OK would be read as the next process's first message */
+  cr_assert_eq(receive_op_code(fx.sched_peer), OP_SEG_FAULT);
+  free(receive_string(fx.sched_peer));
+  cr_assert_not(socket_has_pending_data(fx.sched_peer));
+
+  cycle_fixture_end(&fx);
 }

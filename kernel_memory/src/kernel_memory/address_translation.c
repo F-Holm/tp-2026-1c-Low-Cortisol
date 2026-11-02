@@ -24,7 +24,7 @@ int translate_logical_address(uint32_t pid, uint32_t logical_address,
   uint32_t offset_in_segment = logical_address % seg_max;
 
   t_segment* found_seg = find_segment(main_memory, pid, segment_number);
-  if (found_seg == NULL)
+  if (found_seg == nullptr)
   {
     log_error(logger, "Segment number %u was not found for process %u",
               segment_number, pid);
@@ -99,7 +99,7 @@ char* read_from_sticks(int physical_address, int size, t_list* connected_sticks,
                 "The computed physical address does not match any "
                 "connected stick");
       free(result);
-      return NULL;
+      return nullptr;
     }
     mtx_lock(sticks_mutex);
     t_stick_data* stick = list_get(connected_sticks, index);
@@ -113,9 +113,10 @@ char* read_from_sticks(int physical_address, int size, t_list* connected_sticks,
     {
       log_warning(logger, "Error sending read packet to stick %d", index);
       notify_stick_corrupted(logger, socket_scheduler);
+      destroy_packet(packet);
       free(result);
       mtx_unlock(sticks_mutex);
-      return NULL;
+      return nullptr;
     }
     destroy_packet(packet);
     mtx_unlock(sticks_mutex);
@@ -132,7 +133,7 @@ char* read_from_sticks(int physical_address, int size, t_list* connected_sticks,
     {
       log_warning(logger, "Wrong response opcode from stick %d", index);
       free(result);
-      return NULL;
+      return nullptr;
     }
     // receive the bytes as a string
     int received_size = 0;
@@ -169,7 +170,7 @@ bool write_to_sticks(int pid, int physical_address, int bytes_to_read,
   for (int i = index; remaining > 0; i++)
   {
     t_stick_data* current_stick = list_get(connected_sticks, i);
-    if (current_stick == NULL)
+    if (current_stick == nullptr)
     {
       log_warning(logger,
                   "No more sticks available to finish the write "
@@ -203,15 +204,19 @@ bool write_to_sticks(int pid, int physical_address, int bytes_to_read,
     log_trace(logger, "PID: %d - Write - Phys. Addr: %d - Size: %d", pid,
               physical_address, to_write);
 
-    if (receive_op_code(current_stick->socket_stick) ==
-        OP_MEMORY_STICK_WRITE_DONE)
+    int reply = receive_op_code(current_stick->socket_stick);
+    if (reply != OP_CODE_ERROR)
     {
-      char* buffer = receive_string(current_stick->socket_stick);
-      free(buffer);
+      // drain the reply's payload either way, so the next exchange with this
+      // stick starts on a message boundary
+      free(receive_string(current_stick->socket_stick));
     }
-    else
+    if (reply != OP_MEMORY_STICK_WRITE_DONE)
     {
+      log_warning(logger, "Wrong write response from stick %d", i);
       notify_stick_corrupted(logger, socket_scheduler);
+      ok = false;
+      break;
     }
 
     buffer_pointer += to_write;

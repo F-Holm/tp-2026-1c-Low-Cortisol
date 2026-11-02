@@ -13,9 +13,9 @@ static void config_load_line(t_config* self, char* line);
 t_config* config_create(char* path)
 {
   FILE* file = fopen(path, "r");
-  if (file == NULL)
+  if (file == nullptr)
   {
-    return NULL;
+    return nullptr;
   }
 
   t_config* self = malloc(sizeof(t_config));
@@ -23,7 +23,7 @@ t_config* config_create(char* path)
   self->properties = dictionary_create();
 
   char* line;
-  while ((line = file_read_line(file)) != NULL)
+  while ((line = file_read_line(file)) != nullptr)
   {
     config_load_line(self, line);
     free(line);
@@ -67,7 +67,7 @@ static void config_load_line(t_config* self, char* line)
   }
 
   char* separator = strchr(trimmed, '=');
-  if (separator == NULL)
+  if (separator == nullptr)
   {
     free(trimmed);
     return;

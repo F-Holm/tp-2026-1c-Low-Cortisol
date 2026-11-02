@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#include "utils/collections/dictionary.h"
 #include "utils/string.h"
 
 static char config_path[] = "/tmp/utils_config_test_XXXXXX";
@@ -21,7 +22,8 @@ static void write_config(void)
       "  IP = 127.0.0.1  \n"
       "PORT=8080\n"
       "SCHEME = [ FIFO, RR , VRR ]\n"
-      "PSEUDOCODE=/home/user/proc=1\n",
+      "PSEUDOCODE=/home/user/proc=1\n"
+      "A LINE WITHOUT ANY SEPARATOR\n",
       file);
   fclose(file);
 }
@@ -77,5 +79,16 @@ Test(config, a_missing_key_yields_null)
 {
   t_config* config = config_create(config_path);
   cr_assert_null(config_get_string_value(config, "ABSENT"));
+  config_destroy(config);
+}
+
+Test(config, a_line_without_an_equals_sign_is_ignored)
+{
+  t_config* config = config_create(config_path);
+  cr_assert_not_null(config);
+  cr_assert_null(
+      config_get_string_value(config, "A LINE WITHOUT ANY SEPARATOR"));
+  cr_assert_not(
+      dictionary_has_key(config->properties, "A LINE WITHOUT ANY SEPARATOR"));
   config_destroy(config);
 }

@@ -22,7 +22,7 @@ typedef enum
 {
   SOCKET_KIND_CLIENT,  // resolves + connects to ip:port (ip required)
   SOCKET_KIND_SERVER   // resolves + binds every local interface + listens
-                       // (ip ignored, pass NULL)
+                       // (ip ignored, pass nullptr)
 } t_socket_kind;
 
 typedef enum
@@ -49,11 +49,11 @@ typedef struct
 
 /**
  * @brief Creates a socket. See t_socket_kind for what each kind does.
- * @param ip          Required for SOCKET_KIND_CLIENT; ignored (pass NULL)
+ * @param ip          Required for SOCKET_KIND_CLIENT; ignored (pass nullptr)
  *                    for SOCKET_KIND_SERVER.
  * @param with_mutex  Whether to allocate a mutex for this socket (see
  *                    socket_mutex_lock/unlock below).
- * @return A new socket, or NULL on failure (unresolvable address, connect()
+ * @return A new socket, or nullptr on failure (unresolvable address, connect()
  *         failure, bind() failure, ...).
  */
 t_socket* socket_create(t_socket_kind kind, char* ip, char* port,
@@ -62,18 +62,26 @@ t_socket* socket_create(t_socket_kind kind, char* ip, char* port,
 /**
  * @brief Accepts one pending connection on @p listener (a SOCKET_KIND_SERVER
  *        socket). Blocks until a peer connects.
- * @return A new socket for the accepted connection, or NULL on failure.
+ * @return A new socket for the accepted connection, or nullptr on failure.
  */
 t_socket* socket_accept(t_socket* listener, bool with_mutex);
 
 /** @brief Sends exactly @p size bytes of @p data. @return false if @p socket is
- * NULL/closed or the peer is gone. */
+ * nullptr/closed or the peer is gone. */
 bool socket_send(t_socket* socket, const void* data, int size);
 
 /** @brief Reads exactly @p size bytes into @p data (blocks until all arrive).
- * @return false if @p socket is NULL/closed, the peer closed, or an error
+ * @return false if @p socket is nullptr/closed, the peer closed, or an error
  * occurred. */
 bool socket_receive(t_socket* socket, void* data, int size);
+
+/**
+ * @brief Whether at least one byte is waiting to be read from @p socket right
+ *        now. Never blocks and consumes nothing.
+ * @return false if @p socket is nullptr/closed, nothing has arrived yet, or
+ *         the peer closed its end with nothing left unread.
+ */
+bool socket_has_pending_data(t_socket* socket);
 
 /** @brief The local port @p socket is bound to (e.g. after
  * SOCKET_PORT_EPHEMERAL). @return The port, or -1 on failure. */
@@ -83,21 +91,21 @@ int socket_get_local_port(t_socket* socket);
  * @brief Writes the IPv4 address of the peer @p socket is connected to, as a
  *        dotted string, into @p ip.
  * @param size  Capacity of @p ip; 16 always fits an IPv4 address.
- * @return false if @p socket is NULL/closed, not connected, or @p ip is too
+ * @return false if @p socket is nullptr/closed, not connected, or @p ip is too
  *         small.
  */
 bool socket_get_peer_ip(t_socket* socket, char* ip, int size);
 
 /** @brief Shuts down @p socket's handle for further read/write/both, without
- * closing it. No-op if @p socket is NULL. */
+ * closing it. No-op if @p socket is nullptr. */
 void socket_shutdown(t_socket* socket, t_socket_shutdown_mode mode);
 
 /** @brief Closes @p socket's underlying OS handle. Does not free @p socket or
- * its mutex -- see socket_destroy(). Safe to call with socket == NULL. */
+ * its mutex -- see socket_destroy(). Safe to call with socket == nullptr. */
 void socket_close(t_socket* socket);
 
 /** @brief Closes @p socket (if not already), destroys its mutex if it has one,
- * and frees @p socket. Safe to call with socket == NULL. */
+ * and frees @p socket. Safe to call with socket == nullptr. */
 void socket_destroy(t_socket* socket);
 
 /**

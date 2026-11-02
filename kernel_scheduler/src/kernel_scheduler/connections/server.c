@@ -20,11 +20,11 @@ static void close_thread_listen(t_io* io, t_list* list_sockets_cpu,
 
 t_socket* create_socket_server(char* port, t_log* logger)
 {
-  t_socket* ret = socket_create(SOCKET_KIND_SERVER, NULL, port, false);
-  if (ret == NULL)
+  t_socket* ret = socket_create(SOCKET_KIND_SERVER, nullptr, port, false);
+  if (ret == nullptr)
   {
     log_error(logger, "Error creating the server");
-    return NULL;
+    return nullptr;
   }
   log_debug(logger, "Server created successfully");
   return ret;
@@ -59,7 +59,7 @@ void server_listen(t_listen_server_data* data)
   {
     bool handled_ok = true;
     t_socket* socket_fd = socket_accept(data->socket_server, false);
-    if (socket_fd == NULL)
+    if (socket_fd == nullptr)
     {
       break;
     }

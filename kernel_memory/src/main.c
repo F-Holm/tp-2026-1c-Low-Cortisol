@@ -14,13 +14,15 @@
 int main(int argc, char* argv[])
 {
   if (argc != 2)
+  {
     return EXIT_FAILURE;
+  }
   char* config_path = argv[1];
 
   t_config* config = init_config(config_path);
   t_log* logger = init_logger(config);
   t_socket* socket_kernel_memory = socket_create(
-      SOCKET_KIND_SERVER, NULL,
+      SOCKET_KIND_SERVER, nullptr,
       config_get_string_value(config, "KERNEL_MEMORY_PORT"), false);
   char* scripts_basepath = get_scripts_basepath(config);
   int instruction_delay = get_instruction_delay(config);
@@ -32,7 +34,7 @@ int main(int argc, char* argv[])
       socket_kernel_memory, scripts_basepath, instruction_delay,
       compaction_delay, segment_max_size, allocation_strategy, logger);
 
-  t_stick_watchdog* stick_watchdog = start_stick_watchdog(kernel_data);
+  t_watchdog* stick_watchdog = start_stick_watchdog(kernel_data);
 
   log_info(logger, "Kernel Memory started");
   bool connection_alive = true;

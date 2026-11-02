@@ -14,11 +14,11 @@
 t_socket* create_server_cpu(t_log* logger)
 {
   t_socket* ret =
-      socket_create(SOCKET_KIND_SERVER, NULL, SOCKET_PORT_EPHEMERAL, false);
-  if (ret == NULL)
+      socket_create(SOCKET_KIND_SERVER, nullptr, SOCKET_PORT_EPHEMERAL, false);
+  if (ret == nullptr)
   {
     log_error(logger, "Error creating the CPU server");
-    return NULL;
+    return nullptr;
   }
   log_debug(logger, "CPU server created successfully");
   return ret;
@@ -66,7 +66,9 @@ void close_listen_thread(t_list* socket_list, mtx_t* socket_list_mutex,
   mtx_lock(socket_list_mutex);
   list_iterate(socket_list, (void*)iterator_shutdown);
   while (!list_is_empty(socket_list))
+  {
     cnd_wait(listen_done_cond, socket_list_mutex);
+  }
   mtx_unlock(socket_list_mutex);
   list_destroy(socket_list);
   cnd_destroy(listen_done_cond);
@@ -95,7 +97,7 @@ char* receive_cpu_id(t_socket* socket_cpu, t_log* logger)
   if (receive_op_code(socket_cpu) != OP_ID_CPU)
   {
     log_warning(logger, "Could not receive the CPU ID");
-    return NULL;
+    return nullptr;
   }
   char* cpu_id = receive_string(socket_cpu);
   log_info(logger, "CPU %s connected", cpu_id);
@@ -107,11 +109,15 @@ bool handle_new_cpu(t_listen_thread* listen_thread, t_socket* socket_cpu,
                     cnd_t* listen_done_cond, t_ms* ms)
 {
   if (!handshake_cpu(socket_cpu, listen_thread->logger))
+  {
     return false;
+  }
 
   char* cpu_id = receive_cpu_id(socket_cpu, listen_thread->logger);
-  if (cpu_id == NULL)
+  if (cpu_id == nullptr)
+  {
     return false;
+  }
   free(cpu_id);
 
   t_cpu_thread* cpu_thread = create_cpu_thread_data(
@@ -147,15 +153,19 @@ int cpu_listen_thread(void* listen_thread_void)
   {
     t_socket* socket_cpu =
         socket_accept(listen_thread->cpu_listen_socket, false);
-    if (socket_cpu == NULL)
+    if (socket_cpu == nullptr)
+    {
       break;
+    }
 
     log_debug(listen_thread->logger, "Connection established with a CPU");
 
     if (!handle_new_cpu(listen_thread, socket_cpu, socket_list,
                         &socket_list_mutex, &listen_done_cond,
                         listen_thread->ms))
+    {
       socket_destroy(socket_cpu);
+    }
   }
 
   log_debug(listen_thread->logger, "Closing the CPU server");
@@ -171,7 +181,9 @@ void close_cpu_thread(t_cpu_thread* cpu_thread)
   mtx_lock(cpu_thread->socket_list_mutex);
   list_remove_element(cpu_thread->socket_list, &(cpu_thread->socket_cpu));
   if (list_is_empty(cpu_thread->socket_list))
+  {
     cnd_signal(cpu_thread->listen_done_cond);
+  }
   mtx_unlock(cpu_thread->socket_list_mutex);
   socket_destroy(cpu_thread->socket_cpu);
   free(cpu_thread);

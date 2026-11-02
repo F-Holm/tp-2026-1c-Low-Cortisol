@@ -4,6 +4,7 @@
 #include <criterion/redirect.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/stat.h>
 #include <unistd.h>
 
 #include "cpu/cpu.h"
@@ -41,6 +42,32 @@ Test(cpu_initializer, init_module_fails_on_a_missing_config)
   cr_assert_not(init_module(&cpu, "/no/such/cpu.config"));
 }
 
+Test(cpu_initializer, init_module_fails_when_the_log_file_cannot_be_created)
+{
+  char path[] = "/tmp/cpu_init_test_XXXXXX";
+  int fd = mkstemp(path);
+  cr_assert_neq(fd, -1);
+  FILE* file = fdopen(fd, "w");
+  fputs("LOG_LEVEL=INFO\n", file);
+  fclose(file);
+
+  /* init_module creates "cpu.log" in the working directory: make that a
+   * directory nobody may write to. */
+  char scratch[] = "/tmp/cpu_init_cwd_XXXXXX";
+  cr_assert_not_null(mkdtemp(scratch));
+  cr_assert_eq(chmod(scratch, 0500), 0);
+  cr_assert_eq(chdir(scratch), 0);
+
+  t_cpu cpu = {.id = "CPU-1"};
+  cr_assert_not(init_module(&cpu, path));
+  cr_assert_null(cpu.logger);
+
+  config_destroy(cpu.config);
+  cr_assert_eq(chdir("/"), 0);
+  rmdir(scratch);
+  unlink(path);
+}
+
 Test(cpu_initializer, check_arguments_needs_config_and_id,
      .init = cr_redirect_stdout)
 {
@@ -62,8 +89,10 @@ Test(cpu_initializer, register_handlers_maps_every_instruction_name)
                    "INIT_PROC",    "EXIT"};
 
   for (int i = 0; i < 18; i++)
+  {
     cr_assert(dictionary_has_key(handlers, names[i]), "missing handler %s",
               names[i]);
+  }
 
   cr_assert_eq(dictionary_get(handlers, "NOOP"), handler_noop);
   cr_assert_eq(dictionary_get(handlers, "EXIT"), handler_exit);

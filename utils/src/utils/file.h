@@ -22,7 +22,7 @@ bool file_resize(FILE* file, long size);
 
 /**
  * @brief Reads the next line of @p file, without its line terminator.
- * @return A newly allocated string to free with free(), or NULL at end of
+ * @return A newly allocated string to free with free(), or nullptr at end of
  *         file (or on a read error) when nothing was read.
  */
 char* file_read_line(FILE* file);

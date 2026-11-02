@@ -18,13 +18,13 @@
 /**
  * @brief Creates every subqueue, counter and background thread the
  *        scheduler needs.
- * @param multilevel_algorithms  NULL unless @p algorithm is
+ * @param multilevel_algorithms  nullptr unless @p algorithm is
  *        SA_MULTILEVEL_QUEUES.
  * @param quantum  0 unless @p algorithm is RR.
  */
 t_queues* init_queues(int algorithm, t_list* multilevel_algorithms, int quantum,
                       bool preemption, t_log* logger, t_socket* km_socket,
-                      int suspension_timeout);
+                      int suspension_timeout, t_shutdown_ctx* shutdown);
 
 /** @brief Waits for every routine/worker thread to finish, then frees
  *         everything. */

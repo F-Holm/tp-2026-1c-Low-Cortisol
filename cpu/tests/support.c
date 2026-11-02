@@ -16,7 +16,8 @@
 
 t_log* cpu_quiet_logger(void)
 {
-  t_log* logger = log_create(NULL, "CPU-test", false, LOG_LEVEL_ERROR, false);
+  t_log* logger =
+      log_create(nullptr, "CPU-test", false, LOG_LEVEL_ERROR, false);
   cr_assert_not_null(logger);
   return logger;
 }
@@ -24,7 +25,7 @@ t_log* cpu_quiet_logger(void)
 t_socket* cpu_listen_ephemeral(char* port_out, int port_len)
 {
   t_socket* listener =
-      socket_create(SOCKET_KIND_SERVER, NULL, SOCKET_PORT_EPHEMERAL, false);
+      socket_create(SOCKET_KIND_SERVER, nullptr, SOCKET_PORT_EPHEMERAL, false);
   cr_assert_not_null(listener, "socket_create(SERVER) failed");
 
   snprintf(port_out, port_len, "%d", socket_get_local_port(listener));

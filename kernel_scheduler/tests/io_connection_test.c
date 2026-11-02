@@ -86,7 +86,7 @@ Test(ks_io_connection, fails_gracefully_on_a_dead_socket)
   t_queues* queues = ks_stub_queues(logger);
   t_io* io = create_io_structures();
 
-  cr_assert_not(handle_new_io(io, NULL, queues, false));
+  cr_assert_not(handle_new_io(io, nullptr, queues, false));
 
   close_io(io);
   free(queues);
@@ -108,9 +108,17 @@ static t_io make_io_stub(int io_type, bool priority_active)
   return io;
 }
 
+/* t_stdin, t_stdout and t_sleep share the same {pcb, request} layout. */
+static void destroy_queued_request(void* entry)
+{
+  free(((t_sleep*)entry)->request);
+  free(entry);
+}
+
 static void destroy_io_stub(t_io* io)
 {
-  list_destroy_and_destroy_elements(io->io_list->io_list, free);
+  list_destroy_and_destroy_elements(io->io_list->io_list,
+                                    destroy_queued_request);
   mtx_destroy(&(io->io_list->io_list_mutex));
   free(io->io_list);
   cnd_destroy(&(io->new_process));
@@ -122,9 +130,10 @@ Test(ks_io_connection, enqueue_io_request_is_rejected_after_close)
   atomic_store(&(io.close_thread), true);
   t_pcb* pcb = create_pcb(PS_BLOCK, 0);
 
-  cr_assert_not(
-      enqueue_io_request(calloc(1, sizeof(t_stdin_request)), &io, pcb));
+  t_stdin_request* request = calloc(1, sizeof(t_stdin_request));
+  cr_assert_not(enqueue_io_request(request, &io, pcb));
   cr_assert(list_is_empty(io.io_list->io_list));
+  free(request); /* rejected requests stay the caller's */
 
   destroy_pcb(pcb);
   destroy_io_stub(&io);
@@ -262,7 +271,9 @@ Test(ks_io_connection, stdin_round_trip_reads_and_unblocks_the_process)
 
   t_log* logger = ks_quiet_logger();
   t_queues* queues = ks_stub_queues_full(logger);
+  socket_destroy(queues->km_socket); /* the stub's placeholder */
   queues->km_socket = km_client_fd;
+  queues->process_counter->km_socket = km_client_fd;
   t_io* io = create_io_structures();
 
   cr_assert(handle_new_io(io, client_fd, queues, false));
@@ -344,7 +355,9 @@ Test(ks_io_connection, stdout_round_trip_prints_and_unblocks_the_process)
 
   t_log* logger = ks_quiet_logger();
   t_queues* queues = ks_stub_queues_full(logger);
+  socket_destroy(queues->km_socket); /* the stub's placeholder */
   queues->km_socket = km_client_fd;
+  queues->process_counter->km_socket = km_client_fd;
   t_io* io = create_io_structures();
 
   cr_assert(handle_new_io(io, client_fd, queues, false));
@@ -375,4 +388,252 @@ Test(ks_io_connection, stdout_round_trip_prints_and_unblocks_the_process)
   socket_destroy(server_fd);
   socket_destroy(km_server_fd);
   log_destroy(logger);
+}
+
+/* ── a failed IO operation ends the worker and frees its process ───────── */
+
+/* An IO module of @p io_type_name plugged into a fresh scheduler, with its
+ * own fake Kernel Memory connection. */
+typedef struct
+{
+  t_log* logger;
+  t_queues* queues;
+  t_io* io;
+  t_socket* io_peer;
+  t_socket* km_peer;
+  t_pcb* pcb;
+} t_io_fixture;
+
+static void io_fixture_start(t_io_fixture* fx, const char* io_type_name)
+{
+  fx->logger = ks_quiet_logger();
+  fx->queues = ks_stub_queues_full(fx->logger);
+  t_socket* stub_socket = fx->queues->km_socket;
+  fx->queues->km_socket = ks_connected_pair(&fx->km_peer);
+  fx->queues->shutdown->km_socket = fx->queues->km_socket;
+  fx->queues->process_counter->km_socket = fx->queues->km_socket;
+  socket_destroy(stub_socket);
+  fx->io = create_io_structures();
+
+  t_socket* scheduler_side = ks_connected_pair(&fx->io_peer);
+  cr_assert(send_string(OP_IO_TYPE, (char*)io_type_name, fx->io_peer));
+  cr_assert(handle_new_io(fx->io, scheduler_side, fx->queues, false));
+  cr_assert_eq(receive_handshake(fx->io_peer), MID_KERNEL_SCHEDULER);
+
+  fx->pcb = create_pcb(PS_BLOCK, 0);
+  transition_to_block(fx->pcb, &(fx->queues->block));
+}
+
+static void io_fixture_end(t_io_fixture* fx)
+{
+  close_io(fx->io);
+  destroy_pcb(fx->pcb);
+  ks_destroy_stub_queues_full(fx->queues);
+  socket_destroy(fx->io_peer);
+  socket_destroy(fx->km_peer);
+  log_destroy(fx->logger);
+}
+
+/* The failed request is drained on the worker's way out, which unblocks its
+ * process; any later request is turned away. */
+static void assert_worker_gave_up(t_io_fixture* fx, t_io* io)
+{
+  bool unblocked = false;
+  for (int waited = 0; waited < 2000 && !unblocked; waited += 5)
+  {
+    mtx_lock(&(fx->pcb->state_mutex));
+    unblocked = fx->pcb->state == PS_READY;
+    mtx_unlock(&(fx->pcb->state_mutex));
+    time_sleep_ms(5);
+  }
+  cr_assert(unblocked, "the process should be released back to READY");
+  cr_assert_eq(list_size(fx->queues->block.list), 0);
+
+  /* the worker is gone: no new request is accepted any more */
+  for (int waited = 0; waited < 2000; waited += 5)
+  {
+    if (atomic_load(&(io->close_thread)))
+    {
+      break;
+    }
+    time_sleep_ms(5);
+  }
+  void* late_request = calloc(1, sizeof(t_sleep_request));
+  cr_assert_not(enqueue_io_request(late_request, io, fx->pcb));
+  free(late_request); /* rejected requests stay the caller's */
+}
+
+Test(ks_io_connection, sleep_fails_when_the_io_does_not_answer_ok)
+{
+  t_io_fixture fx;
+  io_fixture_start(&fx, "SLEEP");
+  cr_assert(send_string(OP_SLEEP_RESPONSE, "NOT OK", fx.io_peer));
+
+  cr_assert(enqueue_io_request(calloc(1, sizeof(t_sleep_request)),
+                               &(fx.io[IO_SLEEP]), fx.pcb));
+  assert_worker_gave_up(&fx, &(fx.io[IO_SLEEP]));
+
+  io_fixture_end(&fx);
+}
+
+Test(ks_io_connection, sleep_fails_when_the_io_disconnects)
+{
+  t_io_fixture fx;
+  io_fixture_start(&fx, "SLEEP");
+  socket_shutdown(fx.io_peer, SOCKET_SHUTDOWN_WRITE); /* reply is EOF */
+
+  cr_assert(enqueue_io_request(calloc(1, sizeof(t_sleep_request)),
+                               &(fx.io[IO_SLEEP]), fx.pcb));
+  assert_worker_gave_up(&fx, &(fx.io[IO_SLEEP]));
+
+  io_fixture_end(&fx);
+}
+
+Test(ks_io_connection, sleep_fails_when_the_request_cannot_be_sent)
+{
+  t_io_fixture fx;
+  io_fixture_start(&fx, "SLEEP");
+  socket_shutdown(fx.io[IO_SLEEP].socket_io, SOCKET_SHUTDOWN_WRITE);
+
+  cr_assert(enqueue_io_request(calloc(1, sizeof(t_sleep_request)),
+                               &(fx.io[IO_SLEEP]), fx.pcb));
+  assert_worker_gave_up(&fx, &(fx.io[IO_SLEEP]));
+
+  io_fixture_end(&fx);
+}
+
+Test(ks_io_connection, stdin_fails_when_the_io_disconnects)
+{
+  t_io_fixture fx;
+  io_fixture_start(&fx, "STDIN");
+  socket_shutdown(fx.io_peer, SOCKET_SHUTDOWN_WRITE);
+
+  cr_assert(enqueue_io_request(calloc(1, sizeof(t_stdin_request)),
+                               &(fx.io[IO_STDIN]), fx.pcb));
+  assert_worker_gave_up(&fx, &(fx.io[IO_STDIN]));
+
+  io_fixture_end(&fx);
+}
+
+Test(ks_io_connection, stdin_fails_when_the_request_cannot_be_sent)
+{
+  t_io_fixture fx;
+  io_fixture_start(&fx, "STDIN");
+  socket_shutdown(fx.io[IO_STDIN].socket_io, SOCKET_SHUTDOWN_WRITE);
+
+  cr_assert(enqueue_io_request(calloc(1, sizeof(t_stdin_request)),
+                               &(fx.io[IO_STDIN]), fx.pcb));
+  assert_worker_gave_up(&fx, &(fx.io[IO_STDIN]));
+
+  io_fixture_end(&fx);
+}
+
+Test(ks_io_connection, stdin_fails_when_kernel_memory_does_not_confirm)
+{
+  t_io_fixture fx;
+  io_fixture_start(&fx, "STDIN");
+  cr_assert(send_string(OP_STDIN_RESPONSE, "typed", fx.io_peer));
+  cr_assert(send_string(OP_PORT, "not a stdin reply", fx.km_peer));
+
+  cr_assert(enqueue_io_request(calloc(1, sizeof(t_stdin_request)),
+                               &(fx.io[IO_STDIN]), fx.pcb));
+  assert_worker_gave_up(&fx, &(fx.io[IO_STDIN]));
+
+  io_fixture_end(&fx);
+}
+
+Test(ks_io_connection, stdout_fails_when_kernel_memory_does_not_answer)
+{
+  t_io_fixture fx;
+  io_fixture_start(&fx, "STDOUT");
+  cr_assert(send_string(OP_PORT, "not a stdout reply", fx.km_peer));
+
+  cr_assert(enqueue_io_request(calloc(1, sizeof(t_stdout_request)),
+                               &(fx.io[IO_STDOUT]), fx.pcb));
+  assert_worker_gave_up(&fx, &(fx.io[IO_STDOUT]));
+
+  io_fixture_end(&fx);
+}
+
+Test(ks_io_connection, stdout_fails_when_the_io_answers_something_else)
+{
+  t_io_fixture fx;
+  io_fixture_start(&fx, "STDOUT");
+  cr_assert(send_string(OP_STDOUT_RESPONSE, "from memory", fx.km_peer));
+  cr_assert(send_string(OP_SLEEP_RESPONSE, "not a stdout ack", fx.io_peer));
+
+  cr_assert(enqueue_io_request(calloc(1, sizeof(t_stdout_request)),
+                               &(fx.io[IO_STDOUT]), fx.pcb));
+  assert_worker_gave_up(&fx, &(fx.io[IO_STDOUT]));
+
+  io_fixture_end(&fx);
+}
+
+Test(ks_io_connection, stdout_fails_when_the_text_cannot_be_sent_to_the_io)
+{
+  t_io_fixture fx;
+  io_fixture_start(&fx, "STDOUT");
+  cr_assert(send_string(OP_STDOUT_RESPONSE, "from memory", fx.km_peer));
+  socket_shutdown(fx.io[IO_STDOUT].socket_io, SOCKET_SHUTDOWN_WRITE);
+
+  cr_assert(enqueue_io_request(calloc(1, sizeof(t_stdout_request)),
+                               &(fx.io[IO_STDOUT]), fx.pcb));
+  assert_worker_gave_up(&fx, &(fx.io[IO_STDOUT]));
+
+  io_fixture_end(&fx);
+}
+
+Test(ks_io_connection, rejects_an_io_that_does_not_announce_its_type)
+{
+  t_socket* io_peer;
+  t_socket* scheduler_side = ks_connected_pair(&io_peer);
+  cr_assert(send_string(OP_PORT, "not a type", io_peer));
+
+  t_log* logger = ks_quiet_logger();
+  t_queues* queues = ks_stub_queues(logger);
+  t_io* io = create_io_structures();
+
+  cr_assert_not(handle_new_io(io, scheduler_side, queues, false));
+
+  close_io(io);
+  socket_destroy(scheduler_side);
+  socket_destroy(io_peer);
+  free(queues);
+  log_destroy(logger);
+}
+
+/* Kernel Memory's write side shut and its peer gone: requests to it fail, and
+ * close_kernel_scheduler's follow-up read returns at once. */
+static void cut_kernel_memory(t_io_fixture* fx)
+{
+  socket_shutdown(fx->queues->km_socket, SOCKET_SHUTDOWN_WRITE);
+  socket_destroy(fx->km_peer);
+  fx->km_peer = nullptr;
+}
+
+Test(ks_io_connection, stdin_fails_when_kernel_memory_cannot_be_written_to)
+{
+  t_io_fixture fx;
+  io_fixture_start(&fx, "STDIN");
+  cr_assert(send_string(OP_STDIN_RESPONSE, "typed", fx.io_peer));
+  cut_kernel_memory(&fx);
+
+  cr_assert(enqueue_io_request(calloc(1, sizeof(t_stdin_request)),
+                               &(fx.io[IO_STDIN]), fx.pcb));
+  assert_worker_gave_up(&fx, &(fx.io[IO_STDIN]));
+
+  io_fixture_end(&fx);
+}
+
+Test(ks_io_connection, stdout_fails_when_kernel_memory_cannot_be_written_to)
+{
+  t_io_fixture fx;
+  io_fixture_start(&fx, "STDOUT");
+  cut_kernel_memory(&fx);
+
+  cr_assert(enqueue_io_request(calloc(1, sizeof(t_stdout_request)),
+                               &(fx.io[IO_STDOUT]), fx.pcb));
+  assert_worker_gave_up(&fx, &(fx.io[IO_STDOUT]));
+
+  io_fixture_end(&fx);
 }

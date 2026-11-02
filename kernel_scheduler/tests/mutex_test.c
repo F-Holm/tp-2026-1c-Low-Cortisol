@@ -14,10 +14,12 @@ Test(ks_mutex, create_and_add_mutex_reports_duplicates)
 {
   t_mutex_list* list = init_list_mutex();
 
-  cr_assert_eq(create_and_add_mutex(list, "m1", false, NULL), MR_MUTEX_CREATED);
-  cr_assert_eq(create_and_add_mutex(list, "m1", false, NULL),
+  cr_assert_eq(create_and_add_mutex(list, "m1", false, nullptr),
+               MR_MUTEX_CREATED);
+  cr_assert_eq(create_and_add_mutex(list, "m1", false, nullptr),
                MR_MUTEX_NAME_ALREADY_EXISTS);
-  cr_assert_eq(create_and_add_mutex(list, "m2", false, NULL), MR_MUTEX_CREATED);
+  cr_assert_eq(create_and_add_mutex(list, "m2", false, nullptr),
+               MR_MUTEX_CREATED);
 
   destroy_list_mutex(list);
 }

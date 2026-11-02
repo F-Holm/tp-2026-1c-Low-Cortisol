@@ -12,6 +12,7 @@ Each file is one suite:
 | `log_test.c` | every function in `utils/log.h` |
 | `msg_test.c` | every function in `utils/msg.h`, over a loopback socket pair |
 | `io_test.c` | the `IO_TYPE_NAMES` table in `utils/io.h` |
+| `watchdog_test.c` | every function in `utils/watchdog.h`, over loopback socket pairs |
 
 `msg_test.c` opens a real TCP connection to `127.0.0.1` on an ephemeral port
 (picked by the kernel, discovered with `getsockname`), so the suite needs no

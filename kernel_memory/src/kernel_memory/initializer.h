@@ -40,14 +40,14 @@ t_stick_data* init_stick_data(t_socket* socket_stick, t_log* logger,
 /**
  * @brief Allocates a t_swap_data and reads the swap's block/size info off
  *        the socket (OP_INFO_SWAP handshake).
- * @return NULL if the peer didn't send the expected handshake.
+ * @return nullptr if the peer didn't send the expected handshake.
  */
 t_swap_data* init_swap_data(t_socket* socket_swap, t_log* logger);
 
 /**
  * @brief Allocates a t_process and loads its instructions from
  *        `scripts_basepath`/`relative_path`.
- * @return NULL if the instructions file could not be opened.
+ * @return nullptr if the instructions file could not be opened.
  */
 t_process* init_process(uint32_t pid, char* relative_path,
                         char* scripts_basepath, t_log* logger);

@@ -125,7 +125,8 @@ Test(log, entries_below_the_detail_level_are_dropped)
 
 Test(log, a_logger_without_a_file_keeps_working)
 {
-  t_log* logger = log_create(NULL, "console-only", false, LOG_LEVEL_INFO, true);
+  t_log* logger =
+      log_create(nullptr, "console-only", false, LOG_LEVEL_INFO, true);
   cr_assert_not_null(logger);
   cr_assert_null(logger->file);
   log_info(logger, "goes nowhere");

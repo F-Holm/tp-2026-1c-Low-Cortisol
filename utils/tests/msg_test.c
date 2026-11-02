@@ -19,7 +19,7 @@ TestSuite(msg, .timeout = 5.0);
 static t_socket* connected_pair(t_socket** server_out)
 {
   t_socket* listener =
-      socket_create(SOCKET_KIND_SERVER, NULL, SOCKET_PORT_EPHEMERAL, false);
+      socket_create(SOCKET_KIND_SERVER, nullptr, SOCKET_PORT_EPHEMERAL, false);
   cr_assert_not_null(listener, "socket_create(SERVER) failed");
 
   char port[16];
@@ -102,12 +102,12 @@ Test(msg, receive_op_code_on_a_closed_peer_is_op_code_error)
 Test(msg, send_helpers_return_false_on_an_invalid_socket)
 {
   int value = 0;
-  cr_assert_not(send_buffer(OP_HANDSHAKE, &value, sizeof(value), NULL));
-  cr_assert_not(send_string(OP_HANDSHAKE, "x", NULL));
+  cr_assert_not(send_buffer(OP_HANDSHAKE, &value, sizeof(value), nullptr));
+  cr_assert_not(send_string(OP_HANDSHAKE, "x", nullptr));
 
   t_packet* packet = create_packet(OP_HANDSHAKE);
   packet_append_string(packet, "x");
-  cr_assert_not(send_packet(packet, NULL));
+  cr_assert_not(send_packet(packet, nullptr));
   destroy_packet(packet);
 }
 
@@ -185,6 +185,29 @@ Test(msg, an_empty_packet_yields_an_empty_list)
   cr_assert_eq(list_size(values), 0);
 
   list_destroy(values);
+  socket_destroy(client);
+  socket_destroy(server);
+}
+
+Test(msg, a_zero_length_element_ends_the_packet)
+{
+  t_socket* server;
+  t_socket* client = connected_pair(&server);
+
+  t_packet* packet = create_packet(OP_PACKET);
+  int number = 7;
+  packet_append(packet, &number, sizeof(number));
+  packet_append(packet, &number, 0);
+  packet_append_string(packet, "never read");
+  cr_assert(send_packet(packet, client));
+  destroy_packet(packet);
+
+  cr_assert_eq(receive_op_code(server), OP_PACKET);
+  t_list* values = receive_packet(server);
+  cr_assert_eq(list_size(values), 1);
+  cr_assert_eq(*(int*)list_get(values, 0), 7);
+
+  list_destroy_and_destroy_elements(values, free);
   socket_destroy(client);
   socket_destroy(server);
 }

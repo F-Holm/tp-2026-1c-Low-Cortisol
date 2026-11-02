@@ -27,7 +27,9 @@ void run_instruction_loop(t_cpu* cpu)
   {
     pid = receive_pid(cpu);
     if (pid == UINT32_MAX)
+    {
       break;
+    }
 
     if (!request_context(cpu, pid))
     {
@@ -37,12 +39,18 @@ void run_instruction_loop(t_cpu* cpu)
     log_debug(cpu->logger, "Context requested successfully");
 
     if (listen_kernel_memory(cpu))
+    {
       context->registers = receive_context(cpu);
+    }
     else
+    {
       break;
+    }
 
     if (listen_kernel_memory(cpu))
+    {
       context->segment_table = receive_segment_table(cpu, context);
+    }
     else
     {
       free(context->registers);
@@ -122,7 +130,9 @@ bool run_instruction_cycle(t_cpu* cpu, uint32_t pid, t_context* context)
     char* raw_instruction = fetch_stage(cpu, pid, context->registers->PC);
 
     if (!raw_instruction)
+    {
       return false;
+    }
 
     log_info(cpu->logger, "PID: %u - FETCH - Program Counter: %u", pid,
              context->registers->PC);
@@ -141,7 +151,9 @@ bool run_instruction_cycle(t_cpu* cpu, uint32_t pid, t_context* context)
     }
 
     if (initial_pc == context->registers->PC)
+    {
       context->registers->PC++;
+    }
 
     if (syscall)
     {
@@ -186,7 +198,9 @@ bool run_instruction_cycle(t_cpu* cpu, uint32_t pid, t_context* context)
 char* fetch_stage(t_cpu* cpu, uint32_t pid, uint32_t pc)
 {
   if (!request_instruction(cpu, pid, pc) || !listen_kernel_memory(cpu))
-    return NULL;
+  {
+    return nullptr;
+  }
 
   return receive_instruction(cpu);
 }
@@ -199,6 +213,7 @@ bool request_instruction(t_cpu* cpu, uint32_t pid, uint32_t pc)
   if (!send_packet(packet, cpu->socket_kernel_memory))
   {
     log_warning(cpu->logger, "Could not request the instruction");
+    destroy_packet(packet);
     return false;
   }
   log_trace(cpu->logger, "Instruction requested successfully");
@@ -220,14 +235,16 @@ t_instruction* decode_stage(char* raw_instruction)
 
   instruction->name = strdup(parts[0]);
 
-  for (int i = 1; parts[i] != NULL; i++)
+  for (int i = 1; parts[i] != nullptr; i++)
   {
     instruction->parameters[i - 1] = strdup(parts[i]);
     instruction->parameter_count++;
   }
 
-  for (int i = 0; parts[i] != NULL; i++)
+  for (int i = 0; parts[i] != nullptr; i++)
+  {
     free(parts[i]);
+  }
   free(parts);
 
   return instruction;
@@ -238,7 +255,7 @@ t_extended_bool execute_stage(t_cpu* cpu, t_context* context,
 {
   t_handler handler = dictionary_get(cpu->handlers, instruction->name);
 
-  if (handler == NULL)
+  if (handler == nullptr)
   {
     log_error(cpu->logger, "Unknown instruction: %s", instruction->name);
     return EB_ERROR;
@@ -290,6 +307,7 @@ bool send_updated_context(t_cpu* cpu, uint32_t pid,
   if (!send_packet(packet, cpu->socket_kernel_memory))
   {
     log_warning(cpu->logger, "Could not send the updated context");
+    destroy_packet(packet);
     return false;
   }
   log_debug(cpu->logger, "Updated context sent successfully");
@@ -308,7 +326,9 @@ bool update_segment_table(t_cpu* cpu, uint32_t pid, t_context* context)
   }
 
   if (!listen_kernel_memory(cpu))
+  {
     return false;
+  }
   context->segment_table = receive_segment_table(cpu, context);
   log_debug(cpu->logger, "Segment table updated successfully");
   return true;

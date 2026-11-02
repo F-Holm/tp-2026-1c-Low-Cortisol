@@ -22,7 +22,7 @@ uint32_t mmu(t_cpu* cpu, t_context* context, uint32_t logical_address,
   t_segment* segment =
       find_segment_by_id(context->segment_table, segment_number);
 
-  if (segment == NULL)
+  if (segment == nullptr)
   {
     log_debug(cpu->logger, "Segment %u not found", segment_number);
     return INVALID_ADDRESS - 1;
@@ -31,9 +31,13 @@ uint32_t mmu(t_cpu* cpu, t_context* context, uint32_t logical_address,
   if (offset + size > segment->size)
   {
     if (notify_seg_fault(cpu, pid))
+    {
       return INVALID_ADDRESS;
+    }
     else
+    {
       return INVALID_ADDRESS - 1;
+    }
   }
 
   return segment->base + offset;
@@ -41,7 +45,7 @@ uint32_t mmu(t_cpu* cpu, t_context* context, uint32_t logical_address,
 
 t_segment* find_segment_by_id(t_list* segment_table, uint32_t segment_number)
 {
-  t_segment* segment = NULL;
+  t_segment* segment = nullptr;
   for (int i = 0; i < list_size(segment_table); i++)
   {
     segment = list_get(segment_table, i);
@@ -50,7 +54,7 @@ t_segment* find_segment_by_id(t_list* segment_table, uint32_t segment_number)
       return segment;
     }
   }
-  return NULL;
+  return nullptr;
 }
 
 bool notify_seg_fault(t_cpu* cpu, uint32_t pid)
@@ -72,9 +76,11 @@ t_memory_stick_info* find_stick(t_cpu* cpu, uint32_t physical_address)
     t_memory_stick_info* stick = list_get(cpu->memory_sticks, i);
     if (physical_address >= stick->offset &&
         physical_address < stick->offset + stick->size)
+    {
       return stick;
+    }
   }
-  return NULL;
+  return nullptr;
 }
 
 void* read_memory(t_cpu* cpu, uint32_t physical_address, uint32_t size)
@@ -85,11 +91,11 @@ void* read_memory(t_cpu* cpu, uint32_t physical_address, uint32_t size)
   while (read_bytes < size)
   {
     t_memory_stick_info* stick = find_stick(cpu, physical_address + read_bytes);
-    if (stick == NULL)
+    if (stick == nullptr)
     {
       log_error(cpu->logger, "Memory Stick not found");
       free(result);
-      return NULL;
+      return nullptr;
     }
 
     uint32_t address_in_stick = (physical_address + read_bytes) - stick->offset;
@@ -98,12 +104,19 @@ void* read_memory(t_cpu* cpu, uint32_t physical_address, uint32_t size)
 
     // Use this stick or move on to the next one.
     if (available_bytes < (size - read_bytes))
+    {
       bytes_to_read = available_bytes;
+    }
     else
+    {
       bytes_to_read = size - read_bytes;
+    }
 
     if (!request_read(cpu, stick, address_in_stick, bytes_to_read))
-      return NULL;
+    {
+      free(result);
+      return nullptr;
+    }
 
     char* partial_read = receive_read_response(cpu, stick);
 
@@ -112,7 +125,7 @@ void* read_memory(t_cpu* cpu, uint32_t physical_address, uint32_t size)
       log_error(cpu->logger, "Memory Stick returned no data for the read");
       free(partial_read);
       free(result);
-      return NULL;
+      return nullptr;
     }
     memcpy(result + read_bytes, partial_read, bytes_to_read);
     free(partial_read);
@@ -134,6 +147,7 @@ bool request_read(t_cpu* cpu, t_memory_stick_info* stick,
     log_warning(cpu->logger,
                 "Could not send the read request to the Memory Stick");
     notify_bsod(cpu);
+    destroy_packet(packet);
     return false;
   }
   log_trace(cpu->logger, "Read requested from the Memory Stick");
@@ -155,7 +169,7 @@ char* receive_read_response(t_cpu* cpu, t_memory_stick_info* stick)
                 "Read response from the Memory Stick was not correct");
 
     notify_bsod(cpu);
-    return NULL;
+    return nullptr;
   }
 }
 
@@ -168,7 +182,7 @@ bool write_memory(t_cpu* cpu, uint32_t physical_address, void* data_to_write,
   {
     t_memory_stick_info* stick =
         find_stick(cpu, physical_address + written_bytes);
-    if (stick == NULL)
+    if (stick == nullptr)
     {
       log_error(cpu->logger, "Memory Stick not found");
       return false;
@@ -180,16 +194,24 @@ bool write_memory(t_cpu* cpu, uint32_t physical_address, void* data_to_write,
     uint32_t bytes_to_write;
 
     if (available_bytes < (size - written_bytes))
+    {
       bytes_to_write = available_bytes;
+    }
     else
+    {
       bytes_to_write = size - written_bytes;
+    }
 
     if (!request_write(cpu, stick, address_in_stick,
                        data_to_write + written_bytes, bytes_to_write))
+    {
       return false;
+    }
 
     if (!receive_write_response(cpu, stick))
+    {
       return false;
+    }
 
     written_bytes += bytes_to_write;
   }

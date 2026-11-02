@@ -79,7 +79,7 @@ static void disconnect_stick_and_join(t_listener_fixture* f)
   cr_assert(socket_send(f->cpu_peer_fd, &op_code, sizeof(op_code)));
   cr_assert_eq(receive_op_code(f->scheduler_peer_fd), OP_MEMORY_CORRUPTED);
   free(receive_string(f->scheduler_peer_fd));
-  thrd_join(f->thread, NULL);
+  thrd_join(f->thread, nullptr);
 }
 
 static void destroy_fixture(t_listener_fixture* f)
@@ -102,7 +102,7 @@ static t_process* add_process(t_listener_fixture* f, uint32_t pid)
 {
   t_process* process = malloc(sizeof(t_process));
   process->pid = pid;
-  process->instructions_path = NULL;
+  process->instructions_path = nullptr;
   process->instruction_count = 2;
   process->instructions = malloc(sizeof(char*) * 2);
   process->instructions[0] = strdup("NOOP");
@@ -127,7 +127,7 @@ Test(km_cpu_listener, closing_the_socket_ends_the_loop)
 {
   t_listener_fixture f = start_fixture();
   socket_close(f.cpu_peer_fd);
-  thrd_join(f.thread, NULL);
+  thrd_join(f.thread, nullptr);
   destroy_fixture(&f);
 }
 
@@ -136,7 +136,7 @@ Test(km_cpu_listener, an_unrecognized_op_code_ends_the_loop)
   t_listener_fixture f = start_fixture();
   int op_code = 99999;
   cr_assert(socket_send(f.cpu_peer_fd, &op_code, sizeof(op_code)));
-  thrd_join(f.thread, NULL);
+  thrd_join(f.thread, nullptr);
   destroy_fixture(&f);
 }
 
@@ -263,5 +263,18 @@ Test(km_cpu_listener, updated_segment_table_sends_nothing_for_an_unknown_pid)
       send_buffer(OP_UPDATED_SEGMENT_TABLE, &pid, sizeof(pid), f.cpu_peer_fd));
 
   disconnect_stick_and_join(&f);
+  destroy_fixture(&f);
+}
+
+Test(km_cpu_listener,
+     stick_disconnected_still_ends_the_loop_when_the_scheduler_is_gone)
+{
+  t_listener_fixture f = start_fixture();
+  socket_shutdown(f.scheduler_server_socket, SOCKET_SHUTDOWN_WRITE);
+
+  int op_code = OP_STICK_DISCONNECTED;
+  cr_assert(socket_send(f.cpu_peer_fd, &op_code, sizeof(op_code)));
+  thrd_join(f.thread, nullptr); /* the BSOD send fails; the loop ends anyway */
+
   destroy_fixture(&f);
 }

@@ -44,7 +44,7 @@ static bool notify_new_process(t_queues* queues, char* instructions_file,
 
 t_queues* init_queues(int algorithm, t_list* multilevel_algorithms, int quantum,
                       bool preemption, t_log* logger, t_socket* km_socket,
-                      int suspension_timeout)
+                      int suspension_timeout, t_shutdown_ctx* shutdown)
 {
   t_queues* queues = malloc(sizeof(t_queues));
   init_ready_queue(&(queues->ready), algorithm, multilevel_algorithms);
@@ -52,7 +52,8 @@ t_queues* init_queues(int algorithm, t_list* multilevel_algorithms, int quantum,
   init_blocking_list(&(queues->block));
   init_blocking_list(&(queues->susp_block));
   init_blocking_list(&(queues->susp_ready));
-  queues->process_counter = init_counter_processes(km_socket);
+  queues->shutdown = shutdown;
+  queues->process_counter = init_counter_processes(km_socket, shutdown);
   queues->routines.thread_counter = create_counter();
   queues->routines.syscall_counter = create_counter();
   mtx_init(&(queues->routines.routine_mutex), mtx_plain);
@@ -115,7 +116,7 @@ void transition_new_ready(t_queues* queues, char* instructions_file,
   log_debug(queues->logger, "Creating process with priority %d located at %s",
             priority, instructions_file);
   t_pcb* pcb = transition_take_new(instructions_file, priority, queues);
-  if (pcb != NULL)
+  if (pcb != nullptr)
   {
     if (!check_priority_valid(pcb, &(queues->ready)))
     {
@@ -237,7 +238,20 @@ void clear_queues(t_queues* queues)
 
 void increment_syscall_counter(t_queues* queues)
 {
-  counter_increment(queues->routines.syscall_counter);
+  // A process entering a syscall stops counting as running, which may be
+  // what wait_queue_exec_empty_with_syscalls is waiting for. Taken under
+  // EXEC's list_mutex (same order as transition_take_exec) so that wake-up
+  // cannot slip in between the waiter's check and its cnd_wait.
+  t_counter* syscalls = queues->routines.syscall_counter;
+  mtx_lock(&(queues->exec.list_mutex));
+  mtx_lock(&(syscalls->counter_mutex));
+  syscalls->count++;
+  if (list_size(queues->exec.list) - syscalls->count <= 0)
+  {
+    cnd_signal(&(syscalls->condition));
+  }
+  mtx_unlock(&(syscalls->counter_mutex));
+  mtx_unlock(&(queues->exec.list_mutex));
 }
 
 void decrement_syscall_counter(t_queues* queues)
@@ -329,7 +343,8 @@ static void transition_to_exit(t_pcb* pcb, t_queues* queues, int reason)
   if (reason != PER_SYSTEM_SHUTDOWN && reason != PER_INVALID_PRIORITY)
   {
     bool run_resumption_routine = process_size(queues, pcb->pid) > 0;
-    if (notify_terminate_process(queues->km_socket, pcb->pid) &&
+    if (notify_terminate_process(queues->km_socket, queues->shutdown,
+                                 pcb->pid) &&
         run_resumption_routine)
     {
       create_resumption_routine_thread(queues);
@@ -352,7 +367,7 @@ static t_pcb* transition_take_new(char* instructions_file, int priority,
     log_transition_state(queues->logger, pcb->pid, PS_NEW, PS_EXIT);
     transition_to_exit(pcb, queues, PER_SYSTEM_SHUTDOWN);
 
-    return NULL;
+    return nullptr;
   }
   return pcb;
 }
@@ -368,7 +383,7 @@ static void transition_block_ready_no_mutex(t_pcb* pcb, t_queues* queues)
 
 static bool transition_any_exit(t_queues* queues, int state, int reason)
 {
-  t_pcb* pcb = NULL;
+  t_pcb* pcb = nullptr;
   switch (state)
   {
     case PS_READY:
@@ -388,7 +403,7 @@ static bool transition_any_exit(t_queues* queues, int state, int reason)
       break;
   }
 
-  if (pcb == NULL)
+  if (pcb == nullptr)
   {
     return false;
   }
@@ -412,7 +427,7 @@ static bool notify_new_process(t_queues* queues, char* instructions_file,
 
   if (!ret)
   {
-    close_kernel_scheduler(SR_KERNEL_MEMORY_SEND_ERROR);
+    close_kernel_scheduler(queues->shutdown, SR_KERNEL_MEMORY_SEND_ERROR);
     socket_mutex_unlock(queues->km_socket);
     return false;
   }

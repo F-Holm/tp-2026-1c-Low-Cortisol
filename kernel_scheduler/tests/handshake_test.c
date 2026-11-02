@@ -24,6 +24,6 @@ Test(ks_handshake, sends_the_module_id_over_a_live_socket)
 Test(ks_handshake, reports_failure_on_a_dead_socket)
 {
   t_log* logger = ks_quiet_logger();
-  cr_assert_not(respond_handshake(NULL, MID_KERNEL_SCHEDULER, logger));
+  cr_assert_not(respond_handshake(nullptr, MID_KERNEL_SCHEDULER, logger));
   log_destroy(logger);
 }

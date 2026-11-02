@@ -39,11 +39,13 @@ static bool suspend_segment(t_segment* segment, t_swap_data* swap_data,
 static bool resume_block(t_block_data* block, uint32_t pid, int block_size,
                          t_swap_data* swap_data,
                          t_scheduler_data* scheduler_data);
+static void release_process_blocks(uint32_t pid, t_swap_data* swap_data,
+                                   t_log* logger);
 
 void suspend_process(t_process* process_to_suspend,
                      t_scheduler_data* scheduler_data)
 {
-  if (process_to_suspend == NULL)
+  if (process_to_suspend == nullptr)
   {
     log_error(scheduler_data->logger,
               "Suspend_process received a NULL process");
@@ -51,7 +53,7 @@ void suspend_process(t_process* process_to_suspend,
   }
 
   t_swap_data* swap_data = atomic_load(scheduler_data->swap_data);
-  if (swap_data == NULL)
+  if (swap_data == nullptr)
   {
     log_warning(scheduler_data->logger,
                 "Cannot suspend PID %d: the Swap module is not connected yet.",
@@ -77,7 +79,12 @@ void suspend_process(t_process* process_to_suspend,
       }
       else
       {
+        // Every segment stays in memory, so the blocks the earlier ones
+        // already took in swap must not stay assigned to this process.
         list_iterator_destroy(iterator);
+        list_destroy(segments_to_remove);
+        release_process_blocks(process_to_suspend->pid, swap_data,
+                               scheduler_data->logger);
         return;
       }
     }
@@ -120,6 +127,18 @@ static bool suspend_segment(t_segment* segment, t_swap_data* swap_data,
         segment->base + offset, bytes_to_read, scheduler_data->connected_sticks,
         scheduler_data->socket_list_mutex, scheduler_data->logger,
         scheduler_data->socket_scheduler);
+    if (content == nullptr)
+    {
+      log_warning(scheduler_data->logger,
+                  "Could not suspend process PID %d: reading its segment "
+                  "from the sticks failed.",
+                  segment->pid);
+      send_string(OP_SUSPENSION_FAILED,
+                  "Could not suspend the process because its memory could "
+                  "not be read.",
+                  scheduler_data->socket_scheduler);
+      return false;
+    }
     int block_number =
         add_block_to_swap(segment, i, swap_data, scheduler_data->logger);
     if (block_number == -1)
@@ -142,7 +161,7 @@ static bool suspend_segment(t_segment* segment, t_swap_data* swap_data,
 void resume_process(uint32_t pid, t_scheduler_data* scheduler_data)
 {
   t_swap_data* swap_data = atomic_load(scheduler_data->swap_data);
-  if (swap_data == NULL)
+  if (swap_data == nullptr)
   {
     log_warning(scheduler_data->logger,
                 "Cannot resume PID %u: the Swap module is not connected yet.",
@@ -213,10 +232,12 @@ static bool resume_block(t_block_data* block, uint32_t pid, int block_size,
         scheduler_data->main_memory, scheduler_data->socket_scheduler,
         scheduler_data->logger);
     if (!regen_ok)
+    {
       return false;
+    }
   }
   char* content = read_block_from_swap(block->block_number, swap_data);
-  if (content == NULL)
+  if (content == nullptr)
   {
     log_warning(scheduler_data->logger,
                 "Could not read block %d from swap for PID %d",
@@ -233,11 +254,21 @@ static bool resume_block(t_block_data* block, uint32_t pid, int block_size,
   int write_address = compute_address_with_offset(
       block_size, scheduler_data->main_memory, pid, block);
 
-  write_to_sticks(pid, write_address, real_bytes, content,
-                  scheduler_data->connected_sticks,
-                  scheduler_data->socket_list_mutex, scheduler_data->logger,
-                  scheduler_data->socket_scheduler);
+  bool written = write_to_sticks(
+      pid, write_address, real_bytes, content, scheduler_data->connected_sticks,
+      scheduler_data->socket_list_mutex, scheduler_data->logger,
+      scheduler_data->socket_scheduler);
   free(content);
+  if (!written)
+  {
+    // The block stays in swap: its content never made it back to memory.
+    log_warning(scheduler_data->logger,
+                "Could not restore block %d of PID %d to memory",
+                block->block_number, pid);
+    send_string(OP_RESUME_SUSPENSION_FAILED, "Error writing to the sticks",
+                scheduler_data->socket_scheduler);
+    return false;
+  }
   if (block->block_number != remove_block_from_swap(block->block_number,
                                                     swap_data,
                                                     scheduler_data->logger))
@@ -260,7 +291,9 @@ static int find_free_block(t_swap_data* swap_data)
   {
     t_block_data* block = list_get(swap_data->block_list, i);
     if (block->pid == -1)
+    {
       return i;
+    }
   }
   log_debug(swap_data->logger, "No free blocks in swap");
   return -1;
@@ -332,11 +365,24 @@ static void remove_process_segments(t_list* segments_to_remove, uint32_t pid,
   list_destroy(segments_to_remove);
 }
 
+static void release_process_blocks(uint32_t pid, t_swap_data* swap_data,
+                                   t_log* logger)
+{
+  for (int i = 0; i < list_size(swap_data->block_list); i++)
+  {
+    t_block_data* block = list_get(swap_data->block_list, i);
+    if (block->pid == pid)
+    {
+      remove_block_from_swap(i, swap_data, logger);
+    }
+  }
+}
+
 // RESUME PROCESS
 static bool can_resume(uint32_t pid, t_scheduler_data* scheduler_data)
 {
   t_swap_data* swap_data = atomic_load(scheduler_data->swap_data);
-  if (swap_data == NULL)
+  if (swap_data == nullptr)
   {
     return false;
   }
@@ -411,7 +457,7 @@ static char* read_block_from_swap(int block_number, t_swap_data* swap)
         swap->logger,
         "Unexpected response from the swap module while reading block %d",
         block_number);
-    return NULL;
+    return nullptr;
   }
 
   int a;
@@ -424,7 +470,7 @@ static int remove_block_from_swap(int block_number, t_swap_data* swap_data,
 /* returns the removed block number, or -1 if it could not be removed */
 {
   t_block_data* block_to_remove = list_get(swap_data->block_list, block_number);
-  if (block_to_remove == NULL)
+  if (block_to_remove == nullptr)
   {
     log_debug(logger,
               "Could not remove swap block number %d because "
