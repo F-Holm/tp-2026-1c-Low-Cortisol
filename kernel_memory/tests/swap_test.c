@@ -329,3 +329,28 @@ Test(km_swap, suspend_process_fails_when_the_segment_cannot_be_read)
 
   destroy_swap_fixture(&f);
 }
+
+Test(km_swap, a_failed_suspension_gives_back_the_blocks_it_had_taken)
+{
+  /* one swap block, two segments: the first fits, the second does not */
+  t_swap_fixture f = make_swap_fixture(1000, 10, 10, 1000);
+  list_add(f.memory->segments, km_make_segment(0, 1, 0, 10));
+  list_add(f.memory->segments, km_make_segment(1, 1, 10, 10));
+  t_process process = {.pid = 1};
+
+  cr_assert(send_buffer(OP_MEMORY_STICK_READ_DONE, "0123456789", 10,
+                        f.stick_server_fd));
+  cr_assert(send_string(OP_DISK_WRITE_DONE, "ok", f.swap_server_fd));
+  cr_assert(send_buffer(OP_MEMORY_STICK_READ_DONE, "abcdefghij", 10,
+                        f.stick_server_fd));
+
+  suspend_process(&process, f.scheduler_data);
+
+  cr_assert_eq(receive_op_code(f.scheduler_server_fd), OP_SUSPENSION_FAILED);
+  free(receive_string(f.scheduler_server_fd));
+  cr_assert_eq(list_size(f.memory->segments), 2, "both segments stay");
+  t_block_data* block = list_get(f.swap_data->block_list, 0);
+  cr_assert_eq(block->pid, -1, "the first segment's block is free again");
+
+  destroy_swap_fixture(&f);
+}
