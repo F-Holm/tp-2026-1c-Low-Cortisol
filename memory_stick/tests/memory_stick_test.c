@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <threads.h>
 #include <unistd.h>
 
@@ -212,6 +213,23 @@ Test(ms_init, send_cpu_server_port_reports_the_listening_port)
   log_destroy(logger);
 }
 
+Test(ms_init, send_cpu_server_port_fails_when_kernel_memory_is_gone)
+{
+  t_log* logger = ms_quiet_logger();
+  t_socket* km_fd;
+  t_socket* stick_fd = ms_connected_pair(&km_fd);
+  t_socket* listen_socket = create_server_cpu(logger);
+  cr_assert_not_null(listen_socket);
+
+  socket_shutdown(stick_fd, SOCKET_SHUTDOWN_WRITE);
+  cr_assert_not(send_cpu_server_port(stick_fd, listen_socket, logger));
+
+  socket_destroy(listen_socket);
+  socket_destroy(stick_fd);
+  socket_destroy(km_fd);
+  log_destroy(logger);
+}
+
 /* ── init_module ───────────────────────────────────────────────────────── */
 
 /* init_module logs to "memory_stick.log" in the working directory; run it
@@ -340,6 +358,30 @@ Test(ms_init_module, connects_reports_its_geometry_and_starts_the_cpu_server,
   free(stub.size);
   free(stub.cpu_port);
   socket_destroy(listener);
+  unlink(config_path);
+  free(config_path);
+}
+
+Test(ms_init_module, fails_when_the_log_file_cannot_be_created,
+     .init = cr_redirect_stdout)
+{
+  char* config_path = write_config_for_port("1");
+
+  /* init_module creates "memory_stick.log" in the working directory: make
+   * that a directory nobody may write to. */
+  char scratch[] = "/tmp/ms_init_ro_XXXXXX";
+  cr_assert_not_null(mkdtemp(scratch));
+  cr_assert_eq(chmod(scratch, 0500), 0);
+  cr_assert_eq(chdir(scratch), 0);
+
+  t_ms ms = {0};
+  thrd_t thread;
+  cr_assert_not(init_module(&ms, config_path, "64", &thread));
+  cr_assert_null(ms.logger);
+
+  close_module_on_error(&ms);
+  cr_assert_eq(chdir("/"), 0);
+  rmdir(scratch);
   unlink(config_path);
   free(config_path);
 }

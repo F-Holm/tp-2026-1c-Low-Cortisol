@@ -572,3 +572,18 @@ Test(ms_cpu_listen_thread, start_cpu_server_spawns_a_working_listener)
   ms_destroy(ms);
   log_destroy(logger);
 }
+
+Test(ms_handshake_cpu, fails_when_the_answer_cannot_be_sent)
+{
+  t_socket* stick_fd;
+  t_socket* cpu_fd = ms_connected_pair(&stick_fd);
+  t_log* logger = ms_quiet_logger();
+
+  cr_assert(send_handshake(MID_CPU, cpu_fd)); /* the CPU's half, queued */
+  socket_shutdown(stick_fd, SOCKET_SHUTDOWN_WRITE);
+  cr_assert_not(handshake_cpu(stick_fd, logger));
+
+  socket_destroy(cpu_fd);
+  socket_destroy(stick_fd);
+  log_destroy(logger);
+}

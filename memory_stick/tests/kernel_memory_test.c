@@ -162,3 +162,20 @@ Test(ms_km, connect_to_kernel_memory_fails_when_the_peer_is_wrong)
   socket_destroy(listen_fd);
   log_destroy(logger);
 }
+
+/* ── send failures ─────────────────────────────────────────────────────── */
+
+Test(ms_km, handshake_and_size_fail_when_kernel_memory_cannot_be_written_to)
+{
+  t_socket* km_fd;
+  t_socket* stick_fd = ms_connected_pair(&km_fd);
+  t_log* logger = ms_quiet_logger();
+
+  socket_shutdown(stick_fd, SOCKET_SHUTDOWN_WRITE);
+  cr_assert_not(handshake_km(stick_fd, logger));
+  cr_assert_not(send_size(stick_fd, "64", logger));
+
+  socket_destroy(stick_fd);
+  socket_destroy(km_fd);
+  log_destroy(logger);
+}
