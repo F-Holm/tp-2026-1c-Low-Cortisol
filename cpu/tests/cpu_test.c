@@ -1,6 +1,8 @@
 #include "cpu/cpu.h"
 
 #include <criterion/criterion.h>
+#include <poll.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -831,6 +833,37 @@ Test(cpu_cpu, run_instruction_loop_stops_when_the_cycle_fails)
   cr_assert(send_string(OP_SEND_INSTRUCTION, "BOGUS", fx.km_peer));
 
   run_instruction_loop(&fx.cpu);
+
+  cycle_fixture_end(&fx);
+}
+
+/* Whether @p socket has bytes waiting to be read, without blocking. */
+static bool has_pending_data(t_socket* socket)
+{
+  struct pollfd pfd = {.fd = socket->handle, .events = POLLIN};
+  return poll(&pfd, 1, 0) == 1 && (pfd.revents & POLLIN);
+}
+
+Test(cpu_cpu, a_segmentation_fault_is_not_followed_by_a_cycle_confirmation)
+{
+  t_cycle_fixture fx;
+  cycle_fixture_start(&fx);
+  fx.cpu.max_segment_size = 100;
+  list_add(fx.context->segment_table, cpu_make_segment(0, 0, 32));
+  fx.context->registers->SI = 4;  /* inside segment 0 */
+  fx.context->registers->DI = 90; /* past segment 0's end */
+  set_register(fx.context->registers, "EAX", 4);
+
+  cr_assert(send_string(OP_SEND_INSTRUCTION, "COPY_MEM EAX", fx.km_peer));
+  cr_assert(send_string(OP_INTERRUPT, "segmentation fault", fx.sched_peer));
+
+  cr_assert(run_instruction_cycle(&fx.cpu, 1, fx.context));
+
+  /* the scheduler hears about the fault, and nothing else: an extra
+   * OP_CPU_CYCLE_OK would be read as the next process's first message */
+  cr_assert_eq(receive_op_code(fx.sched_peer), OP_SEG_FAULT);
+  free(receive_string(fx.sched_peer));
+  cr_assert_not(has_pending_data(fx.sched_peer));
 
   cycle_fixture_end(&fx);
 }
