@@ -108,9 +108,17 @@ static t_io make_io_stub(int io_type, bool priority_active)
   return io;
 }
 
+/* t_stdin, t_stdout and t_sleep share the same {pcb, request} layout. */
+static void destroy_queued_request(void* entry)
+{
+  free(((t_sleep*)entry)->request);
+  free(entry);
+}
+
 static void destroy_io_stub(t_io* io)
 {
-  list_destroy_and_destroy_elements(io->io_list->io_list, free);
+  list_destroy_and_destroy_elements(io->io_list->io_list,
+                                    destroy_queued_request);
   mtx_destroy(&(io->io_list->io_list_mutex));
   free(io->io_list);
   cnd_destroy(&(io->new_process));
@@ -122,9 +130,10 @@ Test(ks_io_connection, enqueue_io_request_is_rejected_after_close)
   atomic_store(&(io.close_thread), true);
   t_pcb* pcb = create_pcb(PS_BLOCK, 0);
 
-  cr_assert_not(
-      enqueue_io_request(calloc(1, sizeof(t_stdin_request)), &io, pcb));
+  t_stdin_request* request = calloc(1, sizeof(t_stdin_request));
+  cr_assert_not(enqueue_io_request(request, &io, pcb));
   cr_assert(list_is_empty(io.io_list->io_list));
+  free(request); /* rejected requests stay the caller's */
 
   destroy_pcb(pcb);
   destroy_io_stub(&io);
@@ -262,7 +271,9 @@ Test(ks_io_connection, stdin_round_trip_reads_and_unblocks_the_process)
 
   t_log* logger = ks_quiet_logger();
   t_queues* queues = ks_stub_queues_full(logger);
+  socket_destroy(queues->km_socket); /* the stub's placeholder */
   queues->km_socket = km_client_fd;
+  queues->process_counter->km_socket = km_client_fd;
   t_io* io = create_io_structures();
 
   cr_assert(handle_new_io(io, client_fd, queues, false));
@@ -344,7 +355,9 @@ Test(ks_io_connection, stdout_round_trip_prints_and_unblocks_the_process)
 
   t_log* logger = ks_quiet_logger();
   t_queues* queues = ks_stub_queues_full(logger);
+  socket_destroy(queues->km_socket); /* the stub's placeholder */
   queues->km_socket = km_client_fd;
+  queues->process_counter->km_socket = km_client_fd;
   t_io* io = create_io_structures();
 
   cr_assert(handle_new_io(io, client_fd, queues, false));
@@ -395,8 +408,11 @@ static void io_fixture_start(t_io_fixture* fx, const char* io_type_name)
 {
   fx->logger = ks_quiet_logger();
   fx->queues = ks_stub_queues_full(fx->logger);
+  t_socket* stub_socket = fx->queues->km_socket;
   fx->queues->km_socket = ks_connected_pair(&fx->km_peer);
   fx->queues->shutdown->km_socket = fx->queues->km_socket;
+  fx->queues->process_counter->km_socket = fx->queues->km_socket;
+  socket_destroy(stub_socket);
   fx->io = create_io_structures();
 
   t_socket* scheduler_side = ks_connected_pair(&fx->io_peer);
