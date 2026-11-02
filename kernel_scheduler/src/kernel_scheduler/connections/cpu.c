@@ -376,6 +376,7 @@ static void handle_syscall_io_sleep(t_cpu_thread* data)
   data->preemption_reason = PR_IO;
   if (!enqueue_io_request(request, &(data->io[IO_SLEEP]), data->pcb))
   {
+    free(request); /* a rejected request is still ours */
     transition_exec_exit(data->pcb, data->queues, PER_IO_FAILURE);
   }
   else
@@ -391,6 +392,7 @@ static void handle_syscall_io_stdout(t_cpu_thread* data)
   data->preemption_reason = PR_IO;
   if (!enqueue_io_request(request, &(data->io[IO_STDOUT]), data->pcb))
   {
+    free(request); /* a rejected request is still ours */
     transition_exec_exit(data->pcb, data->queues, PER_IO_FAILURE);
   }
   else
@@ -406,6 +408,7 @@ static void handle_syscall_io_stdin(t_cpu_thread* data)
   data->preemption_reason = PR_IO;
   if (!enqueue_io_request(request, &(data->io[IO_STDIN]), data->pcb))
   {
+    free(request); /* a rejected request is still ours */
     transition_exec_exit(data->pcb, data->queues, PER_IO_FAILURE);
   }
   else

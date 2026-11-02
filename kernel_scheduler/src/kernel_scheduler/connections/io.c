@@ -52,6 +52,10 @@ t_io* create_io_structures(void)
   for (int i = 0; i < 3; i++)
   {
     io[i].socket_io = nullptr;
+    io[i].io_list = nullptr;
+    // No worker serves this interface until handle_new_io() connects one, so
+    // enqueue_io_request() must turn requests for it away until then.
+    atomic_init(&(io[i].close_thread), true);
     cnd_init(&(io[i].new_process));
   }
   return io;
