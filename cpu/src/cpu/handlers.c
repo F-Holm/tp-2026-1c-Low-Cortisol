@@ -130,8 +130,10 @@ t_extended_bool handler_copy_mem(t_cpu* cpu, t_context* context,
   uint32_t byte_count =
       get_register(context->registers, instruction->parameters[0]);
 
+  // Both ranges are byte_count long: validating only a uint32_t's worth
+  // would let a long copy run past the end of either segment.
   uint32_t src_addr =
-      mmu(cpu, context, context->registers->SI, sizeof(uint32_t), pid);
+      mmu(cpu, context, context->registers->SI, byte_count, pid);
   if (src_addr == INVALID_ADDRESS)
   {
     return EB_FALSE;
@@ -142,7 +144,7 @@ t_extended_bool handler_copy_mem(t_cpu* cpu, t_context* context,
   }
 
   uint32_t dst_addr =
-      mmu(cpu, context, context->registers->DI, sizeof(uint32_t), pid);
+      mmu(cpu, context, context->registers->DI, byte_count, pid);
   if (dst_addr == INVALID_ADDRESS)
   {
     // The segmentation fault was already reported: like MOV_IN/MOV_OUT, the

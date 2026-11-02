@@ -640,6 +640,7 @@ Test(cpu_handlers, copy_mem_stops_the_process_when_the_source_faults)
   handler_fixture_start(&fx);
   fx.context->registers->SI = PAST_SEG0_END;
   fx.context->registers->DI = SEG1_OFFSET(0);
+  set_register(fx.context->registers, "EAX", 4); /* 30 + 4 bytes > 32 */
 
   t_instruction instruction = make_instruction("COPY_MEM", "EAX", nullptr);
   cr_assert_eq(handler_copy_mem(&fx.cpu, fx.context, &instruction, 1),
@@ -741,6 +742,41 @@ Test(cpu_handlers, every_syscall_fails_when_the_scheduler_is_unreachable)
         EB_ERROR, "%s should report the failed send",
         syscalls[i].instruction.name);
   }
+
+  handler_fixture_end(&fx);
+}
+
+Test(cpu_handlers, copy_mem_faults_when_the_copy_runs_past_the_source_segment,
+     .timeout = 5.0)
+{
+  t_handler_fixture fx;
+  handler_fixture_start(&fx);
+  fx.context->registers->SI = SEG0_OFFSET(20); /* 20 + 20 bytes > 32 */
+  fx.context->registers->DI = SEG2_OFFSET(0);
+  set_register(fx.context->registers, "EAX", 20);
+
+  t_instruction instruction = make_instruction("COPY_MEM", "EAX", nullptr);
+  cr_assert_eq(handler_copy_mem(&fx.cpu, fx.context, &instruction, 1),
+               EB_FALSE);
+  assert_seg_fault_sent(&fx);
+
+  handler_fixture_end(&fx);
+}
+
+Test(cpu_handlers,
+     copy_mem_faults_when_the_copy_runs_past_the_destination_segment,
+     .timeout = 5.0)
+{
+  t_handler_fixture fx;
+  handler_fixture_start(&fx);
+  fx.context->registers->SI = SEG0_OFFSET(0);
+  fx.context->registers->DI = SEG1_OFFSET(20); /* 20 + 20 bytes > 32 */
+  set_register(fx.context->registers, "EAX", 20);
+
+  t_instruction instruction = make_instruction("COPY_MEM", "EAX", nullptr);
+  cr_assert_eq(handler_copy_mem(&fx.cpu, fx.context, &instruction, 1),
+               EB_FALSE);
+  assert_seg_fault_sent(&fx);
 
   handler_fixture_end(&fx);
 }
