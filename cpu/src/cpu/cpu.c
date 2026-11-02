@@ -213,6 +213,7 @@ bool request_instruction(t_cpu* cpu, uint32_t pid, uint32_t pc)
   if (!send_packet(packet, cpu->socket_kernel_memory))
   {
     log_warning(cpu->logger, "Could not request the instruction");
+    destroy_packet(packet);
     return false;
   }
   log_trace(cpu->logger, "Instruction requested successfully");
@@ -306,6 +307,7 @@ bool send_updated_context(t_cpu* cpu, uint32_t pid,
   if (!send_packet(packet, cpu->socket_kernel_memory))
   {
     log_warning(cpu->logger, "Could not send the updated context");
+    destroy_packet(packet);
     return false;
   }
   log_debug(cpu->logger, "Updated context sent successfully");

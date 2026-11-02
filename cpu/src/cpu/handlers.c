@@ -165,6 +165,7 @@ t_extended_bool handler_copy_mem(t_cpu* cpu, t_context* context,
 
   if (!write_memory(cpu, dst_addr, read_bytes, byte_count))
   {
+    free(read_bytes);
     return EB_ERROR;
   }
 

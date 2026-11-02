@@ -114,6 +114,7 @@ void* read_memory(t_cpu* cpu, uint32_t physical_address, uint32_t size)
 
     if (!request_read(cpu, stick, address_in_stick, bytes_to_read))
     {
+      free(result);
       return nullptr;
     }
 
@@ -146,6 +147,7 @@ bool request_read(t_cpu* cpu, t_memory_stick_info* stick,
     log_warning(cpu->logger,
                 "Could not send the read request to the Memory Stick");
     notify_bsod(cpu);
+    destroy_packet(packet);
     return false;
   }
   log_trace(cpu->logger, "Read requested from the Memory Stick");
