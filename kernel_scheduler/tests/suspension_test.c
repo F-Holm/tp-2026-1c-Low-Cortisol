@@ -8,6 +8,7 @@
 
 #include "kernel_scheduler/domain/pcb.h"
 #include "kernel_scheduler/scheduler/blocking_list.h"
+#include "kernel_scheduler/scheduler/compaction.h"
 #include "kernel_scheduler/scheduler/queue_types.h"
 #include "kernel_scheduler/scheduler/ready_queue.h"
 #include "support.h"
@@ -481,6 +482,58 @@ Test(ks_suspension, the_resumer_parks_itself_when_the_process_does_not_fit,
   }
   cr_assert(parked, "the resumer should wait for memory to free up");
   cr_assert_eq(pcb->state, PS_SUSP_READY);
+
+  workers_fixture_stop(&fx);
+  transition_take_susp_ready(pcb, &(fx.queues->susp_ready));
+  workers_fixture_free(&fx);
+  destroy_pcb(pcb);
+}
+
+/* ── the resumption routine (compaction.c) ─────────────────────────────── */
+
+Test(ks_suspension, the_resumption_routine_resumes_every_process_that_fits,
+     .timeout = 10.0)
+{
+  t_workers_fixture fx;
+  workers_fixture_start(&fx, 64, 1024, true);
+  lock_threads_suspended(fx.queues); /* only the routine may resume here */
+
+  t_pcb* first = create_pcb(PS_SUSP_READY, 0);
+  t_pcb* second = create_pcb(PS_SUSP_READY, 0);
+  transition_to_susp_ready(first, &(fx.queues->susp_ready));
+  transition_to_susp_ready(second, &(fx.queues->susp_ready));
+
+  create_resumption_routine_thread(fx.queues);
+  ks_wait_thread_counter_zero(fx.queues);
+
+  cr_assert_eq(first->state, PS_READY);
+  cr_assert_eq(second->state, PS_READY);
+  cr_assert(blocking_list_is_empty(&(fx.queues->susp_ready)));
+  cr_assert_not(is_resuming(fx.queues));
+
+  workers_fixture_stop(&fx);
+  transition_take_ready(first, &(fx.queues->ready));
+  transition_take_ready(second, &(fx.queues->ready));
+  workers_fixture_free(&fx);
+  destroy_pcb(first);
+  destroy_pcb(second);
+}
+
+Test(ks_suspension, the_resumption_routine_stops_at_a_process_that_does_not_fit,
+     .timeout = 10.0)
+{
+  t_workers_fixture fx;
+  workers_fixture_start(&fx, 64, 1024, false); /* Kernel Memory says no */
+  lock_threads_suspended(fx.queues);
+
+  t_pcb* pcb = create_pcb(PS_SUSP_READY, 0);
+  transition_to_susp_ready(pcb, &(fx.queues->susp_ready));
+
+  create_resumption_routine_thread(fx.queues);
+  ks_wait_thread_counter_zero(fx.queues);
+
+  cr_assert_eq(pcb->state, PS_SUSP_READY);
+  cr_assert_not(is_resuming(fx.queues));
 
   workers_fixture_stop(&fx);
   transition_take_susp_ready(pcb, &(fx.queues->susp_ready));
