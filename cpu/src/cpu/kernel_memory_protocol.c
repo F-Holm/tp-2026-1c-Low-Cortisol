@@ -45,8 +45,20 @@ bool parse_stick_packet(t_cpu* cpu, t_list* packet, char stick_ip[16],
     list_destroy_and_destroy_elements(packet, free);
     return false;
   }
-  strcpy(stick_ip, list_get(packet, 0));
-  strcpy(stick_port, list_get(packet, 1));
+  char* ip = list_get(packet, 0);
+  char* port = list_get(packet, 1);
+  size_t ip_length = strnlen(ip, 16);
+  size_t port_length = strnlen(port, 6);
+  if (ip_length == 16 || port_length == 6)
+  {
+    log_error(cpu->logger,
+              "Bad memory stick packet: the IP or port does not fit "
+              "(at most 15 and 5 characters)");
+    list_destroy_and_destroy_elements(packet, free);
+    return false;
+  }
+  memcpy(stick_ip, ip, ip_length + 1);
+  memcpy(stick_port, port, port_length + 1);
   *size = *(int*)list_get(packet, 2);
   list_destroy_and_destroy_elements(packet, free);
   log_debug(cpu->logger, "Memory Stick IP: %s | Port: %s", stick_ip,

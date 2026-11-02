@@ -59,6 +59,48 @@ Test(cpu_parse_stick_packet, rejects_a_packet_without_three_fields)
   log_destroy(cpu.logger);
 }
 
+Test(cpu_parse_stick_packet, accepts_the_longest_ip_and_port_that_fit)
+{
+  t_cpu cpu = {0};
+  cpu.logger = cpu_quiet_logger();
+
+  char ip[16] = {0};
+  char port[6] = {0};
+  uint32_t size = 0;
+  cr_assert(parse_stick_packet(
+      &cpu, stick_packet("255.255.255.255", "65535", 8), ip, port, &size));
+  cr_assert_str_eq(ip, "255.255.255.255");
+  cr_assert_str_eq(port, "65535");
+
+  log_destroy(cpu.logger);
+}
+
+Test(cpu_parse_stick_packet, rejects_an_ip_or_port_too_long_for_its_buffer)
+{
+  t_cpu cpu = {0};
+  cpu.logger = cpu_quiet_logger();
+
+  /* one guard byte after each buffer: an overflowing copy would clobber it */
+  struct
+  {
+    char ip[16];
+    char ip_guard;
+    char port[6];
+    char port_guard;
+  } out = {.ip_guard = 'G', .port_guard = 'G'};
+  uint32_t size = 0;
+
+  cr_assert_not(parse_stick_packet(&cpu,
+                                   stick_packet("1234567890.123456", "5003", 8),
+                                   out.ip, out.port, &size));
+  cr_assert_not(parse_stick_packet(&cpu, stick_packet("127.0.0.1", "123456", 8),
+                                   out.ip, out.port, &size));
+  cr_assert_eq(out.ip_guard, 'G');
+  cr_assert_eq(out.port_guard, 'G');
+
+  log_destroy(cpu.logger);
+}
+
 /* ── receive_max_segment_size ──────────────────────────────────────────── */
 
 Test(cpu_receive_max_segment_size, parses_the_announced_size)
