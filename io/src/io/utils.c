@@ -23,7 +23,7 @@ bool load_config(t_io* io)
   io->port = config_get_string_value(io->config, "KERNEL_SCHEDULER_PORT");
   t_log_level log_level = log_level_from_string(log_level_str);
   io->logger = log_create("io.log", "IO", true, log_level, false);
-  if (io->logger == NULL)
+  if (io->logger == nullptr)
   {
     config_destroy(io->config);
     return false;
@@ -38,7 +38,7 @@ bool connect_to_scheduler(t_io* io)
 {
   io->socket_io = socket_create(SOCKET_KIND_CLIENT, io->ip, io->port, false);
 
-  if (io->socket_io == NULL)
+  if (io->socket_io == nullptr)
   {
     log_error(io->logger, "Connection error with Kernel Scheduler");
     close_io(io);

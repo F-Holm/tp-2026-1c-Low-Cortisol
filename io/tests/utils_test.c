@@ -133,7 +133,7 @@ static int scheduler_stub_thread(void* arg)
 {
   struct scheduler_stub* stub = arg;
   t_socket* client = socket_accept(stub->listener, false);
-  if (client == NULL)
+  if (client == nullptr)
   {
     return 0;
   }
@@ -169,7 +169,7 @@ Test(io_connect, completes_the_handshake_and_announces_its_type)
 
   cr_assert(connect_to_scheduler(&io));
 
-  thrd_join(thread, NULL);
+  thrd_join(thread, nullptr);
   cr_assert_eq(stub.io_module_id, MID_IO);
   cr_assert(stub.reached_type);
   cr_assert_str_eq(stub.io_type, "STDOUT");
@@ -194,7 +194,7 @@ Test(io_connect, fails_when_the_peer_is_not_the_kernel_scheduler)
   thrd_create(&thread, scheduler_stub_thread, &stub);
 
   t_io io = {0};
-  io.config = config_create((char*)"/dev/null"); /* non-NULL for close_io */
+  io.config = config_create((char*)"/dev/null"); /* non-nullptr for close_io */
   io.logger = io_quiet_logger();
   io.ip = "127.0.0.1";
   io.port = port;
@@ -202,7 +202,7 @@ Test(io_connect, fails_when_the_peer_is_not_the_kernel_scheduler)
 
   cr_assert_not(connect_to_scheduler(&io)); /* close_io runs on this path */
 
-  thrd_join(thread, NULL);
+  thrd_join(thread, nullptr);
   cr_assert_eq(stub.io_module_id, MID_IO);
 
   socket_destroy(listener);
