@@ -1,6 +1,7 @@
 #include "utils/watchdog.h"
 
 #include <criterion/criterion.h>
+#include <poll.h>
 #include <stdatomic.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -243,6 +244,137 @@ Test(watchdog, still_pings_when_given_a_sockets_list_mutex)
                                         noop_on_disconnected, nullptr);
   cr_assert_not_null(watchdog);
 
+  cr_assert_eq(receive_op_code(server), OP_CONNECTION_CHECK);
+  free(receive_string(server));
+
+  watchdog_destroy(watchdog);
+  mtx_destroy(&sockets_mutex);
+  list_destroy(sockets);
+  socket_destroy(client);
+  socket_destroy(server);
+}
+
+/* Whether @p socket has bytes waiting to be read, without blocking. */
+static bool has_pending_data(t_socket* socket)
+{
+  struct pollfd pfd = {.fd = socket->handle, .events = POLLIN};
+  return poll(&pfd, 1, 0) == 1 && (pfd.revents & POLLIN);
+}
+
+typedef struct
+{
+  int id;
+  t_socket* socket;
+} t_wrapped_socket;
+
+static t_socket* unwrap_socket(void* element)
+{
+  return ((t_wrapped_socket*)element)->socket;
+}
+
+Test(watchdog, pings_through_get_socket_when_elements_wrap_a_socket)
+{
+  t_socket* server;
+  t_socket* client = connected_pair(&server, true);
+  t_wrapped_socket wrapped = {.id = 1, .socket = client};
+
+  t_list* elements = list_create();
+  list_add(elements, &wrapped);
+
+  t_watchdog* watchdog = watchdog_start(elements, unwrap_socket, nullptr, 10,
+                                        noop_on_disconnected, nullptr);
+  cr_assert_not_null(watchdog);
+
+  cr_assert_eq(receive_op_code(server), OP_CONNECTION_CHECK);
+  free(receive_string(server));
+
+  watchdog_destroy(watchdog);
+  list_destroy(elements);
+  socket_destroy(client);
+  socket_destroy(server);
+}
+
+Test(watchdog, reports_a_dead_wrapped_socket_through_get_socket)
+{
+  t_socket* server;
+  t_socket* client = connected_pair(&server, true);
+  kill_connection(client, server);
+  t_wrapped_socket wrapped = {.id = 1, .socket = client};
+
+  t_list* elements = list_create();
+  list_add(elements, &wrapped);
+
+  atomic_int disconnections = 0;
+  t_watchdog* watchdog = watchdog_start(elements, unwrap_socket, nullptr, 10,
+                                        count_disconnection, &disconnections);
+  cr_assert_not_null(watchdog);
+  cr_assert(wait_until_at_least(&disconnections, 1, 2000));
+
+  watchdog_destroy(watchdog);
+  list_destroy(elements);
+  socket_destroy(client);
+}
+
+typedef struct
+{
+  _Atomic(void*) received_arg;
+  atomic_int calls;
+} t_arg_probe;
+
+static t_arg_probe probe;
+
+static void record_callback_arg(void* arg)
+{
+  atomic_store(&probe.received_arg, arg);
+  atomic_fetch_add(&probe.calls, 1);
+}
+
+Test(watchdog, passes_callback_arg_to_on_disconnected_as_is)
+{
+  t_socket* server;
+  t_socket* client = connected_pair(&server, true);
+  kill_connection(client, server);
+
+  t_list* sockets = list_create();
+  list_add(sockets, client);
+
+  int marker;
+  atomic_init(&probe.received_arg, nullptr);
+  atomic_init(&probe.calls, 0);
+  t_watchdog* watchdog = watchdog_start(sockets, nullptr, nullptr, 10,
+                                        record_callback_arg, &marker);
+  cr_assert_not_null(watchdog);
+  cr_assert(wait_until_at_least(&probe.calls, 1, 2000));
+  watchdog_destroy(watchdog);
+
+  cr_assert_eq(atomic_load(&probe.received_arg), (void*)&marker);
+
+  list_destroy(sockets);
+  socket_destroy(client);
+}
+
+Test(watchdog, does_not_ping_while_someone_else_holds_the_sockets_mutex)
+{
+  mtx_t sockets_mutex;
+  mtx_init(&sockets_mutex, mtx_plain);
+
+  t_socket* server;
+  t_socket* client = connected_pair(&server, true);
+
+  t_list* sockets = list_create();
+  list_add(sockets, client);
+
+  mtx_lock(&sockets_mutex);
+  t_watchdog* watchdog = watchdog_start(sockets, nullptr, &sockets_mutex, 10,
+                                        noop_on_disconnected, nullptr);
+  cr_assert_not_null(watchdog);
+
+  /* Several cycles' worth of time with the list locked: no pass may start. */
+  time_sleep_ms(100);
+  cr_assert_not(has_pending_data(server));
+
+  /* Releasing the list lets the very next pass ping the socket. */
+  mtx_unlock(&sockets_mutex);
   cr_assert_eq(receive_op_code(server), OP_CONNECTION_CHECK);
   free(receive_string(server));
 
