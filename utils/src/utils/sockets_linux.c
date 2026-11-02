@@ -199,17 +199,30 @@ static t_socket* create_server(char* port, bool with_mutex)
   hints.ai_socktype = SOCK_STREAM;
   hints.ai_flags = AI_PASSIVE;
 
-  getaddrinfo(nullptr, port, &hints, &servinfo);
+  if (getaddrinfo(nullptr, port, &hints, &servinfo) != 0)
+  {
+    return nullptr;
+  }
 
   t_socket_handle handle =
-      socket(hints.ai_family, hints.ai_socktype, hints.ai_protocol);
+      socket(servinfo->ai_family, servinfo->ai_socktype, servinfo->ai_protocol);
+  if (!socket_handle_is_valid(handle))
+  {
+    freeaddrinfo(servinfo);
+    return nullptr;
+  }
 
   // Make the socket reusable; remove if it causes issues.
   int opt = 1;
   setsockopt(handle, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
 
-  bind(handle, servinfo->ai_addr, servinfo->ai_addrlen);
-  listen(handle, SOMAXCONN);
+  if (bind(handle, servinfo->ai_addr, servinfo->ai_addrlen) != 0 ||
+      listen(handle, SOMAXCONN) != 0)
+  {
+    freeaddrinfo(servinfo);
+    close(handle);
+    return nullptr;
+  }
 
   freeaddrinfo(servinfo);
   return wrap_handle(handle, with_mutex);
