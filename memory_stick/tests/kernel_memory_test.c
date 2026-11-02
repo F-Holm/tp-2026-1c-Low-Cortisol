@@ -73,6 +73,17 @@ Test(ms_km, connect_km_fails_when_nothing_is_listening)
   log_destroy(logger);
 }
 
+Test(ms_km, connect_to_kernel_memory_fails_when_nothing_is_listening)
+{
+  char port[16];
+  t_socket* listen_fd = listen_ephemeral(port, sizeof(port));
+  socket_destroy(listen_fd); /* the port is now free */
+
+  t_log* logger = ms_quiet_logger();
+  cr_assert_null(connect_to_kernel_memory("127.0.0.1", port, "64", logger));
+  log_destroy(logger);
+}
+
 /* ── handshake_km / connect_to_kernel_memory ───────────────────────────── */
 
 struct km_side
