@@ -71,13 +71,21 @@ void wait_queue_exec_empty(t_execute_list* exec)
 void wait_queue_exec_empty_with_syscalls(t_execute_list* exec,
                                          t_counter* syscall_counter)
 {
+  // Only list_mutex may be held across the wait: cnd_wait releases just that
+  // one, and whoever signals (a process leaving EXEC, a syscall starting)
+  // needs counter_mutex to do so.
   mtx_lock(&(exec->list_mutex));
-  mtx_lock(&(syscall_counter->counter_mutex));
-  while (list_size(exec->list) - syscall_counter->count > 0)
+  while (true)
   {
+    mtx_lock(&(syscall_counter->counter_mutex));
+    int still_running = list_size(exec->list) - syscall_counter->count;
+    mtx_unlock(&(syscall_counter->counter_mutex));
+    if (still_running <= 0)
+    {
+      break;
+    }
     cnd_wait(&(syscall_counter->condition), &(exec->list_mutex));
   }
-  mtx_unlock(&(syscall_counter->counter_mutex));
   mtx_unlock(&(exec->list_mutex));
 }
 

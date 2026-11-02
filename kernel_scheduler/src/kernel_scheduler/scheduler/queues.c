@@ -238,7 +238,20 @@ void clear_queues(t_queues* queues)
 
 void increment_syscall_counter(t_queues* queues)
 {
-  counter_increment(queues->routines.syscall_counter);
+  // A process entering a syscall stops counting as running, which may be
+  // what wait_queue_exec_empty_with_syscalls is waiting for. Taken under
+  // EXEC's list_mutex (same order as transition_take_exec) so that wake-up
+  // cannot slip in between the waiter's check and its cnd_wait.
+  t_counter* syscalls = queues->routines.syscall_counter;
+  mtx_lock(&(queues->exec.list_mutex));
+  mtx_lock(&(syscalls->counter_mutex));
+  syscalls->count++;
+  if (list_size(queues->exec.list) - syscalls->count <= 0)
+  {
+    cnd_signal(&(syscalls->condition));
+  }
+  mtx_unlock(&(syscalls->counter_mutex));
+  mtx_unlock(&(queues->exec.list_mutex));
 }
 
 void decrement_syscall_counter(t_queues* queues)
