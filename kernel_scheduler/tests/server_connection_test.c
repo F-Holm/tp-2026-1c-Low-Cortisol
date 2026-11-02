@@ -79,3 +79,10 @@ Test(ks_server_connection,
   ks_destroy_stub_queues_full(queues);
   log_destroy(logger);
 }
+
+Test(ks_server_connection, fails_to_create_a_server_on_an_invalid_port)
+{
+  t_log* logger = ks_quiet_logger();
+  cr_assert_null(create_socket_server("not-a-port", logger));
+  log_destroy(logger);
+}
