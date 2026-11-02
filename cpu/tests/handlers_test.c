@@ -2,8 +2,10 @@
 
 #include <criterion/criterion.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "cpu/cpu.h"
 #include "cpu/registers.h"
@@ -778,5 +780,40 @@ Test(cpu_handlers,
                EB_FALSE);
   assert_seg_fault_sent(&fx);
 
+  handler_fixture_end(&fx);
+}
+
+Test(cpu_handlers, copy_mem_logs_exactly_the_copied_bytes, .timeout = 5.0)
+{
+  t_handler_fixture fx;
+  handler_fixture_start(&fx);
+  char log_path[] = "/tmp/cpu_copy_mem_log_XXXXXX";
+  int fd = mkstemp(log_path);
+  cr_assert_neq(fd, -1);
+  close(fd);
+  log_destroy(fx.cpu.logger);
+  fx.cpu.logger =
+      log_create(log_path, "CPU-test", false, LOG_LEVEL_INFO, false);
+
+  fx.context->registers->SI = SEG0_OFFSET(4);
+  fx.context->registers->DI = SEG1_OFFSET(0);
+  set_register(fx.context->registers, "EAX", 4);
+  /* four raw bytes with no terminating '\0' after them */
+  cr_assert(send_buffer(OP_MEMORY_STICK_READ_DONE, "WXYZ", 4, fx.stick_peer));
+  cr_assert(send_string(OP_MEMORY_STICK_WRITE_DONE, "ok", fx.stick_peer));
+
+  t_instruction instruction = make_instruction("COPY_MEM", "EAX", nullptr);
+  cr_assert_eq(handler_copy_mem(&fx.cpu, fx.context, &instruction, 1), EB_TRUE);
+
+  FILE* log = fopen(log_path, "r");
+  char contents[1024] = {0};
+  fread(contents, 1, sizeof(contents) - 1, log);
+  fclose(log);
+  cr_assert_not_null(
+      strstr(contents, "READ - Physical Address: 4 - Value: WXYZ\n"));
+  cr_assert_not_null(
+      strstr(contents, "WRITE - Physical Address: 32 - Value: WXYZ\n"));
+
+  unlink(log_path);
   handler_fixture_end(&fx);
 }
