@@ -463,3 +463,46 @@ Test(km_scheduler_listener, stdout_request_reads_from_the_stick_and_replies)
   socket_destroy(stick_server);
   destroy_fixture(&f);
 }
+
+/* With no stick connected the translated address maps to nothing, so the
+ * stick access fails and the handler ends the listener loop by itself. */
+
+Test(km_scheduler_listener, stdin_request_ends_the_loop_when_the_write_fails)
+{
+  t_listener_fixture f = start_fixture("/tmp");
+  list_add(f.memory->segments, km_make_segment(0, 1, 0, 100));
+
+  t_stdin_request request = {
+      .pid = 1, .bytes_to_read = 4, .logical_address = 0};
+  t_packet* packet = create_packet(OP_IO_STDIN_REQUEST);
+  packet_append(packet, &request, sizeof(request));
+  packet_append_string(packet, "abcd");
+  cr_assert(send_packet(packet, f.peer_fd));
+  destroy_packet(packet);
+
+  /* the scheduler hears the memory is corrupted, then the loop ends */
+  cr_assert_eq(receive_op_code(f.peer_fd), OP_MEMORY_CORRUPTED);
+  free(receive_string(f.peer_fd));
+  thrd_join(f.thread, nullptr);
+
+  destroy_fixture(&f);
+}
+
+Test(km_scheduler_listener, stdout_request_ends_the_loop_when_the_read_fails)
+{
+  t_listener_fixture f = start_fixture("/tmp");
+  list_add(f.memory->segments, km_make_segment(0, 1, 0, 100));
+
+  t_stdout_request request = {
+      .pid = 1, .bytes_to_write = 4, .logical_address = 0};
+  cr_assert(
+      send_buffer(OP_IO_STDOUT_REQUEST, &request, sizeof(request), f.peer_fd));
+
+  cr_assert_eq(receive_op_code(f.peer_fd), OP_STDOUT_RESPONSE);
+  char* reply = receive_string(f.peer_fd);
+  cr_assert_str_eq(reply, "Stick read error");
+  free(reply);
+  thrd_join(f.thread, nullptr);
+
+  destroy_fixture(&f);
+}
