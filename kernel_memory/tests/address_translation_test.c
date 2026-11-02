@@ -279,3 +279,106 @@ Test(km_address_translation, write_to_sticks_reports_running_out_of_sticks)
   socket_destroy(scheduler_server_fd);
   log_destroy(logger);
 }
+
+/* ── stick failures ────────────────────────────────────────────────────── */
+
+/* One 1000-byte stick plus a scheduler connection to report corruption on. */
+typedef struct
+{
+  t_list* sticks;
+  mtx_t mutex;
+  t_socket* stick_peer;
+  t_socket* scheduler_side; /* what Kernel Memory writes to */
+  t_socket* scheduler_peer; /* what the scheduler reads from */
+  t_log* logger;
+} t_stick_fixture;
+
+static void stick_fixture_start(t_stick_fixture* fx)
+{
+  t_stick_data* stick = km_make_stick(1000);
+  stick->socket_stick = km_connected_pair(&fx->stick_peer);
+  fx->sticks = list_create();
+  list_add(fx->sticks, stick);
+  mtx_init(&fx->mutex, mtx_plain);
+  fx->scheduler_side = km_connected_pair(&fx->scheduler_peer);
+  fx->logger = km_quiet_logger();
+}
+
+static t_socket* fixture_stick_socket(t_stick_fixture* fx)
+{
+  return ((t_stick_data*)list_get(fx->sticks, 0))->socket_stick;
+}
+
+static void stick_fixture_end(t_stick_fixture* fx)
+{
+  socket_destroy(fixture_stick_socket(fx));
+  socket_destroy(fx->stick_peer);
+  list_destroy_and_destroy_elements(fx->sticks, free);
+  mtx_destroy(&fx->mutex);
+  socket_destroy(fx->scheduler_side);
+  socket_destroy(fx->scheduler_peer);
+  log_destroy(fx->logger);
+}
+
+static void assert_memory_corrupted_reported(t_stick_fixture* fx)
+{
+  cr_assert_eq(receive_op_code(fx->scheduler_peer), OP_MEMORY_CORRUPTED);
+  free(receive_string(fx->scheduler_peer));
+}
+
+Test(km_address_translation,
+     read_from_sticks_reports_corruption_when_the_request_cannot_be_sent)
+{
+  t_stick_fixture fx;
+  stick_fixture_start(&fx);
+
+  socket_shutdown(fixture_stick_socket(&fx), SOCKET_SHUTDOWN_WRITE);
+  cr_assert_null(read_from_sticks(10, 4, fx.sticks, &fx.mutex, fx.logger,
+                                  fx.scheduler_side));
+  assert_memory_corrupted_reported(&fx);
+
+  stick_fixture_end(&fx);
+}
+
+Test(km_address_translation,
+     read_from_sticks_reports_corruption_when_the_stick_disconnects)
+{
+  t_stick_fixture fx;
+  stick_fixture_start(&fx);
+
+  socket_shutdown(fx.stick_peer, SOCKET_SHUTDOWN_WRITE); /* reply is EOF */
+  cr_assert_null(read_from_sticks(10, 4, fx.sticks, &fx.mutex, fx.logger,
+                                  fx.scheduler_side));
+  assert_memory_corrupted_reported(&fx);
+
+  stick_fixture_end(&fx);
+}
+
+Test(km_address_translation,
+     write_to_sticks_reports_corruption_when_the_request_cannot_be_sent)
+{
+  t_stick_fixture fx;
+  stick_fixture_start(&fx);
+
+  socket_shutdown(fixture_stick_socket(&fx), SOCKET_SHUTDOWN_WRITE);
+  cr_assert_not(write_to_sticks(1, 10, 4, "abcd", fx.sticks, &fx.mutex,
+                                fx.logger, fx.scheduler_side));
+  assert_memory_corrupted_reported(&fx);
+
+  stick_fixture_end(&fx);
+}
+
+Test(km_address_translation,
+     write_to_sticks_reports_corruption_on_an_unexpected_reply)
+{
+  t_stick_fixture fx;
+  stick_fixture_start(&fx);
+
+  cr_assert(send_string(OP_ID_CPU, "not a write ack", fx.stick_peer));
+  /* the scheduler is told; the write itself is still reported as done */
+  cr_assert(write_to_sticks(1, 10, 4, "abcd", fx.sticks, &fx.mutex, fx.logger,
+                            fx.scheduler_side));
+  assert_memory_corrupted_reported(&fx);
+
+  stick_fixture_end(&fx);
+}
