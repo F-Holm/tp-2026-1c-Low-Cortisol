@@ -133,7 +133,7 @@ static int km_stub_thread(void* arg)
 {
   struct km_stub* stub = arg;
   t_socket* client = socket_accept(stub->listener, false);
-  if (client == NULL)
+  if (client == nullptr)
   {
     return 0;
   }
@@ -143,7 +143,7 @@ static int km_stub_thread(void* arg)
   {
     int size;
     t_swap_config* received = receive_buffer(&size, client);
-    if (received != NULL)
+    if (received != nullptr)
     {
       stub->info = *received;
       stub->got_info = true;
@@ -175,9 +175,9 @@ Test(swap_connect, completes_the_handshake_and_reports_its_sizes)
   swap.block_size = 128;
 
   cr_assert(
-      connect_to_kernel_memory(&swap, NULL)); /* config unused on success */
+      connect_to_kernel_memory(&swap, nullptr)); /* config unused on success */
 
-  thrd_join(thread, NULL);
+  thrd_join(thread, nullptr);
   cr_assert_eq(stub.swap_module_id, MID_SWAP);
   cr_assert(stub.got_info);
   cr_assert_eq(stub.info.swap_size, 8192);
@@ -210,7 +210,7 @@ Test(swap_connect, fails_when_the_peer_is_not_kernel_memory)
   t_config* config = config_create((char*)"/dev/null");
   cr_assert_not(connect_to_kernel_memory(&swap, config)); /* close_swap runs */
 
-  thrd_join(thread, NULL);
+  thrd_join(thread, nullptr);
   cr_assert_eq(stub.swap_module_id, MID_SWAP);
 
   socket_destroy(listener);
