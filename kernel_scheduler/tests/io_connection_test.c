@@ -585,3 +585,39 @@ Test(ks_io_connection, rejects_an_io_that_does_not_announce_its_type)
   free(queues);
   log_destroy(logger);
 }
+
+/* Kernel Memory's write side shut and its peer gone: requests to it fail, and
+ * close_kernel_scheduler's follow-up read returns at once. */
+static void cut_kernel_memory(t_io_fixture* fx)
+{
+  socket_shutdown(fx->queues->km_socket, SOCKET_SHUTDOWN_WRITE);
+  socket_destroy(fx->km_peer);
+  fx->km_peer = nullptr;
+}
+
+Test(ks_io_connection, stdin_fails_when_kernel_memory_cannot_be_written_to)
+{
+  t_io_fixture fx;
+  io_fixture_start(&fx, "STDIN");
+  cr_assert(send_string(OP_STDIN_RESPONSE, "typed", fx.io_peer));
+  cut_kernel_memory(&fx);
+
+  cr_assert(enqueue_io_request(calloc(1, sizeof(t_stdin_request)),
+                               &(fx.io[IO_STDIN]), fx.pcb));
+  assert_worker_gave_up(&fx, &(fx.io[IO_STDIN]));
+
+  io_fixture_end(&fx);
+}
+
+Test(ks_io_connection, stdout_fails_when_kernel_memory_cannot_be_written_to)
+{
+  t_io_fixture fx;
+  io_fixture_start(&fx, "STDOUT");
+  cut_kernel_memory(&fx);
+
+  cr_assert(enqueue_io_request(calloc(1, sizeof(t_stdout_request)),
+                               &(fx.io[IO_STDOUT]), fx.pcb));
+  assert_worker_gave_up(&fx, &(fx.io[IO_STDOUT]));
+
+  io_fixture_end(&fx);
+}
