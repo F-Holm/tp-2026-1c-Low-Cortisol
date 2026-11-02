@@ -194,3 +194,29 @@ Test(sockets, get_peer_ip_fails_on_a_null_or_too_small_buffer_or_closed_socket)
   socket_destroy(client);
   socket_destroy(server);
 }
+
+Test(sockets, get_peer_ip_fails_on_a_socket_that_is_not_connected)
+{
+  t_socket* listener =
+      socket_create(SOCKET_KIND_SERVER, nullptr, SOCKET_PORT_EPHEMERAL, false);
+  cr_assert_not_null(listener);
+
+  char ip[16];
+  cr_assert_not(socket_get_peer_ip(listener, ip, sizeof(ip)));
+
+  socket_destroy(listener);
+}
+
+Test(sockets, get_local_port_fails_on_a_null_or_closed_socket)
+{
+  t_socket* listener =
+      socket_create(SOCKET_KIND_SERVER, nullptr, SOCKET_PORT_EPHEMERAL, false);
+  cr_assert_not_null(listener);
+  cr_assert_gt(socket_get_local_port(listener), 0);
+
+  cr_assert_eq(socket_get_local_port(nullptr), -1);
+  socket_close(listener);
+  cr_assert_eq(socket_get_local_port(listener), -1);
+
+  socket_destroy(listener);
+}
