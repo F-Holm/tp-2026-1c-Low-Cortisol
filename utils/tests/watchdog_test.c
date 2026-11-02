@@ -1,7 +1,6 @@
 #include "utils/watchdog.h"
 
 #include <criterion/criterion.h>
-#include <poll.h>
 #include <stdatomic.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -254,13 +253,6 @@ Test(watchdog, still_pings_when_given_a_sockets_list_mutex)
   socket_destroy(server);
 }
 
-/* Whether @p socket has bytes waiting to be read, without blocking. */
-static bool has_pending_data(t_socket* socket)
-{
-  struct pollfd pfd = {.fd = socket->handle, .events = POLLIN};
-  return poll(&pfd, 1, 0) == 1 && (pfd.revents & POLLIN);
-}
-
 typedef struct
 {
   int id;
@@ -371,7 +363,7 @@ Test(watchdog, does_not_ping_while_someone_else_holds_the_sockets_mutex)
 
   /* Several cycles' worth of time with the list locked: no pass may start. */
   time_sleep_ms(100);
-  cr_assert_not(has_pending_data(server));
+  cr_assert_not(socket_has_pending_data(server));
 
   /* Releasing the list lets the very next pass ping the socket. */
   mtx_unlock(&sockets_mutex);
