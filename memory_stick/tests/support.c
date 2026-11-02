@@ -13,7 +13,7 @@
 
 t_log* ms_quiet_logger(void)
 {
-  t_log* logger = log_create(NULL, "MS-test", false, LOG_LEVEL_ERROR, true);
+  t_log* logger = log_create(nullptr, "MS-test", false, LOG_LEVEL_ERROR, true);
   cr_assert_not_null(logger);
   return logger;
 }
@@ -21,7 +21,7 @@ t_log* ms_quiet_logger(void)
 t_socket* ms_connected_pair(t_socket** server_out)
 {
   t_socket* listener =
-      socket_create(SOCKET_KIND_SERVER, NULL, SOCKET_PORT_EPHEMERAL, false);
+      socket_create(SOCKET_KIND_SERVER, nullptr, SOCKET_PORT_EPHEMERAL, false);
   cr_assert_not_null(listener, "socket_create(SERVER) failed");
 
   char port[16];

@@ -104,7 +104,7 @@ Test(ms_handshake_cpu, exchanges_the_handshake_with_a_cpu)
 
   cr_assert(handshake_cpu(stick_fd, logger));
 
-  thrd_join(thread, NULL);
+  thrd_join(thread, nullptr);
   cr_assert(side.ok);
 
   socket_destroy(cpu_fd);
@@ -170,7 +170,7 @@ Test(ms_handle_new_cpu, accepts_a_cpu_and_spawns_its_client_thread)
   t_ms* ms = ms_make(64);
 
   t_listen_thread listen_thread = {
-      .cpu_listen_socket = NULL, .logger = logger, .ms = ms};
+      .cpu_listen_socket = nullptr, .logger = logger, .ms = ms};
 
   t_list* socket_list = list_create();
   mtx_t socket_list_mutex;
@@ -220,7 +220,7 @@ Test(ms_handle_new_cpu,
   t_ms* ms = ms_make(64);
 
   t_listen_thread listen_thread = {
-      .cpu_listen_socket = NULL, .logger = logger, .ms = ms};
+      .cpu_listen_socket = nullptr, .logger = logger, .ms = ms};
 
   t_list* socket_list = list_create();
   mtx_t socket_list_mutex;
@@ -253,7 +253,7 @@ Test(ms_close_listen_thread, waits_for_the_client_thread_then_frees_everything)
   t_ms* ms = ms_make(64);
 
   t_listen_thread* listen_thread = malloc(sizeof(t_listen_thread));
-  listen_thread->cpu_listen_socket = NULL;
+  listen_thread->cpu_listen_socket = nullptr;
   listen_thread->logger = logger;
   listen_thread->ms = ms;
 
@@ -340,7 +340,7 @@ static void handle_cpu_client_fixture_terminate(t_handle_cpu_client_fixture* fx)
 
 static void handle_cpu_client_fixture_end(t_handle_cpu_client_fixture* fx)
 {
-  thrd_join(fx->thread, NULL);
+  thrd_join(fx->thread, nullptr);
   socket_destroy(fx->cpu_fd);
   list_destroy(fx->socket_list);
   cnd_destroy(&fx->listen_done_cond);
@@ -534,7 +534,7 @@ Test(ms_cpu_listen_thread, accepts_a_cpu_and_serves_a_request_end_to_end)
   socket_destroy(cpu_fd);
   socket_shutdown(listen_socket, SOCKET_SHUTDOWN_BOTH);
 
-  thrd_join(thread, NULL);
+  thrd_join(thread, nullptr);
 
   socket_destroy(listen_socket);
   ms_destroy(ms);
@@ -566,7 +566,7 @@ Test(ms_cpu_listen_thread, start_cpu_server_spawns_a_working_listener)
 
   socket_destroy(cpu_fd);
   socket_shutdown(listen_socket, SOCKET_SHUTDOWN_BOTH);
-  thrd_join(thread, NULL);
+  thrd_join(thread, nullptr);
 
   socket_destroy(listen_socket);
   ms_destroy(ms);

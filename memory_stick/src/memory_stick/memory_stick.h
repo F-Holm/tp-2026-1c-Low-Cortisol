@@ -44,7 +44,7 @@ bool init_module(t_ms* ms, char* config_path, char* size,
 
 /**
  * @brief Loads the config file and fills @p config_vars.
- * @return The config, or NULL on failure.
+ * @return The config, or nullptr on failure.
  */
 t_config* init_config(char* config_path, t_config_vars* config_vars);
 

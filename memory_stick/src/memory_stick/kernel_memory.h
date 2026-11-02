@@ -20,14 +20,14 @@ bool send_size(t_socket* socket_km, char* size, t_log* logger);
 
 /**
  * @brief Connects to Kernel Memory, handshakes and reports the stick's size.
- * @return The connected socket, or NULL on failure.
+ * @return The connected socket, or nullptr on failure.
  */
 t_socket* connect_to_kernel_memory(char* ip, char* port, char* size,
                                    t_log* logger);
 
 /**
  * @brief Opens the TCP connection to Kernel Memory.
- * @return The socket, or NULL on failure.
+ * @return The socket, or nullptr on failure.
  */
 t_socket* connect_km(char* ip, char* port, t_log* logger);
 

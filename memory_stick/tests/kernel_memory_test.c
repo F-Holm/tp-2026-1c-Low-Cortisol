@@ -18,7 +18,7 @@ TestSuite(ms_km, .timeout = 10.0);
 static t_socket* listen_ephemeral(char* port, int len)
 {
   t_socket* listener =
-      socket_create(SOCKET_KIND_SERVER, NULL, SOCKET_PORT_EPHEMERAL, false);
+      socket_create(SOCKET_KIND_SERVER, nullptr, SOCKET_PORT_EPHEMERAL, false);
   cr_assert_not_null(listener);
   snprintf(port, len, "%d", socket_get_local_port(listener));
   return listener;
@@ -69,7 +69,7 @@ Test(ms_km, connect_km_fails_when_nothing_is_listening)
   socket_destroy(listen_fd); /* the port is now free */
 
   t_log* logger = ms_quiet_logger();
-  cr_assert_eq(connect_km("127.0.0.1", port, logger), NULL);
+  cr_assert_eq(connect_km("127.0.0.1", port, logger), nullptr);
   log_destroy(logger);
 }
 
@@ -87,7 +87,7 @@ static int km_thread(void* arg)
 {
   struct km_side* side = arg;
   t_socket* client = socket_accept(side->listen_fd, false);
-  if (client == NULL)
+  if (client == nullptr)
   {
     return 0;
   }
@@ -119,7 +119,7 @@ Test(ms_km, connect_to_kernel_memory_handshakes_and_sends_the_size)
       connect_to_kernel_memory("127.0.0.1", port, "8192", logger);
   cr_assert_not_null(socket_km);
 
-  thrd_join(thread, NULL);
+  thrd_join(thread, nullptr);
   cr_assert_eq(side.received_id, MID_MEMORY_STICK);
   cr_assert_str_eq(side.size, "8192");
 
@@ -144,9 +144,9 @@ Test(ms_km, connect_to_kernel_memory_fails_when_the_peer_is_wrong)
 
   t_log* logger = ms_quiet_logger();
   cr_assert_eq(connect_to_kernel_memory("127.0.0.1", port, "8192", logger),
-               NULL);
+               nullptr);
 
-  thrd_join(thread, NULL);
+  thrd_join(thread, nullptr);
   free(side.size);
   socket_destroy(listen_fd);
   log_destroy(logger);

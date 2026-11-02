@@ -14,11 +14,11 @@
 t_socket* create_server_cpu(t_log* logger)
 {
   t_socket* ret =
-      socket_create(SOCKET_KIND_SERVER, NULL, SOCKET_PORT_EPHEMERAL, false);
-  if (ret == NULL)
+      socket_create(SOCKET_KIND_SERVER, nullptr, SOCKET_PORT_EPHEMERAL, false);
+  if (ret == nullptr)
   {
     log_error(logger, "Error creating the CPU server");
-    return NULL;
+    return nullptr;
   }
   log_debug(logger, "CPU server created successfully");
   return ret;
@@ -97,7 +97,7 @@ char* receive_cpu_id(t_socket* socket_cpu, t_log* logger)
   if (receive_op_code(socket_cpu) != OP_ID_CPU)
   {
     log_warning(logger, "Could not receive the CPU ID");
-    return NULL;
+    return nullptr;
   }
   char* cpu_id = receive_string(socket_cpu);
   log_info(logger, "CPU %s connected", cpu_id);
@@ -114,7 +114,7 @@ bool handle_new_cpu(t_listen_thread* listen_thread, t_socket* socket_cpu,
   }
 
   char* cpu_id = receive_cpu_id(socket_cpu, listen_thread->logger);
-  if (cpu_id == NULL)
+  if (cpu_id == nullptr)
   {
     return false;
   }
@@ -153,7 +153,7 @@ int cpu_listen_thread(void* listen_thread_void)
   {
     t_socket* socket_cpu =
         socket_accept(listen_thread->cpu_listen_socket, false);
-    if (socket_cpu == NULL)
+    if (socket_cpu == nullptr)
     {
       break;
     }

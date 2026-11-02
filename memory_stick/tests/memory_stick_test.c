@@ -28,8 +28,8 @@ Test(ms_get_args, rejects_a_wrong_argument_count)
 
 Test(ms_get_args, extracts_the_config_path_and_the_size)
 {
-  char* config_path = NULL;
-  char* size_str = NULL;
+  char* config_path = nullptr;
+  char* size_str = nullptr;
   int size = 0;
   char* argv[] = {"memory_stick", "stick.config", "2048"};
   cr_assert(get_args(3, argv, &config_path, &size_str, &size));
@@ -40,8 +40,8 @@ Test(ms_get_args, extracts_the_config_path_and_the_size)
 
 Test(ms_get_args, rejects_a_non_positive_size)
 {
-  char* config_path = NULL;
-  char* size_str = NULL;
+  char* config_path = nullptr;
+  char* size_str = nullptr;
   int size = 0;
   char* zero[] = {"memory_stick", "stick.config", "0"};
   char* negative[] = {"memory_stick", "stick.config", "-1"};
