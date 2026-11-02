@@ -178,3 +178,18 @@ Test(km_cleanup, free_kernel_memory_data_releases_every_process)
   free_kernel_memory_data(kernel_data); /* leak-checked under valgrind */
   log_destroy(logger);
 }
+
+Test(km_init, init_swap_data_rejects_a_peer_that_does_not_send_its_info)
+{
+  t_socket* server_fd;
+  t_socket* client_fd = km_connected_pair(&server_fd);
+  cr_assert(send_string(OP_PORT, "not swap info", client_fd));
+
+  t_log* logger = km_quiet_logger();
+  /* init_swap_data destroys server_fd itself on this path */
+  cr_assert_null(init_swap_data(server_fd, logger));
+  cr_assert_eq(receive_op_code(client_fd), OP_CODE_ERROR);
+
+  socket_destroy(client_fd);
+  log_destroy(logger);
+}
