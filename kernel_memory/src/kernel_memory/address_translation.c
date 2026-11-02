@@ -113,6 +113,7 @@ char* read_from_sticks(int physical_address, int size, t_list* connected_sticks,
     {
       log_warning(logger, "Error sending read packet to stick %d", index);
       notify_stick_corrupted(logger, socket_scheduler);
+      destroy_packet(packet);
       free(result);
       mtx_unlock(sticks_mutex);
       return nullptr;
