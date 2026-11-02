@@ -78,6 +78,7 @@ void suspend_process(t_process* process_to_suspend,
       else
       {
         list_iterator_destroy(iterator);
+        list_destroy(segments_to_remove);
         return;
       }
     }
