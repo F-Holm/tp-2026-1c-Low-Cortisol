@@ -369,15 +369,28 @@ Test(km_address_translation,
 }
 
 Test(km_address_translation,
-     write_to_sticks_reports_corruption_on_an_unexpected_reply)
+     write_to_sticks_fails_and_reports_corruption_on_an_unexpected_reply)
 {
   t_stick_fixture fx;
   stick_fixture_start(&fx);
 
   cr_assert(send_string(OP_ID_CPU, "not a write ack", fx.stick_peer));
-  /* the scheduler is told; the write itself is still reported as done */
-  cr_assert(write_to_sticks(1, 10, 4, "abcd", fx.sticks, &fx.mutex, fx.logger,
-                            fx.scheduler_side));
+  cr_assert_not(write_to_sticks(1, 10, 4, "abcd", fx.sticks, &fx.mutex,
+                                fx.logger, fx.scheduler_side));
+  assert_memory_corrupted_reported(&fx);
+
+  stick_fixture_end(&fx);
+}
+
+Test(km_address_translation,
+     write_to_sticks_fails_and_reports_corruption_when_the_stick_disconnects)
+{
+  t_stick_fixture fx;
+  stick_fixture_start(&fx);
+
+  socket_shutdown(fx.stick_peer, SOCKET_SHUTDOWN_WRITE); /* reply is EOF */
+  cr_assert_not(write_to_sticks(1, 10, 4, "abcd", fx.sticks, &fx.mutex,
+                                fx.logger, fx.scheduler_side));
   assert_memory_corrupted_reported(&fx);
 
   stick_fixture_end(&fx);

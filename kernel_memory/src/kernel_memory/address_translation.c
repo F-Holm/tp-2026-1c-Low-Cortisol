@@ -204,15 +204,19 @@ bool write_to_sticks(int pid, int physical_address, int bytes_to_read,
     log_trace(logger, "PID: %d - Write - Phys. Addr: %d - Size: %d", pid,
               physical_address, to_write);
 
-    if (receive_op_code(current_stick->socket_stick) ==
-        OP_MEMORY_STICK_WRITE_DONE)
+    int reply = receive_op_code(current_stick->socket_stick);
+    if (reply != OP_CODE_ERROR)
     {
-      char* buffer = receive_string(current_stick->socket_stick);
-      free(buffer);
+      // drain the reply's payload either way, so the next exchange with this
+      // stick starts on a message boundary
+      free(receive_string(current_stick->socket_stick));
     }
-    else
+    if (reply != OP_MEMORY_STICK_WRITE_DONE)
     {
+      log_warning(logger, "Wrong write response from stick %d", i);
       notify_stick_corrupted(logger, socket_scheduler);
+      ok = false;
+      break;
     }
 
     buffer_pointer += to_write;
