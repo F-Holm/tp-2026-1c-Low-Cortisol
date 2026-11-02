@@ -642,3 +642,84 @@ Test(ks_cpu_connection, an_io_syscall_with_no_such_io_finishes_the_process)
   dispatch_fixture_end_after_preemption(&fx);
   socket_destroy(km_peer_fd);
 }
+
+/* ── memory syscalls that fail ─────────────────────────────────────────── */
+
+/* dispatch_fixture_start, but with Kernel Memory replaced by a live peer
+ * before the CPU thread starts; returns that peer. */
+static t_socket* dispatch_fixture_start_with_km(t_dispatch_fixture* fx)
+{
+  fx->logger = ks_quiet_logger();
+  fx->queues = ks_stub_queues_full(fx->logger);
+  t_socket* km_server_fd;
+  t_socket* stub_socket = fx->queues->km_socket;
+  fx->queues->km_socket = ks_connected_pair_with_mutex(&km_server_fd);
+  if (fx->queues->process_counter != nullptr)
+  {
+    fx->queues->process_counter->km_socket = fx->queues->km_socket;
+  }
+  fx->queues->shutdown->km_socket = fx->queues->km_socket;
+  socket_destroy(stub_socket);
+
+  fx->mutex_list = init_list_mutex();
+  fx->io = create_io_structures();
+  fx->list_sockets_cpu = list_create();
+  mtx_init(&fx->mutex_list_sockets_cpu, mtx_plain);
+  cnd_init(&fx->cpu_done_cond);
+  fx->pcb = seed_ready_pcb(fx->queues, 5);
+
+  t_socket* server_fd;
+  fx->client_fd = ks_connected_pair(&server_fd);
+  cr_assert(send_string(OP_ID_CPU, "cpu1", fx->client_fd));
+  cr_assert(handle_new_cpu(server_fd, fx->list_sockets_cpu,
+                           &fx->mutex_list_sockets_cpu, &fx->cpu_done_cond,
+                           fx->logger, fx->mutex_list, fx->queues, fx->io,
+                           fx->queues->km_socket));
+  cr_assert_eq(receive_handshake(fx->client_fd), MID_KERNEL_SCHEDULER);
+  cr_assert_eq(drain_resume_pid(fx->client_fd), fx->pcb->pid);
+  return km_server_fd;
+}
+
+Test(ks_cpu_connection,
+     allocating_more_than_the_free_memory_finishes_the_process)
+{
+  t_dispatch_fixture fx;
+  t_socket* km_server_fd = dispatch_fixture_start_with_km(&fx);
+  int free_space = 10;
+  cr_assert(send_buffer(OP_FREE_MEMORY, &free_space, sizeof(free_space),
+                        km_server_fd));
+  int process_size = 0; /* asked on the way to EXIT */
+  cr_assert(send_buffer(OP_PROCESS_SIZE, &process_size, sizeof(process_size),
+                        km_server_fd));
+
+  t_syscall_memory request = {.pid = fx.pcb->pid, .segment_id = 0, .size = 100};
+  cr_assert(send_buffer(OP_SYSCALL_MEM_ALLOC, &request, sizeof(request),
+                        fx.client_fd));
+  expect_preemption(fx.client_fd, OP_INTERRUPT,
+                    "there is not enough memory for this instruction");
+
+  dispatch_fixture_end_after_preemption(&fx);
+  socket_destroy(km_server_fd);
+}
+
+Test(ks_cpu_connection, allocating_past_the_segment_limit_finishes_the_process)
+{
+  t_dispatch_fixture fx;
+  t_socket* km_server_fd = dispatch_fixture_start_with_km(&fx);
+  int free_space = 1000;
+  cr_assert(send_buffer(OP_FREE_MEMORY, &free_space, sizeof(free_space),
+                        km_server_fd));
+  cr_assert(send_string(OP_SEGMENT_SIZE_EXCEEDED, "too big", km_server_fd));
+  int process_size = 0;
+  cr_assert(send_buffer(OP_PROCESS_SIZE, &process_size, sizeof(process_size),
+                        km_server_fd));
+
+  t_syscall_memory request = {.pid = fx.pcb->pid, .segment_id = 0, .size = 100};
+  cr_assert(send_buffer(OP_SYSCALL_MEM_ALLOC, &request, sizeof(request),
+                        fx.client_fd));
+  expect_preemption(fx.client_fd, OP_INTERRUPT,
+                    "there is not enough memory for this instruction");
+
+  dispatch_fixture_end_after_preemption(&fx);
+  socket_destroy(km_server_fd);
+}
