@@ -265,3 +265,16 @@ Test(km_cpu_listener, updated_segment_table_sends_nothing_for_an_unknown_pid)
   disconnect_stick_and_join(&f);
   destroy_fixture(&f);
 }
+
+Test(km_cpu_listener,
+     stick_disconnected_still_ends_the_loop_when_the_scheduler_is_gone)
+{
+  t_listener_fixture f = start_fixture();
+  socket_shutdown(f.scheduler_server_socket, SOCKET_SHUTDOWN_WRITE);
+
+  int op_code = OP_STICK_DISCONNECTED;
+  cr_assert(socket_send(f.cpu_peer_fd, &op_code, sizeof(op_code)));
+  thrd_join(f.thread, nullptr); /* the BSOD send fails; the loop ends anyway */
+
+  destroy_fixture(&f);
+}
