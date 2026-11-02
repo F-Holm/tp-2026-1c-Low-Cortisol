@@ -104,13 +104,12 @@ bool handshake(t_kernel_memory_data* kernel_data, t_socket* client_socket)
         return false;
       }
       log_debug(kernel_data->logger, "A memory stick connected!");
-      bool init_ok = true;
       t_stick_data* stick_data =
           init_stick_data(client_socket, kernel_data->logger,
                           atomic_load(&(kernel_data->socket_scheduler)));
-      init_ok = resolve_stick_ip(stick_data, client_socket);
-      init_ok = receive_stick_size(stick_data);
-      init_ok = receive_stick_listen_port(stick_data);
+      bool init_ok = resolve_stick_ip(stick_data, client_socket) &&
+                     receive_stick_size(stick_data) &&
+                     receive_stick_listen_port(stick_data);
       add_stick_connection(kernel_data, stick_data);
       if (init_ok)
       {
