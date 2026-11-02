@@ -54,6 +54,19 @@ Test(file, file_resize_to_the_same_size_keeps_it)
   fclose(file);
 }
 
+Test(file, file_resize_fails_when_flushing_pending_writes_fails)
+{
+  /* Every write to /dev/full fails with ENOSPC, so flushing the byte
+   * buffered below makes fflush() -- and therefore file_resize -- fail. */
+  FILE* file = fopen("/dev/full", "w");
+  cr_assert_not_null(file);
+
+  fputc('x', file);
+  cr_assert_not(file_resize(file, 0));
+
+  fclose(file);
+}
+
 static FILE* file_with(const char* content)
 {
   FILE* file = tmpfile();
