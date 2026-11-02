@@ -723,3 +723,139 @@ Test(ks_cpu_connection, allocating_past_the_segment_limit_finishes_the_process)
   dispatch_fixture_end_after_preemption(&fx);
   socket_destroy(km_server_fd);
 }
+
+/* ── preemption decided after a CPU cycle ──────────────────────────────── */
+
+/* dispatch_fixture_start with the ready queue and EXEC rebuilt first:
+ * @p algorithm for the ready queue (@p level_count levels of @p level_algo
+ * when it's SA_MULTILEVEL_QUEUES), @p quantum and @p preemption for EXEC,
+ * and the first process at @p first_priority. */
+static void dispatch_fixture_start_scheduling(t_dispatch_fixture* fx,
+                                              int algorithm, int level_count,
+                                              int level_algo, int quantum,
+                                              bool preemption,
+                                              int first_priority)
+{
+  fx->logger = ks_quiet_logger();
+  fx->queues = ks_stub_queues_full(fx->logger);
+  destroy_ready_queue(&(fx->queues->ready));
+  t_list* levels = list_create();
+  for (int i = 0; i < level_count; i++)
+  {
+    int* level = malloc(sizeof(int));
+    *level = level_algo;
+    list_add(levels, level);
+  }
+  init_ready_queue(&(fx->queues->ready), algorithm, levels);
+  list_destroy_and_destroy_elements(levels, free);
+  destroy_exec_list(&(fx->queues->exec));
+  init_exec_list(&(fx->queues->exec), quantum, preemption);
+
+  fx->mutex_list = init_list_mutex();
+  fx->io = create_io_structures();
+  fx->list_sockets_cpu = list_create();
+  mtx_init(&fx->mutex_list_sockets_cpu, mtx_plain);
+  cnd_init(&fx->cpu_done_cond);
+  fx->pcb = seed_ready_pcb(fx->queues, first_priority);
+
+  t_socket* server_fd;
+  fx->client_fd = ks_connected_pair(&server_fd);
+  cr_assert(send_string(OP_ID_CPU, "cpu1", fx->client_fd));
+  cr_assert(handle_new_cpu(server_fd, fx->list_sockets_cpu,
+                           &fx->mutex_list_sockets_cpu, &fx->cpu_done_cond,
+                           fx->logger, fx->mutex_list, fx->queues, fx->io,
+                           fx->queues->km_socket));
+  cr_assert_eq(receive_handshake(fx->client_fd), MID_KERNEL_SCHEDULER);
+  cr_assert_eq(drain_resume_pid(fx->client_fd), fx->pcb->pid);
+}
+
+/* Stops the CPU thread, then destroys every pcb it may have left behind in
+ * EXEC or READY. */
+static void dispatch_fixture_end_reaping(t_dispatch_fixture* fx)
+{
+  socket_shutdown(fx->client_fd, SOCKET_SHUTDOWN_BOTH);
+  close_cpu(fx->list_sockets_cpu, &fx->mutex_list_sockets_cpu,
+            &fx->cpu_done_cond, fx->queues);
+  socket_destroy(fx->client_fd);
+  t_pcb* pcb;
+  while ((pcb = transition_take_exec_next(&(fx->queues->exec))) != nullptr)
+  {
+    destroy_pcb(pcb);
+  }
+  while ((pcb = transition_take_ready_next(&(fx->queues->ready))) != nullptr)
+  {
+    destroy_pcb(pcb);
+  }
+  destroy_list_mutex(fx->mutex_list);
+  close_io(fx->io);
+  ks_wait_thread_counter_zero(fx->queues);
+  ks_destroy_stub_queues_full(fx->queues);
+  log_destroy(fx->logger);
+}
+
+Test(ks_cpu_connection, round_robin_preempts_once_the_quantum_ends)
+{
+  t_dispatch_fixture fx;
+  /* a 0ms quantum has always ended by the time a cycle is reported */
+  dispatch_fixture_start_scheduling(&fx, SA_RR, 0, 0, 0, false, 0);
+  t_pcb* waiting = seed_ready_pcb(fx.queues, 0);
+
+  cr_assert(send_string(OP_CPU_CYCLE_OK, "OK", fx.client_fd));
+  expect_preemption(fx.client_fd, OP_INTERRUPT, "preemption by quantum end");
+  /* the CPU is handed the process that was waiting */
+  cr_assert_eq(drain_resume_pid(fx.client_fd), waiting->pid);
+
+  dispatch_fixture_end_reaping(&fx);
+}
+
+Test(ks_cpu_connection, round_robin_keeps_running_with_nobody_else_ready)
+{
+  t_dispatch_fixture fx;
+  dispatch_fixture_start_scheduling(&fx, SA_RR, 0, 0, 0, false, 0);
+
+  cr_assert(send_string(OP_CPU_CYCLE_OK, "OK", fx.client_fd));
+  expect_preemption(fx.client_fd, OP_NO_INTERRUPT, "no preemption occurred");
+
+  dispatch_fixture_end_reaping(&fx);
+}
+
+Test(ks_cpu_connection, a_higher_priority_arrival_preempts_the_running_process)
+{
+  t_dispatch_fixture fx;
+  dispatch_fixture_start_scheduling(&fx, SA_MULTILEVEL_QUEUES, 2, SA_FIFO, 1000,
+                                    true, 1);
+  t_pcb* urgent = seed_ready_pcb(fx.queues, 0);
+
+  cr_assert(send_string(OP_CPU_CYCLE_OK, "OK", fx.client_fd));
+  expect_preemption(fx.client_fd, OP_INTERRUPT,
+                    "preemption by process priority");
+  cr_assert_eq(drain_resume_pid(fx.client_fd), urgent->pid);
+
+  dispatch_fixture_end_reaping(&fx);
+}
+
+Test(ks_cpu_connection, a_lower_priority_arrival_does_not_preempt)
+{
+  t_dispatch_fixture fx;
+  dispatch_fixture_start_scheduling(&fx, SA_MULTILEVEL_QUEUES, 2, SA_FIFO, 1000,
+                                    true, 0);
+  seed_ready_pcb(fx.queues, 1);
+
+  cr_assert(send_string(OP_CPU_CYCLE_OK, "OK", fx.client_fd));
+  expect_preemption(fx.client_fd, OP_NO_INTERRUPT, "no preemption occurred");
+
+  dispatch_fixture_end_reaping(&fx);
+}
+
+Test(ks_cpu_connection, a_locked_ready_queue_preempts_for_compaction)
+{
+  t_dispatch_fixture fx;
+  dispatch_fixture_start(&fx);
+  lock_queue_ready(&(fx.queues->ready)); /* as compaction does */
+
+  cr_assert(send_string(OP_CPU_CYCLE_OK, "OK", fx.client_fd));
+  expect_preemption(fx.client_fd, OP_INTERRUPT, "preemption by compaction");
+
+  unlock_queue_ready(&(fx.queues->ready));
+  dispatch_fixture_end_reaping(&fx);
+}
