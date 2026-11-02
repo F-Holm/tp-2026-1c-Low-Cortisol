@@ -22,7 +22,7 @@ uint32_t mmu(t_cpu* cpu, t_context* context, uint32_t logical_address,
   t_segment* segment =
       find_segment_by_id(context->segment_table, segment_number);
 
-  if (segment == NULL)
+  if (segment == nullptr)
   {
     log_debug(cpu->logger, "Segment %u not found", segment_number);
     return INVALID_ADDRESS - 1;
@@ -45,7 +45,7 @@ uint32_t mmu(t_cpu* cpu, t_context* context, uint32_t logical_address,
 
 t_segment* find_segment_by_id(t_list* segment_table, uint32_t segment_number)
 {
-  t_segment* segment = NULL;
+  t_segment* segment = nullptr;
   for (int i = 0; i < list_size(segment_table); i++)
   {
     segment = list_get(segment_table, i);
@@ -54,7 +54,7 @@ t_segment* find_segment_by_id(t_list* segment_table, uint32_t segment_number)
       return segment;
     }
   }
-  return NULL;
+  return nullptr;
 }
 
 bool notify_seg_fault(t_cpu* cpu, uint32_t pid)
@@ -80,7 +80,7 @@ t_memory_stick_info* find_stick(t_cpu* cpu, uint32_t physical_address)
       return stick;
     }
   }
-  return NULL;
+  return nullptr;
 }
 
 void* read_memory(t_cpu* cpu, uint32_t physical_address, uint32_t size)
@@ -91,11 +91,11 @@ void* read_memory(t_cpu* cpu, uint32_t physical_address, uint32_t size)
   while (read_bytes < size)
   {
     t_memory_stick_info* stick = find_stick(cpu, physical_address + read_bytes);
-    if (stick == NULL)
+    if (stick == nullptr)
     {
       log_error(cpu->logger, "Memory Stick not found");
       free(result);
-      return NULL;
+      return nullptr;
     }
 
     uint32_t address_in_stick = (physical_address + read_bytes) - stick->offset;
@@ -114,7 +114,7 @@ void* read_memory(t_cpu* cpu, uint32_t physical_address, uint32_t size)
 
     if (!request_read(cpu, stick, address_in_stick, bytes_to_read))
     {
-      return NULL;
+      return nullptr;
     }
 
     char* partial_read = receive_read_response(cpu, stick);
@@ -124,7 +124,7 @@ void* read_memory(t_cpu* cpu, uint32_t physical_address, uint32_t size)
       log_error(cpu->logger, "Memory Stick returned no data for the read");
       free(partial_read);
       free(result);
-      return NULL;
+      return nullptr;
     }
     memcpy(result + read_bytes, partial_read, bytes_to_read);
     free(partial_read);
@@ -167,7 +167,7 @@ char* receive_read_response(t_cpu* cpu, t_memory_stick_info* stick)
                 "Read response from the Memory Stick was not correct");
 
     notify_bsod(cpu);
-    return NULL;
+    return nullptr;
   }
 }
 
@@ -180,7 +180,7 @@ bool write_memory(t_cpu* cpu, uint32_t physical_address, void* data_to_write,
   {
     t_memory_stick_info* stick =
         find_stick(cpu, physical_address + written_bytes);
-    if (stick == NULL)
+    if (stick == nullptr)
     {
       log_error(cpu->logger, "Memory Stick not found");
       return false;

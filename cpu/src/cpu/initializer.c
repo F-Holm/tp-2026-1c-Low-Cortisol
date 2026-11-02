@@ -23,7 +23,7 @@ bool check_arguments(int argc, char** argv)
 bool init_module(t_cpu* cpu, char* config_path)
 {
   cpu->config = config_create(config_path);
-  if (cpu->config == NULL)
+  if (cpu->config == nullptr)
   {
     return false;
   }
@@ -32,7 +32,7 @@ bool init_module(t_cpu* cpu, char* config_path)
       log_level_from_string(config_get_string_value(cpu->config, "LOG_LEVEL"));
 
   cpu->logger = log_create("cpu.log", cpu->id, true, log_level, false);
-  if (cpu->logger == NULL)
+  if (cpu->logger == nullptr)
   {
     return false;
   }

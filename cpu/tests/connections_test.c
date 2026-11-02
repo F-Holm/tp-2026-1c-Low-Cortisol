@@ -59,7 +59,7 @@ Test(cpu_connections, handshake_memory_stick_succeeds_when_the_peer_agrees)
 
   cr_assert(handshake_memory_stick(&cpu, client_fd));
 
-  thrd_join(stub, NULL);
+  thrd_join(stub, nullptr);
   socket_destroy(client_fd);
   socket_destroy(server_fd);
   log_destroy(cpu.logger);
@@ -79,7 +79,7 @@ Test(cpu_connections, handshake_memory_stick_fails_when_the_peer_is_not_a_stick)
 
   cr_assert_not(handshake_memory_stick(&cpu, client_fd));
 
-  thrd_join(stub, NULL);
+  thrd_join(stub, nullptr);
   socket_destroy(server_fd);
   log_destroy(cpu.logger);
 }
@@ -138,14 +138,14 @@ Test(cpu_connections, connect_to_kernel_scheduler_succeeds_when_the_peer_agrees)
   cpu.config = config_create(config_path);
 
   struct accept_and_handshake_args args = {listen_fd, MID_KERNEL_SCHEDULER,
-                                           NULL};
+                                           nullptr};
   thrd_t stub;
   thrd_create(&stub, accept_and_handshake_thread, &args);
 
   cr_assert(connect_to_kernel_scheduler(&cpu));
   cr_assert_not_null(cpu.socket_kernel_scheduler);
 
-  thrd_join(stub, NULL);
+  thrd_join(stub, nullptr);
   socket_destroy(cpu.socket_kernel_scheduler);
   socket_destroy(args.accepted_fd);
   socket_destroy(listen_fd);
@@ -170,13 +170,13 @@ Test(cpu_connections,
   cpu.logger = cpu_quiet_logger();
   cpu.config = config_create(config_path);
 
-  struct accept_and_handshake_args args = {listen_fd, MID_CPU, NULL};
+  struct accept_and_handshake_args args = {listen_fd, MID_CPU, nullptr};
   thrd_t stub;
   thrd_create(&stub, accept_and_handshake_thread, &args);
 
   cr_assert_not(connect_to_kernel_scheduler(&cpu));
 
-  thrd_join(stub, NULL);
+  thrd_join(stub, nullptr);
   socket_destroy(args.accepted_fd);
   socket_destroy(listen_fd);
   config_destroy(cpu.config);
@@ -199,14 +199,15 @@ Test(cpu_connections, connect_to_kernel_memory_succeeds_when_the_peer_agrees)
   cpu.logger = cpu_quiet_logger();
   cpu.config = config_create(config_path);
 
-  struct accept_and_handshake_args args = {listen_fd, MID_KERNEL_MEMORY, NULL};
+  struct accept_and_handshake_args args = {listen_fd, MID_KERNEL_MEMORY,
+                                           nullptr};
   thrd_t stub;
   thrd_create(&stub, accept_and_handshake_thread, &args);
 
   cr_assert(connect_to_kernel_memory(&cpu));
   cr_assert_not_null(cpu.socket_kernel_memory);
 
-  thrd_join(stub, NULL);
+  thrd_join(stub, nullptr);
   socket_destroy(cpu.socket_kernel_memory);
   socket_destroy(args.accepted_fd);
   socket_destroy(listen_fd);
@@ -258,7 +259,7 @@ Test(cpu_connections, connect_memory_stick_registers_the_new_stick)
   cpu.logger = cpu_quiet_logger();
   cpu.memory_sticks = list_create();
 
-  struct stick_stub_args args = {stick_listen_fd, NULL};
+  struct stick_stub_args args = {stick_listen_fd, nullptr};
   thrd_t stub;
   thrd_create(&stub, stick_stub_thread, &args);
 
@@ -272,7 +273,7 @@ Test(cpu_connections, connect_memory_stick_registers_the_new_stick)
   cr_assert_eq(stick->size, 1024);
   cr_assert_eq(stick->offset, 0);
 
-  thrd_join(stub, NULL);
+  thrd_join(stub, nullptr);
   socket_destroy(stick->socket_ms);
   socket_destroy(args.accepted_fd);
   socket_destroy(stick_listen_fd);

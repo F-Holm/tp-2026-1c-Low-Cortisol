@@ -33,7 +33,7 @@ void destroy_memory_stick(void* value)
 
 void close_module(t_cpu* cpu)
 {
-  if (cpu->memory_sticks != NULL)
+  if (cpu->memory_sticks != nullptr)
   {
     list_destroy_and_destroy_elements(cpu->memory_sticks, destroy_memory_stick);
   }
@@ -41,17 +41,17 @@ void close_module(t_cpu* cpu)
   socket_destroy(cpu->socket_kernel_memory);
   socket_destroy(cpu->socket_kernel_scheduler);
 
-  if (cpu->config != NULL)
+  if (cpu->config != nullptr)
   {
     config_destroy(cpu->config);
   }
 
-  if (cpu->handlers != NULL)
+  if (cpu->handlers != nullptr)
   {
     dictionary_destroy(cpu->handlers);
   }
 
-  if (cpu->logger != NULL)
+  if (cpu->logger != nullptr)
   {
     log_debug(cpu->logger, "CPU module closed");
     log_destroy(cpu->logger);

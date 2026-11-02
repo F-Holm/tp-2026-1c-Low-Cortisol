@@ -19,12 +19,12 @@
 static t_instruction make_instruction(char* name, char* p0, char* p1)
 {
   t_instruction instruction = {.name = name, .parameter_count = 0};
-  if (p0 != NULL)
+  if (p0 != nullptr)
   {
     instruction.parameters[0] = p0;
     instruction.parameter_count++;
   }
-  if (p1 != NULL)
+  if (p1 != nullptr)
   {
     instruction.parameters[1] = p1;
     instruction.parameter_count++;
@@ -38,7 +38,7 @@ Test(cpu_handlers, noop_does_nothing_and_succeeds)
   t_context* context = cpu_make_context();
   context->registers->EAX = 5;
 
-  t_instruction instruction = make_instruction("NOOP", NULL, NULL);
+  t_instruction instruction = make_instruction("NOOP", nullptr, nullptr);
   cr_assert_eq(handler_noop(&cpu, context, &instruction, 1), EB_TRUE);
   cr_assert_eq(context->registers->EAX, 5);
 
@@ -152,7 +152,7 @@ Test(cpu_handlers, mem_free_sends_the_syscall_with_a_zero_size)
   cpu.logger = cpu_quiet_logger();
   t_context* context = cpu_make_context();
 
-  t_instruction instruction = make_instruction("MEM_FREE", "3", NULL);
+  t_instruction instruction = make_instruction("MEM_FREE", "3", nullptr);
   cr_assert_eq(handler_mem_free(&cpu, context, &instruction, 7), EB_FALSE);
   cr_assert(context->segment_changed);
 
@@ -178,7 +178,7 @@ Test(cpu_handlers, sleep_sends_the_pid_and_the_blocked_time)
   cpu.logger = cpu_quiet_logger();
   t_context* context = cpu_make_context();
 
-  t_instruction instruction = make_instruction("SLEEP", "250", NULL);
+  t_instruction instruction = make_instruction("SLEEP", "250", nullptr);
   cr_assert_eq(handler_sleep(&cpu, context, &instruction, 9), EB_FALSE);
 
   cr_assert_eq(receive_op_code(peer_fd), OP_SYSCALL_SLEEP);
@@ -257,7 +257,7 @@ Test(cpu_handlers, mutex_create_sends_the_mutex_name)
   t_context* context = cpu_make_context();
 
   t_instruction instruction =
-      make_instruction("MUTEX_CREATE", "my_mutex", NULL);
+      make_instruction("MUTEX_CREATE", "my_mutex", nullptr);
   cr_assert_eq(handler_mutex_create(&cpu, context, &instruction, 1), EB_FALSE);
 
   cr_assert_eq(receive_op_code(peer_fd), OP_SYSCALL_MUTEX_CREATE);
@@ -279,7 +279,8 @@ Test(cpu_handlers, mutex_lock_sends_the_mutex_name)
   cpu.logger = cpu_quiet_logger();
   t_context* context = cpu_make_context();
 
-  t_instruction instruction = make_instruction("MUTEX_LOCK", "my_mutex", NULL);
+  t_instruction instruction =
+      make_instruction("MUTEX_LOCK", "my_mutex", nullptr);
   cr_assert_eq(handler_mutex_lock(&cpu, context, &instruction, 1), EB_FALSE);
 
   cr_assert_eq(receive_op_code(peer_fd), OP_SYSCALL_MUTEX_LOCK);
@@ -302,7 +303,7 @@ Test(cpu_handlers, mutex_unlock_sends_the_mutex_name)
   t_context* context = cpu_make_context();
 
   t_instruction instruction =
-      make_instruction("MUTEX_UNLOCK", "my_mutex", NULL);
+      make_instruction("MUTEX_UNLOCK", "my_mutex", nullptr);
   cr_assert_eq(handler_mutex_unlock(&cpu, context, &instruction, 1), EB_FALSE);
 
   cr_assert_eq(receive_op_code(peer_fd), OP_SYSCALL_MUTEX_UNLOCK);
@@ -348,7 +349,7 @@ Test(cpu_handlers, exit_sends_the_process_finished_message)
   cpu.logger = cpu_quiet_logger();
   t_context* context = cpu_make_context();
 
-  t_instruction instruction = make_instruction("EXIT", NULL, NULL);
+  t_instruction instruction = make_instruction("EXIT", nullptr, nullptr);
   cr_assert_eq(handler_exit(&cpu, context, &instruction, 1), EB_FALSE);
 
   cr_assert_eq(receive_op_code(peer_fd), OP_SYSCALL_EXIT);
@@ -386,7 +387,7 @@ Test(cpu_handlers, mov_in_reads_a_value_from_memory_into_a_register)
   cr_assert(send_buffer(OP_MEMORY_STICK_READ_DONE, &stored_value,
                         sizeof(stored_value), stick_server_fd));
 
-  t_instruction instruction = make_instruction("MOV_IN", "EAX", NULL);
+  t_instruction instruction = make_instruction("MOV_IN", "EAX", nullptr);
   cr_assert_eq(handler_mov_in(&cpu, context, &instruction, 1), EB_TRUE);
   cr_assert_eq(get_register(context->registers, "EAX"), 55);
 
@@ -423,7 +424,7 @@ Test(cpu_handlers, mov_out_writes_a_register_value_to_memory)
    * always reads an op code AND a string, whatever that op code is. */
   cr_assert(send_string(OP_MEMORY_STICK_WRITE_DONE, "ok", stick_server_fd));
 
-  t_instruction instruction = make_instruction("MOV_OUT", "EAX", NULL);
+  t_instruction instruction = make_instruction("MOV_OUT", "EAX", nullptr);
   cr_assert_eq(handler_mov_out(&cpu, context, &instruction, 1), EB_TRUE);
 
   cr_assert_eq(receive_op_code(stick_server_fd), OP_MEMORY_STICK_WRITE);
@@ -454,7 +455,7 @@ Test(cpu_handlers, copy_mem_short_circuits_when_the_destination_faults)
   context->registers->DI = 90; /* logical address past segment 0's range */
   set_register(context->registers, "EAX", 4);
 
-  t_instruction instruction = make_instruction("COPY_MEM", "EAX", NULL);
+  t_instruction instruction = make_instruction("COPY_MEM", "EAX", nullptr);
   /* dst_addr's mmu() call reports a segmentation fault (segment 0 doesn't
    * cover offset 90), so the handler returns without ever touching src or
    * dst memory. */

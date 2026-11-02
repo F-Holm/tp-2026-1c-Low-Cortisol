@@ -96,7 +96,7 @@ bool connect_memory_stick(t_cpu* cpu)
 
   new_socket = socket_create(SOCKET_KIND_CLIENT, stick_ip, stick_port, false);
 
-  if (new_socket == NULL)
+  if (new_socket == nullptr)
   {
     log_warning(cpu->logger, "Could not connect to the Memory Stick");
     return false;
