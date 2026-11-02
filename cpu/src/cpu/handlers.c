@@ -156,6 +156,8 @@ t_extended_bool handler_copy_mem(t_cpu* cpu, t_context* context,
     return EB_ERROR;
   }
 
+  // Memory holds raw bytes, not C strings: the logs below print exactly
+  // byte_count of them instead of reading on until some '\0'.
   void* read_bytes = read_memory(cpu, src_addr, byte_count);
 
   if (!read_bytes)
@@ -164,8 +166,8 @@ t_extended_bool handler_copy_mem(t_cpu* cpu, t_context* context,
   }
 
   log_info(cpu->logger,
-           "PID: %u - Action: READ - Physical Address: %u - Value: %s", pid,
-           src_addr, (char*)read_bytes);
+           "PID: %u - Action: READ - Physical Address: %u - Value: %.*s", pid,
+           src_addr, (int)byte_count, (char*)read_bytes);
 
   if (!write_memory(cpu, dst_addr, read_bytes, byte_count))
   {
@@ -174,8 +176,8 @@ t_extended_bool handler_copy_mem(t_cpu* cpu, t_context* context,
   }
 
   log_info(cpu->logger,
-           "PID: %u - Action: WRITE - Physical Address: %u - Value: %s", pid,
-           dst_addr, (char*)read_bytes);
+           "PID: %u - Action: WRITE - Physical Address: %u - Value: %.*s", pid,
+           dst_addr, (int)byte_count, (char*)read_bytes);
 
   free(read_bytes);
   return EB_TRUE;
