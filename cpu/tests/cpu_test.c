@@ -1,7 +1,6 @@
 #include "cpu/cpu.h"
 
 #include <criterion/criterion.h>
-#include <poll.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -837,13 +836,6 @@ Test(cpu_cpu, run_instruction_loop_stops_when_the_cycle_fails)
   cycle_fixture_end(&fx);
 }
 
-/* Whether @p socket has bytes waiting to be read, without blocking. */
-static bool has_pending_data(t_socket* socket)
-{
-  struct pollfd pfd = {.fd = socket->handle, .events = POLLIN};
-  return poll(&pfd, 1, 0) == 1 && (pfd.revents & POLLIN);
-}
-
 Test(cpu_cpu, a_segmentation_fault_is_not_followed_by_a_cycle_confirmation)
 {
   t_cycle_fixture fx;
@@ -863,7 +855,7 @@ Test(cpu_cpu, a_segmentation_fault_is_not_followed_by_a_cycle_confirmation)
    * OP_CPU_CYCLE_OK would be read as the next process's first message */
   cr_assert_eq(receive_op_code(fx.sched_peer), OP_SEG_FAULT);
   free(receive_string(fx.sched_peer));
-  cr_assert_not(has_pending_data(fx.sched_peer));
+  cr_assert_not(socket_has_pending_data(fx.sched_peer));
 
   cycle_fixture_end(&fx);
 }
