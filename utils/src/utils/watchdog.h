@@ -10,9 +10,9 @@
 /**
  * @file
  * @brief Generic connection-check (watchdog) thread: periodically pings every
- *        socket in a list to detect a dropped connection. Generalizes the
- *        pattern duplicated today by kernel_memory's stick watchdog and
- *        kernel_scheduler's Kernel Memory connection-check thread.
+ *        socket in a list to detect a dropped connection. Shared by
+ *        kernel_memory's stick watchdog and kernel_scheduler's Kernel Memory
+ *        connection-check thread.
  *
  * Each ping locks the target t_socket's own mutex for its duration (see
  * socket_mutex_lock/unlock in sockets.h), so a ping never races a real
