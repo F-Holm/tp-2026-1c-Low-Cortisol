@@ -227,3 +227,22 @@ Test(ks_ready_queue, blocking_take_waits_out_a_preemption_lock)
   destroy_pcb(pcb);
   destroy_ready_queue(&ready);
 }
+
+Test(ks_ready_queue, get_algorithm_reports_each_level_or_the_single_queue)
+{
+  t_ready_queue single;
+  init_ready_queue(&single, SA_FIFO, nullptr);
+  cr_assert_eq(get_algorithm_ready_queue(&single, 0), SA_FIFO);
+  cr_assert_eq(get_algorithm_ready_queue(&single, 7), SA_FIFO,
+               "a single level ignores the priority");
+  destroy_ready_queue(&single);
+
+  t_list* algos = levels(2, SA_FIFO);
+  *(int*)list_get(algos, 1) = SA_RR;
+  t_ready_queue multi;
+  init_ready_queue(&multi, SA_MULTILEVEL_QUEUES, algos);
+  cr_assert_eq(get_algorithm_ready_queue(&multi, 0), SA_FIFO);
+  cr_assert_eq(get_algorithm_ready_queue(&multi, 1), SA_RR);
+  destroy_ready_queue(&multi);
+  list_destroy_and_destroy_elements(algos, free);
+}
