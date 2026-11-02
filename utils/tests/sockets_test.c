@@ -3,7 +3,10 @@
 #include <criterion/criterion.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <string.h>
 #include <threads.h>
+
+#include "utils/time.h"
 
 TestSuite(sockets, .timeout = 5.0);
 
@@ -238,4 +241,56 @@ Test(sockets, create_server_on_a_port_already_listened_on_fails)
   cr_assert_null(socket_create(SOCKET_KIND_SERVER, nullptr, port, false));
 
   socket_destroy(first);
+}
+
+Test(sockets, has_pending_data_reports_unread_bytes_without_consuming_them)
+{
+  t_socket* server;
+  t_socket* client = connected_pair(&server, false);
+
+  cr_assert_not(socket_has_pending_data(server), "nothing sent yet");
+
+  cr_assert(socket_send(client, "xy", 2));
+  /* loopback delivery is not instantaneous: wait for it, bounded */
+  for (int waited = 0; waited < 1000 && !socket_has_pending_data(server);
+       waited += 5)
+  {
+    time_sleep_ms(5);
+  }
+  cr_assert(socket_has_pending_data(server));
+  cr_assert(socket_has_pending_data(server), "peeking must not consume");
+
+  char received[2];
+  cr_assert(socket_receive(server, received, 2));
+  cr_assert_eq(memcmp(received, "xy", 2), 0);
+  cr_assert_not(socket_has_pending_data(server), "everything was read");
+
+  socket_destroy(client);
+  socket_destroy(server);
+}
+
+Test(sockets, has_pending_data_is_false_once_the_peer_closed_with_nothing_left)
+{
+  t_socket* server;
+  t_socket* client = connected_pair(&server, false);
+
+  socket_destroy(client);
+  time_sleep_ms(20);
+  cr_assert_not(socket_has_pending_data(server));
+
+  socket_destroy(server);
+}
+
+Test(sockets, has_pending_data_is_false_on_a_null_or_closed_socket)
+{
+  t_socket* server;
+  t_socket* client = connected_pair(&server, false);
+  cr_assert(socket_send(client, "x", 1));
+
+  cr_assert_not(socket_has_pending_data(nullptr));
+  socket_close(server);
+  cr_assert_not(socket_has_pending_data(server));
+
+  socket_destroy(client);
+  socket_destroy(server);
 }

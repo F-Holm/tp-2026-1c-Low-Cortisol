@@ -75,6 +75,14 @@ bool socket_send(t_socket* socket, const void* data, int size);
  * occurred. */
 bool socket_receive(t_socket* socket, void* data, int size);
 
+/**
+ * @brief Whether at least one byte is waiting to be read from @p socket right
+ *        now. Never blocks and consumes nothing.
+ * @return false if @p socket is nullptr/closed, nothing has arrived yet, or
+ *         the peer closed its end with nothing left unread.
+ */
+bool socket_has_pending_data(t_socket* socket);
+
 /** @brief The local port @p socket is bound to (e.g. after
  * SOCKET_PORT_EPHEMERAL). @return The port, or -1 on failure. */
 int socket_get_local_port(t_socket* socket);

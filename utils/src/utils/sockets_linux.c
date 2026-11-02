@@ -52,6 +52,18 @@ bool socket_receive(t_socket* socket, void* data, int size)
   return recv(socket->handle, data, size, MSG_WAITALL) > 0;
 }
 
+bool socket_has_pending_data(t_socket* socket)
+{
+  if (socket == nullptr || !socket_handle_is_valid(socket->handle))
+  {
+    return false;
+  }
+  // MSG_PEEK leaves the byte queued; MSG_DONTWAIT makes "nothing yet" an
+  // EAGAIN instead of a wait. 0 means the peer closed with nothing pending.
+  char byte;
+  return recv(socket->handle, &byte, 1, MSG_PEEK | MSG_DONTWAIT) > 0;
+}
+
 bool socket_get_peer_ip(t_socket* socket, char* ip, int size)
 {
   if (socket == nullptr || !socket_handle_is_valid(socket->handle))
