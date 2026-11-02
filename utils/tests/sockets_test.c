@@ -220,3 +220,22 @@ Test(sockets, get_local_port_fails_on_a_null_or_closed_socket)
 
   socket_destroy(listener);
 }
+
+Test(sockets, create_server_with_an_invalid_service_fails)
+{
+  cr_assert_null(
+      socket_create(SOCKET_KIND_SERVER, nullptr, "not-a-port", false));
+}
+
+Test(sockets, create_server_on_a_port_already_listened_on_fails)
+{
+  t_socket* first =
+      socket_create(SOCKET_KIND_SERVER, nullptr, SOCKET_PORT_EPHEMERAL, false);
+  cr_assert_not_null(first);
+  char port[16];
+  snprintf(port, sizeof(port), "%d", socket_get_local_port(first));
+
+  cr_assert_null(socket_create(SOCKET_KIND_SERVER, nullptr, port, false));
+
+  socket_destroy(first);
+}
