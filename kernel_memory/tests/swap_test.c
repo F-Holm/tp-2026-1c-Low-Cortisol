@@ -290,3 +290,23 @@ Test(km_swap, suspend_process_tolerates_an_unexpected_swap_write_reply)
 
   destroy_swap_fixture(&f);
 }
+
+Test(km_swap, resume_process_fails_when_the_block_cannot_be_written_back)
+{
+  t_swap_fixture f = make_swap_fixture(1000, 10, 10, 1000);
+  list_add(f.memory->holes, km_make_hole(0, 1000));
+  t_block_data* block = park_one_block(&f, 10);
+
+  cr_assert(send_buffer(OP_DISK_READ_DONE, "0123456789", 10, f.swap_server_fd));
+  cr_assert(send_string(OP_ID_CPU, "not a write ack", f.stick_server_fd));
+
+  resume_process(1, f.scheduler_data);
+
+  /* the stick's failure is reported first, then the resume itself fails */
+  cr_assert_eq(receive_op_code(f.scheduler_server_fd), OP_MEMORY_CORRUPTED);
+  free(receive_string(f.scheduler_server_fd));
+  assert_resume_failed(&f);
+  cr_assert_eq(block->pid, 1, "the block stays in swap");
+
+  destroy_swap_fixture(&f);
+}

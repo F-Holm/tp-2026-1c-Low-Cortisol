@@ -236,11 +236,21 @@ static bool resume_block(t_block_data* block, uint32_t pid, int block_size,
   int write_address = compute_address_with_offset(
       block_size, scheduler_data->main_memory, pid, block);
 
-  write_to_sticks(pid, write_address, real_bytes, content,
-                  scheduler_data->connected_sticks,
-                  scheduler_data->socket_list_mutex, scheduler_data->logger,
-                  scheduler_data->socket_scheduler);
+  bool written = write_to_sticks(
+      pid, write_address, real_bytes, content, scheduler_data->connected_sticks,
+      scheduler_data->socket_list_mutex, scheduler_data->logger,
+      scheduler_data->socket_scheduler);
   free(content);
+  if (!written)
+  {
+    // The block stays in swap: its content never made it back to memory.
+    log_warning(scheduler_data->logger,
+                "Could not restore block %d of PID %d to memory",
+                block->block_number, pid);
+    send_string(OP_RESUME_SUSPENSION_FAILED, "Error writing to the sticks",
+                scheduler_data->socket_scheduler);
+    return false;
+  }
   if (block->block_number != remove_block_from_swap(block->block_number,
                                                     swap_data,
                                                     scheduler_data->logger))
