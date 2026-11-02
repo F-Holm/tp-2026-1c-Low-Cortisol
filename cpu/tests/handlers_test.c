@@ -3,6 +3,7 @@
 #include <criterion/criterion.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "cpu/cpu.h"
 #include "cpu/registers.h"
@@ -468,4 +469,242 @@ Test(cpu_handlers, copy_mem_short_circuits_when_the_destination_faults)
   socket_destroy(client_fd);
   socket_destroy(peer_fd);
   log_destroy(cpu.logger);
+}
+
+/* ── memory-instruction failure paths and COPY_MEM ─────────────────────── */
+
+/* A cpu with a Kernel Scheduler peer and one stick covering [0, 100), running
+ * a process whose segment 0 maps to [0, 32) and segment 1 to [32, 64). Segment
+ * 2 maps to [200, 232): valid for the MMU, but no stick backs it. */
+typedef struct
+{
+  t_cpu cpu;
+  t_socket* scheduler_peer;
+  t_socket* km_peer;
+  t_socket* stick_peer;
+  t_context* context;
+} t_handler_fixture;
+
+static void handler_fixture_start(t_handler_fixture* fx)
+{
+  memset(fx, 0, sizeof(*fx));
+  fx->cpu.logger = cpu_quiet_logger();
+  fx->cpu.max_segment_size = 100;
+  fx->cpu.socket_kernel_scheduler = cpu_connected_pair(&fx->scheduler_peer);
+  fx->cpu.socket_kernel_memory = cpu_connected_pair(&fx->km_peer);
+  fx->cpu.memory_sticks = list_create();
+  t_memory_stick_info* stick = cpu_make_stick(0, 100);
+  stick->socket_ms = cpu_connected_pair(&fx->stick_peer);
+  list_add(fx->cpu.memory_sticks, stick);
+
+  fx->context = cpu_make_context();
+  list_add(fx->context->segment_table, cpu_make_segment(0, 0, 32));
+  list_add(fx->context->segment_table, cpu_make_segment(1, 32, 32));
+  list_add(fx->context->segment_table, cpu_make_segment(2, 200, 32));
+}
+
+static void handler_fixture_end(t_handler_fixture* fx)
+{
+  cpu_destroy_context(fx->context);
+  t_memory_stick_info* stick = list_get(fx->cpu.memory_sticks, 0);
+  socket_destroy(stick->socket_ms);
+  socket_destroy(fx->stick_peer);
+  list_destroy_and_destroy_elements(fx->cpu.memory_sticks, free);
+  socket_destroy(fx->cpu.socket_kernel_scheduler);
+  socket_destroy(fx->scheduler_peer);
+  socket_destroy(fx->cpu.socket_kernel_memory);
+  socket_destroy(fx->km_peer);
+  log_destroy(fx->cpu.logger);
+}
+
+static void assert_seg_fault_sent(t_handler_fixture* fx)
+{
+  cr_assert_eq(receive_op_code(fx->scheduler_peer), OP_SEG_FAULT);
+  free(receive_string(fx->scheduler_peer));
+}
+
+/* Logical addresses (max_segment_size = 100): segment * 100 + offset. */
+#define SEG0_OFFSET(o) (0 + (o))
+#define SEG1_OFFSET(o) (100 + (o))
+#define SEG2_OFFSET(o) (200 + (o))
+#define MISSING_SEGMENT 300
+#define PAST_SEG0_END SEG0_OFFSET(30) /* 30 + 4 bytes > 32 */
+
+Test(cpu_handlers, mov_in_stops_the_process_on_a_segmentation_fault)
+{
+  t_handler_fixture fx;
+  handler_fixture_start(&fx);
+  fx.context->registers->SI = PAST_SEG0_END;
+
+  t_instruction instruction = make_instruction("MOV_IN", "EAX", nullptr);
+  cr_assert_eq(handler_mov_in(&fx.cpu, fx.context, &instruction, 1), EB_FALSE);
+  assert_seg_fault_sent(&fx);
+
+  handler_fixture_end(&fx);
+}
+
+Test(cpu_handlers, mov_in_fails_on_an_unknown_segment)
+{
+  t_handler_fixture fx;
+  handler_fixture_start(&fx);
+  fx.context->registers->SI = MISSING_SEGMENT;
+
+  t_instruction instruction = make_instruction("MOV_IN", "EAX", nullptr);
+  cr_assert_eq(handler_mov_in(&fx.cpu, fx.context, &instruction, 1), EB_ERROR);
+
+  handler_fixture_end(&fx);
+}
+
+Test(cpu_handlers, mov_in_fails_when_the_read_fails)
+{
+  t_handler_fixture fx;
+  handler_fixture_start(&fx);
+  fx.context->registers->SI = SEG2_OFFSET(0); /* no stick backs it */
+
+  t_instruction instruction = make_instruction("MOV_IN", "EAX", nullptr);
+  cr_assert_eq(handler_mov_in(&fx.cpu, fx.context, &instruction, 1), EB_ERROR);
+
+  handler_fixture_end(&fx);
+}
+
+Test(cpu_handlers, mov_out_stops_the_process_on_a_segmentation_fault)
+{
+  t_handler_fixture fx;
+  handler_fixture_start(&fx);
+  fx.context->registers->DI = PAST_SEG0_END;
+
+  t_instruction instruction = make_instruction("MOV_OUT", "EAX", nullptr);
+  cr_assert_eq(handler_mov_out(&fx.cpu, fx.context, &instruction, 1), EB_FALSE);
+  assert_seg_fault_sent(&fx);
+
+  handler_fixture_end(&fx);
+}
+
+Test(cpu_handlers, mov_out_fails_on_an_unknown_segment)
+{
+  t_handler_fixture fx;
+  handler_fixture_start(&fx);
+  fx.context->registers->DI = MISSING_SEGMENT;
+
+  t_instruction instruction = make_instruction("MOV_OUT", "EAX", nullptr);
+  cr_assert_eq(handler_mov_out(&fx.cpu, fx.context, &instruction, 1), EB_ERROR);
+
+  handler_fixture_end(&fx);
+}
+
+Test(cpu_handlers, mov_out_fails_when_the_write_fails)
+{
+  t_handler_fixture fx;
+  handler_fixture_start(&fx);
+  fx.context->registers->DI = SEG2_OFFSET(0); /* no stick backs it */
+
+  t_instruction instruction = make_instruction("MOV_OUT", "EAX", nullptr);
+  cr_assert_eq(handler_mov_out(&fx.cpu, fx.context, &instruction, 1), EB_ERROR);
+
+  handler_fixture_end(&fx);
+}
+
+Test(cpu_handlers, copy_mem_copies_the_bytes_from_si_to_di)
+{
+  t_handler_fixture fx;
+  handler_fixture_start(&fx);
+  fx.context->registers->SI = SEG0_OFFSET(4); /* physical 4 */
+  fx.context->registers->DI = SEG1_OFFSET(0); /* physical 32 */
+  set_register(fx.context->registers, "EAX", 4);
+
+  /* Both stick replies are queued up front: the read, then the write. */
+  cr_assert(send_string(OP_MEMORY_STICK_READ_DONE, "WXY", fx.stick_peer));
+  cr_assert(send_string(OP_MEMORY_STICK_WRITE_DONE, "ok", fx.stick_peer));
+
+  t_instruction instruction = make_instruction("COPY_MEM", "EAX", nullptr);
+  cr_assert_eq(handler_copy_mem(&fx.cpu, fx.context, &instruction, 1), EB_TRUE);
+
+  cr_assert_eq(receive_op_code(fx.stick_peer), OP_MEMORY_STICK_READ);
+  t_list* read = receive_packet(fx.stick_peer);
+  cr_assert_eq(*(int*)list_get(read, 0), 4);
+  cr_assert_eq(*(int*)list_get(read, 1), 4);
+  list_destroy_and_destroy_elements(read, free);
+
+  cr_assert_eq(receive_op_code(fx.stick_peer), OP_MEMORY_STICK_WRITE);
+  t_list* write = receive_packet(fx.stick_peer);
+  cr_assert_eq(*(int*)list_get(write, 0), 32);
+  cr_assert_eq(memcmp(list_get(write, 1), "WXY", 4), 0);
+  list_destroy_and_destroy_elements(write, free);
+
+  handler_fixture_end(&fx);
+}
+
+Test(cpu_handlers, copy_mem_stops_the_process_when_the_source_faults)
+{
+  t_handler_fixture fx;
+  handler_fixture_start(&fx);
+  fx.context->registers->SI = PAST_SEG0_END;
+  fx.context->registers->DI = SEG1_OFFSET(0);
+
+  t_instruction instruction = make_instruction("COPY_MEM", "EAX", nullptr);
+  cr_assert_eq(handler_copy_mem(&fx.cpu, fx.context, &instruction, 1),
+               EB_FALSE);
+  assert_seg_fault_sent(&fx);
+
+  handler_fixture_end(&fx);
+}
+
+Test(cpu_handlers, copy_mem_fails_when_the_source_segment_is_unknown)
+{
+  t_handler_fixture fx;
+  handler_fixture_start(&fx);
+  fx.context->registers->SI = MISSING_SEGMENT;
+  fx.context->registers->DI = SEG1_OFFSET(0);
+
+  t_instruction instruction = make_instruction("COPY_MEM", "EAX", nullptr);
+  cr_assert_eq(handler_copy_mem(&fx.cpu, fx.context, &instruction, 1),
+               EB_ERROR);
+
+  handler_fixture_end(&fx);
+}
+
+Test(cpu_handlers, copy_mem_fails_when_the_destination_segment_is_unknown)
+{
+  t_handler_fixture fx;
+  handler_fixture_start(&fx);
+  fx.context->registers->SI = SEG0_OFFSET(0);
+  fx.context->registers->DI = MISSING_SEGMENT;
+
+  t_instruction instruction = make_instruction("COPY_MEM", "EAX", nullptr);
+  cr_assert_eq(handler_copy_mem(&fx.cpu, fx.context, &instruction, 1),
+               EB_ERROR);
+
+  handler_fixture_end(&fx);
+}
+
+Test(cpu_handlers, copy_mem_fails_when_the_read_fails)
+{
+  t_handler_fixture fx;
+  handler_fixture_start(&fx);
+  fx.context->registers->SI = SEG2_OFFSET(0); /* no stick backs it */
+  fx.context->registers->DI = SEG1_OFFSET(0);
+  set_register(fx.context->registers, "EAX", 4);
+
+  t_instruction instruction = make_instruction("COPY_MEM", "EAX", nullptr);
+  cr_assert_eq(handler_copy_mem(&fx.cpu, fx.context, &instruction, 1),
+               EB_ERROR);
+
+  handler_fixture_end(&fx);
+}
+
+Test(cpu_handlers, copy_mem_fails_when_the_write_fails)
+{
+  t_handler_fixture fx;
+  handler_fixture_start(&fx);
+  fx.context->registers->SI = SEG0_OFFSET(0);
+  fx.context->registers->DI = SEG2_OFFSET(0); /* no stick backs it */
+  set_register(fx.context->registers, "EAX", 4);
+
+  cr_assert(send_string(OP_MEMORY_STICK_READ_DONE, "abc", fx.stick_peer));
+
+  t_instruction instruction = make_instruction("COPY_MEM", "EAX", nullptr);
+  cr_assert_eq(handler_copy_mem(&fx.cpu, fx.context, &instruction, 1),
+               EB_ERROR);
+
+  handler_fixture_end(&fx);
 }
